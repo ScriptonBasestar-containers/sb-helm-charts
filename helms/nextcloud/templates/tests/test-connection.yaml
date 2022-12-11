@@ -1,15 +1,23 @@
 apiVersion: v1
 kind: Pod
 metadata:
-  name: "{{ include "nextcloud.fullname" . }}-test-connection"
+  name: "{{ include "nextcloud.name" . }}-test-connection"
   labels:
+    app.kubernetes.io/component: app
+{{/*    app.kubernetes.io/component: {{ .Values.controller.component }}*/}}
     {{- include "nextcloud.labels" . | nindent 4 }}
+    {{- range $key, $value := .Values.service.additionalLabels }}
+    {{ $key }}: {{ $value | quote }}
+    {{- end }}
   annotations:
     "helm.sh/hook": test
+{{- with .Values.service.additionalAnnotations }}
+    {{- toYaml . | nindent 4 }}
+{{- end }}
 spec:
   containers:
     - name: wget
       image: busybox
       command: ['wget']
-      args: ['{{ include "nextcloud.fullname" . }}:{{ .Values.service.port }}']
+      args: ['{{ include "nextcloud.name" . }}:{{ .Values.service.port }}']
   restartPolicy: Never

@@ -1,61 +1,95 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: {{ include "nextcloud.fullname" . }}
+  name: {{ template "nextcloud.name" . }}-deployment
   labels:
+    app.kubernetes.io/component: app
+{{/*    app.kubernetes.io/component: {{ .Values.controller.component }}*/}}
     {{- include "nextcloud.labels" . | nindent 4 }}
+    {{- range $key, $value := .Values.deployment.additionalLabels }}
+    {{ $key }}: {{ $value | quote }}
+    {{- end }}
+{{- with .Values.deployment.additionalAnnotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+{{- end }}
 spec:
-  {{- if not .Values.autoscaling.enabled }}
-  replicas: {{ .Values.replicaCount }}
-  {{- end }}
   selector:
     matchLabels:
+      app.kubernetes.io/component: {{ .Values.deployment.component }}
       {{- include "nextcloud.selectorLabels" . | nindent 6 }}
+  strategy:
+    type: Recreate
+  replicas: {{ .Values.deployment.replicaCount }}
   template:
     metadata:
-      {{- with .Values.podAnnotations }}
+      {{- with .Values.deployment.podAnnotations }}
       annotations:
         {{- toYaml . | nindent 8 }}
       {{- end }}
       labels:
         {{- include "nextcloud.selectorLabels" . | nindent 8 }}
+        app.kubernetes.io/component: {{ .Values.deployment.component }}
+        {{- range $key, $value := .Values.deployment.podLabels }}
+        {{ $key }}: {{ $value | quote }}
+        {{- end }}
     spec:
-      {{- with .Values.imagePullSecrets }}
+      {{- with .Values.deployment.imagePullSecrets }}
       imagePullSecrets:
         {{- toYaml . | nindent 8 }}
       {{- end }}
       serviceAccountName: {{ include "nextcloud.serviceAccountName" . }}
-      securityContext:
-        {{- toYaml .Values.podSecurityContext | nindent 8 }}
       containers:
-        - name: {{ .Chart.Name }}
-          securityContext:
-            {{- toYaml .Values.securityContext | nindent 12 }}
-          image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
-          imagePullPolicy: {{ .Values.image.pullPolicy }}
+        - name: nextcloud
+          image: "{{ .Values.image.nextcloud.registry }}/{{ .Values.image.nextcloud.repository }}:{{ default .Chart.AppVersion .Values.image.nextcloud.tag }}"
+          imagePullPolicy: {{ .Values.image.nextcloud.pullPolicy }}
+          args:
+        {{- if gt .Values.deployment.replicaCount 1.0 }}
+            - --leader-elect
+        {{- end }}
+        {{- with .Values.deployment.extraArgs }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+        {{- with .Values.deployment.extraEnv }}
+          env:
+          {{- toYaml . | nindent 8 }}
+        {{- end }}
           ports:
-            - name: http
-              containerPort: 80
-              protocol: TCP
+            - containerPort: 8090
+              name: metrics
+            - containerPort: 8080
+              name: healthz
           livenessProbe:
-            httpGet:
-              path: /
-              port: http
+          {{- toYaml .Values.deployment.livenessProbe | nindent 12 }}
           readinessProbe:
-            httpGet:
-              path: /
-              port: http
+          {{- toYaml .Values.deployment.readinessProbe | nindent 12 }}
+          securityContext:
+          {{- toYaml .Values.deployment.securityContext | nindent 12 }}
           resources:
-            {{- toYaml .Values.resources | nindent 12 }}
-      {{- with .Values.nodeSelector }}
+          {{- toYaml .Values.deployment.resources | nindent 12 }}
+      {{- with .Values.deployment.extraContainers }}
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.deployment.initContainers }}
+      initContainers:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- if .Values.deployment.nodeSelector }}
       nodeSelector:
-        {{- toYaml . | nindent 8 }}
+        {{- toYaml .Values.deployment.nodeSelector | nindent 8 }}
       {{- end }}
-      {{- with .Values.affinity }}
-      affinity:
-        {{- toYaml . | nindent 8 }}
+      {{- if .Values.deployment.podSecurityContext }}
+      securityContext:
+        {{- toYaml .Values.deployment.podSecurityContext | nindent 8 }}
       {{- end }}
-      {{- with .Values.tolerations }}
+      {{- if .Values.deployment.tolerations }}
       tolerations:
-        {{- toYaml . | nindent 8 }}
+        {{- toYaml .Values.deployment.tolerations | nindent 8 }}
+      {{- end }}
+      {{- if .Values.deployment.affinity }}
+      affinity:
+        {{- toYaml .Values.deployment.affinity | nindent 8 }}
+      {{- end }}
+      {{- with .Values.deployment.priorityClassName }}
+      priorityClassName: {{ . }}
       {{- end }}

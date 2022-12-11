@@ -1,82 +1,97 @@
-# Default values for nextcloud.
-# This is a YAML-formatted file.
-# Declare variables to be passed into your templates.
-
-replicaCount: 1
-
 image:
-  repository: nginx
-  pullPolicy: IfNotPresent
-  # Overrides the image tag whose default is the chart appVersion.
-  tag: ""
+  nextcloud:
+    registry: docker.io
+    repository: linuxserver/nextcloud
+    tag: 25.0.2
+    pullPolicy: IfNotPresent
+  initContainers:
+    - name: volume-permissions
+      image: busybox
+      imagePullPolicy: Always
+      commands:
+        - ['sh', '-c', 'chown -R 1001:1001 /data']
+        - ['sh', '-c', 'chown -R 1001:1001 /config']
+      securityContext:
+          runAsUser: 0
 
-imagePullSecrets: []
-nameOverride: ""
-fullnameOverride: ""
+persistence:
+  enabled: true
+  data:
+    enabled: true
+    accessMode: ReadWriteOnce
+    size: 100Gi
+    storageClass: "local-path"
+  additionalLabels: {}
+  additionalAnnotations: {}
 
-serviceAccount:
-  # Specifies whether a service account should be created
-  create: true
-  # Annotations to add to the service account
-  annotations: {}
-  # The name of the service account to use.
-  # If not set and create is true, a name is generated using the fullname template
-  name: ""
-
-podAnnotations: {}
-
-podSecurityContext: {}
-  # fsGroup: 2000
-
-securityContext: {}
-  # capabilities:
-  #   drop:
-  #   - ALL
-  # readOnlyRootFilesystem: true
-  # runAsNonRoot: true
-  # runAsUser: 1000
+#volumes:
+#  - name: nextcloud-data-vl
+#    mountPath: /data
+#  - name: nextcloud-config-vl
+#    mountPath: /config
 
 service:
   type: ClusterIP
-  port: 80
+  port:
+    port: 80
+    targetPort: 80
+    protocol: TCP
+    name: http
+    nodePort: 30080
+  additionalLabels: {}
+  additionalAnnotations: {}
 
-ingress:
+deployment:
+  enabled: true
+  replicaCount: 1
+  extraArgs: []
+  extraEnv: []
+  readinessProbe: {}
+  livenessProbe: {}
+  resources: {}
+  securityContext:
+    runAsUser: "0"
+    runAsGroup: "0"
+    runAsNonRoot: true
+    readOnlyRootFilesystem: true
+  extraContainers: []
+  initContainers: []
+  imagePullSecrets: []
+  priorityClassName: ""
+  strategy:
+    type: Recreate
+  component : nextcloud
+  podAnnotations: {}
+  podLabels: {}
+  podSecurityContext: {}
+  nodeSelector: {}
+  tolerations: []
+  affinity: {}
+  additionalLabels: {}
+  additionalAnnotations: {}
+
+rbac:
   enabled: false
-  className: ""
-  annotations: {}
-    # kubernetes.io/ingress.class: nginx
-    # kubernetes.io/tls-acme: "true"
-  hosts:
-    - host: chart-example.local
-      paths:
-        - path: /
-          pathType: ImplementationSpecific
-  tls: []
-  #  - secretName: chart-example-tls
-  #    hosts:
-  #      - chart-example.local
+  serviceAccount:
+    create: false
+    name: nextcloud-serviceaccount
+    annotations: {}
 
-resources: {}
-  # We usually recommend not to specify default resources and to leave this as a conscious
-  # choice for the user. This also increases chances charts run on environments with little
-  # resources, such as Minikube. If you do want to specify resources, uncomment the following
-  # lines, adjust them as necessary, and remove the curly braces after 'resources:'.
-  # limits:
-  #   cpu: 100m
-  #   memory: 128Mi
-  # requests:
-  #   cpu: 100m
-  #   memory: 128Mi
+config:
+  nextcloud:
+    host: nextcloud.scriptonbasestar.net
+    defaultUsername: admin
+    defaultPassword: admin
+    mail:
+      enabled: false
+      fromAddress: nextcloud
+      domain: domain.com
+      smtp:
+        host: domain.com
+        secure: ssl
+        port: 465
+        authtype: LOGIN
+        name: user
+    configs: []
+    defaultConfigs: []
 
-autoscaling:
-  enabled: false
-  minReplicas: 1
-  maxReplicas: 100
-  targetCPUUtilizationPercentage: 80
-  # targetMemoryUtilizationPercentage: 80
-
-nodeSelector: {}
-
-tolerations: []
-
-affinity: {}
