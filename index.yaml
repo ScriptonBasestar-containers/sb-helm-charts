@@ -1,10 +1,10 @@
 apiVersion: v1
 entries:
-  mychart:
+  nextcloud:
   - apiVersion: v1
     appVersion: "1.0"
     description: A Helm chart for my application
     name: mychart
     version: 0.1.0
     urls:
-    - https://scriptonbasestar-docker.github.io/sb-helm-charts/charts/mychart-0.1.0.tgz
+    - charts/nextcloud-0.1.0.tgz

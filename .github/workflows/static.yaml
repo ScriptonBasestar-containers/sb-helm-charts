@@ -37,23 +37,17 @@ jobs:
       # build helm chart
       - name: Install Helm
         uses: azure/setup-helm@v3
-      - name: Run chart-releaser
-        uses: helm/chart-releaser-action@v1.5.0
-        with:
-          charts_dir: helms
-          # config: cr.yaml
-          # charts_repo_url: xxxxxx
-        env:
-          CR_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
+      
+      - run: helm package helms/nextcloud --destination repo/
 
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v1
         with:
           # Upload entire repository
           path: '.'
-      - name: Deploy to GitHub Pages
-        id: deployment
-        uses: actions/deploy-pages@v2
+      # - name: Deploy to GitHub Pages
+      #   id: deployment
+      #   uses: actions/deploy-pages@v2
       # - name: Deploy artifact to gh-pages
       #   uses: JamesIves/github-pages-deploy-action@4.1.1
       #   with:
