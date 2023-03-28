@@ -35,8 +35,8 @@ spec:
     spec:
       containers:
         - name: nextcloud
-          image: "{{ .Values.deployment.containers.nextcloud.registry }}/{{ .Values.deployment.containers.nextcloud.repository }}:{{ default .Chart.AppVersion .Values.deployment.containers.nextcloud.tag }}"
-          imagePullPolicy: {{ .Values.deployment.containers.nextcloud.pullPolicy }}
+          image: "{{ .Values.image.nextcloud.registry }}/{{ .Values.image.nextcloud.repository }}:{{ default .Chart.AppVersion .Values.image.nextcloud.tag }}"
+          imagePullPolicy: {{ .Values.image.nextcloud.pullPolicy }}
           args:
           {{- if gt .Values.deployment.replicaCount 1.0 }}
             - --leader-elect
@@ -105,4 +105,4 @@ spec:
     volumes:
       - name: {{ template "nextcloud.name" . }}-data-vl
         claimName: {{ template "nextcloud.name" . }}-pvc-data
-    {{-end-}}
+    {{- end -}}

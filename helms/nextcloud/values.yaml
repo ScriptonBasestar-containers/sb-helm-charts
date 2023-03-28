@@ -1,3 +1,6 @@
+controller:
+  component: nextcloud
+
 persistence:
   data:
     enabled: true
@@ -17,6 +20,13 @@ service:
     nodePort: 30080
   additionalLabels: {}
   additionalAnnotations: {}
+
+image:
+  nextcloud:
+    registry: docker.io
+    image: nextcloud/nextcloud
+    tag: 26-apache
+    pullPolicy: IfNotPresent
 
 deployment:
   enabled: true
@@ -48,12 +58,6 @@ deployment:
   additionalAnnotations: {}
   containers:
     nextcloud:
-      registry: docker.io
-      image: nextcloud/nextcloud
-      tag: 26-apache
-      # image: linuxserver/nextcloud
-      # tag: 26.0.0
-      pullPolicy: IfNotPresent
       securityContext:
         runAsUser: 1001
         runAsGroup: 1001

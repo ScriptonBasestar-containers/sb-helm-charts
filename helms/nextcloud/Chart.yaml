@@ -11,7 +11,7 @@ home: https://github.com:ScriptonBasestar-devops/sb-helm-charts
 icon: https://raw.githubusercontent.com/ScriptonBasestar-docker/sb-helm-charts/master/helms/nextcloud/icon.png
 sources:
 - https://github.com/nextcloud
-- https://github.com:ScriptonBasestar-devops/sb-helm-charts.git
+- https://scriptonbasestar-docker.github.io/sb-helm-charts/
 - https://hub.docker.com/_/nextcloud
 - https://hub.docker.com/r/linuxserver/nextcloud
 version: 0.1.0
