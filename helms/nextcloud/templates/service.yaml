@@ -21,7 +21,7 @@ spec:
       protocol: TCP
       name: http
     {{- if eq .Values.service.type "NodePort" }}
-      nodePort: {{ default "" .Values.service.nodePort}}
+      nodePort: {{ default "" .Values.service.port.nodePort}}
     {{- end }}
   selector:
     app.kubernetes.io/component: app

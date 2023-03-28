@@ -3,8 +3,7 @@ kind: Deployment
 metadata:
   name: {{ template "nextcloud.name" . }}-deployment
   labels:
-    app.kubernetes.io/component: app
-{{/*    app.kubernetes.io/component: {{ .Values.controller.component }}*/}}
+    app.kubernetes.io/component: {{ .Values.controller.component }}
     {{- include "nextcloud.labels" . | nindent 4 }}
     {{- range $key, $value := .Values.deployment.additionalLabels }}
     {{ $key }}: {{ $value | quote }}
@@ -16,7 +15,7 @@ metadata:
 spec:
   selector:
     matchLabels:
-      app.kubernetes.io/component: {{ .Values.deployment.component }}
+      app.kubernetes.io/component: {{ .Values.controller.component }}
       {{- include "nextcloud.selectorLabels" . | nindent 6 }}
   strategy:
     type: Recreate
@@ -34,27 +33,27 @@ spec:
         {{ $key }}: {{ $value | quote }}
         {{- end }}
     spec:
-      {{- with .Values.deployment.imagePullSecrets }}
-      imagePullSecrets:
-        {{- toYaml . | nindent 8 }}
-      {{- end }}
-      serviceAccountName: {{ include "nextcloud.serviceAccountName" . }}
       containers:
         - name: nextcloud
-          image: "{{ .Values.image.nextcloud.registry }}/{{ .Values.image.nextcloud.repository }}:{{ default .Chart.AppVersion .Values.image.nextcloud.tag }}"
-          imagePullPolicy: {{ .Values.image.nextcloud.pullPolicy }}
+          image: "{{ .Values.deployment.containers.nextcloud.registry }}/{{ .Values.deployment.containers.nextcloud.repository }}:{{ default .Chart.AppVersion .Values.deployment.containers.nextcloud.tag }}"
+          imagePullPolicy: {{ .Values.deployment.containers.nextcloud.pullPolicy }}
           args:
-        {{- if gt .Values.deployment.replicaCount 1.0 }}
+          {{- if gt .Values.deployment.replicaCount 1.0 }}
             - --leader-elect
-        {{- end }}
-        {{- with .Values.deployment.extraArgs }}
-        {{- toYaml . | nindent 8 }}
-        {{- end }}
-        {{- with .Values.deployment.extraEnv }}
+          {{- end }}
+          {{- with .Values.deployment.containers.nextcloud.extraArgs }}
+          {{- toYaml . | nindent 10 }}
+          {{- end }}
+          {{- with .Values.deployment.containers.nextcloud.extraEnvs }}
           env:
-          {{- toYaml . | nindent 8 }}
-        {{- end }}
+          {{- toYaml . | nindent 10 }}
+          {{- end }}
+          envFrom:
+            - configMapRef:
+                name: {{ template "nextcloud.name" . }}-env-config
           ports:
+            - containerPort: 9000
+              name: fpm
             - containerPort: 8090
               name: metrics
             - containerPort: 8080
@@ -93,3 +92,17 @@ spec:
       {{- with .Values.deployment.priorityClassName }}
       priorityClassName: {{ . }}
       {{- end }}
+      {{- if not .Values.persistence.data.enabled -}}
+      volumeMounts:
+        - name: nginx-config-vl
+          mountPath: "/etc/nginx/nginx.conf"
+          subPath: nginx.conf
+          readOnly: true
+        - name: {{ template "nextcloud.name" . }}-data-vl
+          mountPath: "/var/www/html/data"
+      {{- end -}}
+    {{- if not .Values.persistence.data.enabled -}}
+    volumes:
+      - name: {{ template "nextcloud.name" . }}-data-vl
+        claimName: {{ template "nextcloud.name" . }}-pvc-data
+    {{-end-}}

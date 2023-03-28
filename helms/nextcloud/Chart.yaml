@@ -15,7 +15,7 @@ sources:
 - https://hub.docker.com/_/nextcloud
 - https://hub.docker.com/r/linuxserver/nextcloud
 version: 0.1.0
-appVersion: "25.0.2"
+appVersion: "26-apache"
 #dependencies:
 #- name: postgresql
 #  version: 10.13.*

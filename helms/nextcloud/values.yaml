@@ -1,21 +1,4 @@
-image:
-  nextcloud:
-    registry: docker.io
-    repository: linuxserver/nextcloud
-    tag: 25.0.2
-    pullPolicy: IfNotPresent
-  initContainers:
-    - name: volume-permissions
-      image: busybox
-      imagePullPolicy: Always
-      commands:
-        - ['sh', '-c', 'chown -R 1001:1001 /data']
-        - ['sh', '-c', 'chown -R 1001:1001 /config']
-      securityContext:
-          runAsUser: 0
-
 persistence:
-  enabled: true
   data:
     enabled: true
     accessMode: ReadWriteOnce
@@ -23,12 +6,6 @@ persistence:
     storageClass: "local-path"
   additionalLabels: {}
   additionalAnnotations: {}
-
-#volumes:
-#  - name: nextcloud-data-vl
-#    mountPath: /data
-#  - name: nextcloud-config-vl
-#    mountPath: /config
 
 service:
   type: ClusterIP
@@ -45,7 +22,7 @@ deployment:
   enabled: true
   replicaCount: 1
   extraArgs: []
-  extraEnv: []
+  extraEnvs: []
   readinessProbe: {}
   livenessProbe: {}
   resources: {}
@@ -69,29 +46,47 @@ deployment:
   affinity: {}
   additionalLabels: {}
   additionalAnnotations: {}
-
-rbac:
-  enabled: false
-  serviceAccount:
-    create: false
-    name: nextcloud-serviceaccount
-    annotations: {}
-
+  containers:
+    nextcloud:
+      registry: docker.io
+      image: nextcloud/nextcloud
+      tag: 26-apache
+      # image: linuxserver/nextcloud
+      # tag: 26.0.0
+      pullPolicy: IfNotPresent
+      securityContext:
+        runAsUser: 1001
+        runAsGroup: 1001
+        runAsNonRoot: true
+        readOnlyRootFilesystem: true
+      extraArgs: []
+      extraEnvs: []
 config:
-  nextcloud:
-    host: nextcloud.scriptonbasestar.net
-    defaultUsername: admin
-    defaultPassword: admin
-    mail:
-      enabled: false
-      fromAddress: nextcloud
-      domain: domain.com
-      smtp:
-        host: domain.com
-        secure: ssl
-        port: 465
-        authtype: LOGIN
-        name: user
-    configs: []
-    defaultConfigs: []
-
+  adminUsername: admin
+  adminPassword: admin
+  postgresql:
+    type: postgres
+    host: nextcloud-postgresql
+    db: nextcloud
+    user: nextcloud
+    password: nextcloud
+  redis:
+    host: nextcloud-redis
+    port: 6379
+    password: nextcloud
+  mail:
+    fromAddress: nextcloud
+    domain: domain.com
+    smtp:
+      host: domain.com
+      secure: ssl
+      port: 465
+      name: user
+      auth: user
+      password: user
+  configs: []
+  defaultConfigs: []
+  etc:
+    trustedProxies: []
+    overwriteProtocol: https
+    overwriteHost: nextcloud.scriptonbasestar.net

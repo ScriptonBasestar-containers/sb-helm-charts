@@ -1,0 +1,35 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ template "nextcloud.name" . }}-env-config
+  labels:
+    app.kubernetes.io/component: {{ .Values.controller.component }}
+    {{- include "nextcloud.labels" . | nindent 4 }}
+    {{- range $key, $value := .Values.deployment.additionalLabels }}
+    {{ $key }}: {{ $value | quote }}
+    {{- end }}
+{{- with .Values.deployment.additionalAnnotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+{{- end }}
+data:
+  NEXTCLOUD_ADMIN_USER: {{ .Values.config.adminUsername | quote }}
+  NEXTCLOUD_ADMIN_PASSWORD: {{ .Values.config.adminPassword | quote }}
+
+  POSTGRES_HOST: {{ .Values.config.postgresql.host | quote }}
+  POSTGRES_DB: {{ .Values.config.postgresql.db | quote }}
+  POSTGRES_USER: {{ .Values.config.postgresql.user | quote }}
+  POSTGRES_PASSWORD: {{ .Values.config.postgresql.password | quote }}
+
+  SMTP_HOST: {{ .Values.config.mail.smtp.host | quote }}
+  SMTP_SECURE: {{ .Values.config.mail.smtp.secure | quote }}
+  SMTP_PORT: {{ .Values.config.mail.smtp.port | quote }}
+  SMTP_NAME: {{ .Values.config.mail.smtp.name | quote }}
+  MAIL_DOMAIN: {{ .Values.config.mail.domain | quote }}
+  MAIL_FROM_ADDRESS: {{ .Values.config.mail.fromAddress | quote }}
+  SMTP_AUTH: {{ .Values.config.mail.smtp.auth | quote }}
+  SMTP_PASSWORD: {{ .Values.config.mail.smtp.password | quote }}
+
+  REDIS_HOST: {{ .Values.config.redis.host | quote }}
+  REDIS_PORT: {{ .Values.config.redis.port | quote }}
+  REDIS_PASSWORD: {{ .Values.config.redis.password | quote }}
