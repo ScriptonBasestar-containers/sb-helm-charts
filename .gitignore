@@ -53,3 +53,5 @@ chartsrepo/
 website/
 pub/
 readme.md
+
+*.tgz

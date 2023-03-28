@@ -7,4 +7,4 @@ entries:
     name: mychart
     version: 0.1.0
     urls:
-    - charts/nextcloud-0.1.0.tgz
+    - repo/nextcloud-0.1.0.tgz
