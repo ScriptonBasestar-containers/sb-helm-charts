@@ -1,3 +1,6 @@
+nginx:
+  enabled: false
+
 controller:
   component: nextcloud
 
@@ -12,7 +15,7 @@ persistence:
 
 service:
   type: ClusterIP
-  port:
+  portMain:
     port: 80
     targetPort: 80
     protocol: TCP
@@ -24,21 +27,39 @@ service:
 image:
   nextcloud:
     registry: docker.io
-    image: nextcloud/nextcloud
+    repository: nextcloud
     tag: 26-apache
     pullPolicy: IfNotPresent
 
 deployment:
-  enabled: true
   replicaCount: 1
   extraArgs: []
   extraEnvs: []
-  readinessProbe: {}
-  livenessProbe: {}
+  readinessProbe: 
+    enabled: true
+    initialDelaySeconds: 10
+    periodSeconds: 10
+    timeoutSeconds: 5
+    failureThreshold: 3
+    successThreshold: 1
+  livenessProbe:
+    enabled: true
+    initialDelaySeconds: 10
+    periodSeconds: 10
+    timeoutSeconds: 5
+    failureThreshold: 3
+    successThreshold: 1
+  startupProbe:
+    enabled: true
+    initialDelaySeconds: 10
+    periodSeconds: 10
+    timeoutSeconds: 5
+    failureThreshold: 3
+    successThreshold: 1
   resources: {}
   securityContext:
-    runAsUser: "0"
-    runAsGroup: "0"
+    runAsUser: 1001
+    runAsGroup: 1001
     runAsNonRoot: true
     readOnlyRootFilesystem: true
   extraContainers: []
@@ -66,8 +87,8 @@ deployment:
       extraArgs: []
       extraEnvs: []
 config:
-  adminUsername: admin
-  adminPassword: admin
+  adminUsername: ""
+  adminPassword: ""
   postgresql:
     type: postgres
     host: nextcloud-postgresql

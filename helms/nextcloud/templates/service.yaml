@@ -16,12 +16,12 @@ metadata:
 spec:
   type: {{ .Values.service.type }}
   ports:
-    - port: {{ .Values.service.port }}
+    - port: {{ .Values.service.portMain.port }}
       targetPort: http
       protocol: TCP
       name: http
     {{- if eq .Values.service.type "NodePort" }}
-      nodePort: {{ default "" .Values.service.port.nodePort}}
+      nodePort: {{ default "" .Values.service.portMain.nodePort}}
     {{- end }}
   selector:
     app.kubernetes.io/component: app

@@ -52,16 +52,51 @@ spec:
             - configMapRef:
                 name: {{ template "nextcloud.name" . }}-env-config
           ports:
-            - containerPort: 9000
-              name: fpm
-            - containerPort: 8090
-              name: metrics
-            - containerPort: 8080
-              name: healthz
+            - containerPort: {{ .Values.service.portMain.port }}
+              protocol: TCP
+              name: http
+          {{- if and .Values.deployment.livenessProbe.enabled (not .Values.nginx.enabled) }}
           livenessProbe:
-          {{- toYaml .Values.deployment.livenessProbe | nindent 12 }}
+            httpGet:
+              path: /status.php
+              port:  {{ .Values.service.portMain.port }}
+              httpHeaders:
+              - name: Host
+                value: {{ .Values.nextcloud.host | quote }}
+            initialDelaySeconds: {{ .Values.deployment.livenessProbe.initialDelaySeconds }}
+            periodSeconds: {{ .Values.deployment.livenessProbe.periodSeconds }}
+            timeoutSeconds: {{ .Values.deployment.livenessProbe.timeoutSeconds }}
+            successThreshold: {{ .Values.deployment.livenessProbe.successThreshold }}
+            failureThreshold: {{ .Values.deployment.livenessProbe.failureThreshold }}
+          {{- end }}
+          {{- if and .Values.deployment.readinessProbe.enabled (not .Values.nginx.enabled) }}
           readinessProbe:
-          {{- toYaml .Values.deployment.readinessProbe | nindent 12 }}
+            httpGet:
+              path: /status.php
+              port:  {{ .Values.service.portMain.port }}
+              httpHeaders:
+              - name: Host
+                value: {{ .Values.nextcloud.host | quote }}
+            initialDelaySeconds: {{ .Values.deployment.readinessProbe.initialDelaySeconds }}
+            periodSeconds: {{ .Values.deployment.readinessProbe.periodSeconds }}
+            timeoutSeconds: {{ .Values.deployment.readinessProbe.timeoutSeconds }}
+            successThreshold: {{ .Values.deployment.readinessProbe.successThreshold }}
+            failureThreshold: {{ .Values.deployment.readinessProbe.failureThreshold }}
+          {{- end }}
+          {{- if and .Values.deployment.startupProbe.enabled (not .Values.nginx.enabled) }}
+          startupProbe:
+            httpGet:
+              path: /status.php
+              port:  {{ .Values.nextcloud.containerPort }}
+              httpHeaders:
+              - name: Host
+                value: {{ .Values.nextcloud.host | quote }}
+            initialDelaySeconds: {{ .Values.deployment.startupProbe.initialDelaySeconds }}
+            periodSeconds: {{ .Values.deployment.startupProbe.periodSeconds }}
+            timeoutSeconds: {{ .Values.deployment.startupProbe.timeoutSeconds }}
+            successThreshold: {{ .Values.deployment.startupProbe.successThreshold }}
+            failureThreshold: {{ .Values.deployment.startupProbe.failureThreshold }}
+          {{- end }}
           securityContext:
           {{- toYaml .Values.deployment.securityContext | nindent 12 }}
           resources:
