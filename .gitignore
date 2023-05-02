@@ -54,4 +54,6 @@ website/
 pub/
 readme.md
 
+# deploy
 *.tgz
+!/repo/*.tgz
