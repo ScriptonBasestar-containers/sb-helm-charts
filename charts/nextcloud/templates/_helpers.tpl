@@ -45,12 +45,9 @@ Create image name that is used in the deployment
 */}}
 {{- define "nextcloud.image" -}}
 {{- if .Values.image.tag -}}
-{{- printf "%s:%s" .Values.image.repository .Values.image.tag -}}
-{{- else -}}
-{{- printf "%s:%s-%s" .Values.image.repository .Chart.AppVersion (default "apache" .Values.image.flavor) -}}
+{{- printf "%s/%s:%s" .Values.image.nextcloud.registry .Values.image.nextcloud.repository .Values.image.nextcloud.tag -}}
 {{- end -}}
 {{- end -}}
-
 
 {{- define "nextcloud.ingress.apiVersion" -}}
 {{- if semverCompare "<1.14-0" .Capabilities.KubeVersion.GitVersion -}}
@@ -62,30 +59,15 @@ Create image name that is used in the deployment
 {{- end }}
 {{- end -}}
 
-
 {{/*
 Create environment variables used to configure the nextcloud container as well as the cron sidecar container.
 */}}
 {{- define "nextcloud.env" -}}
   {{- if eq .Values.externalDatabase.type "postgresql" }}
 - name: POSTGRES_HOST
-  {{- if .Values.externalDatabase.existingSecret.hostKey }}
-  valueFrom:
-    secretKeyRef:
-      name: {{ .Values.externalDatabase.existingSecret.secretName | default (printf "%s-db" .Release.Name) }}
-      key: {{ .Values.externalDatabase.existingSecret.hostKey }}
-  {{- else }}
   value: {{ .Values.externalDatabase.host | quote }}
-  {{- end }}
 - name: POSTGRES_DB
-  {{- if .Values.externalDatabase.existingSecret.databaseKey }}
-  valueFrom:
-    secretKeyRef:
-      name: {{ .Values.externalDatabase.existingSecret.secretName | default (printf "%s-db" .Release.Name) }}
-      key: {{ .Values.externalDatabase.existingSecret.databaseKey }}
-  {{- else }}
   value: {{ .Values.externalDatabase.database | quote }}
-  {{- end }}
 - name: POSTGRES_USER
   valueFrom:
     secretKeyRef:
@@ -96,25 +78,11 @@ Create environment variables used to configure the nextcloud container as well a
     secretKeyRef:
       name: {{ .Values.externalDatabase.existingSecret.secretName | default (printf "%s-db" .Release.Name) }}
       key: {{ .Values.externalDatabase.existingSecret.passwordKey }}
-  {{- else }}
+  {{- else if eq .Values.externalDatabase.type "mysql" }}
 - name: MYSQL_HOST
-  {{- if .Values.externalDatabase.existingSecret.hostKey }}
-  valueFrom:
-    secretKeyRef:
-      name: {{ .Values.externalDatabase.existingSecret.secretName | default (printf "%s-db" .Release.Name) }}
-      key: {{ .Values.externalDatabase.existingSecret.hostKey }}
-  {{- else }}
   value: {{ .Values.externalDatabase.host | quote }}
-  {{- end }}
 - name: MYSQL_DATABASE
-  {{- if .Values.externalDatabase.existingSecret.databaseKey }}
-  valueFrom:
-    secretKeyRef:
-      name: {{ .Values.externalDatabase.existingSecret.secretName | default (printf "%s-db" .Release.Name) }}
-      key: {{ .Values.externalDatabase.existingSecret.databaseKey }}
-  {{- else }}
   value: {{ .Values.externalDatabase.database | quote }}
-  {{- end }}
 - name: MYSQL_USER
   valueFrom:
     secretKeyRef:
@@ -145,17 +113,8 @@ Create environment variables used to configure the nextcloud container as well a
 - name: NEXTCLOUD_DATA_DIR
   value: {{ .Values.nextcloud.datadir | quote }}
 {{- if .Values.nextcloud.mail.enabled }}
-- name: MAIL_FROM_ADDRESS
-  value: {{ .Values.nextcloud.mail.fromAddress | quote }}
-- name: MAIL_DOMAIN
-  value: {{ .Values.nextcloud.mail.domain | quote }}
-- name: SMTP_SECURE
-  value: {{ .Values.nextcloud.mail.smtp.secure | quote }}
-- name: SMTP_PORT
-  value: {{ .Values.nextcloud.mail.smtp.port | quote }}
-- name: SMTP_AUTHTYPE
-  value: {{ .Values.nextcloud.mail.smtp.authtype | quote }}
 - name: SMTP_HOST
+  value: {{ .Values.nextcloud.mail.smtp.host | quote }}
   valueFrom:
     secretKeyRef:
       name: {{ .Values.nextcloud.existingSecret.secretName | default (include "nextcloud.fullname" .) }}
@@ -182,6 +141,12 @@ Create environment variables used to configure the nextcloud container as well a
       name: {{ .Values.externalRedis.auth.existingSecret.secretName | default (printf "%s-redis" .Release.Name) }}
       key: {{ .Values.externalRedis.auth.existingSecret.existingSecretPasswordKey }}
 {{- end }}
+- name: NEXTCLOUD_PATH_CUSTOM_APPS
+  value: {{ .Values.persistence.nextcloudCustomApps.mountPath | quote }}
+- name: NEXTCLOUD_PATH_THEMES
+  value: {{ .Values.persistence.nextcloudThemes.mountPath | quote }}
+- name: NEXTCLOUD_PATH_DATA
+  value: {{ .Values.persistence.nextcloudData.mountPath | quote }}
 {{- if .Values.nextcloud.extraEnv }}
 {{ toYaml .Values.nextcloud.extraEnv }}
 {{- end }}
@@ -192,54 +157,22 @@ Create environment variables used to configure the nextcloud container as well a
 Create volume mounts for the nextcloud container as well as the cron sidecar container.
 */}}
 {{- define "nextcloud.volumeMounts" -}}
-- name: nextcloud-main
-  mountPath: /var/www/
-  subPath: {{ ternary "root" (printf "%s/root" .Values.nextcloud.persistence.subPath) (empty .Values.nextcloud.persistence.subPath) }}
-- name: nextcloud-main
-  mountPath: /var/www/html
-  subPath: {{ ternary "html" (printf "%s/html" .Values.nextcloud.persistence.subPath) (empty .Values.nextcloud.persistence.subPath) }}
-{{- if and .Values.persistence.nextcloudData.enabled .Values.persistence.enabled }}
 - name: nextcloud-data
-  mountPath: {{ .Values.nextcloud.datadir }}
+  mountPath: {{ .Values.persistence.nextcloudData.mountPath | default "/var/www/html/data" }}
+  {{/*
   subPath: {{ ternary "data" (printf "%s/data" .Values.persistence.nextcloudData.subPath) (empty .Values.persistence.nextcloudData.subPath) }}
-{{- else }}
-- name: nextcloud-main
-  mountPath: {{ .Values.nextcloud.datadir }}
-  subPath: {{ ternary "data" (printf "%s/data" .Values.persistence.subPath) (empty .Values.persistence.subPath) }}
-{{- end }}
-- name: nextcloud-main
-  mountPath: /var/www/html/config
-  subPath: {{ ternary "config" (printf "%s/config" .Values.nextcloud.persistence.subPath) (empty .Values.nextcloud.persistence.subPath) }}
-- name: nextcloud-main
-  mountPath: /var/www/html/custom_apps
+  */}}
+- name: nextcloud-custom_apps
+  mountPath: {{ .Values.persistence.nextcloudCustomApps.mountPath | default "/var/www/html/custom_apps" }}
+  {{/*
   subPath: {{ ternary "custom_apps" (printf "%s/custom_apps" .Values.nextcloud.persistence.subPath) (empty .Values.nextcloud.persistence.subPath) }}
-- name: nextcloud-main
-  mountPath: /var/www/tmp
-  subPath: {{ ternary "tmp" (printf "%s/tmp" .Values.nextcloud.persistence.subPath) (empty .Values.nextcloud.persistence.subPath) }}
-- name: nextcloud-main
-  mountPath: /var/www/html/themes
+  */}}
+- name: nextcloud-themes
+  mountPath: {{ .Values.persistence.nextcloudThemes.mountPath | default "/var/www/html/themes" }}
+  {{/*
   subPath: {{ ternary "themes" (printf "%s/themes" .Values.nextcloud.persistence.subPath) (empty .Values.nextcloud.persistence.subPath) }}
-{{- range $key, $value := .Values.nextcloud.configs }}
-- name: nextcloud-config
-  mountPath: /var/www/html/config/{{ $key }}
-  subPath: {{ $key }}
-{{- end }}
-{{- if .Values.nextcloud.configs }}
-{{- range $key, $value := .Values.nextcloud.defaultConfigs }}
-{{- if $value }}
-- name: nextcloud-config
-  mountPath: /var/www/html/config/{{ $key }}
-  subPath: {{ $key }}
-{{- end }}
-{{- end }}
-{{- end }}
+  */}}
 {{- if .Values.nextcloud.extraVolumeMounts }}
 {{ toYaml .Values.nextcloud.extraVolumeMounts }}
-{{- end }}
-{{- $nginxEnabled := .Values.nginx.enabled -}}
-{{- range $key, $value := .Values.nextcloud.phpConfigs }}
-- name: nextcloud-phpconfig
-  mountPath: {{ $nginxEnabled | ternary (printf "/usr/local/etc/php-fpm.d/%s" $key | quote) (printf "/usr/local/etc/php/conf.d/%s" $key | quote) }}
-  subPath: {{ $key }}
 {{- end }}
 {{- end -}}
