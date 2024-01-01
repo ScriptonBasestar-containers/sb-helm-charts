@@ -13,11 +13,6 @@ metadata:
     {{- toYaml . | nindent 4 }}
 {{- end }}
 data:
-  {{- if and (not (or (not .Values.config.adminUsername) (eq .Values.config.adminUsername ""))) (not (or (not .Values.config.adminPassword) (eq .Values.config.adminPassword ""))) }}
-  NEXTCLOUD_ADMIN_USER: {{ .Values.config.adminUsername | quote }}
-  NEXTCLOUD_ADMIN_PASSWORD: {{ .Values.config.adminPassword | quote }}
-  {{- end }}
-
   POSTGRES_HOST: {{ .Values.config.postgresql.host | quote }}
   POSTGRES_DB: {{ .Values.config.postgresql.db | quote }}
   POSTGRES_USER: {{ .Values.config.postgresql.user | quote }}

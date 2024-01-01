@@ -1,0 +1,219 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ template "nextcloud.fullname" . }}
+  labels:
+    app.kubernetes.io/name: {{ include "nextcloud.name" . }}
+    helm.sh/chart: {{ include "nextcloud.chart" . }}
+    app.kubernetes.io/instance: {{ .Release.Name }}
+    app.kubernetes.io/managed-by: {{ .Release.Service }}
+    app.kubernetes.io/component: app
+    {{- with .Values.deploymentLabels }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
+  {{- with .Values.deploymentAnnotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  replicas: {{ .Values.replicaCount }}
+  strategy:
+    {{- toYaml .Values.nextcloud.strategy | nindent 4 }}
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: {{ include "nextcloud.name" . }}
+      app.kubernetes.io/instance: {{ .Release.Name }}
+      app.kubernetes.io/component: app
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: {{ include "nextcloud.name" . }}
+        app.kubernetes.io/instance: {{ .Release.Name }}
+        app.kubernetes.io/component: app
+        {{- if .Values.externalRedis.enabled }}
+        {{ template "nextcloud.redis.fullname" . }}-client: "true"
+        {{- end }}
+        {{- with .Values.podLabels }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+      annotations:
+        nextcloud-config-hash: {{ print (toJson .Values.nextcloud.defaultConfigs) "-" (toJson .Values.nextcloud.configs) | sha256sum }}
+        php-config-hash: {{ toJson .Values.nextcloud.phpConfigs | sha256sum }}
+        {{- with .Values.podAnnotations }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+    spec:
+      {{- with .Values.image.pullSecrets }}
+      imagePullSecrets:
+        {{- range . }}
+        - name: {{ . }}
+        {{- end}}
+      {{- end }}
+      containers:
+        - name: {{ .Chart.Name }}
+          image: {{ include "nextcloud.image" . }}
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          {{- with .Values.lifecycle }}
+          lifecycle:
+            {{- with .postStartCommand }}
+            postStart:
+              exec:
+                command:
+                  {{- toYaml . | nindent 18 -}}
+            {{- end }}
+            {{- with .preStopCommand }}
+            preStop:
+              exec:
+                command:
+                  {{- toYaml . | nindent 18 -}}
+            {{- end }}
+          {{- end }}
+          env:
+            {{- include "nextcloud.env" . | nindent 12 }}
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+          {{- with .Values.nextcloud.securityContext }}
+          securityContext:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          volumeMounts:
+            {{- include "nextcloud.volumeMounts" . | trim | nindent 12 }}
+        {{- if .Values.cronjob.enabled }}
+        - name: {{ .Chart.Name }}-cron
+          image: {{ include "nextcloud.image" . }}
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          command:
+          - /cron.sh
+          {{- with .Values.cronjob.lifecycle }}
+          lifecycle:
+            {{- with .postStartCommand }}
+            postStart:
+              exec:
+                command:
+                  {{- toYaml . | nindent 18 -}}
+            {{- end }}
+            {{- with .preStopCommand }}
+            preStop:
+              exec:
+                command:
+                  {{- toYaml . | nindent 18 -}}
+            {{- end }}
+          {{- end }}
+          env:
+            {{- include "nextcloud.env" . | nindent 12 }}
+          resources:
+            {{- toYaml .Values.cronjob.resources | nindent 12 }}
+          {{- with .Values.cronjob.securityContext }}
+          securityContext:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          volumeMounts:
+            {{- include "nextcloud.volumeMounts" . | trim | nindent 12 }}
+        {{- end }}{{/* end-if cronjob.enabled */}}
+        {{- with .Values.nextcloud.extraSidecarContainers }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      initContainers:
+        {{- with .Values.nextcloud.extraInitContainers }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+        {{- if eq .Values.externalDatabase.type "mysql" }}
+        - name: mariadb-isalive
+          image: {{ .Values.externalDatabase.mariadb.image.registry | default "docker.io" }}/{{ .Values.externalDatabase.mariadb.image.repository }}:{{ .Values.externalDatabase.mariadb.image.tag }}
+          env:
+            - name: MYSQL_USER
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.externalDatabase.existingSecret.secretName | default (printf "%s-db" .Release.Name) }}
+                  key: {{ .Values.externalDatabase.existingSecret.usernameKey }}
+            - name: MYSQL_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.externalDatabase.existingSecret.secretName | default (printf "%s-db" .Release.Name) }}
+                  key: {{ .Values.externalDatabase.existingSecret.passwordKey }}
+            - name: MYSQL_HOST
+              value: {{ .Values.externalDatabase.host | quote }}
+          command:
+            - "sh"
+            - "-c"
+            - {{ printf "until mysql --host=${MYSQL_HOST} --user=${MYSQL_USER} --password=${MYSQL_PASSWORD} --execute=\"SELECT 1;\"; do echo waiting for mysql; sleep 2; done;" .Release.Name }}
+        {{- else if eq .Values.externalDatabase.type "postgresql" }}
+        - name: postgresql-isready
+          image: {{ .Values.externalDatabase.postgresql.image.registry | default "docker.io"  }}/{{ .Values.externalDatabase.postgresql.image.repository }}:{{ .Values.externalDatabase.postgresql.image.tag }}
+          env:
+            - name: POSTGRES_USER
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.externalDatabase.existingSecret.secretName | default (printf "%s-db" .Release.Name) }}
+                  key: {{ .Values.externalDatabase.existingSecret.usernameKey }}
+            - name: POSTGRES_HOST
+              value: {{ .Values.externalDatabase.host | quote }}
+          command:
+            - "sh"
+            - "-c"
+            - "until pg_isready -h ${POSTGRES_HOST} -U ${POSTGRES_USER} ; do sleep 2 ; done"
+        {{- end }}{{/* end-if any database-initContainer */}}
+      {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      volumes:
+        {{- if .Values.persistence.hostPath.enabled }}
+        - name: nextcloud-main
+          hostPath:
+            path: {{ .Values.persistence.hostPath.path | quote }}
+            type: Directory
+        {{- else }}
+        - name: nextcloud-main
+          {{- if .Values.persistence.enabled }}
+          persistentVolumeClaim:
+            claimName: {{ if .Values.persistence.existingClaim }}{{ .Values.persistence.existingClaim }}{{- else }}{{ template "nextcloud.fullname" . }}-nextcloud{{- end }}
+          {{- else }}
+          emptyDir: {}
+          {{- end }}
+        {{- end }}
+        {{- if .Values.persistence.nextcloudData.hostPath.enabled }}
+        - name: nextcloud-data
+          hostPath:
+            path: {{ .Values.persistence.nextcloudData.hostPath.path | quote }}
+            type: Directory
+        {{- else }}
+        {{- if and .Values.persistence.nextcloudData.enabled .Values.persistence.enabled }}
+        - name: nextcloud-data
+          persistentVolumeClaim:
+            claimName: {{ if .Values.persistence.nextcloudData.existingClaim }}{{ .Values.persistence.nextcloudData.existingClaim }}{{- else }}{{ template "nextcloud.fullname" . }}-nextcloud-data{{- end }}
+        {{- end }}
+        {{- end }}
+        {{- if .Values.nextcloud.configs }}
+        - name: nextcloud-config
+          configMap:
+            name: {{ template "nextcloud.fullname" . }}-config
+        {{- end }}
+        {{- if .Values.nextcloud.phpConfigs }}
+        - name: nextcloud-phpconfig
+          configMap:
+            name: {{ template "nextcloud.fullname" . }}-phpconfig
+        {{- end }}
+        {{- with .Values.nextcloud.extraVolumes }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+      securityContext:
+        {{- with .Values.securityContext }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+        {{- with .Values.nextcloud.podSecurityContext }}
+        {{- toYaml . | nindent 8 }}
+        {{- else }}
+        {{- end }}{{/* end-with podSecurityContext */}}
+      {{- if .Values.rbac.enabled }}
+      serviceAccountName: {{ .Values.rbac.serviceaccount.name }}
+      {{- end }}
