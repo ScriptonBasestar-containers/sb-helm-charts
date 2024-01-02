@@ -5,4 +5,4 @@ if (! $directory_data) {
 }
 $CONFIG = array (
   'datadirectory' => $directory_data,
-)
+);

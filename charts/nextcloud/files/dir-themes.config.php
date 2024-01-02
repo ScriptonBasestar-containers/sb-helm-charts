@@ -5,4 +5,4 @@ if (! $directory_themes) {
 }
 $CONFIG = array (
   'datadirectory' => $directory_themes,
-)
+);
