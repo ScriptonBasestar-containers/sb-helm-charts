@@ -165,6 +165,9 @@ spec:
         {{- toYaml . | nindent 8 }}
       {{- end }}
       volumes:
+        - name: vol-config-files
+          configMap:
+            name: {{ template "nextcloud.fullname" . }}-config-files
         {{/*
         data >>>
         */}}

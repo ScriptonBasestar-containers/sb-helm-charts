@@ -1,0 +1,32 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ template "nextcloud.fullname" . }}-config-files
+  labels:
+    app.kubernetes.io/name: {{ include "nextcloud.name" . }}
+    helm.sh/chart: {{ include "nextcloud.chart" . }}
+    app.kubernetes.io/instance: {{ .Release.Name }}
+    app.kubernetes.io/managed-by: {{ .Release.Service }}
+data:
+  apcu.config.php: |-
+    {{- .Files.Get "files/apcu.config.php" | nindent 4 }}
+  autoconfig.php: |-
+    {{- .Files.Get "files/autoconfig.php" | nindent 4 }}
+  dir-apps.config.php: |-
+    {{- .Files.Get "files/dir-apps.config.php" | nindent 4 }}
+  dir-data.config.php: |-
+    {{- .Files.Get "files/dir-data.config.php" | nindent 4 }}
+  dir-themes.config.php: |-
+    {{- .Files.Get "files/dir-themes.config.php" | nindent 4 }}
+  redis.config.php: |-
+    {{- .Files.Get "files/redis.config.php" | nindent 4 }}
+  reverse-proxy.config.php: |-
+    {{- .Files.Get "files/reverse-proxy.config.php" | nindent 4 }}
+  s3.config.php: |-
+    {{- .Files.Get "files/s3.config.php" | nindent 4 }}
+  smtp.config.php: |-
+    {{- .Files.Get "files/smtp.config.php" | nindent 4 }}
+  swift.config.php: |-
+    {{- .Files.Get "files/swift.config.php" | nindent 4 }}
+  upgrade-disable-web.config.php: |-
+    {{- .Files.Get "files/upgrade-disable-web.config.php" | nindent 4 }}
