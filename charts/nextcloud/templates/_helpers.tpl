@@ -44,9 +44,7 @@ Create chart name and version as used by the chart label.
 Create image name that is used in the deployment
 */}}
 {{- define "nextcloud.image" -}}
-{{- if .Values.image.tag -}}
 {{- printf "%s/%s:%s" .Values.image.nextcloud.registry .Values.image.nextcloud.repository .Values.image.nextcloud.tag -}}
-{{- end -}}
 {{- end -}}
 
 {{- define "nextcloud.ingress.apiVersion" -}}
