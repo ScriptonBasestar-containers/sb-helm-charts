@@ -177,7 +177,7 @@ spec:
         - name: fmp-volume-permission
           image: busybox
           imagePullPolicy: IfNotPresent
-          command: [ 'chown','-R', '33:33', '/var/www/html', {{ .Values.persistence.nextcloudData.mountPath | squote }}, {{ .Values.persistence.nextcloudCustomApps.mountPath | squote }} ]
+          command: [ 'chown','-R', '33:33', {{ .Values.persistence.nextcloudData.mountPath | squote }}, {{ .Values.persistence.nextcloudCustomApps.mountPath | squote }} ]
           securityContext:
             runAsUser: 0
             privileged: true
