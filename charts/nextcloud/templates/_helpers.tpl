@@ -164,8 +164,8 @@ files >>>
   subPath: apcu.config.php
 - name: vol-config-files
 # - name: vol-config-files-autoconfig
-  mountPath: /var/www/html/config/autoconfig.php
-  subPath: autoconfig.php
+  mountPath: /var/www/html/config/auto.config.php
+  subPath: auto.config.php
 - name: vol-config-files
 # - name: vol-config-files-dir-apps
   mountPath: /var/www/html/config/dir-apps.config.php

@@ -114,7 +114,7 @@ nextcloud:
     smtpPasswordKey: smtp-password
   update: 0
   # If web server is not binding default port, you can define it
-  containerPort: 8080
+  containerPort: 80
 
   etc:
     trustedProxies: []

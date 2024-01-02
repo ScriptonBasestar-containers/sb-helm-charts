@@ -10,8 +10,8 @@ metadata:
 data:
   apcu.config.php: |-
     {{- .Files.Get "files/apcu.config.php" | nindent 4 }}
-  autoconfig.php: |-
-    {{- .Files.Get "files/autoconfig.php" | nindent 4 }}
+  auto.config.php: |-
+    {{- .Files.Get "files/auto.config.php" | nindent 4 }}
   dir-apps.config.php: |-
     {{- .Files.Get "files/dir-apps.config.php" | nindent 4 }}
   dir-data.config.php: |-
