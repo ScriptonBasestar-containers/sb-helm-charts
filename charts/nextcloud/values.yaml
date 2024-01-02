@@ -120,6 +120,7 @@ nextcloud:
     trustedProxies: []
     overwriteProtocol: https
     overwriteHost: nextcloud.scriptonbasestar.net
+    overwriteCliUrl: https://nextcloud.scriptonbasestar.net
 
   ## Strategy used to replace old pods
   ## IMPORTANT: use with care, it is suggested to leave as that for upgrade purposes
@@ -216,7 +217,6 @@ externalDatabase:
 ## ref: http://kubernetes.io/docs/user-guide/persistent-volumes/
 ##
 persistence:
-  enabled: false
   accessMode: ReadWriteOnce
   size: 8Gi
   # storageClass: "-"

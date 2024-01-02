@@ -109,7 +109,7 @@ Create environment variables used to configure the nextcloud container as well a
   value: {{ .Values.nextcloud.update | quote }}
 {{- end }}
 - name: NEXTCLOUD_DATA_DIR
-  value: {{ .Values.nextcloud.datadir | quote }}
+  value: {{ .Values.persistence.nextcloudData.mountPath | quote }}
 {{- if .Values.nextcloud.mail.enabled }}
 - name: SMTP_HOST
   value: {{ .Values.nextcloud.mail.smtp.host | quote }}
