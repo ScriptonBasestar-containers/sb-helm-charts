@@ -4,19 +4,15 @@
 
 image:
   nextcloud:
-    registry: lscr.io
-    repository: linuxserver/nextcloud
-    tag: latest
+    # registry: lscr.io
+    # repository: linuxserver/nextcloud
+    registry: docker.io
+    repository: nextcloud
+    # tag: stable
+    tag: stable-fpm
     # pullPolicy: IfNotPresent
     # pullSecrets: "regcred"
-  mariadb:
-    # registry: docker.io
-    repository: bitnami/mariadb
-    tag: 10.5.9-debian-10-r0
-  postgresql:
-    # registry: docker.io
-    repository: bitnami/postgresql
-    tag: 12.7.0-debian-10-r0
+
 
 nameOverride: ""
 fullnameOverride: ""
@@ -191,15 +187,17 @@ externalDatabase:
   type: mysql
   mariadb:
     image:
-      # registry:
+      # registry: docker.io
       repository: bitnami/mariadb
-      tag: 10.5.9-debian-10-r0
+      # tag: 10.11-debian-11
+      tag: 11.2-debian-11
   postgresql:
     image:
-      # registry:
+      # registry: docker.io
       repository: bitnami/postgresql
-      tag: 12.7.0-debian-10-r0
-
+      # tag: 15-debian-11
+      tag: 14-debian-11
+      # tag: 12-debian-11
   host:
   user: nextcloud_user
   password: ""
