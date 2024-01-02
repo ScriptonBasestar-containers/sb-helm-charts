@@ -4,5 +4,5 @@ if (! $directory_data) {
   $directory_data = OC::$SERVERROOT.'/data';
 }
 $CONFIG = array (
-  'datadirectory' = $directory_data;
+  'datadirectory' => $directory_data;
 )

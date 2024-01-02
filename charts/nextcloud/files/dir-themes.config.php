@@ -4,5 +4,5 @@ if (! $directory_themes) {
   $directory_themes = OC::$SERVERROOT.'/themes';
 }
 $CONFIG = array (
-  'datadirectory' = $directory_themes;
+  'datadirectory' => $directory_themes;
 )
