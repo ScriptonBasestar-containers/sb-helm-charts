@@ -3,6 +3,33 @@ entries:
   nextcloud:
   - apiVersion: v2
     appVersion: 28.0.1
+    created: "2024-01-02T12:51:05.116401058Z"
+    description: A file sharing server that puts the control and security of your
+      own data back into your hands.
+    digest: cfbec6951d5439069ab1fcc814ebac49921e7efa7e5c02f0f186a9df04089298
+    home: https://nextcloud.com/
+    icon: https://raw.githubusercontent.com/ScriptonBasestar-docker/sb-helm-charts/master/helms/nextcloud/icon.png
+    keywords:
+    - nextcloud
+    - storage
+    - http
+    - web
+    - php
+    maintainers:
+    - email: archmagece@gmail.com
+      name: archmagece
+    name: nextcloud
+    sources:
+    - https://github.com/nextcloud/helm
+    - https://github.com/nextcloud/docker
+    - https://scriptonbasestar-docker.github.io/sb-helm-charts/
+    - https://github.com/linuxserver/docker-nextcloud
+    - https://hub.docker.com/r/linuxserver/nextcloud
+    urls:
+    - https://github.com/ScriptonBasestar-container/sb-helm-charts/releases/download/nextcloud-4.5.30/nextcloud-4.5.30.tgz
+    version: 4.5.30
+  - apiVersion: v2
+    appVersion: 28.0.1
     created: "2024-01-02T12:42:29.013999384Z"
     description: A file sharing server that puts the control and security of your
       own data back into your hands.
@@ -244,4 +271,4 @@ entries:
     urls:
     - https://github.com/ScriptonBasestar-container/sb-helm-charts/releases/download/nextcloud-4.5.21/nextcloud-4.5.21.tgz
     version: 4.5.21
-generated: "2024-01-02T12:42:29.014031113Z"
+generated: "2024-01-02T12:51:05.116447705Z"
