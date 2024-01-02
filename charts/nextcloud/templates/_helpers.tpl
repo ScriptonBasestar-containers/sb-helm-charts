@@ -154,6 +154,8 @@ Create volume mounts for the nextcloud container as well as the cron sidecar con
 {{- define "nextcloud.volumeMounts" -}}
 - name: nextcloud-config
   mountPath: /var/www/html/config/
+- name: nextcloud-nginx-config
+  mountPath: /etc/nginx/conf.d/
 {{/*
 files >>>
 */}}

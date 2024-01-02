@@ -151,6 +151,8 @@ spec:
         - name: fpm-volume-permission
           image: busybox
           imagePullPolicy: IfNotPresent
+          # 33, 82
+          {{ $chown_no := ternary "88:88" "33:33" .Values.nginx.enabled -}}
           command: [ 'chown','-R', '33:33', {{ .Values.persistence.nextcloudData.mountPath | squote }}, {{ .Values.persistence.nextcloudCustomApps.mountPath | squote }} ]
           securityContext:
             runAsUser: 0
@@ -266,6 +268,13 @@ spec:
         {{- toYaml . | nindent 8 }}
         {{- else }}
         {{- end }}{{/* end-with podSecurityContext */}}
+        {{- if .Values.nginx.enabled }}
+        # Will mount configuration files as www-data (id: 82) for nextcloud
+        fsGroup: 82
+        {{- else }}
+        # Will mount configuration files as www-data (id: 33) for nextcloud
+        fsGroup: 33
+        {{- end }}
       {{- if .Values.rbac.enabled }}
       serviceAccountName: {{ .Values.rbac.serviceaccount.name }}
       {{- end }}
