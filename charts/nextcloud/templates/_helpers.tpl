@@ -150,11 +150,12 @@ Create environment variables used to configure the nextcloud container as well a
 {{- end }}
 {{- end -}}
 
-
 {{/*
 Create volume mounts for the nextcloud container as well as the cron sidecar container.
 */}}
 {{- define "nextcloud.volumeMounts" -}}
+- name: nextcloud-config
+  mountPath: /var/www/html/config/
 {{/*
 files >>>
 */}}
@@ -202,9 +203,6 @@ files >>>
 # - name: vol-config-files-upgrade-disable-web
   mountPath: /var/www/html/config/upgrade-disable-web.config.php
   subPath: upgrade-disable-web.config.php
-- name: nextcloud-config
-  mountPath: /var/www/html/config/
-{{/*
 {{/*
 files <<<
 */}}

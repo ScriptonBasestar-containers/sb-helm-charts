@@ -69,7 +69,7 @@ spec:
           {{- end }}
           env:
             {{- include "nextcloud.env" . | nindent 12 }}
-                    {{- if not .Values.nginx.enabled }}
+          {{- if not .Values.nginx.enabled }}
           ports:
             - name: http
               containerPort: {{ .Values.nextcloud.containerPort }}
@@ -238,7 +238,6 @@ spec:
             name: {{ template "nextcloud.fullname" . }}-config-files
         - name: nextcloud-config
           emptyDir: {}
-        {{/*
         {{/*
         custom_apps >>>
         */}}
