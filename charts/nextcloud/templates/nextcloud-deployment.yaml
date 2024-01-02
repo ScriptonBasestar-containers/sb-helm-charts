@@ -74,54 +74,7 @@ spec:
             - name: http
               containerPort: {{ .Values.nextcloud.containerPort }}
               protocol: TCP
-          {{- with .Values.livenessProbe }}
-          {{- if .enabled }}
-          livenessProbe:
-            httpGet:
-              path: /status.php
-              port:  {{ $.Values.nextcloud.containerPort }}
-              httpHeaders:
-              - name: Host
-                value: {{ $.Values.nextcloud.host | quote }}
-            initialDelaySeconds: {{ .initialDelaySeconds }}
-            periodSeconds: {{ .periodSeconds }}
-            timeoutSeconds: {{ .timeoutSeconds }}
-            successThreshold: {{ .successThreshold }}
-            failureThreshold: {{ .failureThreshold }}
-          {{- end }}
-          {{- end }}
-          {{- with .Values.readinessProbe }}
-          {{- if .enabled }}
-          readinessProbe:
-            httpGet:
-              path: /status.php
-              port:  {{ $.Values.nextcloud.containerPort }}
-              httpHeaders:
-              - name: Host
-                value: {{ $.Values.nextcloud.host | quote }}
-            initialDelaySeconds: {{ .initialDelaySeconds }}
-            periodSeconds: {{ .periodSeconds }}
-            timeoutSeconds: {{ .timeoutSeconds }}
-            successThreshold: {{ .successThreshold }}
-            failureThreshold: {{ .failureThreshold }}
-          {{- end }}
-          {{- end }}
-          {{- with .Values.startupProbe }}
-          {{- if .enabled }}
-          startupProbe:
-            httpGet:
-              path: /status.php
-              port:  {{ $.Values.nextcloud.containerPort }}
-              httpHeaders:
-              - name: Host
-                value: {{ $.Values.nextcloud.host | quote }}
-            initialDelaySeconds: {{ .initialDelaySeconds }}
-            periodSeconds: {{ .periodSeconds }}
-            timeoutSeconds: {{ .timeoutSeconds }}
-            successThreshold: {{ .successThreshold }}
-            failureThreshold: {{ .failureThreshold }}
-          {{- end }}
-          {{- end }}
+          {{- include "nextcloud.probes" . | trim | nindent 10 }}
           {{- end }}{{/* end-if not nginx.enabled */}}
           resources:
             {{- toYaml .Values.resources | nindent 12 }}
@@ -131,6 +84,27 @@ spec:
           {{- end }}
           volumeMounts:
             {{- include "nextcloud.volumeMounts" . | trim | nindent 12 }}
+        {{- if .Values.nginx.enabled }}
+        - name: {{ .Chart.Name }}-nginx
+          image: "{{ .Values.nginx.image.repository }}:{{ .Values.nginx.image.tag }}"
+          imagePullPolicy: {{ .Values.nginx.image.pullPolicy }}
+          ports:
+            - name: http
+              protocol: TCP
+              containerPort: {{ .Values.nextcloud.containerPort }}
+          {{- include "nextcloud.probes" . | trim | nindent 10 }}
+          resources:
+            {{- toYaml .Values.nginx.resources | nindent 12 }}
+          {{- with .Values.nginx.securityContext }}
+          securityContext:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          volumeMounts:
+            {{- include "nextcloud.volumeMounts" . | trim | nindent 12 }}
+            {{- with .Values.nextcloud.extraVolumeMounts }}
+            {{- toYaml . | nindent 12 }}
+            {{- end }}
+        {{- end }}{{/* end-if nginx.enabled */}}
         {{- if .Values.cronjob.enabled }}
         - name: {{ .Chart.Name }}-cron
           image: {{ include "nextcloud.image" . }}
@@ -174,7 +148,7 @@ spec:
         {{- with .Values.nextcloud.extraInitContainers }}
         {{- toYaml . | nindent 8 }}
         {{- end }}
-        - name: fmp-volume-permission
+        - name: fpm-volume-permission
           image: busybox
           imagePullPolicy: IfNotPresent
           command: [ 'chown','-R', '33:33', {{ .Values.persistence.nextcloudData.mountPath | squote }}, {{ .Values.persistence.nextcloudCustomApps.mountPath | squote }} ]
@@ -276,6 +250,11 @@ spec:
         {{/*
         data <<<
         */}}
+        {{- if .Values.nginx.enabled }}
+        - name: nextcloud-nginx-config
+          configMap:
+            name: {{ template "nextcloud.fullname" . }}-nginxconfig
+        {{- end }}
         {{- with .Values.nextcloud.extraVolumes }}
         {{- toYaml . | nindent 8 }}
         {{- end }}

@@ -214,3 +214,57 @@ files <<<
 {{ toYaml .Values.nextcloud.extraVolumeMounts }}
 {{- end }}
 {{- end -}}
+
+{{/*
+Create volume mounts for the nextcloud container as well as the cron sidecar container.
+*/}}
+{{- define "nextcloud.probes" -}}
+{{- with .Values.livenessProbe }}
+{{- if .enabled }}
+livenessProbe:
+  httpGet:
+    path: /status.php
+    port:  {{ $.Values.nextcloud.containerPort }}
+    httpHeaders:
+    - name: Host
+      value: {{ $.Values.nextcloud.host | quote }}
+  initialDelaySeconds: {{ .initialDelaySeconds }}
+  periodSeconds: {{ .periodSeconds }}
+  timeoutSeconds: {{ .timeoutSeconds }}
+  successThreshold: {{ .successThreshold }}
+  failureThreshold: {{ .failureThreshold }}
+{{- end }}
+{{- end }}
+{{- with .Values.readinessProbe }}
+{{- if .enabled }}
+readinessProbe:
+  httpGet:
+    path: /status.php
+    port:  {{ $.Values.nextcloud.containerPort }}
+    httpHeaders:
+    - name: Host
+      value: {{ $.Values.nextcloud.host | quote }}
+  initialDelaySeconds: {{ .initialDelaySeconds }}
+  periodSeconds: {{ .periodSeconds }}
+  timeoutSeconds: {{ .timeoutSeconds }}
+  successThreshold: {{ .successThreshold }}
+  failureThreshold: {{ .failureThreshold }}
+{{- end }}
+{{- end }}
+{{- with .Values.startupProbe }}
+{{- if .enabled }}
+startupProbe:
+  httpGet:
+    path: /status.php
+    port:  {{ $.Values.nextcloud.containerPort }}
+    httpHeaders:
+    - name: Host
+      value: {{ $.Values.nextcloud.host | quote }}
+  initialDelaySeconds: {{ .initialDelaySeconds }}
+  periodSeconds: {{ .periodSeconds }}
+  timeoutSeconds: {{ .timeoutSeconds }}
+  successThreshold: {{ .successThreshold }}
+  failureThreshold: {{ .failureThreshold }}
+  {{- end }}
+  {{- end }}
+{{- end -}}
