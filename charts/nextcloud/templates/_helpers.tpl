@@ -202,21 +202,24 @@ files >>>
 # - name: vol-config-files-upgrade-disable-web
   mountPath: /var/www/html/config/upgrade-disable-web.config.php
   subPath: upgrade-disable-web.config.php
+- name: nextcloud-config
+  mountPath: /var/www/html/config/
+{{/*
 {{/*
 files <<<
 */}}
 - name: nextcloud-custom-apps
-  mountPath: {{ .Values.persistence.nextcloudCustomApps.mountPath | default "/var/www/html/custom_apps" }}
+  mountPath: {{ .Values.persistence.nextcloudCustomApps.mountPath | default "/nextcloud/custom_apps" }}
   {{/*
   subPath: {{ ternary "custom_apps" (printf "%s/custom_apps" .Values.nextcloud.persistence.subPath) (empty .Values.nextcloud.persistence.subPath) }}
   */}}
 - name: nextcloud-data
-  mountPath: {{ .Values.persistence.nextcloudData.mountPath | default "/var/www/html/data" }}
+  mountPath: {{ .Values.persistence.nextcloudData.mountPath | default "/nextcloud/data" }}
   {{/*
   subPath: {{ ternary "data" (printf "%s/data" .Values.persistence.nextcloudData.subPath) (empty .Values.persistence.nextcloudData.subPath) }}
   */}}
 - name: nextcloud-themes
-  mountPath: {{ .Values.persistence.nextcloudThemes.mountPath | default "/var/www/html/themes" }}
+  mountPath: {{ .Values.persistence.nextcloudThemes.mountPath | default "/nextcloud/themes" }}
   {{/*
   subPath: {{ ternary "themes" (printf "%s/themes" .Values.nextcloud.persistence.subPath) (empty .Values.nextcloud.persistence.subPath) }}
   */}}

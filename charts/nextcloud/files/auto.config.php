@@ -25,3 +25,5 @@ if (getenv('MYSQL_DATABASE') && getenv('MYSQL_USER') && getenv('MYSQL_PASSWORD')
 if ($autoconfig_enabled) {
   $AUTOCONFIG['directory'] = getenv('NEXTCLOUD_DATA_DIR') ?: '/var/www/html/data';
 }
+
+$AUTOCONFIG['config_is_read_only'] = false;

@@ -236,6 +236,9 @@ spec:
         - name: vol-config-files
           configMap:
             name: {{ template "nextcloud.fullname" . }}-config-files
+        - name: nextcloud-config
+          emptyDir: {}
+        {{/*
         {{/*
         custom_apps >>>
         */}}
@@ -268,7 +271,7 @@ spec:
         - name: nextcloud-data
           {{- if .Values.persistence.nextcloudData.enabled }}
           persistentVolumeClaim:
-            claimName: {{ if .Values.persistence.nextcloudData.existingClaim }}{{ .Values.persistence.nextcloudData.existingClaim }}{{- else }}{{ template "nextcloud.fullname" . }}-nextcloud-custom-apps{{- end }}
+            claimName: {{ if .Values.persistence.nextcloudData.existingClaim }}{{ .Values.persistence.nextcloudData.existingClaim }}{{- else }}{{ template "nextcloud.fullname" . }}-nextcloud-data{{- end }}
           {{- else }}
           emptyDir: {}
           {{- end }}

@@ -217,28 +217,32 @@ externalDatabase:
 ## ref: http://kubernetes.io/docs/user-guide/persistent-volumes/
 ##
 persistence:
-  accessMode: ReadWriteOnce
+  # accessMode: ReadWriteOnce
+  accessMode: ReadWriteMany
   size: 8Gi
-  # storageClass: "-"
+  storageClass: "-"
   # subPath:
   annotations: {}
   additionalLabels: {}
   additionalAnnotations: {}
   nextcloudData:
     # existingClaim:
-    mountPath: /var/www/html/data
+    # mountPath: /var/www/html/data
+    mountPath: /nextcloud/data
     hostPath:
       enabled: false
       path: /work/nextcloud/data
   nextcloudCustomApps:
     # existingClaim:
-    mountPath: /var/www/html/custom_apps
+    # mountPath: /var/www/html/custom_apps
+    mountPath: /nextcloud/custom_apps
     hostPath:
       enabled: false
       path: /work/nextcloud/custom_apps
   nextcloudThemes:
     # existingClaim:
-    mountPath: /var/www/html/themes
+    # mountPath: /var/www/html/themes
+    mountPath: /nextcloud/themes
     hostPath:
       enabled: false
       path: /work/nextcloud/themes
