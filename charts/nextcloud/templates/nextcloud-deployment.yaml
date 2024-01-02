@@ -120,6 +120,20 @@ spec:
         {{- with .Values.nextcloud.extraInitContainers }}
         {{- toYaml . | nindent 8 }}
         {{- end }}
+        - name: fmp-volume-permission
+          image: busybox
+          imagePullPolicy: IfNotPresent
+          command: [ 'chown','-R', '33:33', {{ .Values.persistence.nextcloudData.mountPath | squote }}, {{ .Values.persistence.nextcloudCustomApps.mountPath | squote }}, {{ .Values.persistence.nextcloudThemes.mountPath | squote }} ]
+          securityContext:
+            runAsUser: 0
+            privileged: true
+          volumeMounts:
+            - name: nextcloud-data
+              mountPath: {{ .Values.persistence.nextcloudData.mountPath }}
+            - name: nextcloud-custom-apps
+              mountPath: {{ .Values.persistence.nextcloudCustomApps.mountPath }}
+            - name: nextcloud-themes
+              mountPath: {{ .Values.persistence.nextcloudThemes.mountPath }}
         {{- if eq .Values.externalDatabase.type "mysql" }}
         - name: mariadb-isalive
           image: {{ .Values.externalDatabase.mariadb.image.registry | default "docker.io" }}/{{ .Values.externalDatabase.mariadb.image.repository }}:{{ .Values.externalDatabase.mariadb.image.tag }}
