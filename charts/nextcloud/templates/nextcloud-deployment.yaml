@@ -38,6 +38,11 @@ spec:
         {{- toYaml . | nindent 8 }}
         {{- end }}
       annotations:
+        # nextcloud-config-hash: {{ print (toJson .Values.nextcloud.defaultConfigs) "-" (toJson .Values.nextcloud.configs) | sha256sum }}
+        php-config-hash: {{ toJson .Values.nextcloud.phpConfigs | sha256sum }}
+        {{- if .Values.nginx.enabled }}
+        nginx-config-hash: {{ print .Values.nginx.config.default "-" .Values.nginx.config.custom | sha256sum }}
+        {{- end }}
         {{- with .Values.podAnnotations }}
         {{- toYaml . | nindent 8 }}
         {{- end }}
@@ -252,6 +257,11 @@ spec:
         {{/*
         data <<<
         */}}
+        {{- if .Values.nextcloud.phpConfigs }}
+        - name: nextcloud-phpconfig
+          configMap:
+            name: {{ template "nextcloud.fullname" . }}-phpconfig
+        {{- end }}
         {{- if .Values.nginx.enabled }}
         - name: nextcloud-nginx-config
           configMap:
