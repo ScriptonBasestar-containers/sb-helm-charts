@@ -211,16 +211,13 @@ spec:
             path: {{ .Values.persistence.nextcloudData.hostPath.path | quote }}
             type: Directory
         {{- else }}
-        {{- if and .Values.persistence.nextcloudData.enabled }}
         - name: nextcloud-data
+          {{- if .Values.persistence.nextcloudData.enabled }}
           persistentVolumeClaim:
-            claimName: {{ if .Values.persistence.nextcloudData.existingClaim }}{{ .Values.persistence.nextcloudData.existingClaim }}{{- else }}{{ template "nextcloud.fullname" . }}-nextcloud-data{{- end }}
-        {{- end }}
-        {{- if .Values.nextcloud.configs }}
-        - name: nextcloud-config
-          configMap:
-            name: {{ template "nextcloud.fullname" . }}-config
-        {{- end }}
+            claimName: {{ if .Values.persistence.nextcloudData.existingClaim }}{{ .Values.persistence.nextcloudData.existingClaim }}{{- else }}{{ template "nextcloud.fullname" . }}-nextcloud-custom-apps{{- end }}
+          {{- else }}
+          emptyDir: {}
+          {{- end }}
         {{- end }}
         {{/*
         data <<<
