@@ -212,7 +212,7 @@ files <<<
   {{/*
   subPath: {{ ternary "data" (printf "%s/data" .Values.persistence.nextcloudData.subPath) (empty .Values.persistence.nextcloudData.subPath) }}
   */}}
-- name: nextcloud-custom_apps
+- name: nextcloud-custom-apps
   mountPath: {{ .Values.persistence.nextcloudCustomApps.mountPath | default "/var/www/html/custom_apps" }}
   {{/*
   subPath: {{ ternary "custom_apps" (printf "%s/custom_apps" .Values.nextcloud.persistence.subPath) (empty .Values.nextcloud.persistence.subPath) }}
