@@ -205,15 +205,15 @@ files >>>
 {{/*
 files <<<
 */}}
-- name: nextcloud-data
-  mountPath: {{ .Values.persistence.nextcloudData.mountPath | default "/var/www/html/data" }}
-  {{/*
-  subPath: {{ ternary "data" (printf "%s/data" .Values.persistence.nextcloudData.subPath) (empty .Values.persistence.nextcloudData.subPath) }}
-  */}}
 - name: nextcloud-custom-apps
   mountPath: {{ .Values.persistence.nextcloudCustomApps.mountPath | default "/var/www/html/custom_apps" }}
   {{/*
   subPath: {{ ternary "custom_apps" (printf "%s/custom_apps" .Values.nextcloud.persistence.subPath) (empty .Values.nextcloud.persistence.subPath) }}
+  */}}
+- name: nextcloud-data
+  mountPath: {{ .Values.persistence.nextcloudData.mountPath | default "/var/www/html/data" }}
+  {{/*
+  subPath: {{ ternary "data" (printf "%s/data" .Values.persistence.nextcloudData.subPath) (empty .Values.persistence.nextcloudData.subPath) }}
   */}}
 - name: nextcloud-themes
   mountPath: {{ .Values.persistence.nextcloudThemes.mountPath | default "/var/www/html/themes" }}

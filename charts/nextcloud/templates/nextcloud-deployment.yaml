@@ -128,10 +128,10 @@ spec:
             runAsUser: 0
             privileged: true
           volumeMounts:
-            - name: nextcloud-data
-              mountPath: {{ .Values.persistence.nextcloudData.mountPath }}
             - name: nextcloud-custom-apps
               mountPath: {{ .Values.persistence.nextcloudCustomApps.mountPath }}
+            - name: nextcloud-data
+              mountPath: {{ .Values.persistence.nextcloudData.mountPath }}
             - name: nextcloud-themes
               mountPath: {{ .Values.persistence.nextcloudThemes.mountPath }}
         {{- if eq .Values.externalDatabase.type "mysql" }}
@@ -183,29 +183,6 @@ spec:
           configMap:
             name: {{ template "nextcloud.fullname" . }}-config-files
         {{/*
-        data >>>
-        */}}
-        {{- if .Values.persistence.nextcloudData.hostPath.enabled }}
-        - name: nextcloud-data
-          hostPath:
-            path: {{ .Values.persistence.nextcloudData.hostPath.path | quote }}
-            type: Directory
-        {{- else }}
-        {{- if and .Values.persistence.nextcloudData.enabled .Values.persistence.enabled }}
-        - name: nextcloud-data
-          persistentVolumeClaim:
-            claimName: {{ if .Values.persistence.nextcloudData.existingClaim }}{{ .Values.persistence.nextcloudData.existingClaim }}{{- else }}{{ template "nextcloud.fullname" . }}-nextcloud-data{{- end }}
-        {{- end }}
-        {{- if .Values.nextcloud.configs }}
-        - name: nextcloud-config
-          configMap:
-            name: {{ template "nextcloud.fullname" . }}-config
-        {{- end }}
-        {{- end }}
-        {{/*
-        data <<<
-        */}}
-        {{/*
         custom_apps >>>
         */}}
         {{- if .Values.persistence.nextcloudCustomApps.hostPath.enabled }}
@@ -224,6 +201,29 @@ spec:
         {{- end }}
         {{/*
         custom_apps <<<
+        */}}
+        {{/*
+        data >>>
+        */}}
+        {{- if .Values.persistence.nextcloudData.hostPath.enabled }}
+        - name: nextcloud-data
+          hostPath:
+            path: {{ .Values.persistence.nextcloudData.hostPath.path | quote }}
+            type: Directory
+        {{- else }}
+        {{- if and .Values.persistence.nextcloudData.enabled }}
+        - name: nextcloud-data
+          persistentVolumeClaim:
+            claimName: {{ if .Values.persistence.nextcloudData.existingClaim }}{{ .Values.persistence.nextcloudData.existingClaim }}{{- else }}{{ template "nextcloud.fullname" . }}-nextcloud-data{{- end }}
+        {{- end }}
+        {{- if .Values.nextcloud.configs }}
+        - name: nextcloud-config
+          configMap:
+            name: {{ template "nextcloud.fullname" . }}-config
+        {{- end }}
+        {{- end }}
+        {{/*
+        data <<<
         */}}
         {{/*
         themes >>>
