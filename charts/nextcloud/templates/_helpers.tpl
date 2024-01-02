@@ -177,10 +177,6 @@ files >>>
   mountPath: /var/www/html/config/dir-data.config.php
   subPath: dir-data.config.php
 - name: vol-config-files
-# - name: vol-config-files-dir-data
-  mountPath: /var/www/html/config/dir-data.config.php
-  subPath: dir-data.config.php
-- name: vol-config-files
 # - name: vol-config-files-dir-themes
   mountPath: /var/www/html/config/dir-themes.config.php
   subPath: dir-themes.config.php
