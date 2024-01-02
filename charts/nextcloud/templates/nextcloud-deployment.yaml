@@ -177,7 +177,7 @@ spec:
         - name: fmp-volume-permission
           image: busybox
           imagePullPolicy: IfNotPresent
-          command: [ 'chown','-R', '33:33', '/var/www/html', {{ .Values.persistence.nextcloudData.mountPath | squote }}, {{ .Values.persistence.nextcloudCustomApps.mountPath | squote }}, {{ .Values.persistence.nextcloudThemes.mountPath | squote }} ]
+          command: [ 'chown','-R', '33:33', '/var/www/html', {{ .Values.persistence.nextcloudData.mountPath | squote }}, {{ .Values.persistence.nextcloudCustomApps.mountPath | squote }} ]
           securityContext:
             runAsUser: 0
             privileged: true
@@ -186,8 +186,6 @@ spec:
               mountPath: {{ .Values.persistence.nextcloudCustomApps.mountPath }}
             - name: nextcloud-data
               mountPath: {{ .Values.persistence.nextcloudData.mountPath }}
-            - name: nextcloud-themes
-              mountPath: {{ .Values.persistence.nextcloudThemes.mountPath }}
         {{- if eq .Values.externalDatabase.type "mysql" }}
         - name: mariadb-isalive
           image: {{ .Values.externalDatabase.mariadb.image.registry | default "docker.io" }}/{{ .Values.externalDatabase.mariadb.image.repository }}:{{ .Values.externalDatabase.mariadb.image.tag }}
@@ -277,26 +275,6 @@ spec:
         {{- end }}
         {{/*
         data <<<
-        */}}
-        {{/*
-        themes >>>
-        */}}
-        {{- if .Values.persistence.nextcloudThemes.hostPath.enabled }}
-        - name: nextcloud-themes
-          hostPath:
-            path: {{ .Values.persistence.nextcloudThemes.hostPath.path | quote }}
-            type: Directory
-        {{- else }}
-        - name: nextcloud-themes
-          {{- if .Values.persistence.nextcloudThemes.enabled }}
-          persistentVolumeClaim:
-            claimName: {{ if .Values.persistence.nextcloudThemes.existingClaim }}{{ .Values.persistence.nextcloudThemes.existingClaim }}{{- else }}{{ template "nextcloud.fullname" . }}-nextcloud-themes{{- end }}
-          {{- else }}
-          emptyDir: {}
-          {{- end }}
-        {{- end }}
-        {{/*
-        themes <<<
         */}}
         {{- with .Values.nextcloud.extraVolumes }}
         {{- toYaml . | nindent 8 }}

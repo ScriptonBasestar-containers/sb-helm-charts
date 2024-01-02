@@ -16,8 +16,6 @@ data:
     {{- .Files.Get "files/dir-apps.config.php" | nindent 4 }}
   dir-data.config.php: |-
     {{- .Files.Get "files/dir-data.config.php" | nindent 4 }}
-  dir-themes.config.php: |-
-    {{- .Files.Get "files/dir-themes.config.php" | nindent 4 }}
   redis.config.php: |-
     {{- .Files.Get "files/redis.config.php" | nindent 4 }}
   reverse-proxy.config.php: |-

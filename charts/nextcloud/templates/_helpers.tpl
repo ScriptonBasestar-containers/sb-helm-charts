@@ -141,8 +141,6 @@ Create environment variables used to configure the nextcloud container as well a
 {{- end }}
 - name: NEXTCLOUD_PATH_CUSTOM_APPS
   value: {{ .Values.persistence.nextcloudCustomApps.mountPath | quote }}
-- name: NEXTCLOUD_PATH_THEMES
-  value: {{ .Values.persistence.nextcloudThemes.mountPath | quote }}
 - name: NEXTCLOUD_PATH_DATA
   value: {{ .Values.persistence.nextcloudData.mountPath | quote }}
 {{- if .Values.nextcloud.extraEnv }}
@@ -175,10 +173,6 @@ files >>>
 # - name: vol-config-files-dir-data
   mountPath: /var/www/html/config/dir-data.config.php
   subPath: dir-data.config.php
-- name: vol-config-files
-# - name: vol-config-files-dir-themes
-  mountPath: /var/www/html/config/dir-themes.config.php
-  subPath: dir-themes.config.php
 - name: vol-config-files
 # - name: vol-config-files-redis
   mountPath: /var/www/html/config/redis.config.php
@@ -215,11 +209,6 @@ files <<<
   mountPath: {{ .Values.persistence.nextcloudData.mountPath | default "/nextcloud/data" }}
   {{/*
   subPath: {{ ternary "data" (printf "%s/data" .Values.persistence.nextcloudData.subPath) (empty .Values.persistence.nextcloudData.subPath) }}
-  */}}
-- name: nextcloud-themes
-  mountPath: {{ .Values.persistence.nextcloudThemes.mountPath | default "/nextcloud/themes" }}
-  {{/*
-  subPath: {{ ternary "themes" (printf "%s/themes" .Values.nextcloud.persistence.subPath) (empty .Values.nextcloud.persistence.subPath) }}
   */}}
 {{- if .Values.nextcloud.extraVolumeMounts }}
 {{ toYaml .Values.nextcloud.extraVolumeMounts }}

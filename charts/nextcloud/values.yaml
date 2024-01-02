@@ -177,7 +177,9 @@ nextcloud:
   #   readOnlyRootFilesystem: false
 
   # Set securityContext parameters for the entire pod. For example, you may need to define runAsNonRoot directive
+  # root 안면 안돌가
   podSecurityContext: {}
+  #   runAsUser: 33
   #   runAsUser: 33
   #   runAsGroup: 33
   #   runAsNonRoot: true
@@ -239,13 +241,6 @@ persistence:
     hostPath:
       enabled: false
       path: /work/nextcloud/custom_apps
-  nextcloudThemes:
-    # existingClaim:
-    # mountPath: /var/www/html/themes
-    mountPath: /nextcloud/themes
-    hostPath:
-      enabled: false
-      path: /work/nextcloud/themes
 
 ## Liveness and readiness probe values
 ## Ref: https://kubernetes.io/docs/concepts/workloads/pods/pod-lifecycle/#container-probes
