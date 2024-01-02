@@ -195,15 +195,15 @@ spec:
         custom_apps >>>
         */}}
         {{- if .Values.persistence.nextcloudCustomApps.hostPath.enabled }}
-        - name: nextcloud-main
+        - name: nextcloud-custom-apps
           hostPath:
             path: {{ .Values.persistence.nextcloudCustomApps.hostPath.path | quote }}
             type: Directory
         {{- else }}
-        - name: nextcloud-main
+        - name: nextcloud-custom-apps
           {{- if .Values.persistence.nextcloudCustomApps.enabled }}
           persistentVolumeClaim:
-            claimName: {{ if .Values.persistence.nextcloudCustomApps.existingClaim }}{{ .Values.persistence.nextcloudCustomApps.existingClaim }}{{- else }}{{ template "nextcloud.fullname" . }}-nextcloud{{- end }}
+            claimName: {{ if .Values.persistence.nextcloudCustomApps.existingClaim }}{{ .Values.persistence.nextcloudCustomApps.existingClaim }}{{- else }}{{ template "nextcloud.fullname" . }}-nextcloud-custom-apps{{- end }}
           {{- else }}
           emptyDir: {}
           {{- end }}
@@ -214,16 +214,16 @@ spec:
         {{/*
         themes >>>
         */}}
-        {{- if .Values.persistence.nextcloudCustomApps.hostPath.enabled }}
-        - name: nextcloud-main
+        {{- if .Values.persistence.nextcloudThemes.hostPath.enabled }}
+        - name: nextcloud-themes
           hostPath:
-            path: {{ .Values.persistence.nextcloudCustomApps.hostPath.path | quote }}
+            path: {{ .Values.persistence.nextcloudThemes.hostPath.path | quote }}
             type: Directory
         {{- else }}
-        - name: nextcloud-main
-          {{- if .Values.persistence.nextcloudCustomApps.enabled }}
+        - name: nextcloud-themes
+          {{- if .Values.persistence.nextcloudThemes.enabled }}
           persistentVolumeClaim:
-            claimName: {{ if .Values.persistence.nextcloudCustomApps.existingClaim }}{{ .Values.persistence.nextcloudCustomApps.existingClaim }}{{- else }}{{ template "nextcloud.fullname" . }}-nextcloud{{- end }}
+            claimName: {{ if .Values.persistence.nextcloudThemes.existingClaim }}{{ .Values.persistence.nextcloudThemes.existingClaim }}{{- else }}{{ template "nextcloud.fullname" . }}-nextcloud-themes{{- end }}
           {{- else }}
           emptyDir: {}
           {{- end }}

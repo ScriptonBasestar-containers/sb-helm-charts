@@ -160,40 +160,52 @@ Create volume mounts for the nextcloud container as well as the cron sidecar con
 {{/*
 files >>>
 */}}
-- name: vol-config-files-apcu
+- name: vol-config-files
+# - name: vol-config-files-apcu
   mountPath: /var/www/html/config/apcu.config.php
   subPath: apcu.config.php
-- name: vol-config-files-autoconfig
+- name: vol-config-files
+# - name: vol-config-files-autoconfig
   mountPath: /var/www/html/config/autoconfig.php
   subPath: autoconfig.php
-- name: vol-config-files-dir-apps
+- name: vol-config-files
+# - name: vol-config-files-dir-apps
   mountPath: /var/www/html/config/dir-apps.config.php
   subPath: dir-apps.config.php
-- name: vol-config-files-dir-data
+- name: vol-config-files
+# - name: vol-config-files-dir-data
   mountPath: /var/www/html/config/dir-data.config.php
   subPath: dir-data.config.php
-- name: vol-config-files-dir-data
+- name: vol-config-files
+# - name: vol-config-files-dir-data
   mountPath: /var/www/html/config/dir-data.config.php
   subPath: dir-data.config.php
-- name: vol-config-files-dir-themes
+- name: vol-config-files
+# - name: vol-config-files-dir-themes
   mountPath: /var/www/html/config/dir-themes.config.php
   subPath: dir-themes.config.php
-- name: vol-config-files-redis
+- name: vol-config-files
+# - name: vol-config-files-redis
   mountPath: /var/www/html/config/redis.config.php
   subPath: redis.config.php
-- name: vol-config-files-reverse-proxy
+- name: vol-config-files
+# - name: vol-config-files-reverse-proxy
   mountPath: /var/www/html/config/reverse-proxy.config.php
   subPath: reverse-proxy.config.php
-- name: vol-config-files-s3
+- name: vol-config-files
+# - name: vol-config-files-s3
   mountPath: /var/www/html/config/s3.config.php
   subPath: s3.config.php
-- name: vol-config-files-smtp
+- name: vol-config-files
+# - name: vol-config-files-smtp
   mountPath: /var/www/html/config/smtp.config.php
   subPath: smtp.config.php
-- name: vol-config-files-swift
+- name: vol-config-files
+# - name: vol-config-files-swift
   mountPath: /var/www/html/config/swift.config.php
   subPath: swift.config.php
-- name: vol-config-files-upgrade-disable-web
+- name: vol-config-files
+# - name: vol-config-files-upgrade-disable-web
   mountPath: /var/www/html/config/upgrade-disable-web.config.php
   subPath: upgrade-disable-web.config.php
 {{/*
