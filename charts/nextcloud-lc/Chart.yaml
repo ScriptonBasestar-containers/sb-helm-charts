@@ -1,0 +1,25 @@
+apiVersion: v2
+name: nextcloud-lc
+version: 4.5.41
+appVersion: 28.0.3
+description: A file sharing server that puts the control and security of your own data back into your hands.
+keywords:
+  - nextcloud
+  - storage
+  - http
+  - web
+  - php
+home: https://nextcloud.com/
+icon: https://raw.githubusercontent.com/ScriptonBasestar-docker/sb-helm-charts/master/helms/nextcloud/icon.png
+sources:
+  - https://github.com/nextcloud/helm
+  - https://github.com/nextcloud/docker
+  - https://scriptonbasestar-docker.github.io/sb-helm-charts/
+  - https://github.com/linuxserver/docker-nextcloud
+  - https://hub.docker.com/r/linuxserver/nextcloud
+maintainers:
+  - name: archmagece
+    email: archmagece@gmail.com
+
+
+

@@ -1,0 +1,35 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ template "nextcloud.fullname" . }}-config
+  labels:
+    app.kubernetes.io/name: {{ include "nextcloud.name" . }}
+    helm.sh/chart: {{ include "nextcloud.chart" . }}
+    app.kubernetes.io/instance: {{ .Release.Name }}
+    app.kubernetes.io/managed-by: {{ .Release.Service }}
+data:
+  {{- if and .Values.externalDatabase.enabled (eq .Values.externalDatabase.type "postgres") }}
+  POSTGRES_HOST: {{ .Values.externalDatabase.host | quote }}
+  POSTGRES_DB: {{ .Values.externalDatabase.database | quote }}
+  POSTGRES_USER: {{ .Values.externalDatabase.user | quote }}
+  POSTGRES_PASSWORD: {{ .Values.externalDatabase.password | quote }}
+  {{- else if and .Values.externalDatabase.enabled (eq .Values.externalDatabase.type "mysqlj") }}
+  MYSQL_HOST: {{ .Values.externalDatabase.host | quote }}
+  MYSQL_DATABASE: {{ .Values.externalDatabase.database | quote }}
+  MYSQL_USER: {{ .Values.externalDatabase.user | quote }}
+  MYSQL_PASSWORD: {{ .Values.externalDatabase.password | quote }}
+  {{- end }}
+
+  {{- if .Values.nextcloud.mail.enabled }}
+  MAIL_FROM_ADDRESS: {{ .Values.config.mail.froAddress | quote }}
+  MAIL_DOMAIN: {{ .Values.config.mail.domain | quote }}
+  SMTP_SECURE: {{ .Values.config.mail.smtp.secure | quote }}
+  SMTP_PORT: {{ .Values.config.mail.smtp.port | quote }}
+  SMTP_AUTHTYPE: {{ .Values.config.mail.smtp.authtype | quote }}
+  {{- end }}
+
+  {{- if .Values.externalRedis.enabled }}
+  REDIS_HOST: {{ .Values.externalRedis.host | quote }}
+  REDIS_PORT: {{ .Values.externalRedis.port | quote }}
+  REDIS_PASSWORD: {{ .Values.externalRedis.password | quote }}
+  {{- end }}
