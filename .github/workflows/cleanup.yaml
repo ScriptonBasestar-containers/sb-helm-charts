@@ -4,11 +4,8 @@ concurrency:
     cancel-in-progress: true
 
 on:
-  push:
-    branches:
-      - main
-    paths:
-      - 'charts/**'
+  schedule:
+    - cron: '0 1 * * *'
 
 jobs:
   cleanup-deployments:
@@ -37,3 +34,17 @@ jobs:
           delete_tag_pattern: beta
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  del_runs:
+    runs-on: ubuntu-latest
+    permissions:
+      actions: write
+      contents: read
+    steps:
+      - name: Delete workflow runs
+        uses: Mattraks/delete-workflow-runs@v2
+        with:
+          token: ${{ github.token }}
+          repository: ${{ github.repository }}
+          retain_days: 30
+          keep_minimum_runs: 6
