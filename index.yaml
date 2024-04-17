@@ -568,6 +568,34 @@ entries:
     urls:
     - https://github.com/ScriptonBasestar-container/sb-helm-charts/releases/download/nextcloud-4.5.21/nextcloud-4.5.21.tgz
     version: 4.5.21
+  - apiVersion: v2
+    appVersion: 28.0.3
+    created: "2024-04-17T03:18:22.73891271Z"
+    description: A file sharing server that puts the control and security of your
+      own data back into your hands.
+    digest: d95ae03eb5151d5ee1fd896b3aaa83282630b4b9a338ae56f4f4eaf34c9e4a71
+    home: https://nextcloud.com/
+    icon: https://raw.githubusercontent.com/ScriptonBasestar-docker/sb-helm-charts/master/helms/nextcloud/icon.png
+    keywords:
+    - nextcloud
+    - storage
+    - http
+    - web
+    - php
+    maintainers:
+    - email: archmagece@users.noreply.github.com
+      name: archmagece
+    name: nextcloud
+    sources:
+    - https://github.com/nextcloud/helm
+    - https://github.com/nextcloud/docker
+    - https://scriptonbasestar-docker.github.io/sb-helm-charts/
+    - https://github.com/linuxserver/docker-nextcloud
+    - https://hub.docker.com/r/linuxserver/nextcloud
+    type: application
+    urls:
+    - https://github.com/ScriptonBasestar-container/sb-helm-charts/releases/download/nextcloud-0.1.0/nextcloud-0.1.0.tgz
+    version: 0.1.0
   nextcloud-lc:
   - apiVersion: v2
     appVersion: 28.0.3
@@ -596,4 +624,31 @@ entries:
     urls:
     - https://github.com/ScriptonBasestar-container/sb-helm-charts/releases/download/nextcloud-lc-4.5.41/nextcloud-lc-4.5.41.tgz
     version: 4.5.41
-generated: "2024-03-21T08:22:57.329561243Z"
+  wordpress:
+  - apiVersion: v2
+    appVersion: 6.4.3
+    created: "2024-04-17T03:18:22.849404382Z"
+    description: A Helm chart for Kubernetes
+    digest: 65fdc42ba0e99f54ce04c23f44d00ef7c697eb03dc9b5bb868bca7f4d699550e
+    home: https://wordpress.org/
+    icon: https://raw.githubusercontent.com/ScriptonBasestar-docker/sb-helm-charts/master/helms/wordpress/icon.png
+    keywords:
+    - wordpress
+    - blog
+    - cms
+    - php
+    maintainers:
+    - email: archmagece@users.noreply.github.com
+      name: archmagece
+    name: wordpress
+    sources:
+    - https://github.com/nextcloud/helm
+    - https://github.com/nextcloud/docker
+    - https://scriptonbasestar-docker.github.io/sb-helm-charts/
+    - https://github.com/linuxserver/docker-nextcloud
+    - https://hub.docker.com/r/linuxserver/wordpress
+    type: application
+    urls:
+    - https://github.com/ScriptonBasestar-container/sb-helm-charts/releases/download/wordpress-0.1.0/wordpress-0.1.0.tgz
+    version: 0.1.0
+generated: "2024-04-17T03:18:22.849479322Z"
