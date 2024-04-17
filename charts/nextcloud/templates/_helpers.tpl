@@ -153,7 +153,8 @@ Create volume mounts for the nextcloud container as well as the cron sidecar con
 */}}
 {{- define "nextcloud.volumeMounts" -}}
 - name: nextcloud-config
-  mountPath: /var/www/html/config/
+  # mountPath: /var/www/html/config/
+  mountPath: /config/www/nextcloud/config/
 {{- if .Values.nginx.enabled }}
 - name: nextcloud-nginx-config
   mountPath: /etc/nginx/conf.d/
@@ -163,54 +164,64 @@ files >>>
 */}}
 - name: vol-config-files
 # - name: vol-config-files-apcu
-  mountPath: /var/www/html/config/apcu.config.php
+  # mountPath: /var/www/html/config/apcu.config.php
+  mountPath: /config/www/nextcloud/config/apcu.config.php
   subPath: apcu.config.php
 - name: vol-config-files
 # - name: vol-config-files-autoconfig
-  mountPath: /var/www/html/config/auto.config.php
+  # mountPath: /var/www/html/config/auto.config.php
+  mountPath: /config/www/nextcloud/config/auto.config.php
   subPath: auto.config.php
 - name: vol-config-files
 # - name: vol-config-files-dir-apps
-  mountPath: /var/www/html/config/dir-apps.config.php
+  # mountPath: /var/www/html/config/dir-apps.config.php
+  mountPath: /config/www/nextcloud/config/dir-apps.config.php
   subPath: dir-apps.config.php
 - name: vol-config-files
 # - name: vol-config-files-dir-data
-  mountPath: /var/www/html/config/dir-data.config.php
+  # mountPath: /var/www/html/config/dir-data.config.php
+  mountPath: /config/www/nextcloud/config/dir-data.config.php
   subPath: dir-data.config.php
 - name: vol-config-files
 # - name: vol-config-files-redis
-  mountPath: /var/www/html/config/redis.config.php
+  # mountPath: /var/www/html/config/redis.config.php
+  mountPath: /config/www/nextcloud/config/redis.config.php
   subPath: redis.config.php
 - name: vol-config-files
 # - name: vol-config-files-reverse-proxy
-  mountPath: /var/www/html/config/reverse-proxy.config.php
+  # mountPath: /var/www/html/config/reverse-proxy.config.php
+  mountPath: /config/www/nextcloud/config/reverse-proxy.config.php
   subPath: reverse-proxy.config.php
 - name: vol-config-files
 # - name: vol-config-files-s3
-  mountPath: /var/www/html/config/s3.config.php
+  # mountPath: /var/www/html/config/s3.config.php
+  mountPath: /config/www/nextcloud/config/s3.config.php
   subPath: s3.config.php
 - name: vol-config-files
 # - name: vol-config-files-smtp
-  mountPath: /var/www/html/config/smtp.config.php
+  # mountPath: /var/www/html/config/smtp.config.php
+  mountPath: /config/www/nextcloud/config/smtp.config.php
   subPath: smtp.config.php
 - name: vol-config-files
 # - name: vol-config-files-swift
-  mountPath: /var/www/html/config/swift.config.php
+  # mountPath: /var/www/html/config/swift.config.php
+  mountPath: /config/www/nextcloud/config/swift.config.php
   subPath: swift.config.php
 - name: vol-config-files
 # - name: vol-config-files-upgrade-disable-web
-  mountPath: /var/www/html/config/upgrade-disable-web.config.php
+  # mountPath: /var/www/html/config/upgrade-disable-web.config.php
+  mountPath: /config/www/nextcloud/config/upgrade-disable-web.config.php
   subPath: upgrade-disable-web.config.php
 {{/*
 files <<<
 */}}
 - name: nextcloud-custom-apps
-  mountPath: {{ .Values.persistence.nextcloudCustomApps.mountPath | default "/nextcloud/custom_apps" }}
+  mountPath: {{ .Values.persistence.nextcloudCustomApps.mountPath | default "/config/custom_apps" }}
   {{/*
   subPath: {{ ternary "custom_apps" (printf "%s/custom_apps" .Values.nextcloud.persistence.subPath) (empty .Values.nextcloud.persistence.subPath) }}
   */}}
 - name: nextcloud-data
-  mountPath: {{ .Values.persistence.nextcloudData.mountPath | default "/nextcloud/data" }}
+  mountPath: {{ .Values.persistence.nextcloudData.mountPath | default "/data" }}
   {{/*
   subPath: {{ ternary "data" (printf "%s/data" .Values.persistence.nextcloudData.subPath) (empty .Values.persistence.nextcloudData.subPath) }}
   */}}

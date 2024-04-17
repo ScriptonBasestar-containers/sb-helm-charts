@@ -1,0 +1,22 @@
+apiVersion: v2
+name: wordpress
+version: 0.1.0
+appVersion: 6.4.3
+type: application
+description: A Helm chart for Kubernetes
+keywords:
+  - wordpress
+  - blog
+  - cms
+  - php
+home: https://wordpress.org/
+icon: https://raw.githubusercontent.com/ScriptonBasestar-docker/sb-helm-charts/master/helms/wordpress/icon.png
+sources:
+  - https://github.com/nextcloud/helm
+  - https://github.com/nextcloud/docker
+  - https://scriptonbasestar-docker.github.io/sb-helm-charts/
+  - https://github.com/linuxserver/docker-nextcloud
+  - https://hub.docker.com/r/linuxserver/wordpress
+maintainers:
+  - name: archmagece
+    email: archmagece@users.noreply.github.com

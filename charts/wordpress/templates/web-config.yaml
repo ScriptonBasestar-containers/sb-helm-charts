@@ -1,0 +1,28 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "wordpress.fullname" . }}-config
+  labels:
+    {{- include "wordpress.labels" . | nindent 4 }}
+data:
+  WORDPRESS_AUTH_KEY: {{ .Values.config.authKey }}
+  WORDPRESS_SECURE_AUTH_KEY: {{ .Values.config.secureAuthKey }}
+  WORDPRESS_LOGGED_IN_KEY: {{ .Values.config.loggedInKey }}
+  WORDPRESS_NONCE_KEY: {{ .Values.config.nonceKey }}
+  WORDPRESS_AUTH_SALT: {{ .Values.config.authSalt }}
+  WORDPRESS_SECURE_AUTH_SALT: {{ .Values.config.secureAuthSalt }}
+  WORDPRESS_LOGGED_IN_SALT: {{ .Values.config.loggedInSalt }}
+  WORDPRESS_NONCE_SALT: {{ .Values.config.nonceSalt }}
+  WORDPRESS_DEBUG: {{ .Values.config.debug }}
+  WORDPRESS_CONFIG_EXTRA: {{ .Values.config.extraConfig | quote }}
+
+  # WORDPRESS_ALLOW_MULTISITE: {{ .Values.wordpress.multisite.enabled }}
+  # WORDPRESS_SUBDOMAIN_INSTALL: {{ .Values.wordpress.multisite.subdomainInstall }}
+  # WORDPRESS_PATH_CURRENT_SITE: {{ .Values.wordpress.multisite.pathCurrentSite }}
+  # WORDPRESS_DOMAIN_CURRENT_SITE: {{ .Values.wordpress.multisite.domainCurrentSite }}
+  # WORDPRESS_SITE_ID_CURRENT_SITE: {{ .Values.wordpress.multisite.siteIdCurrentSite }}
+  # WORDPRESS_BLOG_ID_CURRENT_SITE: {{ .Values.wordpress.multisite.blogIdCurrentSite }}
+  # WORDPRESS_ALLOW_UNFILTERED_UPLOADS: {{ .Values.wordpress.allowUnfilteredUploads }}
+  # WORDPRESS_FORCE_SSL_ADMIN: {{ .Values.wordpress.forceSslAdmin }}
+  # WORDPRESS_FORCE_SSL_LOGIN: {{ .Values.wordpress.forceSslLogin }}
+

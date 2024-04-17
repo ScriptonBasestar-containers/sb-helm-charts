@@ -8,6 +8,8 @@ metadata:
     app.kubernetes.io/instance: {{ .Release.Name }}
     app.kubernetes.io/managed-by: {{ .Release.Service }}
 data:
+  # config.php: |-
+  #   {{- .Files.Get "files/config.php" | nindent 4 }}
   apcu.config.php: |-
     {{- .Files.Get "files/apcu.config.php" | nindent 4 }}
   auto.config.php: |-

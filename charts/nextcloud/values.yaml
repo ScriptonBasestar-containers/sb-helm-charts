@@ -4,15 +4,11 @@
 
 image:
   nextcloud:
-    # registry: lscr.io
-    # repository: linuxserver/nextcloud
-    registry: docker.io
-    repository: nextcloud
-    # tag: stable
-    tag: stable-fpm
+    registry: lscr.io
+    repository: linuxserver/nextcloud
+    tag: 28.0.3
     # pullPolicy: IfNotPresent
     # pullSecrets: "regcred"
-
 
 nameOverride: ""
 fullnameOverride: ""
@@ -233,14 +229,14 @@ persistence:
   nextcloudData:
     # existingClaim:
     # mountPath: /var/www/html/data
-    mountPath: /nextcloud/data
+    mountPath: /data
     hostPath:
       enabled: false
       path: /work/nextcloud/data
   nextcloudCustomApps:
     # existingClaim:
     # mountPath: /var/www/html/custom_apps
-    mountPath: /nextcloud/custom_apps
+    mountPath: /config/custom_apps
     hostPath:
       enabled: false
       path: /work/nextcloud/custom_apps

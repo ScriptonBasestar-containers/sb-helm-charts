@@ -1,7 +1,8 @@
 apiVersion: v2
 name: nextcloud
-version: 4.5.41
-appVersion: 28.0.1
+version: 0.1.0
+appVersion: 28.0.3
+type: application
 description: A file sharing server that puts the control and security of your own data back into your hands.
 keywords:
   - nextcloud
@@ -19,4 +20,4 @@ sources:
   - https://hub.docker.com/r/linuxserver/nextcloud
 maintainers:
   - name: archmagece
-    email: archmagece@gmail.com
+    email: archmagece@users.noreply.github.com

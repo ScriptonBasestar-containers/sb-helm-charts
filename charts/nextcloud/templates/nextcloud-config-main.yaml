@@ -8,12 +8,12 @@ metadata:
     app.kubernetes.io/instance: {{ .Release.Name }}
     app.kubernetes.io/managed-by: {{ .Release.Service }}
 data:
-  {{- if .Values.externalDatabase.enabled }}
+  {{- if and .Values.externalDatabase.enabled (eq .Values.externalDatabase.type "postgres") }}
   POSTGRES_HOST: {{ .Values.externalDatabase.host | quote }}
   POSTGRES_DB: {{ .Values.externalDatabase.database | quote }}
   POSTGRES_USER: {{ .Values.externalDatabase.user | quote }}
   POSTGRES_PASSWORD: {{ .Values.externalDatabase.password | quote }}
-  {{- else if .Values.externalDatabase.enabled -}}
+  {{- else if and .Values.externalDatabase.enabled (eq .Values.externalDatabase.type "mysqlj") }}
   MYSQL_HOST: {{ .Values.externalDatabase.host | quote }}
   MYSQL_DATABASE: {{ .Values.externalDatabase.database | quote }}
   MYSQL_USER: {{ .Values.externalDatabase.user | quote }}
