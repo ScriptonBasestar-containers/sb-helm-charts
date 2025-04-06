@@ -11,5 +11,5 @@ spec:
     - name: wget
       image: busybox
       command: ['wget']
-      args: ['{{ include "rsshub.fullname" . }}:{{ .Values.service.port }}']
+      args: ['{{ include "rsshub.fullname" . }}:{{ .Values.service.appPort }}']
   restartPolicy: Never

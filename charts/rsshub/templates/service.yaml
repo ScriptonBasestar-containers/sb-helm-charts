@@ -7,9 +7,13 @@ metadata:
 spec:
   type: {{ .Values.service.type }}
   ports:
-    - port: {{ .Values.service.port }}
-      targetPort: http
+    - port: {{ .Values.service.appPort }}
+      targetPort: app
       protocol: TCP
-      name: http
+      name: app
+    # - port: {{ .Values.service.docPort }}
+    #   targetPort: doc
+    #   protocol: TCP
+    #   name: doc
   selector:
     {{- include "rsshub.selectorLabels" . | nindent 4 }}
