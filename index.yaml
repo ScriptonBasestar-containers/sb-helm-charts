@@ -11,31 +11,4 @@ entries:
     urls:
     - https://github.com/ScriptonBasestar/sb-helm-charts/releases/download/rsshub-0.1.0/rsshub-0.1.0.tgz
     version: 0.1.0
-  wordpress:
-  - apiVersion: v2
-    appVersion: 6.4.3
-    created: "2024-04-17T03:18:22.849404382Z"
-    description: A Helm chart for Kubernetes
-    digest: 65fdc42ba0e99f54ce04c23f44d00ef7c697eb03dc9b5bb868bca7f4d699550e
-    home: https://wordpress.org/
-    icon: https://raw.githubusercontent.com/ScriptonBasestar-docker/sb-helm-charts/master/helms/wordpress/icon.png
-    keywords:
-    - wordpress
-    - blog
-    - cms
-    - php
-    maintainers:
-    - email: archmagece@users.noreply.github.com
-      name: archmagece
-    name: wordpress
-    sources:
-    - https://github.com/nextcloud/helm
-    - https://github.com/nextcloud/docker
-    - https://scriptonbasestar-docker.github.io/sb-helm-charts/
-    - https://github.com/linuxserver/docker-nextcloud
-    - https://hub.docker.com/r/linuxserver/wordpress
-    type: application
-    urls:
-    - https://github.com/ScriptonBasestar-container/sb-helm-charts/releases/download/wordpress-0.1.0/wordpress-0.1.0.tgz
-    version: 0.1.0
 generated: "2025-04-06T15:22:24.826960027Z"
