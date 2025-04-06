@@ -27,6 +27,19 @@ helm의 가장 잘못된 설계는 config파일을 values에 대입하는 기능
     - 디비는 각 사이트마다 자신들이 원하는 옵션이 있어서 차트로 포함 해 봐야 실 배포에서 한번도 쓴 적이 없다.
 
 ## Charts
+### Custom
 - [ ] nextcloud: linux container
 - [ ] wordpress
-- [ ] rsshub
+- [v] rsshub
+
+### Official
+- nextcloud
+    - bitnami, official: X 어느날 재부팅 후에 무한재부팅 컨테이너가 보임
+        - 도커이미지는 환경변수를 쓰는데 설정파일 볼륨을 잃거나 하면 무한재부팅 .어드민 생성등 문제 발생
+        - 헬름은 설정을 편하게 만들려다가 더 복잡해진 전형적인 케이스
+    - linuxcontainer: ??? 설정위주컨테이너
+        - 애매하게 스크립트가 들어있어서 초기 설치시 설정파일을 복사 부여넣기 했던 기억이
+    - https://github.com/nextcloud/all-in-one: 새로운 표준인듯.
+        - 안써봤는데 이게 잘 되면 별도 컨테이너 필요 없을듯
+- wordpress
+    - 몇가지 비교 필요. 헬름 및 오퍼레이터가 너무 많아서 좋은걸 고르기 힘들다.
