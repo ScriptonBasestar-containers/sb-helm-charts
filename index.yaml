@@ -624,6 +624,17 @@ entries:
     urls:
     - https://github.com/ScriptonBasestar-container/sb-helm-charts/releases/download/nextcloud-lc-4.5.41/nextcloud-lc-4.5.41.tgz
     version: 4.5.41
+  rsshub:
+  - apiVersion: v2
+    appVersion: 1.16.0
+    created: "2025-04-06T00:22:44.311935773Z"
+    description: A Helm chart for Kubernetes
+    digest: 4951f4288c43463984c111f28b2d000c0101cdf7f59f663d84d8e0eafbd258fb
+    name: rsshub
+    type: application
+    urls:
+    - https://github.com/ScriptonBasestar/sb-helm-charts/releases/download/rsshub-0.1.0/rsshub-0.1.0.tgz
+    version: 0.1.0
   wordpress:
   - apiVersion: v2
     appVersion: 6.4.3
@@ -651,4 +662,4 @@ entries:
     urls:
     - https://github.com/ScriptonBasestar-container/sb-helm-charts/releases/download/wordpress-0.1.0/wordpress-0.1.0.tgz
     version: 0.1.0
-generated: "2024-04-17T03:18:22.849479322Z"
+generated: "2025-04-06T00:22:44.31199785Z"
