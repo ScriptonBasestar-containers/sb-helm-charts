@@ -1,5 +1,16 @@
 apiVersion: v1
 entries:
+  browserless-chrome:
+  - apiVersion: v2
+    appVersion: 1.16.0
+    created: "2025-04-07T07:45:04.670683517Z"
+    description: A Helm chart for Kubernetes
+    digest: a4a95c2d10efc9090f049144b198abf0161cb7e40f55856d5a1d0c6f2d53bbfd
+    name: browserless-chrome
+    type: application
+    urls:
+    - https://github.com/ScriptonBasestar/sb-helm-charts/releases/download/browserless-chrome-0.1.0/browserless-chrome-0.1.0.tgz
+    version: 0.1.0
   rsshub:
   - apiVersion: v2
     appVersion: "2025-04-06"
@@ -11,4 +22,4 @@ entries:
     urls:
     - https://github.com/ScriptonBasestar/sb-helm-charts/releases/download/rsshub-0.1.0/rsshub-0.1.0.tgz
     version: 0.1.0
-generated: "2025-04-06T15:22:24.826960027Z"
+generated: "2025-04-07T07:45:04.670688687Z"
