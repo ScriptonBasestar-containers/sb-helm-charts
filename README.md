@@ -30,7 +30,8 @@ helm의 가장 잘못된 설계는 config파일을 values에 대입하는 기능
 ### Custom
 - [ ] nextcloud: linux container
 - [ ] wordpress
-- [v] rsshub
+- [x] rsshub - 만들다 보니 잘 관리되는게 있음. https://github.com/RSSNext/helm-charts. 여기있는 차트는 browserless 아직 추가 안함
+
 
 ### Official
 - nextcloud
