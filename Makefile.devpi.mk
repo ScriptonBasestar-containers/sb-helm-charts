@@ -9,7 +9,7 @@ include Makefile.common.mk
 .PHONY: devpi-init
 devpi-init:
 	@echo "Initializing devpi server..."
-	@$(KUBECTL) exec -it $$($(KUBECTL) get pod -l app.kubernetes.io/name=$(CHART_NAME) -o jsonpath="{.items[0].metadata.name}") -- devpi-init
+	@$(KUBECTL) exec -it $$($(KUBECTL) get pod -l app.kubernetes.io/name=$(CHART_NAME) -o jsonpath="{.items[0].metadata.name}") -- devpi-init --serverdir /app/data
 
 .PHONY: devpi-create-user
 devpi-create-user:
