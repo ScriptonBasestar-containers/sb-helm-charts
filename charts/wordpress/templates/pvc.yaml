@@ -1,0 +1,20 @@
+{{- if .Values.persistence.enabled }}
+{{- if and .Values.persistence.content.enabled (not .Values.persistence.content.existingClaim) }}
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ include "wordpress.fullname" . }}-content
+  labels:
+    {{- include "wordpress.labels" . | nindent 4 }}
+    app.kubernetes.io/component: content
+spec:
+  accessModes:
+    - {{ .Values.persistence.content.accessMode }}
+  {{- if .Values.persistence.content.storageClass }}
+  storageClassName: {{ .Values.persistence.content.storageClass }}
+  {{- end }}
+  resources:
+    requests:
+      storage: {{ .Values.persistence.content.size }}
+{{- end }}
+{{- end }}

@@ -5,24 +5,80 @@ metadata:
   labels:
     {{- include "wordpress.labels" . | nindent 4 }}
 data:
-  WORDPRESS_AUTH_KEY: {{ .Values.config.authKey }}
-  WORDPRESS_SECURE_AUTH_KEY: {{ .Values.config.secureAuthKey }}
-  WORDPRESS_LOGGED_IN_KEY: {{ .Values.config.loggedInKey }}
-  WORDPRESS_NONCE_KEY: {{ .Values.config.nonceKey }}
-  WORDPRESS_AUTH_SALT: {{ .Values.config.authSalt }}
-  WORDPRESS_SECURE_AUTH_SALT: {{ .Values.config.secureAuthSalt }}
-  WORDPRESS_LOGGED_IN_SALT: {{ .Values.config.loggedInSalt }}
-  WORDPRESS_NONCE_SALT: {{ .Values.config.nonceSalt }}
-  WORDPRESS_DEBUG: {{ .Values.config.debug }}
-  WORDPRESS_CONFIG_EXTRA: {{ .Values.config.extraConfig | quote }}
+  # WordPress site configuration
+  WORDPRESS_TITLE: {{ .Values.wordpress.title | quote }}
+  WORDPRESS_DEBUG: {{ .Values.wordpress.debug | quote }}
+  WORDPRESS_TABLE_PREFIX: {{ .Values.wordpress.tablePrefix | quote }}
 
-  # WORDPRESS_ALLOW_MULTISITE: {{ .Values.wordpress.multisite.enabled }}
-  # WORDPRESS_SUBDOMAIN_INSTALL: {{ .Values.wordpress.multisite.subdomainInstall }}
-  # WORDPRESS_PATH_CURRENT_SITE: {{ .Values.wordpress.multisite.pathCurrentSite }}
-  # WORDPRESS_DOMAIN_CURRENT_SITE: {{ .Values.wordpress.multisite.domainCurrentSite }}
-  # WORDPRESS_SITE_ID_CURRENT_SITE: {{ .Values.wordpress.multisite.siteIdCurrentSite }}
-  # WORDPRESS_BLOG_ID_CURRENT_SITE: {{ .Values.wordpress.multisite.blogIdCurrentSite }}
-  # WORDPRESS_ALLOW_UNFILTERED_UPLOADS: {{ .Values.wordpress.allowUnfilteredUploads }}
-  # WORDPRESS_FORCE_SSL_ADMIN: {{ .Values.wordpress.forceSslAdmin }}
-  # WORDPRESS_FORCE_SSL_LOGIN: {{ .Values.wordpress.forceSslLogin }}
+  # Site URLs
+  {{- if .Values.wordpress.siteUrl }}
+  WORDPRESS_SITE_URL: {{ .Values.wordpress.siteUrl | quote }}
+  {{- end }}
+  {{- if .Values.wordpress.homeUrl }}
+  WORDPRESS_HOME_URL: {{ .Values.wordpress.homeUrl | quote }}
+  {{- end }}
 
+  # WordPress salts and keys
+  {{- if .Values.wordpress.salts.authKey }}
+  WORDPRESS_AUTH_KEY: {{ .Values.wordpress.salts.authKey | quote }}
+  {{- end }}
+  {{- if .Values.wordpress.salts.secureAuthKey }}
+  WORDPRESS_SECURE_AUTH_KEY: {{ .Values.wordpress.salts.secureAuthKey | quote }}
+  {{- end }}
+  {{- if .Values.wordpress.salts.loggedInKey }}
+  WORDPRESS_LOGGED_IN_KEY: {{ .Values.wordpress.salts.loggedInKey | quote }}
+  {{- end }}
+  {{- if .Values.wordpress.salts.nonceKey }}
+  WORDPRESS_NONCE_KEY: {{ .Values.wordpress.salts.nonceKey | quote }}
+  {{- end }}
+  {{- if .Values.wordpress.salts.authSalt }}
+  WORDPRESS_AUTH_SALT: {{ .Values.wordpress.salts.authSalt | quote }}
+  {{- end }}
+  {{- if .Values.wordpress.salts.secureAuthSalt }}
+  WORDPRESS_SECURE_AUTH_SALT: {{ .Values.wordpress.salts.secureAuthSalt | quote }}
+  {{- end }}
+  {{- if .Values.wordpress.salts.loggedInSalt }}
+  WORDPRESS_LOGGED_IN_SALT: {{ .Values.wordpress.salts.loggedInSalt | quote }}
+  {{- end }}
+  {{- if .Values.wordpress.salts.nonceSalt }}
+  WORDPRESS_NONCE_SALT: {{ .Values.wordpress.salts.nonceSalt | quote }}
+  {{- end }}
+
+  # WordPress initialization script
+  init-wordpress.sh: |
+    #!/bin/bash
+    set -e
+
+    echo "Waiting for MySQL to be ready..."
+    until mysqladmin ping -h"${WORDPRESS_DB_HOST}" -P"${WORDPRESS_DB_PORT:-3306}" -u"${WORDPRESS_DB_USER}" -p"${WORDPRESS_DB_PASSWORD}" --silent 2>/dev/null; do
+      echo "MySQL is unavailable - sleeping"
+      sleep 2
+    done
+    echo "MySQL is ready!"
+
+    # Download WP-CLI if not exists
+    if [ ! -f /usr/local/bin/wp ]; then
+      curl -O https://raw.githubusercontent.com/wp-cli/builds/gh-pages/phar/wp-cli.phar
+      chmod +x wp-cli.phar
+      mv wp-cli.phar /usr/local/bin/wp
+    fi
+
+    # Check if WordPress is already installed
+    if ! wp core is-installed --allow-root --path=/var/www/html 2>/dev/null; then
+      echo "Installing WordPress..."
+      wp core install \
+        --allow-root \
+        --path=/var/www/html \
+        --url="${WORDPRESS_SITE_URL:-http://localhost}" \
+        --title="${WORDPRESS_TITLE}" \
+        --admin_user="${WORDPRESS_ADMIN_USER}" \
+        --admin_password="${WORDPRESS_ADMIN_PASSWORD}" \
+        --admin_email="${WORDPRESS_ADMIN_EMAIL}" \
+        --skip-email
+
+      echo "WordPress installed successfully!"
+    else
+      echo "WordPress is already installed."
+    fi
+
+    echo "WordPress initialization complete!"

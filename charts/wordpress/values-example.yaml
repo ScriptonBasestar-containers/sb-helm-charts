@@ -1,0 +1,238 @@
+# Example values file for WordPress production deployment
+# Copy this file to my-values.yaml and customize for your environment
+
+# WordPress configuration
+wordpress:
+  # Site configuration
+  title: "My Awesome Blog"
+  siteUrl: "https://myblog.example.com"
+  homeUrl: "https://myblog.example.com"
+
+  # Admin credentials (CHANGE THESE!)
+  admin:
+    username: "admin"
+    password: "ChangeThisToASecurePassword123!"
+    email: "admin@example.com"
+
+  # WordPress debug mode (disable in production)
+  debug: "false"
+
+  # WordPress table prefix
+  tablePrefix: "wp_"
+
+  # WordPress salts and keys (RECOMMENDED: Generate at https://api.wordpress.org/secret-key/1.1/salt/)
+  salts:
+    authKey: "put-unique-phrase-here-auth-key"
+    secureAuthKey: "put-unique-phrase-here-secure-auth-key"
+    loggedInKey: "put-unique-phrase-here-logged-in-key"
+    nonceKey: "put-unique-phrase-here-nonce-key"
+    authSalt: "put-unique-phrase-here-auth-salt"
+    secureAuthSalt: "put-unique-phrase-here-secure-auth-salt"
+    loggedInSalt: "put-unique-phrase-here-logged-in-salt"
+    nonceSalt: "put-unique-phrase-here-nonce-salt"
+
+  # WordPress plugins to install and activate
+  plugins:
+    install:
+      - woocommerce
+      - contact-form-7
+      - wordfence
+    activate:
+      - woocommerce
+      - contact-form-7
+
+  # WordPress themes
+  themes:
+    install:
+      - twentytwentyfour
+      - astra
+    activate: twentytwentyfour
+
+# External MySQL database configuration
+mysql:
+  enabled: false  # We use external MySQL
+  external:
+    enabled: true
+    # Kubernetes service name or external hostname
+    host: "mysql-service.default.svc.cluster.local"
+    port: 3306
+    database: "wordpress"
+    username: "wordpress"
+    password: "SecureMySQLPassword123!"
+
+    # Alternative: Use existing Kubernetes secret
+    # existingSecret:
+    #   enabled: true
+    #   secretName: "mysql-credentials"
+    #   usernameKey: "username"
+    #   passwordKey: "password"
+    #   databaseKey: "database"
+
+# Persistent storage configuration
+persistence:
+  enabled: true
+  # WordPress content directory (themes, plugins, uploads)
+  content:
+    enabled: true
+    storageClass: ""  # Use default storage class or specify: "fast-ssd", "standard", etc.
+    accessMode: ReadWriteOnce
+    size: 20Gi  # Adjust based on expected content size
+    # Use existing PVC (optional):
+    # existingClaim: "wordpress-content-pvc"
+
+# Replica configuration
+replicaCount: 1
+# Note: For multiple replicas, you need ReadWriteMany (RWX) storage
+
+# Container image
+image:
+  repository: wordpress
+  pullPolicy: IfNotPresent
+  tag: "6.4.3-apache"  # WordPress with Apache
+
+# Service configuration
+service:
+  type: ClusterIP
+  port: 80
+  targetPort: 80
+
+# Ingress configuration
+ingress:
+  enabled: true
+  className: "nginx"
+
+  annotations:
+    # Large file upload support
+    nginx.ingress.kubernetes.io/proxy-body-size: "100m"
+    nginx.ingress.kubernetes.io/proxy-buffering: "off"
+
+    # SSL/TLS configuration (if using cert-manager)
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
+
+    # Optional: Force HTTPS redirect
+    # nginx.ingress.kubernetes.io/force-ssl-redirect: "true"
+
+  hosts:
+    - host: myblog.example.com
+      paths:
+        - path: /
+          pathType: Prefix
+
+  # TLS configuration
+  tls:
+    - secretName: wordpress-tls
+      hosts:
+        - myblog.example.com
+
+# Resource limits and requests
+resources:
+  limits:
+    cpu: 1000m      # 1 CPU core
+    memory: 1Gi     # 1 GB RAM
+  requests:
+    cpu: 250m       # 0.25 CPU cores
+    memory: 256Mi   # 256 MB RAM
+
+# Health check configuration
+livenessProbe:
+  httpGet:
+    path: /wp-admin/install.php
+    port: http
+    httpHeaders:
+      - name: Host
+        value: "localhost"
+  initialDelaySeconds: 120
+  periodSeconds: 10
+  timeoutSeconds: 5
+  failureThreshold: 6
+  successThreshold: 1
+
+readinessProbe:
+  httpGet:
+    path: /wp-login.php
+    port: http
+    httpHeaders:
+      - name: Host
+        value: "localhost"
+  initialDelaySeconds: 30
+  periodSeconds: 10
+  timeoutSeconds: 5
+  failureThreshold: 3
+  successThreshold: 1
+
+startupProbe:
+  httpGet:
+    path: /wp-login.php
+    port: http
+    httpHeaders:
+      - name: Host
+        value: "localhost"
+  initialDelaySeconds: 30
+  periodSeconds: 10
+  timeoutSeconds: 5
+  failureThreshold: 30
+  successThreshold: 1
+
+# Security context
+podSecurityContext:
+  fsGroup: 33  # www-data group
+
+securityContext:
+  runAsUser: 33     # www-data user
+  runAsGroup: 33
+  runAsNonRoot: true
+  readOnlyRootFilesystem: false
+
+# Autoscaling (optional)
+autoscaling:
+  enabled: false
+  minReplicas: 1
+  maxReplicas: 5
+  targetCPUUtilizationPercentage: 80
+
+# Node selector (optional)
+# nodeSelector:
+#   disktype: ssd
+#   node-role: worker
+
+# Tolerations (optional)
+# tolerations:
+#   - key: "node-role"
+#     operator: "Equal"
+#     value: "worker"
+#     effect: "NoSchedule"
+
+# Affinity rules (optional)
+# affinity:
+#   podAntiAffinity:
+#     preferredDuringSchedulingIgnoredDuringExecution:
+#       - weight: 100
+#         podAffinityTerm:
+#           labelSelector:
+#             matchExpressions:
+#               - key: app.kubernetes.io/name
+#                 operator: In
+#                 values:
+#                   - wordpress
+#           topologyKey: kubernetes.io/hostname
+
+# Additional environment variables (optional)
+extraEnv:
+  - name: WORDPRESS_CONFIG_EXTRA
+    value: |
+      define('WP_MEMORY_LIMIT', '256M');
+      define('WP_MAX_MEMORY_LIMIT', '512M');
+      define('FORCE_SSL_ADMIN', true);
+      define('DISABLE_WP_CRON', false);
+
+# Additional volumes (optional)
+# extraVolumes:
+#   - name: custom-config
+#     configMap:
+#       name: wordpress-custom-config
+
+# Additional volume mounts (optional)
+# extraVolumeMounts:
+#   - name: custom-config
+#     mountPath: /etc/wordpress-custom
+#     readOnly: true

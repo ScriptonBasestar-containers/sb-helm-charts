@@ -1,142 +1,231 @@
-image:
-  web:
-    repository: wordpress
-    tag: 6.4.3-php8.3-fpm-alpine
-  nginx:
-    repository: nginx
-    tag: stable-alpine
-  cli:
-    repository: wordpress
-    tag: cli-php8.3
-  pullPolicy: IfNotPresent
+# Default values for wordpress.
+# This is a YAML-formatted file.
+# Declare variables to be passed into your templates.
 
+# WordPress configuration
+wordpress:
+  # Site configuration
+  title: "My WordPress Site"
+  siteUrl: "https://wordpress.example.com"
+  homeUrl: "https://wordpress.example.com"
+
+  # Admin user configuration
+  admin:
+    username: "admin"
+    password: ""  # Required: Set a strong password
+    email: "admin@example.com"
+
+  # WordPress debug mode
+  debug: "false"
+
+  # WordPress table prefix
+  tablePrefix: "wp_"
+
+  # WordPress salts and keys (auto-generated if empty)
+  # Generate at: https://api.wordpress.org/secret-key/1.1/salt/
+  salts:
+    authKey: ""
+    secureAuthKey: ""
+    loggedInKey: ""
+    nonceKey: ""
+    authSalt: ""
+    secureAuthSalt: ""
+    loggedInSalt: ""
+    nonceSalt: ""
+
+  # WordPress plugins to install/activate
+  plugins:
+    install: []
+    # Example: ["woocommerce", "contact-form-7"]
+    activate: []
+
+  # WordPress themes
+  themes:
+    install: []
+    # Example: ["twentytwentyfour"]
+    activate: ""
+    # Example: twentytwentyfour
+
+# External MySQL database configuration
+mysql:
+  enabled: false  # We use external MySQL
+  external:
+    enabled: true
+    host: ""  # e.g., mysql-service.default.svc.cluster.local
+    port: 3306
+    database: "wordpress"
+    username: "wordpress"
+    password: ""  # Required: Set database password
+    # Use existing secret (optional)
+    existingSecret:
+      enabled: false
+      secretName: ""
+      usernameKey: "username"
+      passwordKey: "password"
+      databaseKey: "database"
+
+# Persistent storage configuration
+persistence:
+  enabled: true
+  # WordPress content directory
+  content:
+    enabled: true
+    storageClass: ""  # Use default storage class if empty
+    accessMode: ReadWriteOnce
+    size: 10Gi
+    existingClaim: ""
+
+# Replica count
+replicaCount: 1
+
+# Container image configuration
+image:
+  repository: wordpress
+  pullPolicy: IfNotPresent
+  # Overrides the image tag whose default is the chart appVersion
+  tag: "6.4.3-apache"  # WordPress with Apache
+
+# Image pull secrets for private registries
+imagePullSecrets: []
+
+# Override chart name
 nameOverride: ""
 fullnameOverride: ""
 
+# Service account configuration
 serviceAccount:
-  # Specifies whether a service account should be created
   create: true
-  # Automatically mount a ServiceAccount's API credentials?
   automount: true
-  # Annotations to add to the service account
   annotations: {}
-  # The name of the service account to use.
-  # If not set and create is true, a name is generated using the fullname template
   name: ""
 
+# Pod annotations
 podAnnotations: {}
+
+# Pod labels
 podLabels: {}
 
-podSecurityContext: {}
-  # fsGroup: 2000
+# Pod security context
+podSecurityContext:
+  fsGroup: 33  # www-data group for WordPress
 
-securityContext: {}
-  # capabilities:
-  #   drop:
-  #   - ALL
-  # readOnlyRootFilesystem: true
-  # runAsNonRoot: true
-  # runAsUser: 1000
+# Container security context
+securityContext:
+  runAsUser: 33  # www-data user for WordPress
+  runAsGroup: 33
+  runAsNonRoot: true
+  readOnlyRootFilesystem: false
 
+# Service configuration
 service:
   type: ClusterIP
   port: 80
+  targetPort: 80
 
+# Ingress configuration
 ingress:
-  enabled: true
-  className: ""
-  annotations: {}
-    # kubernetes.io/ingress.class: nginx
-    # kubernetes.io/tls-acme: "true"
+  enabled: false
+  className: "nginx"
+  annotations:
+    nginx.ingress.kubernetes.io/proxy-body-size: "100m"
+    nginx.ingress.kubernetes.io/proxy-buffering: "off"
   hosts:
-    - host: chart-example.local
+    - host: wordpress.example.local
       paths:
         - path: /
-          pathType: ImplementationSpecific
+          pathType: Prefix
   tls: []
-  #  - secretName: chart-example-tls
-  #    hosts:
-  #      - chart-example.local
+  # Example TLS configuration:
+  # tls:
+  #   - secretName: wordpress-tls
+  #     hosts:
+  #       - wordpress.example.com
 
-resources: {}
-  # We usually recommend not to specify default resources and to leave this as a conscious
-  # choice for the user. This also increases chances charts run on environments with little
-  # resources, such as Minikube. If you do want to specify resources, uncomment the following
-  # lines, adjust them as necessary, and remove the curly braces after 'resources:'.
-  # limits:
-  #   cpu: 100m
-  #   memory: 128Mi
-  # requests:
-  #   cpu: 100m
-  #   memory: 128Mi
+# Resource limits and requests
+resources:
+  limits:
+    cpu: 1000m
+    memory: 1Gi
+  requests:
+    cpu: 250m
+    memory: 256Mi
 
+# Liveness probe configuration
 livenessProbe:
   httpGet:
-    path: /
+    path: /wp-admin/install.php
     port: http
+    httpHeaders:
+      - name: Host
+        value: "localhost"
+  initialDelaySeconds: 120
+  periodSeconds: 10
+  timeoutSeconds: 5
+  failureThreshold: 6
+  successThreshold: 1
+
+# Readiness probe configuration
 readinessProbe:
   httpGet:
-    path: /
+    path: /wp-login.php
     port: http
+    httpHeaders:
+      - name: Host
+        value: "localhost"
+  initialDelaySeconds: 30
+  periodSeconds: 10
+  timeoutSeconds: 5
+  failureThreshold: 3
+  successThreshold: 1
 
+# Startup probe (for slow initialization)
+startupProbe:
+  httpGet:
+    path: /wp-login.php
+    port: http
+    httpHeaders:
+      - name: Host
+        value: "localhost"
+  initialDelaySeconds: 30
+  periodSeconds: 10
+  timeoutSeconds: 5
+  failureThreshold: 30
+  successThreshold: 1
+
+# Autoscaling configuration
 autoscaling:
   enabled: false
   minReplicas: 1
-  maxReplicas: 100
+  maxReplicas: 5
   targetCPUUtilizationPercentage: 80
   # targetMemoryUtilizationPercentage: 80
 
-# Additional volumes on the output Deployment definition.
-volumes: []
-# - name: foo
-#   secret:
-#     secretName: mysecret
-#     optional: false
-
-# Additional volumeMounts on the output Deployment definition.
-volumeMounts: []
-# - name: foo
-#   mountPath: "/etc/foo"
-#   readOnly: true
-
+# Node selector
 nodeSelector: {}
 
+# Tolerations
 tolerations: []
 
+# Affinity rules
 affinity: {}
 
-config:
-  admin:
-    username: admin1
-    password: admin1
-    email: admin1@no-reply.com
-  user:
-    username: user1
-    password: user1
-    email: user1@no-reply.com
-  plugins:
-    enabled:
-      - woocommerce
-      - akismet
-    disabled:
-      - hello-dolly
+# Additional environment variables
+extraEnv: []
+# Example:
+# - name: WORDPRESS_CONFIG_EXTRA
+#   value: |
+#     define('WP_MEMORY_LIMIT', '256M');
+#     define('WP_MAX_MEMORY_LIMIT', '512M');
 
-  theme:
-    default: twentytwenty
-    install:
-      - twentytwenty
-    uninstall:
-      - twentynineteen
+# Additional volumes
+extraVolumes: []
+# Example:
+# - name: custom-config
+#   configMap:
+#     name: wordpress-custom-config
 
-  database:
-    type: mysql
-    name: wordpress
-    host: mysql
-    user: wordpress
-    password: wordpress
-    port: 3306
-    tablePrefix: "wp_"
-
-# upgrade, backup
-# initContainer:
-
+# Additional volume mounts
+extraVolumeMounts: []
+# Example:
+# - name: custom-config
+#   mountPath: /etc/wordpress-custom
