@@ -1,0 +1,127 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "nextcloud.fullname" . }}-config
+  labels:
+    {{- include "nextcloud.labels" . | nindent 4 }}
+data:
+  # Nextcloud configuration script
+  init-config.sh: |
+    #!/bin/bash
+    set -e
+
+    # Wait for database to be ready
+    echo "Waiting for PostgreSQL to be ready..."
+    until pg_isready -h {{ .Values.postgresql.external.host }} -p {{ .Values.postgresql.external.port }} -U {{ .Values.postgresql.external.username }}; do
+      echo "PostgreSQL is unavailable - sleeping"
+      sleep 2
+    done
+    echo "PostgreSQL is ready!"
+
+    # Wait for Redis to be ready
+    echo "Waiting for Redis to be ready..."
+    until redis-cli -h {{ .Values.redis.external.host }} -p {{ .Values.redis.external.port }} {{- if .Values.redis.external.password }} -a "${REDIS_HOST_PASSWORD}" {{- end }} ping | grep -q PONG; do
+      echo "Redis is unavailable - sleeping"
+      sleep 2
+    done
+    echo "Redis is ready!"
+
+    # Check if Nextcloud is already installed
+    if [ ! -f /var/www/html/config/config.php ]; then
+      echo "Installing Nextcloud..."
+      php /var/www/html/occ maintenance:install \
+        --database="pgsql" \
+        --database-host="{{ .Values.postgresql.external.host }}:{{ .Values.postgresql.external.port }}" \
+        --database-name="{{ .Values.postgresql.external.database }}" \
+        --database-user="${POSTGRES_USER}" \
+        --database-pass="${POSTGRES_PASSWORD}" \
+        --admin-user="{{ .Values.nextcloud.adminUser }}" \
+        --admin-pass="${NEXTCLOUD_ADMIN_PASSWORD}"
+
+      echo "Nextcloud installed successfully!"
+    else
+      echo "Nextcloud is already installed, running upgrade..."
+      php /var/www/html/occ upgrade
+    fi
+
+    # Configure Redis
+    echo "Configuring Redis..."
+    php /var/www/html/occ config:system:set redis host --value="{{ .Values.redis.external.host }}"
+    php /var/www/html/occ config:system:set redis port --value="{{ .Values.redis.external.port }}"
+    {{- if .Values.redis.external.password }}
+    php /var/www/html/occ config:system:set redis password --value="${REDIS_HOST_PASSWORD}"
+    {{- end }}
+    php /var/www/html/occ config:system:set redis dbindex --value="{{ .Values.redis.external.database }}"
+    php /var/www/html/occ config:system:set memcache.local --value="\OC\Memcache\Redis"
+    php /var/www/html/occ config:system:set memcache.locking --value="\OC\Memcache\Redis"
+
+    # Configure trusted domains
+    {{- range $index, $domain := .Values.nextcloud.trustedDomains }}
+    php /var/www/html/occ config:system:set trusted_domains {{ $index }} --value="{{ $domain }}"
+    {{- end }}
+
+    # Set overwrite settings for reverse proxy
+    php /var/www/html/occ config:system:set overwriteprotocol --value="https"
+    php /var/www/html/occ config:system:set overwrite.cli.url --value="https://{{ (index .Values.ingress.hosts 0).host }}"
+
+    {{- if .Values.nextcloud.smtp.enabled }}
+    # Configure SMTP
+    php /var/www/html/occ config:system:set mail_smtpmode --value="smtp"
+    php /var/www/html/occ config:system:set mail_smtphost --value="{{ .Values.nextcloud.smtp.host }}"
+    php /var/www/html/occ config:system:set mail_smtpport --value="{{ .Values.nextcloud.smtp.port }}"
+    php /var/www/html/occ config:system:set mail_smtpsecure --value="{{ .Values.nextcloud.smtp.secure }}"
+    php /var/www/html/occ config:system:set mail_smtpauth --value="1"
+    php /var/www/html/occ config:system:set mail_smtpauthtype --value="{{ .Values.nextcloud.smtp.authType }}"
+    php /var/www/html/occ config:system:set mail_from_address --value="{{ .Values.nextcloud.smtp.from }}"
+    php /var/www/html/occ config:system:set mail_smtpname --value="${SMTP_USERNAME}"
+    php /var/www/html/occ config:system:set mail_smtppassword --value="${SMTP_PASSWORD}"
+    {{- end }}
+
+    echo "Configuration complete!"
+
+  # Apache configuration for Nextcloud
+  apache-config.conf: |
+    <VirtualHost *:80>
+      ServerAdmin webmaster@localhost
+      DocumentRoot /var/www/html
+
+      <Directory /var/www/html/>
+        Options +FollowSymlinks
+        AllowOverride All
+        Require all granted
+
+        <IfModule mod_dav.c>
+          Dav off
+        </IfModule>
+
+        SetEnv HOME /var/www/html
+        SetEnv HTTP_HOME /var/www/html
+      </Directory>
+
+      # Increase timeout for long operations
+      Timeout 3600
+
+      ErrorLog ${APACHE_LOG_DIR}/error.log
+      CustomLog ${APACHE_LOG_DIR}/access.log combined
+    </VirtualHost>
+
+  # PHP configuration optimized for Nextcloud
+  php-nextcloud.ini: |
+    memory_limit = 512M
+    upload_max_filesize = 10G
+    post_max_size = 10G
+    max_execution_time = 3600
+    max_input_time = 3600
+
+    # OPcache settings
+    opcache.enable=1
+    opcache.enable_cli=1
+    opcache.interned_strings_buffer=16
+    opcache.max_accelerated_files=10000
+    opcache.memory_consumption=128
+    opcache.save_comments=1
+    opcache.revalidate_freq=1
+
+    # Redis session handler
+    session.save_handler = redis
+    session.save_path = "tcp://{{ .Values.redis.external.host }}:{{ .Values.redis.external.port }}?database={{ .Values.redis.external.database }}{{- if .Values.redis.external.password }}&auth=${REDIS_HOST_PASSWORD}{{- end }}"

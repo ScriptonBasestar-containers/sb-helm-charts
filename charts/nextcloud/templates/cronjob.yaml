@@ -1,0 +1,120 @@
+{{- if .Values.cronjob.enabled }}
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: {{ include "nextcloud.fullname" . }}-cron
+  labels:
+    {{- include "nextcloud.labels" . | nindent 4 }}
+    app.kubernetes.io/component: cron
+spec:
+  schedule: {{ .Values.cronjob.schedule | quote }}
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      template:
+        metadata:
+          labels:
+            {{- include "nextcloud.selectorLabels" . | nindent 12 }}
+            app.kubernetes.io/component: cron
+        spec:
+          {{- with .Values.imagePullSecrets }}
+          imagePullSecrets:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          serviceAccountName: {{ include "nextcloud.serviceAccountName" . }}
+          restartPolicy: OnFailure
+          {{- with .Values.podSecurityContext }}
+          securityContext:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          containers:
+            - name: nextcloud-cron
+              {{- with .Values.securityContext }}
+              securityContext:
+                {{- toYaml . | nindent 16 }}
+              {{- end }}
+              image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
+              imagePullPolicy: {{ .Values.image.pullPolicy }}
+              command:
+                - /bin/sh
+                - -c
+                - |
+                  echo "Running Nextcloud cron job..."
+                  php -f /var/www/html/cron.php
+                  echo "Cron job completed successfully"
+              env:
+                # PostgreSQL environment variables
+                - name: POSTGRES_HOST
+                  value: "{{ .Values.postgresql.external.host }}:{{ .Values.postgresql.external.port }}"
+                - name: POSTGRES_DB
+                  value: {{ .Values.postgresql.external.database | quote }}
+                - name: POSTGRES_USER
+                  valueFrom:
+                    secretKeyRef:
+                      name: {{ if .Values.postgresql.external.existingSecret.enabled }}{{ .Values.postgresql.external.existingSecret.secretName }}{{ else }}{{ include "nextcloud.fullname" . }}-secret{{ end }}
+                      key: {{ if .Values.postgresql.external.existingSecret.enabled }}{{ .Values.postgresql.external.existingSecret.usernameKey }}{{ else }}postgres-username{{ end }}
+                - name: POSTGRES_PASSWORD
+                  valueFrom:
+                    secretKeyRef:
+                      name: {{ if .Values.postgresql.external.existingSecret.enabled }}{{ .Values.postgresql.external.existingSecret.secretName }}{{ else }}{{ include "nextcloud.fullname" . }}-secret{{ end }}
+                      key: {{ if .Values.postgresql.external.existingSecret.enabled }}{{ .Values.postgresql.external.existingSecret.passwordKey }}{{ else }}postgres-password{{ end }}
+                # Redis environment variables
+                - name: REDIS_HOST
+                  value: {{ .Values.redis.external.host | quote }}
+                - name: REDIS_HOST_PORT
+                  value: {{ .Values.redis.external.port | quote }}
+                {{- if .Values.redis.external.password }}
+                - name: REDIS_HOST_PASSWORD
+                  valueFrom:
+                    secretKeyRef:
+                      name: {{ if .Values.redis.external.existingSecret.enabled }}{{ .Values.redis.external.existingSecret.secretName }}{{ else }}{{ include "nextcloud.fullname" . }}-secret{{ end }}
+                      key: {{ if .Values.redis.external.existingSecret.enabled }}{{ .Values.redis.external.existingSecret.passwordKey }}{{ else }}redis-password{{ end }}
+                {{- end }}
+              {{- with .Values.cronjob.resources }}
+              resources:
+                {{- toYaml . | nindent 16 }}
+              {{- end }}
+              volumeMounts:
+                - name: nextcloud-data
+                  mountPath: /var/www/html
+                {{- if .Values.persistence.config.enabled }}
+                - name: nextcloud-config
+                  mountPath: /var/www/html/config
+                {{- end }}
+                {{- if .Values.persistence.apps.enabled }}
+                - name: nextcloud-apps
+                  mountPath: /var/www/html/custom_apps
+                {{- end }}
+          volumes:
+            - name: nextcloud-data
+              {{- if .Values.persistence.data.enabled }}
+              persistentVolumeClaim:
+                claimName: {{ .Values.persistence.data.existingClaim | default (printf "%s-data" (include "nextcloud.fullname" .)) }}
+              {{- else }}
+              emptyDir: {}
+              {{- end }}
+            {{- if .Values.persistence.config.enabled }}
+            - name: nextcloud-config
+              persistentVolumeClaim:
+                claimName: {{ .Values.persistence.config.existingClaim | default (printf "%s-config" (include "nextcloud.fullname" .)) }}
+            {{- end }}
+            {{- if .Values.persistence.apps.enabled }}
+            - name: nextcloud-apps
+              persistentVolumeClaim:
+                claimName: {{ .Values.persistence.apps.existingClaim | default (printf "%s-apps" (include "nextcloud.fullname" .)) }}
+            {{- end }}
+          {{- with .Values.nodeSelector }}
+          nodeSelector:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          {{- with .Values.affinity }}
+          affinity:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          {{- with .Values.tolerations }}
+          tolerations:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+{{- end }}

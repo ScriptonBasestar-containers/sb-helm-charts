@@ -1,0 +1,274 @@
+# Example values file for Nextcloud production deployment
+# Copy this file to my-values.yaml and customize for your environment
+
+# Nextcloud configuration
+nextcloud:
+  # Admin credentials (CHANGE THESE!)
+  adminUser: admin
+  adminPassword: "ChangeThisToASecurePassword123!"
+
+  # Nextcloud version
+  version: "28.0"
+
+  # Trusted domains - add all domains/IPs that will access Nextcloud
+  trustedDomains:
+    - nextcloud.example.com
+    - nextcloud.internal.local
+    - 192.168.1.100
+
+  # SMTP configuration for email notifications (optional)
+  smtp:
+    enabled: true
+    host: "smtp.gmail.com"
+    port: 587
+    secure: "tls"
+    authType: "LOGIN"
+    from: "no-reply@example.com"
+    username: "your-email@gmail.com"
+    password: "your-app-password"
+
+# External PostgreSQL 16 configuration
+postgresql:
+  enabled: false  # We use external PostgreSQL
+  external:
+    enabled: true
+    # Kubernetes service name or external hostname
+    host: "postgres-postgresql.default.svc.cluster.local"
+    port: 5432
+    database: "nextcloud"
+    username: "nextcloud"
+    password: "SecurePostgresPassword123!"
+
+    # Alternative: Use existing Kubernetes secret
+    # existingSecret:
+    #   enabled: true
+    #   secretName: "postgres-credentials"
+    #   usernameKey: "username"
+    #   passwordKey: "password"
+
+# External Redis 8 configuration
+redis:
+  enabled: false  # We use external Redis
+  external:
+    enabled: true
+    # Kubernetes service name or external hostname
+    host: "redis-master.default.svc.cluster.local"
+    port: 6379
+    # Optional: Redis password
+    password: "SecureRedisPassword123!"
+    database: 0
+
+    # Alternative: Use existing Kubernetes secret
+    # existingSecret:
+    #   enabled: true
+    #   secretName: "redis-credentials"
+    #   passwordKey: "password"
+
+# Persistent storage configuration
+persistence:
+  enabled: true
+
+  # Nextcloud data volume (user files)
+  data:
+    enabled: true
+    storageClass: ""  # Use default storage class or specify: "fast-ssd", "standard", etc.
+    accessMode: ReadWriteOnce
+    size: 50Gi  # Adjust based on expected data size
+    # Use existing PVC (optional):
+    # existingClaim: "nextcloud-data-pvc"
+
+  # Nextcloud config volume
+  config:
+    enabled: true
+    storageClass: ""
+    accessMode: ReadWriteOnce
+    size: 1Gi
+    # existingClaim: "nextcloud-config-pvc"
+
+  # Custom apps volume
+  apps:
+    enabled: true
+    storageClass: ""
+    accessMode: ReadWriteOnce
+    size: 2Gi
+    # existingClaim: "nextcloud-apps-pvc"
+
+# Replica configuration
+replicaCount: 1
+# Note: For multiple replicas, you need ReadWriteMany (RWX) storage
+
+# Container image
+image:
+  repository: nextcloud
+  pullPolicy: IfNotPresent
+  tag: "28.0-apache"
+
+# Service configuration
+service:
+  type: ClusterIP
+  port: 80
+  targetPort: 80
+
+# Ingress configuration
+ingress:
+  enabled: true
+  className: "nginx"
+
+  annotations:
+    # Large file upload support
+    nginx.ingress.kubernetes.io/proxy-body-size: "10G"
+    nginx.ingress.kubernetes.io/proxy-buffering: "off"
+
+    # SSL/TLS configuration (if using cert-manager)
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
+
+    # Optional: Force HTTPS redirect
+    # nginx.ingress.kubernetes.io/force-ssl-redirect: "true"
+
+    # Nextcloud-specific redirects
+    nginx.ingress.kubernetes.io/server-snippet: |
+      client_max_body_size 10G;
+      location = /.well-known/carddav {
+        return 301 $scheme://$host/remote.php/dav;
+      }
+      location = /.well-known/caldav {
+        return 301 $scheme://$host/remote.php/dav;
+      }
+
+  hosts:
+    - host: nextcloud.example.com
+      paths:
+        - path: /
+          pathType: Prefix
+
+  # TLS configuration
+  tls:
+    - secretName: nextcloud-tls
+      hosts:
+        - nextcloud.example.com
+
+# Resource limits and requests
+resources:
+  limits:
+    cpu: 2000m      # 2 CPU cores
+    memory: 2Gi     # 2 GB RAM
+  requests:
+    cpu: 500m       # 0.5 CPU cores
+    memory: 512Mi   # 512 MB RAM
+
+# Health check configuration
+livenessProbe:
+  httpGet:
+    path: /status.php
+    port: http
+    httpHeaders:
+      - name: Host
+        value: "localhost"
+  initialDelaySeconds: 60
+  periodSeconds: 10
+  timeoutSeconds: 5
+  failureThreshold: 6
+  successThreshold: 1
+
+readinessProbe:
+  httpGet:
+    path: /status.php
+    port: http
+    httpHeaders:
+      - name: Host
+        value: "localhost"
+  initialDelaySeconds: 30
+  periodSeconds: 10
+  timeoutSeconds: 5
+  failureThreshold: 3
+  successThreshold: 1
+
+startupProbe:
+  httpGet:
+    path: /status.php
+    port: http
+    httpHeaders:
+      - name: Host
+        value: "localhost"
+  initialDelaySeconds: 30
+  periodSeconds: 10
+  timeoutSeconds: 5
+  failureThreshold: 30
+  successThreshold: 1
+
+# Security context
+podSecurityContext:
+  fsGroup: 33  # www-data group
+
+securityContext:
+  runAsUser: 33     # www-data user
+  runAsGroup: 33
+  runAsNonRoot: true
+  readOnlyRootFilesystem: false
+
+# Autoscaling (optional)
+autoscaling:
+  enabled: false
+  minReplicas: 1
+  maxReplicas: 3
+  targetCPUUtilizationPercentage: 80
+
+# Background job cron
+cronjob:
+  enabled: true
+  # Run every 15 minutes (Nextcloud recommendation)
+  schedule: "*/15 * * * *"
+  resources:
+    limits:
+      cpu: 100m
+      memory: 256Mi
+    requests:
+      cpu: 50m
+      memory: 128Mi
+
+# Node selector (optional)
+# nodeSelector:
+#   disktype: ssd
+#   node-role: worker
+
+# Tolerations (optional)
+# tolerations:
+#   - key: "node-role"
+#     operator: "Equal"
+#     value: "worker"
+#     effect: "NoSchedule"
+
+# Affinity rules (optional)
+# affinity:
+#   podAntiAffinity:
+#     preferredDuringSchedulingIgnoredDuringExecution:
+#       - weight: 100
+#         podAffinityTerm:
+#           labelSelector:
+#             matchExpressions:
+#               - key: app.kubernetes.io/name
+#                 operator: In
+#                 values:
+#                   - nextcloud
+#           topologyKey: kubernetes.io/hostname
+
+# Additional environment variables (optional)
+extraEnv:
+  - name: PHP_MEMORY_LIMIT
+    value: "1024M"
+  - name: PHP_UPLOAD_LIMIT
+    value: "20G"
+  # - name: CUSTOM_VAR
+  #   value: "custom-value"
+
+# Additional volumes (optional)
+# extraVolumes:
+#   - name: custom-config
+#     configMap:
+#       name: nextcloud-custom-config
+
+# Additional volume mounts (optional)
+# extraVolumeMounts:
+#   - name: custom-config
+#     mountPath: /etc/nextcloud-custom
+#     readOnly: true

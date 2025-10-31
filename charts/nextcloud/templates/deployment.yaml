@@ -8,15 +8,19 @@ spec:
   {{- if not .Values.autoscaling.enabled }}
   replicas: {{ .Values.replicaCount }}
   {{- end }}
+  strategy:
+    type: Recreate  # Important for stateful apps with RWO volumes
   selector:
     matchLabels:
       {{- include "nextcloud.selectorLabels" . | nindent 6 }}
   template:
     metadata:
-      {{- with .Values.podAnnotations }}
       annotations:
+        checksum/config: {{ include (print $.Template.BasePath "/configmap.yaml") . | sha256sum }}
+        checksum/secret: {{ include (print $.Template.BasePath "/secret.yaml") . | sha256sum }}
+        {{- with .Values.podAnnotations }}
         {{- toYaml . | nindent 8 }}
-      {{- end }}
+        {{- end }}
       labels:
         {{- include "nextcloud.labels" . | nindent 8 }}
         {{- with .Values.podLabels }}
@@ -32,6 +36,74 @@ spec:
       securityContext:
         {{- toYaml . | nindent 8 }}
       {{- end }}
+      initContainers:
+        # Wait for dependencies and configure Nextcloud
+        - name: init-nextcloud
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          command: ["/bin/bash", "/scripts/init-config.sh"]
+          env:
+            # PostgreSQL connection
+            - name: POSTGRES_USER
+              valueFrom:
+                secretKeyRef:
+                  name: {{ if .Values.postgresql.external.existingSecret.enabled }}{{ .Values.postgresql.external.existingSecret.secretName }}{{ else }}{{ include "nextcloud.fullname" . }}-secret{{ end }}
+                  key: {{ if .Values.postgresql.external.existingSecret.enabled }}{{ .Values.postgresql.external.existingSecret.usernameKey }}{{ else }}postgres-username{{ end }}
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ if .Values.postgresql.external.existingSecret.enabled }}{{ .Values.postgresql.external.existingSecret.secretName }}{{ else }}{{ include "nextcloud.fullname" . }}-secret{{ end }}
+                  key: {{ if .Values.postgresql.external.existingSecret.enabled }}{{ .Values.postgresql.external.existingSecret.passwordKey }}{{ else }}postgres-password{{ end }}
+            - name: POSTGRES_DB
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "nextcloud.fullname" . }}-secret
+                  key: postgres-database
+            # Redis connection
+            {{- if .Values.redis.external.password }}
+            - name: REDIS_HOST_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ if .Values.redis.external.existingSecret.enabled }}{{ .Values.redis.external.existingSecret.secretName }}{{ else }}{{ include "nextcloud.fullname" . }}-secret{{ end }}
+                  key: {{ if .Values.redis.external.existingSecret.enabled }}{{ .Values.redis.external.existingSecret.passwordKey }}{{ else }}redis-password{{ end }}
+            {{- end }}
+            # Nextcloud admin credentials
+            - name: NEXTCLOUD_ADMIN_USER
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "nextcloud.fullname" . }}-secret
+                  key: nextcloud-admin-user
+            - name: NEXTCLOUD_ADMIN_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "nextcloud.fullname" . }}-secret
+                  key: nextcloud-admin-password
+            {{- if .Values.nextcloud.smtp.enabled }}
+            # SMTP credentials
+            - name: SMTP_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "nextcloud.fullname" . }}-secret
+                  key: smtp-username
+            - name: SMTP_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "nextcloud.fullname" . }}-secret
+                  key: smtp-password
+            {{- end }}
+          volumeMounts:
+            - name: nextcloud-data
+              mountPath: /var/www/html
+            - name: config
+              mountPath: /scripts
+            {{- if .Values.persistence.config.enabled }}
+            - name: nextcloud-config
+              mountPath: /var/www/html/config
+            {{- end }}
+            {{- if .Values.persistence.apps.enabled }}
+            - name: nextcloud-apps
+              mountPath: /var/www/html/custom_apps
+            {{- end }}
       containers:
         - name: {{ .Chart.Name }}
           {{- with .Values.securityContext }}
@@ -42,8 +114,63 @@ spec:
           imagePullPolicy: {{ .Values.image.pullPolicy }}
           ports:
             - name: http
-              containerPort: {{ .Values.service.port }}
+              containerPort: {{ .Values.service.targetPort }}
               protocol: TCP
+          env:
+            # PostgreSQL environment variables
+            - name: POSTGRES_HOST
+              value: "{{ .Values.postgresql.external.host }}:{{ .Values.postgresql.external.port }}"
+            - name: POSTGRES_DB
+              value: {{ .Values.postgresql.external.database | quote }}
+            - name: POSTGRES_USER
+              valueFrom:
+                secretKeyRef:
+                  name: {{ if .Values.postgresql.external.existingSecret.enabled }}{{ .Values.postgresql.external.existingSecret.secretName }}{{ else }}{{ include "nextcloud.fullname" . }}-secret{{ end }}
+                  key: {{ if .Values.postgresql.external.existingSecret.enabled }}{{ .Values.postgresql.external.existingSecret.usernameKey }}{{ else }}postgres-username{{ end }}
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ if .Values.postgresql.external.existingSecret.enabled }}{{ .Values.postgresql.external.existingSecret.secretName }}{{ else }}{{ include "nextcloud.fullname" . }}-secret{{ end }}
+                  key: {{ if .Values.postgresql.external.existingSecret.enabled }}{{ .Values.postgresql.external.existingSecret.passwordKey }}{{ else }}postgres-password{{ end }}
+            # Redis environment variables
+            - name: REDIS_HOST
+              value: {{ .Values.redis.external.host | quote }}
+            - name: REDIS_HOST_PORT
+              value: {{ .Values.redis.external.port | quote }}
+            {{- if .Values.redis.external.password }}
+            - name: REDIS_HOST_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ if .Values.redis.external.existingSecret.enabled }}{{ .Values.redis.external.existingSecret.secretName }}{{ else }}{{ include "nextcloud.fullname" . }}-secret{{ end }}
+                  key: {{ if .Values.redis.external.existingSecret.enabled }}{{ .Values.redis.external.existingSecret.passwordKey }}{{ else }}redis-password{{ end }}
+            {{- end }}
+            # Nextcloud specific environment variables
+            - name: NEXTCLOUD_ADMIN_USER
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "nextcloud.fullname" . }}-secret
+                  key: nextcloud-admin-user
+            - name: NEXTCLOUD_ADMIN_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "nextcloud.fullname" . }}-secret
+                  key: nextcloud-admin-password
+            - name: NEXTCLOUD_TRUSTED_DOMAINS
+              value: {{ join " " .Values.nextcloud.trustedDomains | quote }}
+            - name: OVERWRITEPROTOCOL
+              value: "https"
+            - name: OVERWRITEHOST
+              value: {{ (index .Values.ingress.hosts 0).host | quote }}
+            - name: OVERWRITECLIURL
+              value: "https://{{ (index .Values.ingress.hosts 0).host }}"
+            # PHP configuration
+            - name: PHP_MEMORY_LIMIT
+              value: "512M"
+            - name: PHP_UPLOAD_LIMIT
+              value: "10G"
+            {{- with .Values.extraEnv }}
+            {{- toYaml . | nindent 12 }}
+            {{- end }}
           {{- with .Values.livenessProbe }}
           livenessProbe:
             {{- toYaml . | nindent 12 }}
@@ -52,18 +179,56 @@ spec:
           readinessProbe:
             {{- toYaml . | nindent 12 }}
           {{- end }}
+          {{- with .Values.startupProbe }}
+          startupProbe:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
           {{- with .Values.resources }}
           resources:
             {{- toYaml . | nindent 12 }}
           {{- end }}
-          {{- with .Values.volumeMounts }}
           volumeMounts:
+            - name: nextcloud-data
+              mountPath: /var/www/html
+            {{- if .Values.persistence.config.enabled }}
+            - name: nextcloud-config
+              mountPath: /var/www/html/config
+            {{- end }}
+            {{- if .Values.persistence.apps.enabled }}
+            - name: nextcloud-apps
+              mountPath: /var/www/html/custom_apps
+            {{- end }}
+            - name: config
+              mountPath: /usr/local/etc/php/conf.d/nextcloud.ini
+              subPath: php-nextcloud.ini
+            {{- with .Values.extraVolumeMounts }}
             {{- toYaml . | nindent 12 }}
-          {{- end }}
-      {{- with .Values.volumes }}
+            {{- end }}
       volumes:
+        - name: config
+          configMap:
+            name: {{ include "nextcloud.fullname" . }}-config
+            defaultMode: 0755
+        - name: nextcloud-data
+          {{- if .Values.persistence.data.enabled }}
+          persistentVolumeClaim:
+            claimName: {{ .Values.persistence.data.existingClaim | default (printf "%s-data" (include "nextcloud.fullname" .)) }}
+          {{- else }}
+          emptyDir: {}
+          {{- end }}
+        {{- if .Values.persistence.config.enabled }}
+        - name: nextcloud-config
+          persistentVolumeClaim:
+            claimName: {{ .Values.persistence.config.existingClaim | default (printf "%s-config" (include "nextcloud.fullname" .)) }}
+        {{- end }}
+        {{- if .Values.persistence.apps.enabled }}
+        - name: nextcloud-apps
+          persistentVolumeClaim:
+            claimName: {{ .Values.persistence.apps.existingClaim | default (printf "%s-apps" (include "nextcloud.fullname" .)) }}
+        {{- end }}
+        {{- with .Values.extraVolumes }}
         {{- toYaml . | nindent 8 }}
-      {{- end }}
+        {{- end }}
       {{- with .Values.nodeSelector }}
       nodeSelector:
         {{- toYaml . | nindent 8 }}
