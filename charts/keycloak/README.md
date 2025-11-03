@@ -277,7 +277,9 @@ kubectl delete pvc -l app.kubernetes.io/instance=my-keycloak
 
 ## License
 
-This Helm chart is licensed under the Apache License 2.0.
+This Helm chart is licensed under the BSD 3-Clause License. See the [LICENSE](../../LICENSE) file for details.
+
+Keycloak itself is licensed under the Apache License 2.0.
 
 ## Maintainers
 

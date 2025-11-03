@@ -4,6 +4,7 @@ version: 0.1.0
 appVersion: 23.0.7
 type: application
 description: A Helm chart for Keycloak - Open Source Identity and Access Management
+license: BSD-3-Clause
 keywords:
   - keycloak
   - identity

@@ -1,0 +1,96 @@
+Thank you for installing {{ .Chart.Name }}!
+
+Your release is named {{ .Release.Name }}.
+
+To learn more about the release, try:
+
+  $ helm status {{ .Release.Name }}
+  $ helm get all {{ .Release.Name }}
+
+{{- if .Values.ingress.enabled }}
+
+1. Keycloak is accessible at:
+{{- range .Values.ingress.hosts }}
+  http{{ if $.Values.ingress.tls }}s{{ end }}://{{ .host }}
+{{- end }}
+{{- else if contains "NodePort" .Values.service.type }}
+
+1. Get the Keycloak URL by running:
+
+  export NODE_PORT=$(kubectl get --namespace {{ .Release.Namespace }} -o jsonpath="{.spec.ports[0].nodePort}" services {{ include "keycloak.fullname" . }})
+  export NODE_IP=$(kubectl get nodes --namespace {{ .Release.Namespace }} -o jsonpath="{.items[0].status.addresses[0].address}")
+  echo http://$NODE_IP:$NODE_PORT
+
+{{- else if contains "LoadBalancer" .Values.service.type }}
+
+1. Get the Keycloak URL by running:
+
+  NOTE: It may take a few minutes for the LoadBalancer IP to be available.
+        Watch the status with: kubectl get svc --namespace {{ .Release.Namespace }} -w {{ include "keycloak.fullname" . }}
+
+  export SERVICE_IP=$(kubectl get svc --namespace {{ .Release.Namespace }} {{ include "keycloak.fullname" . }} --template "{{"{{ range (index .status.loadBalancer.ingress 0) }}{{.}}{{ end }}"}}")
+  echo http://$SERVICE_IP:{{ .Values.service.port }}
+
+{{- else if contains "ClusterIP" .Values.service.type }}
+
+1. Get the Keycloak URL by running:
+
+  export POD_NAME=$(kubectl get pods --namespace {{ .Release.Namespace }} -l "app.kubernetes.io/name={{ include "keycloak.name" . }},app.kubernetes.io/instance={{ .Release.Name }}" -o jsonpath="{.items[0].metadata.name}")
+  echo "Visit http://127.0.0.1:8080 to access Keycloak"
+  kubectl --namespace {{ .Release.Namespace }} port-forward $POD_NAME 8080:{{ .Values.keycloak.http.port }}
+
+{{- end }}
+
+2. Login credentials:
+
+  Username: {{ .Values.keycloak.admin.username }}
+  {{- if and .Values.keycloak.admin.existingSecret.enabled .Values.keycloak.admin.existingSecret.secretName }}
+  Password: (stored in secret '{{ .Values.keycloak.admin.existingSecret.secretName }}')
+  {{- else }}
+  Password: (stored in secret '{{ include "keycloak.fullname" . }}')
+
+  Get password by running:
+  kubectl get secret --namespace {{ .Release.Namespace }} {{ include "keycloak.fullname" . }} -o jsonpath="{.data.admin-password}" | base64 --decode
+  {{- end }}
+
+3. Admin Console:
+{{- if .Values.adminIngress.enabled }}
+{{- range .Values.adminIngress.hosts }}
+  http{{ if $.Values.adminIngress.tls }}s{{ end }}://{{ .host }}{{ (index .paths 0).path }}
+{{- end }}
+{{- else }}
+  Access via the main URL at /admin
+{{- end }}
+
+{{- if .Values.clustering.enabled }}
+
+4. Clustering is ENABLED with {{ .Values.replicaCount }} replica(s).
+   Cluster members will discover each other via DNS: {{ include "keycloak.headlessServiceName" . }}.{{ .Release.Namespace }}.svc.cluster.local
+{{- end }}
+
+{{- if .Values.keycloak.realmImport.enabled }}
+
+5. Realm import is ENABLED.
+   {{- if .Values.keycloak.realmImport.configMapName }}
+   Realms will be imported from ConfigMap: {{ .Values.keycloak.realmImport.configMapName }}
+   {{- end }}
+{{- end }}
+
+{{- if .Values.monitoring.enabled }}
+
+6. Metrics are ENABLED at /metrics endpoint.
+   {{- if .Values.monitoring.serviceMonitor.enabled }}
+   ServiceMonitor is configured for Prometheus Operator.
+   {{- end }}
+{{- end }}
+
+For more information, visit:
+  - Documentation: https://www.keycloak.org/documentation
+  - GitHub: https://github.com/keycloak/keycloak
+  - Chart README: https://github.com/scriptonbasestar-docker/sb-helm-charts/tree/master/charts/keycloak
+
+⚠️  IMPORTANT NOTES:
+  - Make sure your external PostgreSQL database is accessible
+  - For production use, enable TLS/SSL on ingress
+  - Consider enabling clustering for high availability
+  - Regularly backup your realm configurations

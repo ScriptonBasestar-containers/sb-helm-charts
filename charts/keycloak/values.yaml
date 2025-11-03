@@ -7,7 +7,7 @@ keycloak:
   # Admin user configuration
   admin:
     username: "admin"
-    password: ""  # Required: Set a strong password
+    password: ""  # Required: Set a strong password (deployment will fail if empty)
     # Use existing secret (optional)
     existingSecret:
       enabled: false
@@ -64,11 +64,11 @@ postgresql:
   enabled: false  # We use external PostgreSQL
   external:
     enabled: true
-    host: ""  # Required: e.g., postgres-service.default.svc.cluster.local
+    host: ""  # Required: PostgreSQL host (e.g., postgres-service.default.svc.cluster.local)
     port: 5432
     database: "keycloak"
     username: "keycloak"
-    password: ""  # Required: Set database password
+    password: ""  # Required: Database password (deployment will fail if empty)
     # Use existing secret (optional)
     existingSecret:
       enabled: false
