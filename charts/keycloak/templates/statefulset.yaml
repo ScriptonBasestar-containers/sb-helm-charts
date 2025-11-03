@@ -1,0 +1,283 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: {{ include "keycloak.fullname" . }}
+  labels:
+    {{- include "keycloak.labels" . | nindent 4 }}
+spec:
+  serviceName: {{ include "keycloak.headlessServiceName" . }}
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      {{- include "keycloak.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      annotations:
+        checksum/config: {{ include (print $.Template.BasePath "/configmap.yaml") . | sha256sum }}
+        checksum/secret: {{ include (print $.Template.BasePath "/secret.yaml") . | sha256sum }}
+        {{- with .Values.podAnnotations }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+      labels:
+        {{- include "keycloak.labels" . | nindent 8 }}
+        {{- with .Values.podLabels }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+    spec:
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      serviceAccountName: {{ include "keycloak.serviceAccountName" . }}
+      securityContext:
+        {{- toYaml .Values.podSecurityContext | nindent 8 }}
+      {{- with .Values.initContainers }}
+      initContainers:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      containers:
+        - name: {{ .Chart.Name }}
+          securityContext:
+            {{- toYaml .Values.securityContext | nindent 12 }}
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          {{- with .Values.keycloak.args }}
+          args:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          env:
+            # Keycloak admin credentials
+            - name: KEYCLOAK_ADMIN
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "keycloak.fullname" . }}
+                  key: admin-username
+            - name: KEYCLOAK_ADMIN_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "keycloak.fullname" . }}
+                  key: admin-password
+
+            # Database configuration
+            - name: KC_DB
+              value: "postgres"
+            - name: KC_DB_URL
+              value: {{ include "keycloak.postgresql.jdbcUrl" . | quote }}
+            - name: KC_DB_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "keycloak.fullname" . }}
+                  key: db-username
+            - name: KC_DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "keycloak.fullname" . }}
+                  key: db-password
+
+            # Database pool configuration
+            {{- if .Values.postgresql.external.pool }}
+            - name: KC_DB_POOL_INITIAL_SIZE
+              value: {{ .Values.postgresql.external.pool.initialSize | quote }}
+            - name: KC_DB_POOL_MIN_SIZE
+              value: {{ .Values.postgresql.external.pool.minSize | quote }}
+            - name: KC_DB_POOL_MAX_SIZE
+              value: {{ .Values.postgresql.external.pool.maxSize | quote }}
+            {{- end }}
+
+            # Proxy configuration
+            {{- if .Values.keycloak.proxy }}
+            - name: KC_PROXY
+              value: {{ .Values.keycloak.proxy.mode | quote }}
+            {{- end }}
+
+            # Hostname configuration
+            {{- if .Values.keycloak.hostname.url }}
+            - name: KC_HOSTNAME_URL
+              value: {{ .Values.keycloak.hostname.url | quote }}
+            {{- end }}
+            {{- if .Values.keycloak.hostname.adminUrl }}
+            - name: KC_HOSTNAME_ADMIN_URL
+              value: {{ .Values.keycloak.hostname.adminUrl | quote }}
+            {{- end }}
+            {{- if .Values.keycloak.hostname.strict }}
+            - name: KC_HOSTNAME_STRICT
+              value: {{ .Values.keycloak.hostname.strict | quote }}
+            {{- end }}
+            {{- if .Values.keycloak.hostname.strictBackchannel }}
+            - name: KC_HOSTNAME_STRICT_BACKCHANNEL
+              value: {{ .Values.keycloak.hostname.strictBackchannel | quote }}
+            {{- end }}
+
+            # HTTP/HTTPS configuration
+            {{- if .Values.keycloak.http.enabled }}
+            - name: KC_HTTP_ENABLED
+              value: "true"
+            - name: KC_HTTP_PORT
+              value: {{ .Values.keycloak.http.port | quote }}
+            {{- end }}
+            {{- if .Values.keycloak.https.enabled }}
+            - name: KC_HTTPS_PORT
+              value: {{ .Values.keycloak.https.port | quote }}
+            {{- end }}
+
+            # Health check configuration
+            - name: KC_HEALTH_ENABLED
+              value: "true"
+            - name: KC_METRICS_ENABLED
+              value: {{ .Values.monitoring.enabled | quote }}
+
+            # Clustering configuration
+            {{- if .Values.clustering.enabled }}
+            - name: KC_CACHE
+              value: "ispn"
+            - name: KC_CACHE_STACK
+              value: {{ .Values.clustering.cache.stack | quote }}
+            - name: JGROUPS_DISCOVERY_PROTOCOL
+              value: {{ .Values.clustering.jgroups.discoveryProtocol | quote }}
+            {{- if .Values.clustering.jgroups.discoveryProperties }}
+            - name: JGROUPS_DISCOVERY_PROPERTIES
+              value: {{ .Values.clustering.jgroups.discoveryProperties | quote }}
+            {{- else }}
+            - name: JGROUPS_DISCOVERY_PROPERTIES
+              value: "dns_query={{ include "keycloak.headlessServiceName" . }}.{{ .Release.Namespace }}.svc.cluster.local"
+            {{- end }}
+            - name: CACHE_OWNERS_COUNT
+              value: {{ .Values.clustering.cache.ownersCount | quote }}
+            {{- end }}
+
+            # Redis configuration (optional)
+            {{- if and .Values.redis.enabled .Values.redis.external.enabled }}
+            - name: KC_CACHE_REMOTE_HOST
+              value: {{ .Values.redis.external.host | quote }}
+            - name: KC_CACHE_REMOTE_PORT
+              value: {{ .Values.redis.external.port | quote }}
+            {{- if .Values.redis.external.password }}
+            - name: KC_CACHE_REMOTE_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "keycloak.fullname" . }}
+                  key: redis-password
+            {{- end }}
+            {{- end }}
+
+            # Additional environment variables
+            {{- with .Values.extraEnv }}
+            {{- toYaml . | nindent 12 }}
+            {{- end }}
+          {{- with .Values.extraEnvFrom }}
+          envFrom:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          ports:
+            - name: http
+              containerPort: {{ .Values.keycloak.http.port }}
+              protocol: TCP
+            {{- if .Values.keycloak.https.enabled }}
+            - name: https
+              containerPort: {{ .Values.keycloak.https.port }}
+              protocol: TCP
+            {{- end }}
+            {{- if .Values.clustering.enabled }}
+            - name: jgroups
+              containerPort: 7800
+              protocol: TCP
+            {{- end }}
+          {{- if .Values.livenessProbe }}
+          livenessProbe:
+            {{- toYaml .Values.livenessProbe | nindent 12 }}
+          {{- end }}
+          {{- if .Values.readinessProbe }}
+          readinessProbe:
+            {{- toYaml .Values.readinessProbe | nindent 12 }}
+          {{- end }}
+          {{- if .Values.startupProbe }}
+          startupProbe:
+            {{- toYaml .Values.startupProbe | nindent 12 }}
+          {{- end }}
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+          volumeMounts:
+            {{- if .Values.persistence.enabled }}
+            {{- if .Values.persistence.data.enabled }}
+            - name: data
+              mountPath: /opt/keycloak/data
+            {{- end }}
+            {{- end }}
+            {{- if .Values.keycloak.realmImport.enabled }}
+            {{- if .Values.keycloak.realmImport.configMapName }}
+            - name: realm-import
+              mountPath: /opt/keycloak/data/import
+              readOnly: true
+            {{- else if .Values.keycloak.realmImport.existingVolume.enabled }}
+            - name: realm-import
+              mountPath: /opt/keycloak/data/import
+              readOnly: true
+            {{- end }}
+            {{- end }}
+            {{- if .Values.keycloak.https.enabled }}
+            {{- if .Values.keycloak.https.certificateSecret }}
+            - name: tls-certificates
+              mountPath: /opt/keycloak/conf/tls
+              readOnly: true
+            {{- end }}
+            {{- end }}
+            {{- with .Values.extraVolumeMounts }}
+            {{- toYaml . | nindent 12 }}
+            {{- end }}
+          {{- with .Values.lifecycle }}
+          lifecycle:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+      volumes:
+        {{- if .Values.keycloak.realmImport.enabled }}
+        {{- if .Values.keycloak.realmImport.configMapName }}
+        - name: realm-import
+          configMap:
+            name: {{ .Values.keycloak.realmImport.configMapName }}
+        {{- else if .Values.keycloak.realmImport.existingVolume.enabled }}
+        - name: realm-import
+          {{- toYaml .Values.keycloak.realmImport.existingVolume.volumeName | nindent 10 }}
+        {{- end }}
+        {{- end }}
+        {{- if .Values.keycloak.https.enabled }}
+        {{- if .Values.keycloak.https.certificateSecret }}
+        - name: tls-certificates
+          secret:
+            secretName: {{ .Values.keycloak.https.certificateSecret }}
+        {{- end }}
+        {{- end }}
+        {{- with .Values.extraVolumes }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+  {{- if .Values.persistence.enabled }}
+  {{- if .Values.persistence.data.enabled }}
+  {{- if not .Values.persistence.data.existingClaim }}
+  volumeClaimTemplates:
+    - metadata:
+        name: data
+        labels:
+          {{- include "keycloak.labels" . | nindent 10 }}
+      spec:
+        accessModes:
+          - {{ .Values.persistence.data.accessMode }}
+        {{- if .Values.persistence.data.storageClass }}
+        storageClassName: {{ .Values.persistence.data.storageClass | quote }}
+        {{- end }}
+        resources:
+          requests:
+            storage: {{ .Values.persistence.data.size }}
+  {{- end }}
+  {{- end }}
+  {{- end }}

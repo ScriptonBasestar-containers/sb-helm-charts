@@ -1,0 +1,286 @@
+# Keycloak Helm Chart
+
+[Keycloak](https://www.keycloak.org/) is an open-source Identity and Access Management solution for modern applications and services.
+
+## Features
+
+- ✅ StatefulSet-based deployment for stable identity
+- ✅ External PostgreSQL database support (required)
+- ✅ Optional Redis for distributed caching
+- ✅ High availability with clustering (JGroups + Infinispan)
+- ✅ Realm import/export functionality
+- ✅ Separate admin console access
+- ✅ Prometheus metrics support
+- ✅ Horizontal Pod Autoscaling
+- ✅ Customizable themes and extensions
+- ✅ TLS/SSL support
+
+## Prerequisites
+
+- Kubernetes 1.19+
+- Helm 3.2.0+
+- **External PostgreSQL 12+ database** (required)
+- PersistentVolume provisioner support in the underlying infrastructure
+
+## Installation
+
+### 1. Prepare External PostgreSQL
+
+This chart **does not** install PostgreSQL automatically. You must have a PostgreSQL database ready.
+
+```bash
+# Example: Create a database and user in your PostgreSQL
+CREATE DATABASE keycloak;
+CREATE USER keycloak WITH ENCRYPTED PASSWORD 'your-password';
+GRANT ALL PRIVILEGES ON DATABASE keycloak TO keycloak;
+```
+
+### 2. Create values file
+
+Create a `my-values.yaml` file:
+
+```yaml
+keycloak:
+  admin:
+    username: admin
+    password: "change-me-secure-password"
+
+postgresql:
+  enabled: false
+  external:
+    enabled: true
+    host: "postgres.database.svc.cluster.local"
+    port: 5432
+    database: "keycloak"
+    username: "keycloak"
+    password: "your-db-password"
+
+ingress:
+  enabled: true
+  className: "nginx"
+  hosts:
+    - host: keycloak.example.com
+      paths:
+        - path: /
+          pathType: Prefix
+  tls:
+    - secretName: keycloak-tls
+      hosts:
+        - keycloak.example.com
+```
+
+### 3. Install the chart
+
+```bash
+helm install my-keycloak ./charts/keycloak -f my-values.yaml
+```
+
+Or using Helm repository:
+
+```bash
+helm repo add sb-helm-charts https://scriptonbasestar-docker.github.io/sb-helm-charts/
+helm repo update
+helm install my-keycloak sb-helm-charts/keycloak -f my-values.yaml
+```
+
+## Configuration
+
+See [values.yaml](./values.yaml) for all available options.
+
+### Essential Configuration
+
+| Parameter | Description | Default |
+|-----------|-------------|---------|
+| `keycloak.admin.username` | Admin username | `admin` |
+| `keycloak.admin.password` | Admin password (required) | `""` |
+| `postgresql.external.enabled` | Enable external PostgreSQL | `true` |
+| `postgresql.external.host` | PostgreSQL host | `""` |
+| `postgresql.external.database` | Database name | `keycloak` |
+| `postgresql.external.username` | Database username | `keycloak` |
+| `postgresql.external.password` | Database password (required) | `""` |
+
+### High Availability Setup
+
+For production deployments with multiple replicas:
+
+```yaml
+replicaCount: 3
+
+clustering:
+  enabled: true
+  jgroups:
+    discoveryProtocol: "dns.DNS_PING"
+  cache:
+    ownersCount: 2
+    stack: "tcp"
+
+affinity:
+  podAntiAffinity:
+    preferredDuringSchedulingIgnoredDuringExecution:
+      - weight: 100
+        podAffinityTerm:
+          labelSelector:
+            matchExpressions:
+              - key: app.kubernetes.io/name
+                operator: In
+                values:
+                  - keycloak
+          topologyKey: kubernetes.io/hostname
+
+autoscaling:
+  enabled: true
+  minReplicas: 3
+  maxReplicas: 10
+  targetCPUUtilizationPercentage: 75
+```
+
+### Realm Import
+
+To import realms on startup:
+
+1. Create a ConfigMap with realm JSON files:
+
+```bash
+kubectl create configmap keycloak-realms \
+  --from-file=myrealm-realm.json
+```
+
+2. Configure values:
+
+```yaml
+keycloak:
+  args:
+    - "start"
+    - "--optimized"
+    - "--import-realm"
+
+  realmImport:
+    enabled: true
+    configMapName: "keycloak-realms"
+```
+
+### Custom Themes
+
+Mount custom themes using extraVolumes:
+
+```yaml
+extraVolumes:
+  - name: custom-themes
+    configMap:
+      name: keycloak-custom-themes
+
+extraVolumeMounts:
+  - name: custom-themes
+    mountPath: /opt/keycloak/themes/custom
+    readOnly: true
+```
+
+### Monitoring with Prometheus
+
+Enable metrics and ServiceMonitor:
+
+```yaml
+monitoring:
+  enabled: true
+  serviceMonitor:
+    enabled: true
+    interval: 30s
+    labels:
+      prometheus: kube-prometheus
+```
+
+### Separate Admin Console
+
+For security, expose admin console on a separate domain:
+
+```yaml
+adminService:
+  enabled: true
+
+adminIngress:
+  enabled: true
+  className: "nginx"
+  annotations:
+    nginx.ingress.kubernetes.io/whitelist-source-range: "10.0.0.0/8"
+  hosts:
+    - host: keycloak-admin.example.com
+      paths:
+        - path: /admin
+          pathType: Prefix
+  tls:
+    - secretName: keycloak-admin-tls
+      hosts:
+        - keycloak-admin.example.com
+```
+
+## Upgrading
+
+### To 0.2.0
+
+No breaking changes.
+
+## Uninstalling
+
+```bash
+helm uninstall my-keycloak
+```
+
+Note: PersistentVolumeClaims are not deleted automatically. Delete them manually if needed:
+
+```bash
+kubectl delete pvc -l app.kubernetes.io/instance=my-keycloak
+```
+
+## Common Issues
+
+### Keycloak not starting
+
+1. Check database connection:
+   ```bash
+   kubectl logs -l app.kubernetes.io/name=keycloak
+   ```
+
+2. Verify PostgreSQL credentials:
+   ```bash
+   kubectl get secret my-keycloak -o yaml
+   ```
+
+### Clustering not working
+
+1. Ensure headless service is created:
+   ```bash
+   kubectl get svc my-keycloak-headless
+   ```
+
+2. Check JGroups discovery:
+   ```bash
+   kubectl logs -l app.kubernetes.io/name=keycloak | grep -i jgroups
+   ```
+
+### Realm import failed
+
+1. Verify ConfigMap exists:
+   ```bash
+   kubectl get configmap keycloak-realms
+   ```
+
+2. Check file format (must be `*-realm.json`):
+   ```bash
+   kubectl describe configmap keycloak-realms
+   ```
+
+## Resources
+
+- [Keycloak Documentation](https://www.keycloak.org/documentation)
+- [Keycloak GitHub](https://github.com/keycloak/keycloak)
+- [Keycloak Discourse](https://keycloak.discourse.group/)
+
+## License
+
+This Helm chart is licensed under the Apache License 2.0.
+
+## Maintainers
+
+| Name | Email |
+|------|-------|
+| archmagece | archmagece@users.noreply.github.com |

@@ -1,0 +1,50 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "keycloak.fullname" . }}
+  labels:
+    {{- include "keycloak.labels" . | nindent 4 }}
+  {{- with .Values.service.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  type: {{ .Values.service.type }}
+  ports:
+    - port: {{ .Values.service.port }}
+      targetPort: {{ .Values.service.targetPort }}
+      protocol: TCP
+      name: http
+  selector:
+    {{- include "keycloak.selectorLabels" . | nindent 4 }}
+---
+{{- if .Values.clustering.enabled }}
+# Headless service for StatefulSet DNS and clustering
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "keycloak.headlessServiceName" . }}
+  labels:
+    {{- include "keycloak.labels" . | nindent 4 }}
+spec:
+  type: ClusterIP
+  clusterIP: None
+  publishNotReadyAddresses: true
+  ports:
+    - port: {{ .Values.keycloak.http.port }}
+      targetPort: http
+      protocol: TCP
+      name: http
+    {{- if .Values.keycloak.https.enabled }}
+    - port: {{ .Values.keycloak.https.port }}
+      targetPort: https
+      protocol: TCP
+      name: https
+    {{- end }}
+    - port: 7800
+      targetPort: jgroups
+      protocol: TCP
+      name: jgroups
+  selector:
+    {{- include "keycloak.selectorLabels" . | nindent 4 }}
+{{- end }}

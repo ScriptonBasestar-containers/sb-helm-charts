@@ -1,0 +1,23 @@
+apiVersion: v2
+name: keycloak
+version: 0.1.0
+appVersion: 23.0.7
+type: application
+description: A Helm chart for Keycloak - Open Source Identity and Access Management
+keywords:
+  - keycloak
+  - identity
+  - access-management
+  - authentication
+  - authorization
+  - sso
+  - iam
+home: https://www.keycloak.org/
+icon: https://www.keycloak.org/resources/images/keycloak_icon_512px.svg
+sources:
+  - https://scriptonbasestar-docker.github.io/sb-helm-charts/
+  - https://github.com/keycloak/keycloak
+  - https://quay.io/repository/keycloak/keycloak
+maintainers:
+  - name: archmagece
+    email: archmagece@users.noreply.github.com

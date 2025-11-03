@@ -52,8 +52,9 @@ chartsrepo/
 .cr-index/
 website/
 pub/
-readme.md
+/readme.md
 
 # deploy
 *.tgz
 !/repo/*.tgz
+tmp/
