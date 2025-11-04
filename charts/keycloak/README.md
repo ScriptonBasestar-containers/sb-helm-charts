@@ -12,6 +12,9 @@
 - ✅ Separate admin console access
 - ✅ Prometheus metrics support
 - ✅ Horizontal Pod Autoscaling
+- ✅ Pod Disruption Budget for HA
+- ✅ Network Policy for enhanced security
+- ✅ Database health check (InitContainer)
 - ✅ Customizable themes and extensions
 - ✅ TLS/SSL support
 
@@ -211,6 +214,44 @@ adminIngress:
     - secretName: keycloak-admin-tls
       hosts:
         - keycloak-admin.example.com
+```
+
+### Pod Disruption Budget
+
+For high availability, enable PodDisruptionBudget:
+
+```yaml
+podDisruptionBudget:
+  enabled: true
+  minAvailable: 2  # Keep at least 2 pods running during disruptions
+```
+
+### Network Policy
+
+For enhanced security, enable NetworkPolicy:
+
+```yaml
+networkPolicy:
+  enabled: true
+  ingress:
+    namespaceSelector:
+      matchLabels:
+        name: ingress-nginx
+  egress:
+    postgresql:
+      podSelector:
+        matchLabels:
+          app: postgresql
+```
+
+### Database Health Check
+
+The chart includes an InitContainer that waits for PostgreSQL to be ready before starting Keycloak. This is enabled by default:
+
+```yaml
+dbHealthCheck:
+  enabled: true  # default
+  image: postgres:16-alpine
 ```
 
 ## Upgrading

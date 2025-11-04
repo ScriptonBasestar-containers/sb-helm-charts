@@ -222,6 +222,35 @@ autoscaling:
   targetCPUUtilizationPercentage: 75
   targetMemoryUtilizationPercentage: 80
 
+# Pod Disruption Budget (recommended for HA)
+podDisruptionBudget:
+  enabled: true
+  minAvailable: 2  # At least 2 pods available during disruptions
+
+# Database health check
+dbHealthCheck:
+  enabled: true
+  image: postgres:16-alpine
+  imagePullPolicy: IfNotPresent
+
+# Network Policy (optional, for enhanced security)
+networkPolicy:
+  enabled: false  # Enable if your cluster supports NetworkPolicy
+  ingress:
+    namespaceSelector:
+      matchLabels:
+        name: ingress-nginx
+    podSelector: {}
+  egress:
+    postgresql:
+      podSelector:
+        matchLabels:
+          app: postgresql
+      namespaceSelector: {}
+    redis:
+      podSelector: {}
+      namespaceSelector: {}
+
 # Monitoring
 monitoring:
   enabled: true

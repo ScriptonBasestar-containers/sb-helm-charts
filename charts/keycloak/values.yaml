@@ -267,6 +267,47 @@ autoscaling:
   targetCPUUtilizationPercentage: 80
   # targetMemoryUtilizationPercentage: 80
 
+# Pod Disruption Budget (for high availability)
+podDisruptionBudget:
+  enabled: false
+  # minAvailable: 1
+  maxUnavailable: 1
+
+# Database health check (InitContainer)
+dbHealthCheck:
+  enabled: true
+  image: postgres:16-alpine
+  imagePullPolicy: IfNotPresent
+
+# Network Policy
+networkPolicy:
+  enabled: false
+  ingress:
+    # Ingress controller namespace selector
+    namespaceSelector: {}
+    # Example:
+    # namespaceSelector:
+    #   matchLabels:
+    #     name: ingress-nginx
+    podSelector: {}
+    # Example:
+    # podSelector:
+    #   matchLabels:
+    #     app: nginx-ingress
+    extraRules: []
+  egress:
+    postgresql:
+      podSelector: {}
+      # Example:
+      # podSelector:
+      #   matchLabels:
+      #     app: postgresql
+      namespaceSelector: {}
+    redis:
+      podSelector: {}
+      namespaceSelector: {}
+    extraRules: []
+
 # Monitoring configuration
 monitoring:
   enabled: false

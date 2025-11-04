@@ -31,10 +31,31 @@ spec:
       serviceAccountName: {{ include "keycloak.serviceAccountName" . }}
       securityContext:
         {{- toYaml .Values.podSecurityContext | nindent 8 }}
-      {{- with .Values.initContainers }}
       initContainers:
+        {{- if .Values.dbHealthCheck.enabled }}
+        - name: wait-for-db
+          image: {{ .Values.dbHealthCheck.image }}
+          imagePullPolicy: {{ .Values.dbHealthCheck.imagePullPolicy }}
+          command:
+            - sh
+            - -c
+            - |
+              echo "Waiting for PostgreSQL to be ready..."
+              until pg_isready -h {{ .Values.postgresql.external.host }} -p {{ .Values.postgresql.external.port }} -U {{ .Values.postgresql.external.username }}; do
+                echo "PostgreSQL is unavailable - sleeping"
+                sleep 2
+              done
+              echo "PostgreSQL is up and running!"
+          env:
+            - name: PGPASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "keycloak.fullname" . }}
+                  key: db-password
+        {{- end }}
+        {{- with .Values.initContainers }}
         {{- toYaml . | nindent 8 }}
-      {{- end }}
+        {{- end }}
       containers:
         - name: {{ .Chart.Name }}
           securityContext:

@@ -1,0 +1,99 @@
+{{- if .Values.networkPolicy.enabled }}
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: {{ include "keycloak.fullname" . }}
+  labels:
+    {{- include "keycloak.labels" . | nindent 4 }}
+spec:
+  podSelector:
+    matchLabels:
+      {{- include "keycloak.selectorLabels" . | nindent 6 }}
+  policyTypes:
+    - Ingress
+    - Egress
+  ingress:
+    # Allow from Ingress controller
+    - from:
+        {{- if .Values.networkPolicy.ingress.namespaceSelector }}
+        - namespaceSelector:
+            {{- toYaml .Values.networkPolicy.ingress.namespaceSelector | nindent 12 }}
+        {{- end }}
+        {{- if .Values.networkPolicy.ingress.podSelector }}
+          podSelector:
+            {{- toYaml .Values.networkPolicy.ingress.podSelector | nindent 12 }}
+        {{- end }}
+      ports:
+        - protocol: TCP
+          port: {{ .Values.keycloak.http.port }}
+        {{- if .Values.keycloak.https.enabled }}
+        - protocol: TCP
+          port: {{ .Values.keycloak.https.port }}
+        {{- end }}
+    {{- if .Values.clustering.enabled }}
+    # Allow from other Keycloak pods (for clustering)
+    - from:
+        - podSelector:
+            matchLabels:
+              {{- include "keycloak.selectorLabels" . | nindent 14 }}
+      ports:
+        - protocol: TCP
+          port: 7800  # JGroups
+    {{- end }}
+    {{- with .Values.networkPolicy.ingress.extraRules }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
+  egress:
+    # Allow to PostgreSQL
+    - to:
+        {{- if .Values.networkPolicy.egress.postgresql.podSelector }}
+        - podSelector:
+            {{- toYaml .Values.networkPolicy.egress.postgresql.podSelector | nindent 12 }}
+        {{- end }}
+        {{- if .Values.networkPolicy.egress.postgresql.namespaceSelector }}
+          namespaceSelector:
+            {{- toYaml .Values.networkPolicy.egress.postgresql.namespaceSelector | nindent 12 }}
+        {{- end }}
+      ports:
+        - protocol: TCP
+          port: {{ .Values.postgresql.external.port }}
+    {{- if and .Values.redis.enabled .Values.redis.external.enabled }}
+    # Allow to Redis
+    - to:
+        {{- if .Values.networkPolicy.egress.redis.podSelector }}
+        - podSelector:
+            {{- toYaml .Values.networkPolicy.egress.redis.podSelector | nindent 12 }}
+        {{- end }}
+        {{- if .Values.networkPolicy.egress.redis.namespaceSelector }}
+          namespaceSelector:
+            {{- toYaml .Values.networkPolicy.egress.redis.namespaceSelector | nindent 12 }}
+        {{- end }}
+      ports:
+        - protocol: TCP
+          port: {{ .Values.redis.external.port }}
+    {{- end }}
+    {{- if .Values.clustering.enabled }}
+    # Allow to other Keycloak pods (for clustering)
+    - to:
+        - podSelector:
+            matchLabels:
+              {{- include "keycloak.selectorLabels" . | nindent 14 }}
+      ports:
+        - protocol: TCP
+          port: 7800  # JGroups
+    {{- end }}
+    # Allow DNS
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              name: kube-system
+        - podSelector:
+            matchLabels:
+              k8s-app: kube-dns
+      ports:
+        - protocol: UDP
+          port: 53
+    {{- with .Values.networkPolicy.egress.extraRules }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
+{{- end }}
