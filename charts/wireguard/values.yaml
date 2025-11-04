@@ -1,5 +1,6 @@
-# Default values for wireguard
+# Default values for wireguard.
 # This is a YAML-formatted file.
+# Declare variables to be passed into your templates.
 
 # WireGuard configuration
 wireguard:

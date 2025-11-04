@@ -11,11 +11,13 @@ keywords:
   - network
   - security
   - tunnel
-home: https://scriptonbasestar-docker.github.io/sb-helm-charts/
+home: https://www.wireguard.com/
+icon: https://www.wireguard.com/img/wireguard.svg
 sources:
+  - https://scriptonbasestar-docker.github.io/sb-helm-charts/
   - https://github.com/scriptonbasestar-docker/sb-helm-charts
   - https://www.wireguard.com/
   - https://github.com/linuxserver/docker-wireguard
 maintainers:
-  - name: ScriptonBasestar
+  - name: archmagece
     email: archmagece@users.noreply.github.com

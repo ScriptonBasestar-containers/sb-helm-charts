@@ -38,6 +38,7 @@ charts/{chart-name}/
 - **keycloak**: IAM solution (StatefulSet, PostgreSQL, clustering, realm management)
 - **wordpress**: WordPress CMS (Deployment, MySQL, Apache)
 - **nextcloud**: Nextcloud with LinuxServer.io image (Deployment, PostgreSQL, config-based)
+- **wireguard**: VPN solution (Deployment, no database, UDP service, NET_ADMIN capabilities)
 - **rsshub**: RSS aggregator (well-maintained external chart available)
 - **browserless-chrome**: Headless browser for crawling
 - **devpi**: Python package index
@@ -129,6 +130,40 @@ make -f Makefile.keycloak.mk kc-cluster-status
 make -f Makefile.keycloak.mk kc-metrics
 ```
 
+### WireGuard Specific Commands
+
+```bash
+# Show WireGuard status
+make -f Makefile.wireguard.mk wg-show
+
+# Get server public key
+make -f Makefile.wireguard.mk wg-pubkey
+
+# Get peer configuration (auto mode)
+make -f Makefile.wireguard.mk wg-get-peer PEER=peer1
+
+# List all peers (auto mode)
+make -f Makefile.wireguard.mk wg-list-peers
+
+# Display QR code for mobile (auto mode)
+make -f Makefile.wireguard.mk wg-qr PEER=peer1
+
+# Show current wg0.conf
+make -f Makefile.wireguard.mk wg-config
+
+# Get service endpoint (LoadBalancer IP or NodePort)
+make -f Makefile.wireguard.mk wg-endpoint
+
+# Restart WireGuard
+make -f Makefile.wireguard.mk wg-restart
+
+# View logs
+make -f Makefile.wireguard.mk wg-logs
+
+# Open shell
+make -f Makefile.wireguard.mk wg-shell
+```
+
 ### Kind (Local Testing)
 
 ```bash
@@ -171,6 +206,7 @@ All charts expect **external** databases:
 - **keycloak**: External PostgreSQL 12+ (required), Redis 6+ (optional)
 - **nextcloud**: External PostgreSQL 16 + Redis 8
 - **wordpress**: External MySQL/MariaDB
+- **wireguard**: No database required (first chart without database dependency)
 - **devpi**: Can use built-in SQLite or external PostgreSQL
 
 Configure via `values.yaml`:
