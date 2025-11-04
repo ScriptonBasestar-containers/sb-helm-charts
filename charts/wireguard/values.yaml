@@ -1,0 +1,355 @@
+# Default values for wireguard
+# This is a YAML-formatted file.
+
+# WireGuard configuration
+wireguard:
+  # Configuration mode: "manual" or "auto"
+  # - manual: Use serverConfig (wg0.conf file) - RECOMMENDED
+  # - auto: Use LinuxServer.io auto-generation via environment variables
+  mode: "manual"
+
+  # Manual mode: Direct wg0.conf configuration
+  # Preferred method - follows "config files over environment variables" philosophy
+  serverConfig: ""
+  # Example:
+  # serverConfig: |
+  #   [Interface]
+  #   Address = 10.13.13.1/24
+  #   ListenPort = 51820
+  #   PrivateKey = SERVER_PRIVATE_KEY_HERE
+  #   PostUp = iptables -A FORWARD -i %i -j ACCEPT; iptables -t nat -A POSTROUTING -o eth0 -j MASQUERADE
+  #   PostDown = iptables -D FORWARD -i %i -j ACCEPT; iptables -t nat -D POSTROUTING -o eth0 -j MASQUERADE
+  #
+  #   [Peer]
+  #   # Peer 1
+  #   PublicKey = PEER1_PUBLIC_KEY_HERE
+  #   AllowedIPs = 10.13.13.2/32
+  #
+  #   [Peer]
+  #   # Peer 2
+  #   PublicKey = PEER2_PUBLIC_KEY_HERE
+  #   AllowedIPs = 10.13.13.3/32
+
+  # Server private key (stored in Secret)
+  # Required in manual mode
+  privateKey: ""
+
+  # Auto mode: LinuxServer.io environment variable configuration
+  # Convenient but uses environment variables instead of config files
+  auto:
+    # Public URL or IP for VPN server (required in auto mode)
+    serverUrl: ""
+
+    # WireGuard listen port
+    serverPort: 51820
+
+    # Number of peers to generate automatically
+    peers: 5
+
+    # Internal subnet for VPN network
+    internalSubnet: "10.13.13.0"
+
+    # DNS for peers
+    # - "auto": Use Docker DNS
+    # - Specific IP: "1.1.1.1" or "8.8.8.8"
+    peerDns: "auto"
+
+    # Allowed IPs for peers (what traffic goes through VPN)
+    # - "0.0.0.0/0, ::/0": All traffic (full tunnel)
+    # - "10.13.13.0/24": Only VPN subnet traffic (split tunnel)
+    allowedIPs: "0.0.0.0/0, ::/0"
+
+    # Persistent keepalive interval (seconds)
+    # Helps with NAT traversal
+    persistentKeepalive: 25
+
+  # Optional: CoreDNS integration
+  dns:
+    enabled: false
+    # Custom DNS entries
+    entries: []
+    # Example:
+    # entries:
+    #   - "10.13.13.1 vpn.local"
+    #   - "10.13.13.2 client1.vpn.local"
+
+# External dependencies
+# WireGuard does not require external databases
+postgresql:
+  enabled: false
+mysql:
+  enabled: false
+redis:
+  enabled: false
+
+# Persistence
+persistence:
+  enabled: true
+
+  # Storage class for persistent volume
+  storageClass: ""
+
+  # Size of persistent volume
+  # Stores: peer configurations, QR codes, generated keys
+  size: 1Gi
+
+  # Access mode
+  accessMode: ReadWriteOnce
+
+  # Mount path
+  mountPath: /config
+
+  # Existing claim (if you want to use existing PVC)
+  existingClaim: ""
+
+  # Reclaim policy
+  # - Retain: Keep data after chart deletion (recommended for production)
+  # - Delete: Remove data after chart deletion
+  reclaimPolicy: Retain
+
+# Kubernetes resources
+replicaCount: 1
+
+# Deployment strategy
+strategy:
+  # Recreate: Required for PVC with ReadWriteOnce
+  # RollingUpdate: Not suitable for single-replica UDP service with PVC
+  type: Recreate
+
+# Image configuration
+image:
+  repository: lscr.io/linuxserver/wireguard
+  tag: "latest"
+  pullPolicy: IfNotPresent
+
+# Image pull secrets
+imagePullSecrets: []
+
+# Override name
+nameOverride: ""
+fullnameOverride: ""
+
+# Service account
+serviceAccount:
+  # Specifies whether a service account should be created
+  create: true
+  # Automatically mount service account token
+  automount: true
+  # Annotations to add to the service account
+  annotations: {}
+  # Name of the service account (generated if not set)
+  name: ""
+
+# Pod annotations
+podAnnotations: {}
+
+# Pod labels
+podLabels: {}
+
+# Pod security context
+podSecurityContext:
+  # Required sysctls for IP forwarding and routing
+  sysctls:
+    - name: net.ipv4.ip_forward
+      value: "1"
+    - name: net.ipv4.conf.all.src_valid_mark
+      value: "1"
+
+# Container security context
+securityContext:
+  capabilities:
+    add:
+      # Required: Network interface management
+      - NET_ADMIN
+      # Optional: Kernel module loading (only if wireguard module not pre-loaded)
+      - SYS_MODULE
+  # Avoid full privileged mode - use specific capabilities instead
+  privileged: false
+
+# Service configuration
+service:
+  # Service type
+  # - LoadBalancer: Recommended (requires MetalLB or cloud provider)
+  # - NodePort: Good for k3s with port forwarding
+  # - ClusterIP: Only for internal VPN access
+  type: LoadBalancer
+
+  # WireGuard port
+  port: 51820
+
+  # Protocol (UDP required for WireGuard)
+  protocol: UDP
+
+  # NodePort (only if type: NodePort)
+  # Leave empty for auto-assignment
+  nodePort: ""
+
+  # LoadBalancer IP (only if type: LoadBalancer)
+  # Leave empty for auto-assignment
+  loadBalancerIP: ""
+
+  # LoadBalancer source ranges (CIDR notation)
+  loadBalancerSourceRanges: []
+
+  # Service annotations
+  annotations: {}
+
+  # Optional: DNS service for CoreDNS
+  dns:
+    enabled: false
+    type: ClusterIP
+    port: 53
+
+# Resources
+resources:
+  limits:
+    cpu: 500m
+    memory: 256Mi
+  requests:
+    cpu: 100m
+    memory: 128Mi
+
+# Liveness probe
+livenessProbe:
+  enabled: true
+  exec:
+    command:
+      - sh
+      - -c
+      - "ip link show wg0"
+  initialDelaySeconds: 30
+  periodSeconds: 30
+  timeoutSeconds: 5
+  failureThreshold: 3
+  successThreshold: 1
+
+# Readiness probe
+readinessProbe:
+  enabled: true
+  exec:
+    command:
+      - sh
+      - -c
+      - "wg show wg0 || exit 1"
+  initialDelaySeconds: 10
+  periodSeconds: 10
+  timeoutSeconds: 5
+  failureThreshold: 3
+  successThreshold: 1
+
+# Startup probe (for slow initialization)
+startupProbe:
+  enabled: true
+  exec:
+    command:
+      - sh
+      - -c
+      - "ip link show wg0"
+  initialDelaySeconds: 5
+  periodSeconds: 5
+  timeoutSeconds: 5
+  failureThreshold: 30
+  successThreshold: 1
+
+# Autoscaling
+# Not applicable for WireGuard (UDP service, single replica)
+autoscaling:
+  enabled: false
+
+# Node selector
+nodeSelector: {}
+
+# Tolerations
+tolerations: []
+
+# Affinity
+affinity: {}
+
+# Priority class
+priorityClassName: ""
+
+# Topology spread constraints
+topologySpreadConstraints: []
+
+# Network Policy
+networkPolicy:
+  enabled: false
+
+  # Ingress rules
+  ingress:
+    # Allow from specific namespaces
+    namespaceSelector: {}
+    # Example:
+    # namespaceSelector:
+    #   matchLabels:
+    #     name: trusted-namespace
+
+    # Allow from specific pods
+    podSelector: {}
+
+    # Allow from specific IP blocks (CIDR)
+    ipBlocks: []
+    # Example:
+    # ipBlocks:
+    #   - 0.0.0.0/0  # Allow from anywhere (not recommended)
+    #   - 192.168.1.0/24  # Allow from specific network
+
+  # Egress rules
+  egress:
+    # Allow all egress by default (WireGuard may need to reach various endpoints)
+    allowAll: true
+
+    # Or specify custom egress rules
+    customRules: []
+    # Example:
+    # customRules:
+    #   - to:
+    #       - ipBlock:
+    #           cidr: 0.0.0.0/0
+
+# Monitoring
+monitoring:
+  # Enable ServiceMonitor for Prometheus Operator
+  enabled: false
+
+  # ServiceMonitor labels
+  labels: {}
+
+  # ServiceMonitor interval
+  interval: 30s
+
+  # ServiceMonitor scrape timeout
+  scrapeTimeout: 10s
+
+  # Metrics port (if WireGuard exports metrics)
+  port: 9586
+
+  # Metrics path
+  path: /metrics
+
+# Extra environment variables
+extraEnv: []
+# Example:
+# extraEnv:
+#   - name: TZ
+#     value: "UTC"
+#   - name: PUID
+#     value: "1000"
+#   - name: PGID
+#     value: "1000"
+
+# Extra volumes
+extraVolumes: []
+# Example:
+# extraVolumes:
+#   - name: custom-config
+#     configMap:
+#       name: my-wireguard-config
+
+# Extra volume mounts
+extraVolumeMounts: []
+# Example:
+# extraVolumeMounts:
+#   - name: custom-config
+#     mountPath: /custom-config
+#     readOnly: true

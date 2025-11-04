@@ -1,0 +1,177 @@
+Thank you for installing {{ .Chart.Name }}!
+
+Your WireGuard VPN server has been deployed in {{ .Values.wireguard.mode }} mode.
+
+==============================================================================
+1. Get the WireGuard service endpoint:
+==============================================================================
+
+{{- if eq .Values.service.type "LoadBalancer" }}
+
+  NOTE: It may take a few minutes for the LoadBalancer IP to be available.
+
+  Get the external IP:
+    kubectl get svc {{ include "wireguard.fullname" . }} -n {{ .Release.Namespace }} -o jsonpath='{.status.loadBalancer.ingress[0].ip}'
+
+  Or watch until the IP is assigned:
+    kubectl get svc {{ include "wireguard.fullname" . }} -n {{ .Release.Namespace }} -w
+
+{{- else if eq .Values.service.type "NodePort" }}
+
+  Get the NodePort:
+    NODE_PORT=$(kubectl get svc {{ include "wireguard.fullname" . }} -n {{ .Release.Namespace }} -o jsonpath='{.spec.ports[0].nodePort}')
+    echo "WireGuard is accessible on any node IP at port: $NODE_PORT/UDP"
+
+  Get a node IP:
+    kubectl get nodes -o wide
+
+  Connection endpoint: <NODE_IP>:$NODE_PORT
+
+  NOTE: Configure your router/firewall to forward UDP {{ .Values.service.port }} to <NODE_IP>:$NODE_PORT
+
+{{- else }}
+
+  WireGuard is running as ClusterIP service.
+  Access is only available within the cluster.
+
+  Port forward for testing:
+    kubectl port-forward svc/{{ include "wireguard.fullname" . }} {{ .Values.service.port }}:{{ .Values.service.port }}/udp -n {{ .Release.Namespace }}
+
+{{- end }}
+
+==============================================================================
+2. Configuration Mode: {{ .Values.wireguard.mode | upper }}
+==============================================================================
+
+{{- if eq .Values.wireguard.mode "manual" }}
+
+  You are using MANUAL configuration mode (config file approach).
+
+  Your wg0.conf is mounted from ConfigMap.
+
+  To view the configuration:
+    kubectl exec deployment/{{ include "wireguard.fullname" . }} -n {{ .Release.Namespace }} -- cat /config/wg0.conf
+
+  To get the server public key:
+    kubectl exec deployment/{{ include "wireguard.fullname" . }} -n {{ .Release.Namespace }} -- wg show wg0 public-key
+
+  To update the configuration:
+    1. Edit your values.yaml (wireguard.serverConfig)
+    2. Run: helm upgrade {{ .Release.Name }} -f values.yaml
+
+{{- else if eq .Values.wireguard.mode "auto" }}
+
+  You are using AUTO configuration mode (LinuxServer.io auto-generation).
+
+  Server URL: {{ .Values.wireguard.auto.serverUrl }}
+  Number of peers: {{ .Values.wireguard.auto.peers }}
+
+  Peer configurations and QR codes are automatically generated in /config/
+
+  To list available peers:
+    kubectl exec deployment/{{ include "wireguard.fullname" . }} -n {{ .Release.Namespace }} -- ls -l /config/peer*/
+
+  To get a peer configuration:
+    kubectl exec deployment/{{ include "wireguard.fullname" . }} -n {{ .Release.Namespace }} -- cat /config/peer1/peer1.conf
+
+  To display QR code for mobile devices (peer1):
+    kubectl exec deployment/{{ include "wireguard.fullname" . }} -n {{ .Release.Namespace }} -- cat /config/peer1/peer1.png | base64
+
+  To show QR code in terminal (requires qrencode):
+    kubectl exec deployment/{{ include "wireguard.fullname" . }} -n {{ .Release.Namespace }} -- qrencode -t ansiutf8 < /config/peer1/peer1.conf
+
+{{- end }}
+
+==============================================================================
+3. Check WireGuard Status:
+==============================================================================
+
+  Show WireGuard interface:
+    kubectl exec deployment/{{ include "wireguard.fullname" . }} -n {{ .Release.Namespace }} -- wg show
+
+  Show active connections:
+    kubectl exec deployment/{{ include "wireguard.fullname" . }} -n {{ .Release.Namespace }} -- wg show wg0
+
+  Check if interface is up:
+    kubectl exec deployment/{{ include "wireguard.fullname" . }} -n {{ .Release.Namespace }} -- ip link show wg0
+
+  View logs:
+    kubectl logs deployment/{{ include "wireguard.fullname" . }} -n {{ .Release.Namespace }} -f
+
+==============================================================================
+4. Connecting Clients:
+==============================================================================
+
+{{- if eq .Values.wireguard.mode "manual" }}
+
+  Create a client configuration file (peer.conf):
+
+  [Interface]
+  PrivateKey = <client-private-key>
+  Address = 10.13.13.2/32
+  DNS = 1.1.1.1
+
+  [Peer]
+  PublicKey = <server-public-key>
+  Endpoint = <WIREGUARD_ENDPOINT>:{{ .Values.service.port }}
+  AllowedIPs = 0.0.0.0/0, ::/0
+  PersistentKeepalive = 25
+
+  Replace:
+  - <client-private-key>: Generate with 'wg genkey'
+  - <server-public-key>: Get from step 2 above
+  - <WIREGUARD_ENDPOINT>: Your public IP or domain (from step 1)
+
+{{- else }}
+
+  Retrieve peer configurations from the pod (see step 2).
+  Each peer has its own directory with .conf file and QR code.
+
+{{- end }}
+
+==============================================================================
+5. Troubleshooting:
+==============================================================================
+
+  Check pod status:
+    kubectl get pods -l app.kubernetes.io/name={{ include "wireguard.name" . }} -n {{ .Release.Namespace }}
+
+  Describe pod:
+    kubectl describe pod -l app.kubernetes.io/name={{ include "wireguard.name" . }} -n {{ .Release.Namespace }}
+
+  Common issues:
+
+  a) Pod not starting:
+     - Check if NET_ADMIN capability is supported
+     - Verify kernel wireguard module: lsmod | grep wireguard
+     - Check pod events: kubectl describe pod
+
+  b) VPN connects but no internet:
+     - Verify iptables rules in PostUp/PostDown
+     - Check IP forwarding: sysctl net.ipv4.ip_forward
+     - Ensure NAT rules are correct
+
+  c) Can't connect to VPN:
+     - Verify LoadBalancer/NodePort external IP/port
+     - Check firewall rules
+     - Verify server public key matches client config
+
+  d) Connection drops:
+     - Enable PersistentKeepalive in client config
+     - Check MTU settings (try 1420 or 1380)
+
+==============================================================================
+6. Next Steps:
+==============================================================================
+
+  - Configure clients and test connectivity
+  - Set up proper DNS for VPN clients
+  - Configure firewall rules on your router
+  - Consider enabling NetworkPolicy for additional security
+  - Monitor WireGuard metrics if Prometheus is available
+
+For more information, visit:
+  - WireGuard: https://www.wireguard.com/
+  - Chart documentation: https://github.com/scriptonbasestar-docker/sb-helm-charts
+
+Enjoy your secure VPN connection! 🔒

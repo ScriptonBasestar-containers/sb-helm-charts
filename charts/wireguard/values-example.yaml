@@ -1,0 +1,239 @@
+# Production-ready WireGuard configuration example
+# For personal k3s servers
+
+# ====================================
+# Example 1: Manual Mode (Recommended)
+# ====================================
+wireguard:
+  mode: "manual"
+
+  # Complete wg0.conf configuration
+  serverConfig: |
+    [Interface]
+    Address = 10.13.13.1/24
+    ListenPort = 51820
+    PrivateKey = YOUR_SERVER_PRIVATE_KEY_HERE
+
+    # NAT forwarding rules for internet access
+    PostUp = iptables -A FORWARD -i %i -j ACCEPT; iptables -t nat -A POSTROUTING -o eth0 -j MASQUERADE
+    PostDown = iptables -D FORWARD -i %i -j ACCEPT; iptables -t nat -D POSTROUTING -o eth0 -j MASQUERADE
+
+    # Peer 1 - Laptop
+    [Peer]
+    PublicKey = LAPTOP_PUBLIC_KEY_HERE
+    AllowedIPs = 10.13.13.2/32
+
+    # Peer 2 - Phone
+    [Peer]
+    PublicKey = PHONE_PUBLIC_KEY_HERE
+    AllowedIPs = 10.13.13.3/32
+
+    # Peer 3 - Tablet
+    [Peer]
+    PublicKey = TABLET_PUBLIC_KEY_HERE
+    AllowedIPs = 10.13.13.4/32
+
+  # Server private key (keep secure!)
+  # Generate with: wg genkey
+  privateKey: "YOUR_SERVER_PRIVATE_KEY_HERE"
+
+persistence:
+  enabled: true
+  size: 1Gi
+  storageClass: "local-path"  # k3s default
+  reclaimPolicy: Retain
+
+service:
+  type: LoadBalancer  # or NodePort for k3s without MetalLB
+  port: 51820
+  protocol: UDP
+  # For NodePort:
+  # nodePort: 31820
+
+resources:
+  limits:
+    cpu: 500m
+    memory: 256Mi
+  requests:
+    cpu: 100m
+    memory: 128Mi
+
+# Optional: Network Policy for security
+networkPolicy:
+  enabled: false
+  ingress:
+    # Allow VPN connections from anywhere
+    ipBlocks:
+      - 0.0.0.0/0
+  egress:
+    allowAll: true
+
+---
+# =========================================
+# Example 2: Auto Mode (Convenience)
+# =========================================
+# wireguard:
+#   mode: "auto"
+#
+#   auto:
+#     # Your public domain or IP
+#     serverUrl: "vpn.yourdomain.com"  # or "203.0.113.10"
+#     serverPort: 51820
+#
+#     # Number of peers to generate automatically
+#     peers: 10
+#
+#     # VPN internal network
+#     internalSubnet: "10.13.13.0"
+#
+#     # DNS for VPN clients
+#     peerDns: "1.1.1.1"  # or "auto" for Docker DNS
+#
+#     # Route all traffic through VPN (full tunnel)
+#     allowedIPs: "0.0.0.0/0, ::/0"
+#
+#     # NAT keepalive for mobile devices
+#     persistentKeepalive: 25
+#
+# persistence:
+#   enabled: true
+#   size: 2Gi  # More space for auto-generated configs
+#
+# service:
+#   type: LoadBalancer
+#   port: 51820
+#
+# ---
+# =========================================
+# Example 3: NodePort for k3s (No LoadBalancer)
+# =========================================
+# wireguard:
+#   mode: "manual"
+#   serverConfig: |
+#     [Interface]
+#     Address = 10.13.13.1/24
+#     ListenPort = 51820
+#     PrivateKey: YOUR_KEY_HERE
+#
+# service:
+#   type: NodePort
+#   port: 51820
+#   nodePort: 31820  # Fixed port for router port forwarding
+#
+# # Then configure router to forward:
+# # External port 51820 UDP -> Node IP:31820
+#
+# ---
+# =========================================
+# Example 4: Split Tunnel (Only route VPN subnet)
+# =========================================
+# wireguard:
+#   mode: "manual"
+#   serverConfig: |
+#     [Interface]
+#     Address = 10.13.13.1/24
+#     ListenPort = 51820
+#     PrivateKey: YOUR_KEY_HERE
+#
+#     [Peer]
+#     PublicKey: PEER_KEY_HERE
+#     # Only route VPN subnet traffic through VPN
+#     # Internet traffic goes directly
+#     AllowedIPs = 10.13.13.0/24
+#
+# ---
+# =========================================
+# Example 5: Multi-site VPN Mesh
+# =========================================
+# wireguard:
+#   mode: "manual"
+#   serverConfig: |
+#     [Interface]
+#     Address = 10.13.13.1/24
+#     ListenPort = 51820
+#     PrivateKey: SITE_A_PRIVATE_KEY
+#
+#     # Site B (another k3s cluster)
+#     [Peer]
+#     PublicKey: SITE_B_PUBLIC_KEY
+#     Endpoint = site-b.example.com:51820
+#     AllowedIPs = 10.13.14.0/24
+#     PersistentKeepalive = 25
+#
+#     # Mobile clients
+#     [Peer]
+#     PublicKey: MOBILE_PUBLIC_KEY
+#     AllowedIPs = 10.13.13.10/32
+#
+# ---
+# =========================================
+# Example 6: With CoreDNS (Custom DNS)
+# =========================================
+# wireguard:
+#   mode: "manual"
+#   serverConfig: |
+#     [Interface]
+#     Address = 10.13.13.1/24
+#     ListenPort = 51820
+#     PrivateKey: YOUR_KEY_HERE
+#
+#   dns:
+#     enabled: true
+#     entries:
+#       - "10.13.13.1 vpn.local"
+#       - "10.13.13.2 laptop.vpn.local"
+#       - "10.13.13.3 phone.vpn.local"
+#
+# service:
+#   dns:
+#     enabled: true
+#     port: 53
+#
+# ---
+# =========================================
+# How to generate keys:
+# =========================================
+# # Server keys
+# wg genkey | tee server-private.key | wg pubkey > server-public.key
+#
+# # Peer keys
+# wg genkey | tee peer1-private.key | wg pubkey > peer1-public.key
+#
+# # Then create peer config:
+# cat > peer1.conf <<EOF
+# [Interface]
+# PrivateKey = $(cat peer1-private.key)
+# Address = 10.13.13.2/32
+# DNS = 1.1.1.1
+#
+# [Peer]
+# PublicKey = $(cat server-public.key)
+# Endpoint = vpn.yourdomain.com:51820
+# AllowedIPs = 0.0.0.0/0, ::/0
+# PersistentKeepalive = 25
+# EOF
+#
+# ---
+# =========================================
+# Troubleshooting common issues:
+# =========================================
+# 1. "Operation not permitted" error
+#    -> Check if NET_ADMIN capability is enabled
+#    -> Verify kernel wireguard module: lsmod | grep wireguard
+#
+# 2. VPN connects but no internet
+#    -> Check PostUp/PostDown iptables rules
+#    -> Verify ip_forward: sysctl net.ipv4.ip_forward
+#
+# 3. Mobile clients can't connect
+#    -> Check LoadBalancer external IP
+#    -> Verify router port forwarding (for NodePort)
+#    -> Check firewall rules
+#
+# 4. Peers can't see each other
+#    -> Verify AllowedIPs includes peer subnets
+#    -> Check iptables FORWARD rules
+#
+# 5. Connection drops frequently
+#    -> Enable PersistentKeepalive for NAT traversal
+#    -> Check MTU settings (try 1420 or 1380)

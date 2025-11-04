@@ -1,0 +1,21 @@
+apiVersion: v2
+name: wireguard
+version: 0.1.0
+appVersion: "latest"
+type: application
+description: A Helm chart for WireGuard VPN - Fast, modern, secure VPN tunnel
+license: BSD-3-Clause
+keywords:
+  - wireguard
+  - vpn
+  - network
+  - security
+  - tunnel
+home: https://scriptonbasestar-docker.github.io/sb-helm-charts/
+sources:
+  - https://github.com/scriptonbasestar-docker/sb-helm-charts
+  - https://www.wireguard.com/
+  - https://github.com/linuxserver/docker-wireguard
+maintainers:
+  - name: ScriptonBasestar
+    email: archmagece@users.noreply.github.com

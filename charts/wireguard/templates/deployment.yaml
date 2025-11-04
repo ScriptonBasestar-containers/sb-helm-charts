@@ -1,0 +1,153 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "wireguard.fullname" . }}
+  labels:
+    {{- include "wireguard.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.replicaCount }}
+  strategy:
+    type: {{ .Values.strategy.type }}
+  selector:
+    matchLabels:
+      {{- include "wireguard.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      annotations:
+        checksum/config: {{ include (print $.Template.BasePath "/configmap.yaml") . | sha256sum }}
+        checksum/secret: {{ include (print $.Template.BasePath "/secret.yaml") . | sha256sum }}
+        {{- with .Values.podAnnotations }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+      labels:
+        {{- include "wireguard.labels" . | nindent 8 }}
+        {{- with .Values.podLabels }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+    spec:
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      serviceAccountName: {{ include "wireguard.serviceAccountName" . }}
+      securityContext:
+        {{- toYaml .Values.podSecurityContext | nindent 8 }}
+      {{- if .Values.priorityClassName }}
+      priorityClassName: {{ .Values.priorityClassName }}
+      {{- end }}
+      containers:
+        - name: wireguard
+          securityContext:
+            {{- toYaml .Values.securityContext | nindent 12 }}
+          image: {{ include "wireguard.image" . }}
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          env:
+            # Base environment variables for linuxserver image
+            - name: PUID
+              value: "1000"
+            - name: PGID
+              value: "1000"
+            - name: TZ
+              value: "UTC"
+            {{- if eq .Values.wireguard.mode "auto" }}
+            # Auto-configuration mode environment variables
+            - name: SERVERURL
+              value: {{ .Values.wireguard.auto.serverUrl | quote }}
+            - name: SERVERPORT
+              value: {{ .Values.wireguard.auto.serverPort | quote }}
+            - name: PEERS
+              value: {{ .Values.wireguard.auto.peers | quote }}
+            - name: PEERDNS
+              value: {{ .Values.wireguard.auto.peerDns | quote }}
+            - name: INTERNAL_SUBNET
+              value: {{ .Values.wireguard.auto.internalSubnet | quote }}
+            - name: ALLOWEDIPS
+              value: {{ .Values.wireguard.auto.allowedIPs | quote }}
+            {{- if .Values.wireguard.auto.persistentKeepalive }}
+            - name: PERSISTENTKEEPALIVE_PEERS
+              value: {{ .Values.wireguard.auto.persistentKeepalive | quote }}
+            {{- end }}
+            {{- end }}
+            {{- with .Values.extraEnv }}
+            {{- toYaml . | nindent 12 }}
+            {{- end }}
+          ports:
+            - name: wireguard
+              containerPort: 51820
+              protocol: UDP
+            {{- if .Values.service.dns.enabled }}
+            - name: dns-udp
+              containerPort: 53
+              protocol: UDP
+            - name: dns-tcp
+              containerPort: 53
+              protocol: TCP
+            {{- end }}
+          {{- if .Values.livenessProbe.enabled }}
+          livenessProbe:
+            {{- omit .Values.livenessProbe "enabled" | toYaml | nindent 12 }}
+          {{- end }}
+          {{- if .Values.readinessProbe.enabled }}
+          readinessProbe:
+            {{- omit .Values.readinessProbe "enabled" | toYaml | nindent 12 }}
+          {{- end }}
+          {{- if .Values.startupProbe.enabled }}
+          startupProbe:
+            {{- omit .Values.startupProbe "enabled" | toYaml | nindent 12 }}
+          {{- end }}
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+          volumeMounts:
+            - name: config
+              mountPath: {{ .Values.persistence.mountPath }}
+            {{- if eq .Values.wireguard.mode "manual" }}
+            - name: wg-config
+              mountPath: /config/wg0.conf
+              subPath: wg0.conf
+            {{- end }}
+            # Mount kernel modules (readonly) for wireguard kernel module
+            - name: lib-modules
+              mountPath: /lib/modules
+              readOnly: true
+            {{- with .Values.extraVolumeMounts }}
+            {{- toYaml . | nindent 12 }}
+            {{- end }}
+      volumes:
+        # Persistent storage for peer configs, QR codes, etc.
+        - name: config
+          {{- if .Values.persistence.enabled }}
+          persistentVolumeClaim:
+            claimName: {{ include "wireguard.pvcName" . }}
+          {{- else }}
+          emptyDir: {}
+          {{- end }}
+        {{- if eq .Values.wireguard.mode "manual" }}
+        # ConfigMap with wg0.conf
+        - name: wg-config
+          configMap:
+            name: {{ include "wireguard.fullname" . }}
+        {{- end }}
+        # Host kernel modules
+        - name: lib-modules
+          hostPath:
+            path: /lib/modules
+            type: Directory
+        {{- with .Values.extraVolumes }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.topologySpreadConstraints }}
+      topologySpreadConstraints:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}

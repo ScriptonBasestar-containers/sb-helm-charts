@@ -1,0 +1,27 @@
+{{- if eq .Values.wireguard.mode "manual" }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "wireguard.fullname" . }}
+  labels:
+    {{- include "wireguard.labels" . | nindent 4 }}
+data:
+  {{- if .Values.wireguard.serverConfig }}
+  wg0.conf: |
+{{ .Values.wireguard.serverConfig | indent 4 }}
+  {{- else }}
+  wg0.conf: |
+    # WireGuard configuration file
+    # Please provide wireguard.serverConfig in values.yaml
+    #
+    # Example:
+    # [Interface]
+    # Address = 10.13.13.1/24
+    # ListenPort = 51820
+    # PrivateKey = YOUR_PRIVATE_KEY_HERE
+    #
+    # [Peer]
+    # PublicKey = PEER_PUBLIC_KEY_HERE
+    # AllowedIPs = 10.13.13.2/32
+  {{- end }}
+{{- end }}
