@@ -11,6 +11,58 @@ entries:
     urls:
     - https://github.com/ScriptonBasestar/sb-helm-charts/releases/download/browserless-chrome-0.1.0/browserless-chrome-0.1.0.tgz
     version: 0.1.0
+  devpi:
+  - apiVersion: v2
+    appVersion: 1.16.0
+    created: "2025-11-06T07:49:26.957091821Z"
+    description: A Helm chart for Kubernetes
+    digest: e98b855a5335a39a2c88b9c2899a2820bbf3d395b5d17e2c50a9a295b9f6e6dc
+    name: devpi
+    type: application
+    urls:
+    - https://github.com/ScriptonBasestar-containers/sb-helm-charts/releases/download/devpi-0.1.0/devpi-0.1.0.tgz
+    version: 0.1.0
+  keycloak:
+  - annotations:
+      artifacthub.io/license: BSD-3-Clause
+    apiVersion: v2
+    appVersion: 26.0.6
+    created: "2025-11-06T07:49:27.221536792Z"
+    description: A Helm chart for Keycloak - Open Source Identity and Access Management
+    digest: 9e6d9cd8310c3a45294d17c30b77a8ca129d4cec14c6742e6c70dee8c3f6992d
+    home: https://www.keycloak.org/
+    icon: https://www.keycloak.org/resources/images/keycloak_icon_512px.svg
+    keywords:
+    - keycloak
+    - identity
+    - access-management
+    - authentication
+    - authorization
+    - sso
+    - iam
+    maintainers:
+    - email: archmagece@users.noreply.github.com
+      name: archmagece
+    name: keycloak
+    sources:
+    - https://scriptonbasestar-docker.github.io/sb-helm-charts/
+    - https://github.com/keycloak/keycloak
+    - https://quay.io/repository/keycloak/keycloak
+    type: application
+    urls:
+    - https://github.com/ScriptonBasestar-containers/sb-helm-charts/releases/download/keycloak-0.3.0/keycloak-0.3.0.tgz
+    version: 0.3.0
+  nextcloud:
+  - apiVersion: v2
+    appVersion: 1.16.0
+    created: "2025-11-06T07:49:27.444278573Z"
+    description: Easy nextcloud - config
+    digest: a1546834a02e11d5bd2d33a3e870ba53e6e356abab8d3c1ac364e595c5a129b1
+    name: nextcloud
+    type: application
+    urls:
+    - https://github.com/ScriptonBasestar-containers/sb-helm-charts/releases/download/nextcloud-0.1.0/nextcloud-0.1.0.tgz
+    version: 0.1.0
   rsshub:
   - apiVersion: v2
     appVersion: "2025-04-06"
@@ -22,4 +74,58 @@ entries:
     urls:
     - https://github.com/ScriptonBasestar/sb-helm-charts/releases/download/rsshub-0.1.0/rsshub-0.1.0.tgz
     version: 0.1.0
-generated: "2025-04-07T07:45:04.670688687Z"
+  wireguard:
+  - annotations:
+      artifacthub.io/license: BSD-3-Clause
+    apiVersion: v2
+    appVersion: latest
+    created: "2025-11-06T07:49:27.684759976Z"
+    description: A Helm chart for WireGuard VPN - Fast, modern, secure VPN tunnel
+    digest: 1c5acbaa61bc9f3a23709d0d7eecf5f896276317d8984e6738525ad242116d18
+    home: https://www.wireguard.com/
+    icon: https://www.wireguard.com/img/wireguard.svg
+    keywords:
+    - wireguard
+    - vpn
+    - network
+    - security
+    - tunnel
+    maintainers:
+    - email: archmagece@users.noreply.github.com
+      name: archmagece
+    name: wireguard
+    sources:
+    - https://scriptonbasestar-docker.github.io/sb-helm-charts/
+    - https://github.com/scriptonbasestar-docker/sb-helm-charts
+    - https://www.wireguard.com/
+    - https://github.com/linuxserver/docker-wireguard
+    type: application
+    urls:
+    - https://github.com/ScriptonBasestar-containers/sb-helm-charts/releases/download/wireguard-0.1.0/wireguard-0.1.0.tgz
+    version: 0.1.0
+  wordpress:
+  - apiVersion: v2
+    appVersion: 6.4.3
+    created: "2025-11-06T07:49:27.93107521Z"
+    description: A Helm chart for Kubernetes
+    digest: f0ac24b5eba9072f1ece2ac9518e16c975c3162ed0003231763ea184810a4fee
+    home: https://wordpress.org/
+    icon: https://raw.githubusercontent.com/ScriptonBasestar-docker/sb-helm-charts/master/helms/wordpress/icon.png
+    keywords:
+    - wordpress
+    - blog
+    - cms
+    - php
+    maintainers:
+    - email: archmagece@users.noreply.github.com
+      name: archmagece
+    name: wordpress
+    sources:
+    - https://scriptonbasestar-docker.github.io/sb-helm-charts/
+    - https://github.com/wordpress/wordpress
+    - https://hub.docker.com/_/wordpress
+    type: application
+    urls:
+    - https://github.com/ScriptonBasestar-containers/sb-helm-charts/releases/download/wordpress-0.1.0/wordpress-0.1.0.tgz
+    version: 0.1.0
+generated: "2025-11-06T07:49:27.931081923Z"
