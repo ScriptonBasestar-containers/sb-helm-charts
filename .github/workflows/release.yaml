@@ -2,7 +2,9 @@
 name: Release Charts
 # only run one instance of this workflow at a time
 # ref: https://docs.github.com/en/actions/using-workflows/workflow-syntax-for-github-actions#concurrency
-concurrency: chart_releaser
+concurrency:
+  group: chart-release-${{ github.ref }}
+  cancel-in-progress: true
 
 on:
   push:
