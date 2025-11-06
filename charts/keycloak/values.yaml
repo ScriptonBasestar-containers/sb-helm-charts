@@ -85,6 +85,16 @@ postgresql:
       initialSize: 20
       minSize: 20
       maxSize: 100
+    # SSL/TLS connection settings
+    ssl:
+      enabled: false
+      # SSL mode: disable, allow, prefer, require, verify-ca, verify-full
+      mode: "require"
+      # Optional: Path to SSL certificates (mounted from secret)
+      certificateSecret: ""
+      rootCertKey: "ca.crt"
+      clientCertKey: "tls.crt"
+      clientKeyKey: "tls.key"
 
 # External Redis configuration (optional, for distributed caching)
 redis:
@@ -100,6 +110,12 @@ redis:
       enabled: false
       secretName: ""
       passwordKey: "password"
+    # SSL/TLS connection settings
+    ssl:
+      enabled: false
+      # Optional: Path to SSL certificates (mounted from secret)
+      certificateSecret: ""
+      caCertKey: "ca.crt"
 
 # Clustering configuration
 clustering:

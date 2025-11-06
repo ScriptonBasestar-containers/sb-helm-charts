@@ -66,7 +66,19 @@ Create the PostgreSQL connection string
 */}}
 {{- define "keycloak.postgresql.jdbcUrl" -}}
 {{- if .Values.postgresql.external.enabled }}
-{{- printf "jdbc:postgresql://%s:%v/%s" .Values.postgresql.external.host (.Values.postgresql.external.port | int) .Values.postgresql.external.database }}
+{{- $baseUrl := printf "jdbc:postgresql://%s:%v/%s" .Values.postgresql.external.host (.Values.postgresql.external.port | int) .Values.postgresql.external.database }}
+{{- if .Values.postgresql.external.ssl.enabled }}
+{{- $sslParams := printf "?sslmode=%s" .Values.postgresql.external.ssl.mode }}
+{{- if .Values.postgresql.external.ssl.certificateSecret }}
+{{- $sslParams = printf "%s&sslrootcert=/opt/keycloak/conf/db-ssl/%s" $sslParams .Values.postgresql.external.ssl.rootCertKey }}
+{{- if .Values.postgresql.external.ssl.clientCertKey }}
+{{- $sslParams = printf "%s&sslcert=/opt/keycloak/conf/db-ssl/%s&sslkey=/opt/keycloak/conf/db-ssl/%s" $sslParams .Values.postgresql.external.ssl.clientCertKey .Values.postgresql.external.ssl.clientKeyKey }}
+{{- end }}
+{{- end }}
+{{- printf "%s%s" $baseUrl $sslParams }}
+{{- else }}
+{{- $baseUrl }}
+{{- end }}
 {{- end }}
 {{- end }}
 
