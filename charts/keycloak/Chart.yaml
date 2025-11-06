@@ -4,7 +4,6 @@ version: 0.3.0
 appVersion: 26.0.6
 type: application
 description: A Helm chart for Keycloak - Open Source Identity and Access Management
-license: BSD-3-Clause
 keywords:
   - keycloak
   - identity
@@ -22,3 +21,5 @@ sources:
 maintainers:
   - name: archmagece
     email: archmagece@users.noreply.github.com
+annotations:
+  artifacthub.io/license: BSD-3-Clause
