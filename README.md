@@ -1,6 +1,43 @@
 # Helm Chart - ScriptonBasestar
 
-## 프로젝트 목표
+## Installation
+
+### Add Helm Repository
+
+**GitHub Pages (Traditional)**
+```bash
+helm repo add sb-charts https://scriptonbasestar-containers.github.io/sb-helm-charts
+helm repo update
+```
+
+**GHCR OCI Registry (Recommended)**
+```bash
+# No repository add needed - use OCI directly
+helm install keycloak oci://ghcr.io/scriptonbasestar-containers/charts/keycloak --version 0.3.0
+```
+
+### Usage Examples
+
+**Install from GitHub Pages**
+```bash
+helm install keycloak sb-charts/keycloak --version 0.3.0 -f values.yaml
+```
+
+**Install from OCI Registry**
+```bash
+helm install keycloak oci://ghcr.io/scriptonbasestar-containers/charts/keycloak --version 0.3.0 -f values.yaml
+```
+
+**Pull Chart**
+```bash
+# GitHub Pages
+helm pull sb-charts/keycloak --version 0.3.0
+
+# OCI Registry
+helm pull oci://ghcr.io/scriptonbasestar-containers/charts/keycloak --version 0.3.0
+```
+
+## 프로젝트 목표 (NO_AI_SECTION)
 
 개인 서버 및 간단한 서버 운영을 위한 차트
 
@@ -32,7 +69,7 @@ app-docker-helm 3단계로 복잡성이 꼬이게 된다.
 helm의 가장 잘못된 설계는 config파일을 values에 대입하는 기능을 안 만든 부분이다.
 하지만 이게 표준이 돼 버렸으니... 그 부분을 감안하고 써야한다. 아니면 커스텀 코드로 헬름차트를 덮어쓰도록 해 줘야한다(대부분 이렇게 쓰고 있을듯??)
 
-## 다른차트와 차별점
+## 다른차트와 차별점 (NO_AI_SECTION)
 - 설정파일 그대로 활용, 환경변수 사용은 지양
     - 대부분의 오래된 오픈소스는 설정파일 기반으로 개발되어 있다.
     - 설정파일 위주 소프트웨어를 환경변수 기반인 도커로 변환하면서 문제가 발생한다.
