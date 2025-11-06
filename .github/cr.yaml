@@ -1,0 +1,8 @@
+# Chart Releaser Configuration
+# https://github.com/helm/chart-releaser
+
+# Skip uploading if release already exists
+skip-existing: true
+
+# Generate release notes automatically
+generate-release-notes: true
