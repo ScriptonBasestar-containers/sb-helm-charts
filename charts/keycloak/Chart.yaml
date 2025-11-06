@@ -1,7 +1,7 @@
 apiVersion: v2
 name: keycloak
-version: 0.1.0
-appVersion: 23.0.7
+version: 0.2.0
+appVersion: 26.0.6
 type: application
 description: A Helm chart for Keycloak - Open Source Identity and Access Management
 license: BSD-3-Clause

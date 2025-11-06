@@ -62,10 +62,26 @@ spec:
             {{- toYaml .Values.securityContext | nindent 12 }}
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
           imagePullPolicy: {{ .Values.image.pullPolicy }}
-          {{- with .Values.keycloak.args }}
           args:
-            {{- toYaml . | nindent 12 }}
-          {{- end }}
+            {{- if .Values.keycloak.args }}
+            {{- range .Values.keycloak.args }}
+            - {{ . | quote }}
+            {{- end }}
+            {{- else }}
+            - "start"
+            - "--optimized"
+            {{- end }}
+            {{- if .Values.clustering.enabled }}
+            # Clustering CLI options (Keycloak 26.x)
+            - "--cache-embedded-network-bind-address={{ .Values.clustering.network.bindAddress }}"
+            - "--cache-embedded-network-bind-port={{ .Values.clustering.network.bindPort }}"
+            {{- if .Values.clustering.network.externalAddress }}
+            - "--cache-embedded-network-external-address={{ .Values.clustering.network.externalAddress }}"
+            {{- end }}
+            {{- if .Values.clustering.network.externalPort }}
+            - "--cache-embedded-network-external-port={{ .Values.clustering.network.externalPort }}"
+            {{- end }}
+            {{- end }}
           env:
             # Keycloak admin credentials
             - name: KEYCLOAK_ADMIN
@@ -111,22 +127,22 @@ spec:
               value: {{ .Values.keycloak.proxy.mode | quote }}
             {{- end }}
 
-            # Hostname configuration
-            {{- if .Values.keycloak.hostname.url }}
-            - name: KC_HOSTNAME_URL
-              value: {{ .Values.keycloak.hostname.url | quote }}
+            # Hostname configuration (v2)
+            {{- if .Values.keycloak.hostname.hostname }}
+            - name: KC_HOSTNAME
+              value: {{ .Values.keycloak.hostname.hostname | quote }}
             {{- end }}
-            {{- if .Values.keycloak.hostname.adminUrl }}
-            - name: KC_HOSTNAME_ADMIN_URL
-              value: {{ .Values.keycloak.hostname.adminUrl | quote }}
+            {{- if .Values.keycloak.hostname.hostnameAdmin }}
+            - name: KC_HOSTNAME_ADMIN
+              value: {{ .Values.keycloak.hostname.hostnameAdmin | quote }}
             {{- end }}
-            {{- if .Values.keycloak.hostname.strict }}
+            {{- if .Values.keycloak.hostname.hostnameStrict }}
             - name: KC_HOSTNAME_STRICT
-              value: {{ .Values.keycloak.hostname.strict | quote }}
+              value: {{ .Values.keycloak.hostname.hostnameStrict | quote }}
             {{- end }}
-            {{- if .Values.keycloak.hostname.strictBackchannel }}
-            - name: KC_HOSTNAME_STRICT_BACKCHANNEL
-              value: {{ .Values.keycloak.hostname.strictBackchannel | quote }}
+            {{- if .Values.keycloak.hostname.hostnameBackchannelDynamic }}
+            - name: KC_HOSTNAME_BACKCHANNEL_DYNAMIC
+              value: {{ .Values.keycloak.hostname.hostnameBackchannelDynamic | quote }}
             {{- end }}
 
             # HTTP/HTTPS configuration
@@ -153,6 +169,9 @@ spec:
               value: "ispn"
             - name: KC_CACHE_STACK
               value: {{ .Values.clustering.cache.stack | quote }}
+            - name: CACHE_OWNERS_COUNT
+              value: {{ .Values.clustering.cache.ownersCount | quote }}
+            # JGroups discovery (legacy environment variables - kept for compatibility)
             - name: JGROUPS_DISCOVERY_PROTOCOL
               value: {{ .Values.clustering.jgroups.discoveryProtocol | quote }}
             {{- if .Values.clustering.jgroups.discoveryProperties }}
@@ -162,8 +181,6 @@ spec:
             - name: JGROUPS_DISCOVERY_PROPERTIES
               value: "dns_query={{ include "keycloak.headlessServiceName" . }}.{{ .Release.Namespace }}.svc.cluster.local"
             {{- end }}
-            - name: CACHE_OWNERS_COUNT
-              value: {{ .Values.clustering.cache.ownersCount | quote }}
             {{- end }}
 
             # Redis configuration (optional)

@@ -37,15 +37,19 @@ keycloak:
     # Options: edge, reencrypt, passthrough, none
     mode: "edge"
 
-  # Hostname configuration
+  # Hostname configuration (v2)
+  # Note: Hostname v1 was removed in Keycloak 26.x
   hostname:
-    # Hostname for the Keycloak server
-    url: ""
-    # Admin console hostname (if different)
-    adminUrl: ""
-    # Strict hostname checking
-    strict: false
-    strictBackchannel: false
+    # KC_HOSTNAME - Full URL or domain name for the Keycloak server
+    # Example: "keycloak.example.com" or "https://keycloak.example.com"
+    hostname: ""
+    # KC_HOSTNAME_ADMIN - Admin console URL (if different from hostname)
+    # Example: "admin.keycloak.example.com"
+    hostnameAdmin: ""
+    # KC_HOSTNAME_STRICT - Enable strict hostname checking
+    hostnameStrict: false
+    # KC_HOSTNAME_BACKCHANNEL_DYNAMIC - Allow dynamic backchannel URLs
+    hostnameBackchannelDynamic: false
 
   # HTTP/HTTPS configuration
   http:
@@ -100,16 +104,23 @@ redis:
 # Clustering configuration
 clustering:
   enabled: false
-  # JGroups discovery protocol (dns.DNS_PING for Kubernetes)
-  jgroups:
-    discoveryProtocol: "dns.DNS_PING"
-    # DNS query for discovering cluster members
-    discoveryProperties: ""
   # Infinispan cache settings
   cache:
     ownersCount: 2
     # Stack: tcp, udp
     stack: "tcp"
+  # Network binding configuration (Keycloak 26.x uses CLI options instead of JGroups env vars)
+  network:
+    bindAddress: "0.0.0.0"
+    bindPort: 7800
+    # External address/port for multi-site deployments (optional)
+    externalAddress: ""
+    externalPort: ""
+  # JGroups discovery (for backward compatibility, but prefer CLI options)
+  jgroups:
+    discoveryProtocol: "dns.DNS_PING"
+    # DNS query for discovering cluster members (auto-generated if empty)
+    discoveryProperties: ""
 
 # Persistent storage configuration
 persistence:
@@ -130,7 +141,7 @@ image:
   repository: quay.io/keycloak/keycloak
   pullPolicy: IfNotPresent
   # Overrides the image tag whose default is the chart appVersion
-  tag: "23.0.7"
+  tag: "26.0.6"
 
 # Image pull secrets for private registries
 imagePullSecrets: []

@@ -22,8 +22,17 @@
 
 - Kubernetes 1.19+
 - Helm 3.2.0+
-- **External PostgreSQL 12+ database** (required)
+- **External PostgreSQL 13+ database** (required for Keycloak 26.x)
 - PersistentVolume provisioner support in the underlying infrastructure
+
+## Version Information
+
+This chart is configured for **Keycloak 26.x** which includes significant changes from previous versions:
+
+- **Hostname v2**: The old hostname v1 configuration has been completely removed. You must use the new hostname v2 format.
+- **PostgreSQL 13+**: Minimum PostgreSQL version requirement has been increased from 12.x to 13.x.
+- **CLI-based clustering**: JGroups network configuration now uses CLI options instead of environment variables.
+- **OpenJDK 21**: While OpenJDK 17 is still supported, it's deprecated and will be removed in future releases.
 
 ## Installation
 
@@ -102,6 +111,32 @@ See [values.yaml](./values.yaml) for all available options.
 | `postgresql.external.username` | Database username | `keycloak` |
 | `postgresql.external.password` | Database password (required) | `""` |
 
+### Hostname Configuration (v2)
+
+**Important**: Keycloak 26.x uses hostname v2 configuration. The old v1 format is no longer supported.
+
+```yaml
+keycloak:
+  hostname:
+    # KC_HOSTNAME - Full hostname or domain (without protocol for domain-only)
+    hostname: "keycloak.example.com"
+    # KC_HOSTNAME_ADMIN - Separate admin console hostname (optional)
+    hostnameAdmin: "admin.keycloak.example.com"
+    # KC_HOSTNAME_STRICT - Enforce strict hostname checking
+    hostnameStrict: true
+    # KC_HOSTNAME_BACKCHANNEL_DYNAMIC - Allow dynamic backchannel URLs
+    hostnameBackchannelDynamic: false
+```
+
+**Migration from v1 to v2:**
+
+| Old (v1) | New (v2) |
+|----------|----------|
+| `hostname.url` | `hostname.hostname` |
+| `hostname.adminUrl` | `hostname.hostnameAdmin` |
+| `hostname.strict` | `hostname.hostnameStrict` |
+| `hostname.strictBackchannel` | Removed (use `hostnameBackchannelDynamic` instead) |
+
 ### High Availability Setup
 
 For production deployments with multiple replicas:
@@ -111,11 +146,16 @@ replicaCount: 3
 
 clustering:
   enabled: true
-  jgroups:
-    discoveryProtocol: "dns.DNS_PING"
   cache:
     ownersCount: 2
     stack: "tcp"
+  # Network binding (Keycloak 26.x uses CLI options)
+  network:
+    bindAddress: "0.0.0.0"
+    bindPort: 7800
+  # JGroups discovery (backward compatibility)
+  jgroups:
+    discoveryProtocol: "dns.DNS_PING"
 
 affinity:
   podAntiAffinity:
