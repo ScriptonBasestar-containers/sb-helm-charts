@@ -404,16 +404,24 @@ extraEnv: []
 # - name: KC_LOG_LEVEL
 #   value: "INFO"
 #
-# Advanced: Override auto-generated JDBC URL with custom parameters
-# Note: Later-defined env vars override earlier ones, so this will replace KC_DB_URL
+# WARNING: Do NOT override KC_DB_URL here as it will create duplicate env vars
+# To customize the JDBC URL, use the postgresql.external.ssl configuration instead.
+# The chart automatically generates the correct JDBC URL based on SSL settings.
+#
+# If you absolutely need custom JDBC parameters not supported by the chart:
+# 1. Disable auto-generation: set postgresql.external.enabled=false
+# 2. Manually configure all database env vars in extraEnv:
+# - name: KC_DB
+#   value: "postgres"
 # - name: KC_DB_URL
-#   value: "jdbc:postgresql://host:5432/db?sslmode=verify-full&sslrootcert=/custom/path/ca.crt&options=-c%20statement_timeout=30000"
-# Or use a secret:
-# - name: KC_DB_URL
+#   value: "jdbc:postgresql://host:5432/db?ssl=true&sslmode=verify-full&sslrootcert=/custom/path/ca.crt&options=-c%20statement_timeout=30000"
+# - name: KC_DB_USERNAME
+#   value: "keycloak"
+# - name: KC_DB_PASSWORD
 #   valueFrom:
 #     secretKeyRef:
-#       name: custom-db-config
-#       key: jdbc-url
+#       name: db-credentials
+#       key: password
 
 # Additional environment variables from ConfigMap or Secret
 extraEnvFrom: []
