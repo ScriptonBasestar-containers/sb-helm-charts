@@ -377,6 +377,17 @@ extraEnv: []
 #   value: "-Djava.net.preferIPv4Stack=true"
 # - name: KC_LOG_LEVEL
 #   value: "INFO"
+#
+# Advanced: Override auto-generated JDBC URL with custom parameters
+# Note: Later-defined env vars override earlier ones, so this will replace KC_DB_URL
+# - name: KC_DB_URL
+#   value: "jdbc:postgresql://host:5432/db?sslmode=verify-full&sslrootcert=/custom/path/ca.crt&options=-c%20statement_timeout=30000"
+# Or use a secret:
+# - name: KC_DB_URL
+#   valueFrom:
+#     secretKeyRef:
+#       name: custom-db-config
+#       key: jdbc-url
 
 # Additional environment variables from ConfigMap or Secret
 extraEnvFrom: []

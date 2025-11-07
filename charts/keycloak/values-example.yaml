@@ -334,6 +334,10 @@ extraEnv:
     value: "100"
   - name: KC_CACHE_STACK
     value: "tcp"
+  # Advanced: Override auto-generated JDBC URL for custom parameters
+  # Uncomment to use custom JDBC URL instead of auto-generated one:
+  # - name: KC_DB_URL
+  #   value: "jdbc:postgresql://postgres.database.svc.cluster.local:5432/keycloak?sslmode=verify-full&sslrootcert=/custom/path/ca.crt&ApplicationName=keycloak-prod"
 
 extraEnvFrom: []
 

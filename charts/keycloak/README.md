@@ -294,6 +294,107 @@ dbHealthCheck:
   image: postgres:16-alpine
 ```
 
+### SSL/TLS Configuration
+
+The chart supports SSL/TLS connections for PostgreSQL, Redis, and Keycloak HTTPS.
+
+#### PostgreSQL SSL Connection
+
+Enable SSL connection to PostgreSQL:
+
+```yaml
+postgresql:
+  external:
+    host: "postgres.example.com"
+    # ... other database settings
+    ssl:
+      enabled: true
+      mode: "verify-full"  # Options: disable, allow, prefer, require, verify-ca, verify-full
+      certificateSecret: "postgres-ssl-certs"
+      rootCertKey: "ca.crt"
+      clientCertKey: "tls.crt"  # Optional for mutual TLS
+      clientKeyKey: "tls.key"   # Optional for mutual TLS
+```
+
+Create the certificate secret:
+
+```bash
+kubectl create secret generic postgres-ssl-certs \
+  --from-file=ca.crt=./ca.crt \
+  --from-file=tls.crt=./client.crt \
+  --from-file=tls.key=./client.key
+```
+
+**SSL Modes:**
+- `disable`: No SSL
+- `allow`: Try SSL, fallback to plain
+- `prefer`: Try SSL first (default PostgreSQL behavior)
+- `require`: Require SSL, no certificate verification
+- `verify-ca`: Require SSL + verify CA certificate
+- `verify-full`: Require SSL + verify CA + verify hostname (most secure)
+
+#### Redis SSL Connection
+
+For distributed caching with SSL-enabled Redis:
+
+```yaml
+redis:
+  external:
+    enabled: true
+    host: "redis.example.com"
+    ssl:
+      enabled: true
+      certificateSecret: "redis-ssl-certs"
+      caCertKey: "ca.crt"
+```
+
+#### Keycloak HTTPS (Direct TLS Termination)
+
+**Note**: For production, it's recommended to terminate TLS at the Ingress level. However, if you need Keycloak to handle TLS directly:
+
+```yaml
+keycloak:
+  https:
+    enabled: true
+    port: 8443
+    certificateSecret: "keycloak-tls-certs"
+    certificateKey: "tls.crt"
+    privateKeyKey: "tls.key"
+  proxy:
+    mode: "passthrough"  # or "reencrypt"
+```
+
+Create the certificate secret:
+
+```bash
+kubectl create secret tls keycloak-tls-certs \
+  --cert=./keycloak.crt \
+  --key=./keycloak.key
+```
+
+#### Advanced: Custom JDBC URL
+
+If you need to override the auto-generated JDBC URL with custom parameters:
+
+```yaml
+extraEnv:
+  - name: KC_DB_URL
+    value: "jdbc:postgresql://postgres.example.com:5432/keycloak?sslmode=verify-full&sslrootcert=/custom/path/ca.crt&ApplicationName=keycloak-prod&options=-c%20statement_timeout=30000"
+```
+
+Or load from a secret:
+
+```yaml
+extraEnv:
+  - name: KC_DB_URL
+    valueFrom:
+      secretKeyRef:
+        name: custom-db-config
+        key: jdbc-url
+```
+
+**Note**: Environment variables defined in `extraEnv` override auto-generated ones, so this will replace the chart's auto-generated `KC_DB_URL`.
+
 ## Upgrading
 
 ### To 0.2.0
