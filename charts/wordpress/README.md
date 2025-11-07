@@ -21,6 +21,31 @@ Production-ready WordPress deployment on Kubernetes with external MySQL support 
 
 ## Quick Start
 
+### 🏠 Home Server Quick Start
+
+For home server or low-resource environments, use the optimized configuration:
+
+```bash
+# Use pre-configured home server values
+helm install my-wordpress ./charts/wordpress -f charts/wordpress/values-homeserver.yaml
+
+# Or customize it
+cp charts/wordpress/values-homeserver.yaml my-values.yaml
+# Edit my-values.yaml with your settings
+helm install my-wordpress ./charts/wordpress -f my-values.yaml
+```
+
+**Home Server Configuration includes:**
+- Reduced resource limits (500m CPU, 512Mi RAM)
+- Optimized storage (5Gi default)
+- PHP memory optimizations
+- Security hardening
+- Performance tips and best practices
+
+See [`values-homeserver.yaml`](./values-homeserver.yaml) for details.
+
+---
+
 ### 1. Prepare External MySQL Database
 
 Before installing WordPress, create a MySQL database:

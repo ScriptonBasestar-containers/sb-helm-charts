@@ -1,0 +1,194 @@
+# values-homeserver.yaml
+# Optimized configuration for home server / low-resource environments
+#
+# Usage:
+#   helm install my-wordpress ./charts/wordpress -f values-homeserver.yaml
+#
+# This configuration is designed for:
+# - Personal blogs or small websites
+# - Low-resource home servers (Raspberry Pi, NUC, etc.)
+# - Single-user or family use
+# - Development/testing environments
+
+# Replica count (1 is sufficient for home servers)
+replicaCount: 1
+
+# WordPress configuration
+wordpress:
+  title: "My Personal Blog"
+  siteUrl: "https://blog.home.local"
+  homeUrl: "https://blog.home.local"
+
+  admin:
+    username: "admin"
+    password: ""  # Required: Set your password
+    email: "admin@home.local"
+
+  # Enable debug mode for easier troubleshooting
+  debug: "false"  # Set to "true" only when debugging
+
+  tablePrefix: "wp_"
+
+# External MySQL database
+mysql:
+  enabled: false
+  external:
+    enabled: true
+    host: "mysql.database.svc.cluster.local"
+    port: 3306
+    database: "wordpress"
+    username: "wordpress"
+    password: ""  # Required: Set your password
+
+# Persistent storage (reduced size for home use)
+persistence:
+  enabled: true
+  content:
+    enabled: true
+    storageClass: ""  # Use default storage class
+    accessMode: ReadWriteOnce
+    size: 5Gi  # 5GB is usually enough for personal blogs
+    # For photo-heavy blogs, increase to 10-20Gi
+
+# Container image
+image:
+  repository: wordpress
+  pullPolicy: IfNotPresent
+  tag: "6.4.3-apache"
+
+# Service configuration
+service:
+  type: ClusterIP
+  port: 80
+
+# Ingress (adjust to your home server setup)
+ingress:
+  enabled: true
+  className: "nginx"
+  annotations:
+    # Increase upload size for media (adjust as needed)
+    nginx.ingress.kubernetes.io/proxy-body-size: "50m"
+    nginx.ingress.kubernetes.io/proxy-buffering: "off"
+  hosts:
+    - host: blog.home.local
+      paths:
+        - path: /
+          pathType: Prefix
+  tls: []
+  # For Let's Encrypt or self-signed certificates:
+  # tls:
+  #   - secretName: wordpress-tls
+  #     hosts:
+  #       - blog.home.local
+
+# Resource limits (optimized for low-resource environments)
+# These values work well on:
+# - Raspberry Pi 4 (4GB+ RAM)
+# - Intel NUC
+# - Small VPS (2GB+ RAM)
+resources:
+  limits:
+    cpu: 500m      # 0.5 CPU core (reduced from 1000m)
+    memory: 512Mi  # 512MB RAM (reduced from 1Gi)
+  requests:
+    cpu: 100m      # 0.1 CPU core (reduced from 250m)
+    memory: 128Mi  # 128MB RAM (reduced from 256Mi)
+
+# Health probes (adjusted for slower home servers)
+livenessProbe:
+  httpGet:
+    path: /wp-admin/install.php
+    port: http
+    httpHeaders:
+      - name: Host
+        value: "localhost"
+  initialDelaySeconds: 120
+  periodSeconds: 10
+  timeoutSeconds: 5
+  failureThreshold: 6
+
+readinessProbe:
+  httpGet:
+    path: /wp-login.php
+    port: http
+    httpHeaders:
+      - name: Host
+        value: "localhost"
+  initialDelaySeconds: 30
+  periodSeconds: 10
+  timeoutSeconds: 5
+  failureThreshold: 3
+
+startupProbe:
+  httpGet:
+    path: /wp-login.php
+    port: http
+    httpHeaders:
+      - name: Host
+        value: "localhost"
+  initialDelaySeconds: 30
+  periodSeconds: 10
+  timeoutSeconds: 5
+  failureThreshold: 30  # Allow up to 5 minutes for startup
+
+# Autoscaling (disabled for home servers)
+autoscaling:
+  enabled: false
+
+# Node selector (optional - run on specific nodes)
+nodeSelector: {}
+# Example: Run on a specific node labeled as "role=homeserver"
+# nodeSelector:
+#   role: homeserver
+
+# Tolerations (optional)
+tolerations: []
+
+# Affinity rules (optional)
+affinity: {}
+
+# Additional environment variables for WordPress optimization
+extraEnv:
+  # Increase PHP memory limit for media uploads
+  - name: WORDPRESS_CONFIG_EXTRA
+    value: |
+      /* Home Server Optimizations */
+      define('WP_MEMORY_LIMIT', '256M');
+      define('WP_MAX_MEMORY_LIMIT', '512M');
+
+      /* Disable auto-updates (manage manually) */
+      define('AUTOMATIC_UPDATER_DISABLED', true);
+      define('WP_AUTO_UPDATE_CORE', false);
+
+      /* Reduce revisions to save space */
+      define('WP_POST_REVISIONS', 5);
+      define('AUTOSAVE_INTERVAL', 300);  # 5 minutes
+
+      /* Disable file editing in admin (security) */
+      define('DISALLOW_FILE_EDIT', true);
+
+      /* Cache settings (if using caching plugin) */
+      # define('WP_CACHE', true);
+
+# Performance Tips:
+# ==================
+# 1. Install caching plugin (WP Super Cache, W3 Total Cache)
+# 2. Optimize images (Smush, EWWW Image Optimizer)
+# 3. Use CDN for static assets (optional)
+# 4. Regular database cleanup (WP-Optimize plugin)
+# 5. Keep plugins/themes updated
+#
+# Security Tips:
+# ==================
+# 1. Use strong passwords for admin and MySQL
+# 2. Install security plugin (Wordfence, iThemes Security)
+# 3. Enable 2FA for admin login
+# 4. Regular backups (UpdraftPlus, BackWPup)
+# 5. Disable XML-RPC if not needed
+# 6. Change default "admin" username
+#
+# Backup Strategy:
+# ==================
+# 1. Database: Use MySQL backups or WordPress backup plugins
+# 2. Files: PVC snapshots or filesystem backups
+# 3. Test restore procedure periodically
