@@ -41,6 +41,9 @@ spec:
             - -c
             - |
               echo "Waiting for PostgreSQL to be ready..."
+              {{- if .Values.postgresql.external.ssl.enabled }}
+              echo "SSL mode: {{ .Values.postgresql.external.ssl.mode }}"
+              {{- end }}
               until pg_isready -h {{ .Values.postgresql.external.host }} -p {{ .Values.postgresql.external.port }} -U {{ .Values.postgresql.external.username }}; do
                 echo "PostgreSQL is unavailable - sleeping"
                 sleep 2
@@ -52,6 +55,10 @@ spec:
                 secretKeyRef:
                   name: {{ include "keycloak.fullname" . }}
                   key: db-password
+            {{- if .Values.postgresql.external.ssl.enabled }}
+            - name: PGSSLMODE
+              value: {{ .Values.postgresql.external.ssl.mode | quote }}
+            {{- end }}
         {{- end }}
         {{- if .Values.keycloak.extensions.enabled }}
         - name: download-extensions
