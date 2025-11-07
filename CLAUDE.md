@@ -203,7 +203,10 @@ The repository uses chart-testing (ct) for validation:
 
 All charts expect **external** databases:
 
-- **keycloak**: External PostgreSQL 12+ (required), Redis 6+ (optional)
+- **keycloak**: External PostgreSQL 13+ (required for Keycloak 26.x), Redis 6+ (optional)
+  - Supports SSL/TLS connections: `disable`, `require`, `verify-ca`, `verify-full`
+  - Supports mutual TLS (mTLS) with client certificates
+  - Health endpoints use management port 9000 (Keycloak 26.x breaking change)
 - **nextcloud**: External PostgreSQL 16 + Redis 8
 - **wordpress**: External MySQL/MariaDB
 - **wireguard**: No database required (first chart without database dependency)
@@ -220,9 +223,24 @@ postgresql:
     database: "nextcloud"
     username: "nextcloud"
     password: ""  # Required - deployment will fail if empty
+    # SSL/TLS support (Keycloak chart)
+    ssl:
+      enabled: false
+      mode: "require"  # disable, require, verify-ca, verify-full
+      certificateSecret: ""  # Required for verify-ca/verify-full
+      rootCertKey: "ca.crt"
+      clientCertKey: ""  # Optional: for mutual TLS
+      clientKeyKey: ""   # Optional: for mutual TLS
 ```
 
 **CRITICAL**: The `enabled: false` pattern is a core project value. Never suggest installing databases as subcharts.
+
+**PostgreSQL SSL Notes (Keycloak):**
+- PostgreSQL JDBC driver uses different parameters than psql CLI
+- `require` mode: Uses `ssl=true&sslfactory=org.postgresql.ssl.NonValidatingFactory`
+- `verify-ca`/`verify-full`: Uses `sslmode=verify-ca` or `sslmode=verify-full` with certificate paths
+- InitContainer health checks support SSL via `PGSSLMODE` environment variable
+- Client certificates (mTLS) must have empty default values to avoid always being included
 
 ### Storage
 
@@ -286,6 +304,18 @@ ingress:
 ### Production Examples
 
 Check `values-example.yaml` in each chart for production-ready configurations.
+
+### Home Server / Low-Resource Configurations
+
+Some charts include optimized configurations for home servers and low-resource environments:
+
+- **WordPress**: `values-homeserver.yaml` provides:
+  - 50% resource reduction (500m CPU, 512Mi RAM limits)
+  - Reduced storage (5Gi default)
+  - PHP memory optimizations (256M/512M limits)
+  - Security hardening (file editing disabled, auto-updates disabled)
+  - Reduced post revisions (5) and autosave interval (5 minutes)
+  - Suitable for Raspberry Pi 4, Intel NUC, or small VPS
 
 ## Git Workflow
 
@@ -374,6 +404,12 @@ Chart-specific helpers for complex patterns:
 {{- define "keycloak.headlessServiceName" -}}
 ```
 
+**Important Notes on Keycloak Helpers:**
+- `keycloak.postgresql.jdbcUrl` generates PostgreSQL JDBC URLs with proper SSL parameters
+- Handles all SSL modes: `disable`, `require`, `verify-ca`, `verify-full`
+- Automatically constructs certificate paths for mTLS when client certificates are provided
+- Falls back to NonValidatingFactory if certificates are not provided in verify modes
+
 ### NOTES.txt Pattern
 
 Post-install instructions should include:
@@ -408,3 +444,34 @@ Each chart-specific Makefile:
 - Use `values-example.yaml` as production deployment templates
 - Chart version follows semantic versioning in `Chart.yaml`
 - Git commits are automated; `git push` requires manual execution
+
+### Kubernetes Environment Variable Precedence
+
+**CRITICAL**: When the same environment variable is defined multiple times in Kubernetes, the **first definition takes precedence**, not the last.
+
+This means `extraEnv` in values.yaml **cannot override** chart-generated environment variables. For example:
+
+```yaml
+# Chart template generates:
+- name: KC_DB_URL
+  value: "jdbc:postgresql://..."
+
+# extraEnv attempting override (THIS WILL NOT WORK):
+extraEnv:
+  - name: KC_DB_URL
+    value: "my-custom-url"  # IGNORED - first definition wins
+```
+
+**Workaround**: To use custom database URLs or parameters not supported by the chart:
+1. Disable auto-generation: `postgresql.external.enabled=false`
+2. Manually configure all database env vars in `extraEnv`
+
+### Keycloak 26.x Breaking Changes
+
+- **Health endpoints**: Moved from port 8080 to port 9000 (management port)
+  - Liveness: `http://localhost:9000/health/live`
+  - Readiness: `http://localhost:9000/health/ready`
+  - Startup: `http://localhost:9000/health/started`
+- **Hostname v1**: Completely removed - must use hostname v2 configuration
+- **PostgreSQL 13+**: Minimum requirement increased from 12.x
+- **CLI-based clustering**: Use `--cache-embedded-network-*` CLI options instead of env vars
