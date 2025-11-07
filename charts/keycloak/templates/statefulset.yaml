@@ -332,12 +332,14 @@ spec:
         - name: tls-certificates
           secret:
             secretName: {{ .Values.keycloak.https.certificateSecret }}
+            defaultMode: 0400
         {{- end }}
         {{- end }}
         {{- if and .Values.postgresql.external.enabled .Values.postgresql.external.ssl.enabled .Values.postgresql.external.ssl.certificateSecret }}
         - name: db-ssl-certificates
           secret:
             secretName: {{ .Values.postgresql.external.ssl.certificateSecret }}
+            defaultMode: 0400
         {{- end }}
         {{- with .Values.extraVolumes }}
         {{- toYaml . | nindent 8 }}

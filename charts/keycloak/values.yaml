@@ -138,12 +138,12 @@ redis:
       enabled: false
       secretName: ""
       passwordKey: "password"
-    # SSL/TLS connection settings
-    ssl:
-      enabled: false
-      # Optional: Path to SSL certificates (mounted from secret)
-      certificateSecret: ""
-      caCertKey: "ca.crt"
+    # TODO: SSL/TLS connection support for Redis is not yet implemented
+    # If you need Redis SSL, please open an issue or submit a PR
+    # ssl:
+    #   enabled: false
+    #   certificateSecret: ""
+    #   caCertKey: "ca.crt"
 
 # Clustering configuration
 clustering:
