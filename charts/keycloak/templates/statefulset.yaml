@@ -260,6 +260,9 @@ spec:
               containerPort: {{ .Values.keycloak.https.port }}
               protocol: TCP
             {{- end }}
+            - name: management
+              containerPort: 9000
+              protocol: TCP
             {{- if .Values.clustering.enabled }}
             - name: jgroups
               containerPort: 7800

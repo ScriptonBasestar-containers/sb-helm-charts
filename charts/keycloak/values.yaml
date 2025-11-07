@@ -283,10 +283,11 @@ resources:
     memory: 1Gi
 
 # Liveness probe configuration
+# Note: Keycloak 26.x uses port 9000 for health endpoints (management port)
 livenessProbe:
   httpGet:
     path: /health/live
-    port: http
+    port: management
     scheme: HTTP
   initialDelaySeconds: 120
   periodSeconds: 10
@@ -298,7 +299,7 @@ livenessProbe:
 readinessProbe:
   httpGet:
     path: /health/ready
-    port: http
+    port: management
     scheme: HTTP
   initialDelaySeconds: 60
   periodSeconds: 10
@@ -310,7 +311,7 @@ readinessProbe:
 startupProbe:
   httpGet:
     path: /health/started
-    port: http
+    port: management
     scheme: HTTP
   initialDelaySeconds: 30
   periodSeconds: 10
