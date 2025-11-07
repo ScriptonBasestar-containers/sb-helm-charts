@@ -73,10 +73,6 @@ spec:
               {{- end }}
               echo "Extensions downloaded successfully:"
               ls -lh /opt/keycloak/providers/
-              {{- if .Values.keycloak.extensions.rebuild }}
-              echo "Running kc.sh build..."
-              /opt/keycloak/bin/kc.sh build
-              {{- end }}
           volumeMounts:
             {{- if .Values.persistence.enabled }}
             {{- if .Values.persistence.data.enabled }}

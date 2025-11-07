@@ -42,9 +42,6 @@ keycloak:
     #   sha256: ""  # Optional checksum verification
     # - url: "https://github.com/wadahiro/keycloak-discord/releases/download/v0.4.0/keycloak-discord-0.4.0.jar"
 
-    # Run kc.sh build after downloading extensions (optional optimization)
-    rebuild: false
-
     # InitContainer image for downloading extensions
     initImage:
       repository: curlimages/curl
@@ -107,13 +104,23 @@ postgresql:
     # SSL/TLS connection settings
     ssl:
       enabled: false
-      # SSL mode: disable, allow, prefer, require, verify-ca, verify-full
+      # SSL mode for PostgreSQL JDBC connection:
+      # - disable: No SSL connection
+      # - require: SSL without certificate validation (uses NonValidatingFactory)
+      #            Safe for encrypted connections without strict verification
+      # - verify-ca: Verify CA certificate (requires certificateSecret)
+      #              Ensures server has valid certificate from trusted CA
+      # - verify-full: Verify CA + hostname match (requires certificateSecret)
+      #                Full verification including hostname validation
+      # Note: PostgreSQL JDBC driver uses different parameters than psql CLI
       mode: "require"
-      # Optional: Path to SSL certificates (mounted from secret)
+      # Certificate secret for verify-ca/verify-full modes
+      # Required for certificate validation modes
+      # If not provided with verify-* modes, falls back to NonValidatingFactory
       certificateSecret: ""
       rootCertKey: "ca.crt"
-      clientCertKey: "tls.crt"
-      clientKeyKey: "tls.key"
+      clientCertKey: "tls.crt"  # Optional: for mutual TLS (mTLS)
+      clientKeyKey: "tls.key"   # Optional: for mutual TLS (mTLS)
 
 # External Redis configuration (optional, for distributed caching)
 redis:

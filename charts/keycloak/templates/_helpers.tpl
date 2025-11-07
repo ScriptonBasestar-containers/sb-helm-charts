@@ -63,21 +63,44 @@ Create the name of the service account to use
 
 {{/*
 Create the PostgreSQL connection string
+PostgreSQL JDBC Driver SSL Parameters:
+- ssl=true: Enable SSL connection
+- sslfactory: SSL implementation class
+  * org.postgresql.ssl.NonValidatingFactory: SSL without certificate validation
+  * org.postgresql.ssl.DefaultJavaSSLFactory: Use Java's default SSL (with validation)
+- sslmode: SSL mode (JDBC 42.2.5+) - verify-ca, verify-full
+- sslrootcert: Path to CA certificate for verification
+- sslcert/sslkey: Client certificate for mutual TLS
 */}}
 {{- define "keycloak.postgresql.jdbcUrl" -}}
 {{- if .Values.postgresql.external.enabled }}
 {{- $baseUrl := printf "jdbc:postgresql://%s:%v/%s" .Values.postgresql.external.host (.Values.postgresql.external.port | int) .Values.postgresql.external.database }}
 {{- if .Values.postgresql.external.ssl.enabled }}
-{{- $sslParams := printf "?sslmode=%s" .Values.postgresql.external.ssl.mode }}
-{{- if .Values.postgresql.external.ssl.certificateSecret }}
-{{- $sslParams = printf "%s&sslrootcert=/opt/keycloak/conf/db-ssl/%s" $sslParams .Values.postgresql.external.ssl.rootCertKey }}
-{{- if .Values.postgresql.external.ssl.clientCertKey }}
-{{- $sslParams = printf "%s&sslcert=/opt/keycloak/conf/db-ssl/%s&sslkey=/opt/keycloak/conf/db-ssl/%s" $sslParams .Values.postgresql.external.ssl.clientCertKey .Values.postgresql.external.ssl.clientKeyKey }}
-{{- end }}
-{{- end }}
-{{- printf "%s%s" $baseUrl $sslParams }}
+  {{- $sslParams := "" }}
+  {{- if eq .Values.postgresql.external.ssl.mode "disable" }}
+    {{- /* No SSL parameters */ -}}
+  {{- else if eq .Values.postgresql.external.ssl.mode "require" }}
+    {{- /* SSL without certificate validation */ -}}
+    {{- $sslParams = "?ssl=true&sslfactory=org.postgresql.ssl.NonValidatingFactory" }}
+  {{- else if or (eq .Values.postgresql.external.ssl.mode "verify-ca") (eq .Values.postgresql.external.ssl.mode "verify-full") }}
+    {{- if .Values.postgresql.external.ssl.certificateSecret }}
+      {{- /* SSL with certificate validation */ -}}
+      {{- $sslParams = printf "?ssl=true&sslmode=%s&sslrootcert=/opt/keycloak/conf/db-ssl/%s" .Values.postgresql.external.ssl.mode .Values.postgresql.external.ssl.rootCertKey }}
+      {{- if .Values.postgresql.external.ssl.clientCertKey }}
+        {{- /* Mutual TLS with client certificate */ -}}
+        {{- $sslParams = printf "%s&sslcert=/opt/keycloak/conf/db-ssl/%s&sslkey=/opt/keycloak/conf/db-ssl/%s" $sslParams .Values.postgresql.external.ssl.clientCertKey .Values.postgresql.external.ssl.clientKeyKey }}
+      {{- end }}
+    {{- else }}
+      {{- /* Fallback to non-validating factory if no certificate provided */ -}}
+      {{- $sslParams = "?ssl=true&sslfactory=org.postgresql.ssl.NonValidatingFactory" }}
+    {{- end }}
+  {{- else }}
+    {{- /* Default: enable SSL with non-validating factory */ -}}
+    {{- $sslParams = "?ssl=true&sslfactory=org.postgresql.ssl.NonValidatingFactory" }}
+  {{- end }}
+  {{- printf "%s%s" $baseUrl $sslParams }}
 {{- else }}
-{{- $baseUrl }}
+  {{- $baseUrl }}
 {{- end }}
 {{- end }}
 {{- end }}

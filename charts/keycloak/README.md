@@ -236,23 +236,11 @@ keycloak:
         sha256: "abc123def456..."  # Verifies file integrity
 ```
 
-**With rebuild optimization:**
-
-```yaml
-keycloak:
-  extensions:
-    enabled: true
-    downloads:
-      - url: "https://example.com/my-extension.jar"
-    rebuild: true  # Runs kc.sh build after download (optional)
-```
-
 **How it works:**
 
 1. InitContainer downloads extension JARs from specified URLs
 2. Files are saved to `/opt/keycloak/providers/` (persisted via PVC)
-3. Optional: Runs `kc.sh build` to optimize Keycloak startup
-4. Keycloak container starts and loads the extensions
+3. Keycloak container starts and automatically loads the extensions
 
 **Note:** Extensions are downloaded only when the pod starts. To update extensions:
 1. Change the URL or version in `values.yaml`
@@ -383,12 +371,28 @@ kubectl create secret generic postgres-ssl-certs \
 ```
 
 **SSL Modes:**
-- `disable`: No SSL
-- `allow`: Try SSL, fallback to plain
-- `prefer`: Try SSL first (default PostgreSQL behavior)
-- `require`: Require SSL, no certificate verification
-- `verify-ca`: Require SSL + verify CA certificate
-- `verify-full`: Require SSL + verify CA + verify hostname (most secure)
+
+The chart automatically generates the correct PostgreSQL JDBC URL based on the SSL mode:
+
+- `disable`: No SSL connection
+  - Generated JDBC URL: `jdbc:postgresql://host:port/database`
+
+- `require`: SSL without certificate validation (uses `NonValidatingFactory`)
+  - Generated JDBC URL: `jdbc:postgresql://host:port/database?ssl=true&sslfactory=org.postgresql.ssl.NonValidatingFactory`
+  - **Use case**: Encrypted connection when you trust the network but don't have CA certificates
+
+- `verify-ca`: Verify CA certificate (requires `certificateSecret`)
+  - Generated JDBC URL: `jdbc:postgresql://host:port/database?ssl=true&sslmode=verify-ca&sslrootcert=/opt/keycloak/conf/db-ssl/ca.crt`
+  - **Use case**: Ensure the server has a valid certificate from a trusted CA
+
+- `verify-full`: Verify CA + hostname match (requires `certificateSecret`, most secure)
+  - Generated JDBC URL: `jdbc:postgresql://host:port/database?ssl=true&sslmode=verify-full&sslrootcert=/opt/keycloak/conf/db-ssl/ca.crt`
+  - **Use case**: Full verification including hostname validation (recommended for production)
+
+**Important Notes:**
+- PostgreSQL JDBC driver parameters differ from `psql` CLI parameters
+- The chart uses `ssl=true&sslfactory=...` for basic SSL instead of just `sslmode`
+- If `certificateSecret` is not provided for `verify-ca`/`verify-full` modes, the chart falls back to `NonValidatingFactory`
 
 #### Redis SSL Connection
 
@@ -436,7 +440,7 @@ If you need to override the auto-generated JDBC URL with custom parameters:
 ```yaml
 extraEnv:
   - name: KC_DB_URL
-    value: "jdbc:postgresql://postgres.example.com:5432/keycloak?sslmode=verify-full&sslrootcert=/custom/path/ca.crt&ApplicationName=keycloak-prod&options=-c%20statement_timeout=30000"
+    value: "jdbc:postgresql://postgres.example.com:5432/keycloak?ssl=true&sslmode=verify-full&sslrootcert=/opt/keycloak/conf/db-ssl/ca.crt&ApplicationName=keycloak-prod&options=-c%20statement_timeout=30000"
 ```
 
 Or load from a secret:
@@ -450,7 +454,11 @@ extraEnv:
         key: jdbc-url
 ```
 
-**Note**: Environment variables defined in `extraEnv` override auto-generated ones, so this will replace the chart's auto-generated `KC_DB_URL`.
+**Important**:
+- Environment variables defined in `extraEnv` are appended **after** auto-generated variables
+- In Kubernetes, when the same environment variable is defined multiple times, the **first definition** takes precedence
+- To override `KC_DB_URL`, you need to prevent the chart from generating it (set `postgresql.external.enabled: false` and manually configure all database settings)
+- Alternatively, use the chart's SSL configuration which generates the correct JDBC URL automatically
 
 ## Upgrading
 
