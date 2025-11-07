@@ -5,5 +5,5 @@ metadata:
   labels:
     {{- include "keycloak.labels" . | nindent 4 }}
 data:
-  # Placeholder for future configuration
-  # Add custom configuration files here if needed
+  {{- /* Placeholder for future configuration */}}
+  {{- /* Add custom configuration files here if needed */}}

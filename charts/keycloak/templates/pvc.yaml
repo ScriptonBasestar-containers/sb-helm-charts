@@ -1,11 +1,11 @@
 {{- if .Values.persistence.enabled }}
 {{- if .Values.persistence.data.enabled }}
 {{- if .Values.persistence.data.existingClaim }}
-# Using existing PVC: {{ .Values.persistence.data.existingClaim }}
-# No PVC will be created
+{{- /* Using existing PVC: {{ .Values.persistence.data.existingClaim }} */}}
+{{- /* No PVC will be created */}}
 {{- else }}
-# PVC is created via volumeClaimTemplates in StatefulSet
-# This file is kept for consistency with other charts
+{{- /* PVC is created via volumeClaimTemplates in StatefulSet */}}
+{{- /* This file is kept for consistency with other charts */}}
 {{- end }}
 {{- end }}
 {{- end }}

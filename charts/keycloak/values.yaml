@@ -27,10 +27,14 @@ keycloak:
     enabled: false
     # ConfigMap name containing realm JSON files
     configMapName: ""
-    # Alternatively, use existingVolume
+    # Alternatively, use existingVolume (provide full volume definition)
     existingVolume:
       enabled: false
-      volumeName: ""
+      # Example:
+      # volume:
+      #   persistentVolumeClaim:
+      #     claimName: realm-import-pvc
+      volume: {}
 
   # Extensions (providers) installation
   extensions:

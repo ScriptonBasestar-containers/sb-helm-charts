@@ -13,7 +13,7 @@ spec:
     - Ingress
     - Egress
   ingress:
-    # Allow from Ingress controller
+    {{- /* Allow from Ingress controller */}}
     - from:
         {{- if .Values.networkPolicy.ingress.namespaceSelector }}
         - namespaceSelector:
@@ -31,20 +31,20 @@ spec:
           port: {{ .Values.keycloak.https.port }}
         {{- end }}
     {{- if .Values.clustering.enabled }}
-    # Allow from other Keycloak pods (for clustering)
+    {{- /* Allow from other Keycloak pods (for clustering) */}}
     - from:
         - podSelector:
             matchLabels:
               {{- include "keycloak.selectorLabels" . | nindent 14 }}
       ports:
         - protocol: TCP
-          port: 7800  # JGroups
+          port: 7800
     {{- end }}
     {{- with .Values.networkPolicy.ingress.extraRules }}
     {{- toYaml . | nindent 4 }}
     {{- end }}
   egress:
-    # Allow to PostgreSQL
+    {{- /* Allow to PostgreSQL */}}
     - to:
         {{- if .Values.networkPolicy.egress.postgresql.podSelector }}
         - podSelector:
@@ -58,7 +58,7 @@ spec:
         - protocol: TCP
           port: {{ .Values.postgresql.external.port }}
     {{- if and .Values.redis.enabled .Values.redis.external.enabled }}
-    # Allow to Redis
+    {{- /* Allow to Redis */}}
     - to:
         {{- if .Values.networkPolicy.egress.redis.podSelector }}
         - podSelector:
@@ -73,16 +73,16 @@ spec:
           port: {{ .Values.redis.external.port }}
     {{- end }}
     {{- if .Values.clustering.enabled }}
-    # Allow to other Keycloak pods (for clustering)
+    {{- /* Allow to other Keycloak pods (for clustering) */}}
     - to:
         - podSelector:
             matchLabels:
               {{- include "keycloak.selectorLabels" . | nindent 14 }}
       ports:
         - protocol: TCP
-          port: 7800  # JGroups
+          port: 7800
     {{- end }}
-    # Allow DNS
+    {{- /* Allow DNS */}}
     - to:
         - namespaceSelector:
             matchLabels:

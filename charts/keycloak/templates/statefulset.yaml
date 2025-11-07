@@ -111,7 +111,7 @@ spec:
             - "--optimized"
             {{- end }}
             {{- if .Values.clustering.enabled }}
-            # Clustering CLI options (Keycloak 26.x)
+            {{- /* Clustering CLI options (Keycloak 26.x) */}}
             - "--cache-embedded-network-bind-address={{ .Values.clustering.network.bindAddress }}"
             - "--cache-embedded-network-bind-port={{ .Values.clustering.network.bindPort }}"
             {{- if .Values.clustering.network.externalAddress }}
@@ -122,7 +122,7 @@ spec:
             {{- end }}
             {{- end }}
           env:
-            # Keycloak admin credentials
+            {{- /* Keycloak admin credentials */}}
             - name: KEYCLOAK_ADMIN
               valueFrom:
                 secretKeyRef:
@@ -134,7 +134,7 @@ spec:
                   name: {{ include "keycloak.fullname" . }}
                   key: admin-password
 
-            # Database configuration
+            {{- /* Database configuration */}}
             - name: KC_DB
               value: "postgres"
             - name: KC_DB_URL
@@ -150,7 +150,7 @@ spec:
                   name: {{ include "keycloak.fullname" . }}
                   key: db-password
 
-            # Database pool configuration
+            {{- /* Database pool configuration */}}
             {{- if .Values.postgresql.external.pool }}
             - name: KC_DB_POOL_INITIAL_SIZE
               value: {{ .Values.postgresql.external.pool.initialSize | quote }}
@@ -160,13 +160,13 @@ spec:
               value: {{ .Values.postgresql.external.pool.maxSize | quote }}
             {{- end }}
 
-            # Proxy configuration
+            {{- /* Proxy configuration */}}
             {{- if .Values.keycloak.proxy }}
             - name: KC_PROXY
               value: {{ .Values.keycloak.proxy.mode | quote }}
             {{- end }}
 
-            # Hostname configuration (v2)
+            {{- /* Hostname configuration (v2) */}}
             {{- if .Values.keycloak.hostname.hostname }}
             - name: KC_HOSTNAME
               value: {{ .Values.keycloak.hostname.hostname | quote }}
@@ -184,7 +184,7 @@ spec:
               value: {{ .Values.keycloak.hostname.hostnameBackchannelDynamic | quote }}
             {{- end }}
 
-            # HTTP/HTTPS configuration
+            {{- /* HTTP/HTTPS configuration */}}
             {{- if .Values.keycloak.http.enabled }}
             - name: KC_HTTP_ENABLED
               value: "true"
@@ -202,13 +202,13 @@ spec:
             {{- end }}
             {{- end }}
 
-            # Health check configuration
+            {{- /* Health check configuration */}}
             - name: KC_HEALTH_ENABLED
               value: "true"
             - name: KC_METRICS_ENABLED
               value: {{ .Values.monitoring.enabled | quote }}
 
-            # Clustering configuration
+            {{- /* Clustering configuration */}}
             {{- if .Values.clustering.enabled }}
             - name: KC_CACHE
               value: "ispn"
@@ -216,7 +216,7 @@ spec:
               value: {{ .Values.clustering.cache.stack | quote }}
             - name: CACHE_OWNERS_COUNT
               value: {{ .Values.clustering.cache.ownersCount | quote }}
-            # JGroups discovery (legacy environment variables - kept for compatibility)
+            {{- /* JGroups discovery (legacy environment variables - kept for compatibility) */}}
             - name: JGROUPS_DISCOVERY_PROTOCOL
               value: {{ .Values.clustering.jgroups.discoveryProtocol | quote }}
             {{- if .Values.clustering.jgroups.discoveryProperties }}
@@ -228,7 +228,7 @@ spec:
             {{- end }}
             {{- end }}
 
-            # Redis configuration (optional)
+            {{- /* Redis configuration (optional) */}}
             {{- if and .Values.redis.enabled .Values.redis.external.enabled }}
             - name: KC_CACHE_REMOTE_HOST
               value: {{ .Values.redis.external.host | quote }}
@@ -243,7 +243,7 @@ spec:
             {{- end }}
             {{- end }}
 
-            # Additional environment variables
+            {{- /* Additional environment variables */}}
             {{- with .Values.extraEnv }}
             {{- toYaml . | nindent 12 }}
             {{- end }}
@@ -324,7 +324,7 @@ spec:
             name: {{ .Values.keycloak.realmImport.configMapName }}
         {{- else if .Values.keycloak.realmImport.existingVolume.enabled }}
         - name: realm-import
-          {{- toYaml .Values.keycloak.realmImport.existingVolume.volumeName | nindent 10 }}
+          {{- toYaml .Values.keycloak.realmImport.existingVolume.volume | nindent 10 }}
         {{- end }}
         {{- end }}
         {{- if .Values.keycloak.https.enabled }}
