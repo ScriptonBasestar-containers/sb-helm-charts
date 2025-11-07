@@ -32,6 +32,25 @@ keycloak:
       enabled: false
       volumeName: ""
 
+  # Extensions (providers) installation
+  extensions:
+    enabled: false
+    # List of extension JAR files to download
+    downloads: []
+    # Example:
+    # - url: "https://github.com/aerogear/keycloak-metrics-spi/releases/download/2.5.3/keycloak-metrics-spi-2.5.3.jar"
+    #   sha256: ""  # Optional checksum verification
+    # - url: "https://github.com/wadahiro/keycloak-discord/releases/download/v0.4.0/keycloak-discord-0.4.0.jar"
+
+    # Run kc.sh build after downloading extensions (optional optimization)
+    rebuild: false
+
+    # InitContainer image for downloading extensions
+    initImage:
+      repository: curlimages/curl
+      tag: "8.5.0"
+      pullPolicy: IfNotPresent
+
   # Proxy configuration
   proxy:
     # Options: edge, reencrypt, passthrough, none

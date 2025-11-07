@@ -202,6 +202,63 @@ keycloak:
     configMapName: "keycloak-realms"
 ```
 
+### Extensions (Providers)
+
+The chart supports automatic downloading of Keycloak extensions (providers) via InitContainer.
+
+**Prerequisites:**
+- Persistence must be enabled (`persistence.data.enabled: true`)
+- Extension JAR files must be publicly accessible URLs
+
+**Basic usage:**
+
+```yaml
+keycloak:
+  extensions:
+    enabled: true
+    downloads:
+      - url: "https://github.com/aerogear/keycloak-metrics-spi/releases/download/2.5.3/keycloak-metrics-spi-2.5.3.jar"
+      - url: "https://github.com/wadahiro/keycloak-discord/releases/download/v0.4.0/keycloak-discord-0.4.0.jar"
+
+persistence:
+  data:
+    enabled: true  # Required for extensions
+```
+
+**With checksum verification:**
+
+```yaml
+keycloak:
+  extensions:
+    enabled: true
+    downloads:
+      - url: "https://example.com/my-extension.jar"
+        sha256: "abc123def456..."  # Verifies file integrity
+```
+
+**With rebuild optimization:**
+
+```yaml
+keycloak:
+  extensions:
+    enabled: true
+    downloads:
+      - url: "https://example.com/my-extension.jar"
+    rebuild: true  # Runs kc.sh build after download (optional)
+```
+
+**How it works:**
+
+1. InitContainer downloads extension JARs from specified URLs
+2. Files are saved to `/opt/keycloak/providers/` (persisted via PVC)
+3. Optional: Runs `kc.sh build` to optimize Keycloak startup
+4. Keycloak container starts and loads the extensions
+
+**Note:** Extensions are downloaded only when the pod starts. To update extensions:
+1. Change the URL or version in `values.yaml`
+2. Delete the pod: `kubectl delete pod keycloak-0`
+3. StatefulSet will recreate the pod with new extensions
+
 ### Custom Themes
 
 Mount custom themes using extraVolumes:

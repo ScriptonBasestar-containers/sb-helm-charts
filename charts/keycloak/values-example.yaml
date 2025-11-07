@@ -18,6 +18,15 @@ keycloak:
     enabled: true
     configMapName: "keycloak-realms"
 
+  # Extensions (example disabled - uncomment to use)
+  extensions:
+    enabled: false
+    downloads:
+      # - url: "https://github.com/aerogear/keycloak-metrics-spi/releases/download/2.5.3/keycloak-metrics-spi-2.5.3.jar"
+      #   sha256: ""
+      # - url: "https://github.com/wadahiro/keycloak-discord/releases/download/v0.4.0/keycloak-discord-0.4.0.jar"
+    rebuild: false
+
   proxy:
     mode: "edge"  # Terminate TLS at ingress
 

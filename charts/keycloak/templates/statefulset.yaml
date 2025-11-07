@@ -53,6 +53,42 @@ spec:
                   name: {{ include "keycloak.fullname" . }}
                   key: db-password
         {{- end }}
+        {{- if .Values.keycloak.extensions.enabled }}
+        - name: download-extensions
+          image: "{{ .Values.keycloak.extensions.initImage.repository }}:{{ .Values.keycloak.extensions.initImage.tag }}"
+          imagePullPolicy: {{ .Values.keycloak.extensions.initImage.pullPolicy }}
+          command:
+            - sh
+            - -c
+            - |
+              set -e
+              echo "Downloading Keycloak extensions..."
+              cd /opt/keycloak/providers
+              {{- range .Values.keycloak.extensions.downloads }}
+              echo "Downloading {{ .url }}..."
+              curl -fsSL -o "$(basename {{ .url }})" "{{ .url }}"
+              {{- if .sha256 }}
+              echo "{{ .sha256 }}  $(basename {{ .url }})" | sha256sum -c -
+              {{- end }}
+              {{- end }}
+              echo "Extensions downloaded successfully:"
+              ls -lh /opt/keycloak/providers/
+              {{- if .Values.keycloak.extensions.rebuild }}
+              echo "Running kc.sh build..."
+              /opt/keycloak/bin/kc.sh build
+              {{- end }}
+          volumeMounts:
+            {{- if .Values.persistence.enabled }}
+            {{- if .Values.persistence.data.enabled }}
+            - name: data
+              mountPath: /opt/keycloak/providers
+              subPath: providers
+            {{- end }}
+            {{- end }}
+          securityContext:
+            runAsUser: 1000
+            runAsNonRoot: true
+        {{- end }}
         {{- with .Values.initContainers }}
         {{- toYaml . | nindent 8 }}
         {{- end }}
