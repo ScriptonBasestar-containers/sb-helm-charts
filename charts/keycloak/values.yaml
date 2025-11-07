@@ -119,8 +119,10 @@ postgresql:
       # If not provided with verify-* modes, falls back to NonValidatingFactory
       certificateSecret: ""
       rootCertKey: "ca.crt"
-      clientCertKey: "tls.crt"  # Optional: for mutual TLS (mTLS)
-      clientKeyKey: "tls.key"   # Optional: for mutual TLS (mTLS)
+      # Mutual TLS (mTLS) client certificate settings
+      # Leave empty unless PostgreSQL requires client certificate authentication
+      clientCertKey: ""  # Optional: Client certificate file name (e.g., "tls.crt")
+      clientKeyKey: ""   # Optional: Client private key file name (e.g., "tls.key")
 
 # External Redis configuration (optional, for distributed caching)
 redis:
