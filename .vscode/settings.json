@@ -1,0 +1,51 @@
+{
+  // YAML 하이라이팅은 유지하되 오류만 무시
+  "yaml.validate": false,
+
+  // YAML 스키마 설정
+  "yaml.schemas": {
+    "kubernetes": [
+      "charts/**/values.yaml",
+      "charts/**/values-*.yaml"
+    ]
+  },
+
+  // Helm 템플릿 문법 허용
+  "yaml.customTags": [
+    "!And",
+    "!Base64",
+    "!Cidr",
+    "!Equals",
+    "!FindInMap",
+    "!GetAtt",
+    "!GetAZs",
+    "!If",
+    "!ImportValue",
+    "!Join",
+    "!Not",
+    "!Or",
+    "!Ref",
+    "!Select",
+    "!Split",
+    "!Sub"
+  ],
+
+  // YAML 기능 활성화
+  "yaml.completion": true,
+  "yaml.hover": true,
+  "yaml.format.enable": true,
+
+  // 모든 .yaml 파일을 YAML로 인식 (하이라이팅 유지)
+  "files.associations": {
+    "*.yaml": "yaml",
+    "*.yml": "yaml"
+  },
+
+  // 편집기 설정
+  "[yaml]": {
+    "editor.insertSpaces": true,
+    "editor.tabSize": 2,
+    "editor.autoIndent": "advanced",
+    "editor.formatOnSave": false
+  }
+}

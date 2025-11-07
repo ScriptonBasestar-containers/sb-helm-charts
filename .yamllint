@@ -1,0 +1,47 @@
+---
+# yamllint configuration for Helm charts
+extends: default
+
+# Ignore Helm template directories
+ignore: |
+  charts/**/templates/
+  .vscode/
+  .git/
+  tmp/
+
+rules:
+  # Allow longer lines (Helm templates often have long lines)
+  line-length:
+    max: 200
+    level: warning
+
+  # Allow empty values (common in Helm templates)
+  empty-values:
+    forbid-in-block-mappings: false
+    forbid-in-flow-mappings: false
+
+  # Disable truthy check (Helm uses 'true'/'false' strings)
+  truthy:
+    allowed-values: ['true', 'false', 'on', 'off', 'yes', 'no']
+    check-keys: false
+
+  # Allow duplicate keys (Helm templates may generate duplicates conditionally)
+  key-duplicates: disable
+
+  # Relax indentation rules for Helm templates
+  indentation:
+    spaces: 2
+    indent-sequences: true
+    check-multi-line-strings: false
+
+  # Allow comments after content
+  comments:
+    min-spaces-from-content: 1
+
+  # Disable document-start requirement
+  document-start: disable
+
+  # Allow quoted strings
+  quoted-strings:
+    quote-type: any
+    required: false

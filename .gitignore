@@ -12,9 +12,8 @@ config.py
 auto_config.py
 .DS_Store
 .idea/
-.vscode/
-# IDE resources
-.vscode
+# IDE resources - 팀 공유를 위해 .vscode는 추적
+# .vscode
 .idea
 Gemfile.lock
 .ignore/
@@ -58,3 +57,10 @@ pub/
 *.tgz
 !/repo/*.tgz
 tmp/
+
+# Rendered Helm templates (임시 렌더링 결과물)
+*.rendered.yaml
+keycloak.yaml
+wordpress.yaml
+nextcloud.yaml
+wireguard.yaml
