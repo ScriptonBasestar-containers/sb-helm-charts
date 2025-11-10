@@ -189,6 +189,30 @@ metrics:
       memory: 64Mi
   port: 9121
 
+# Pod Disruption Budget for high availability
+# Prevents data loss during cluster maintenance
+podDisruptionBudget:
+  enabled: true
+  minAvailable: 1  # For StatefulSet, ensure at least 1 pod is always available
+
+# Network Policy for security isolation
+# Restricts Redis access to authorized clients only
+networkPolicy:
+  enabled: false  # Enable in production with proper pod selectors
+  ingress:
+    - from:
+      - namespaceSelector:
+          matchLabels:
+            name: production
+      - podSelector:
+          matchLabels:
+            # Add labels of pods that need Redis access
+            app: backend
+      ports:
+        - protocol: TCP
+          port: 6379
+  egress: []
+
 # Node selector (optional)
 nodeSelector: {}
 # Example: Run on specific nodes

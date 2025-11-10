@@ -105,6 +105,42 @@ metrics:
   enabled: true
 ```
 
+### High Availability
+
+Protect Redis during cluster maintenance and enable security isolation:
+
+```yaml
+# Pod Disruption Budget - prevents data loss during maintenance
+podDisruptionBudget:
+  enabled: true
+  minAvailable: 1  # For StatefulSet, ensure at least 1 pod is always available
+
+# Network Policy - restricts network access
+networkPolicy:
+  enabled: true
+  ingress:
+    - from:
+      - namespaceSelector:
+          matchLabels:
+            name: production
+      - podSelector:
+          matchLabels:
+            app: backend  # Only allow access from backend pods
+      ports:
+        - protocol: TCP
+          port: 6379
+```
+
+**Pod Disruption Budget Benefits:**
+- Prevents all Redis pods from being drained simultaneously
+- Ensures data availability during node maintenance
+- Critical for StatefulSet deployments
+
+**Network Policy Benefits:**
+- Restricts Redis access to authorized clients only
+- Provides network-level security isolation
+- Complements authentication for defense-in-depth
+
 ## Common Use Cases
 
 ### 1. Cache Server

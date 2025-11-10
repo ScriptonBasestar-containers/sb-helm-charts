@@ -212,6 +212,33 @@ metrics:
       memory: 64Mi
   port: 9121
 
+# Pod Disruption Budget
+# Ensures minimum availability during voluntary disruptions (e.g., node drains)
+podDisruptionBudget:
+  enabled: false
+  # Minimum number of pods that must be available
+  # For StatefulSet with 1 replica, use minAvailable: 1
+  minAvailable: 1
+  # Maximum number of pods that can be unavailable
+  # Use either minAvailable or maxUnavailable, not both
+  # maxUnavailable: 1
+
+# Network Policy
+# Restricts network access to Redis pods
+networkPolicy:
+  enabled: false
+  # Ingress rules
+  ingress:
+    # Allow ingress from pods with specific labels
+    - from:
+      - podSelector:
+          matchLabels: {}
+      ports:
+        - protocol: TCP
+          port: 6379
+  # Egress rules (optional)
+  egress: []
+
 # Node selector
 nodeSelector: {}
 
