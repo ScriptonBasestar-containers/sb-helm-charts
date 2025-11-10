@@ -88,6 +88,36 @@ entries:
     urls:
     - https://github.com/ScriptonBasestar-containers/sb-helm-charts/releases/download/nextcloud-0.1.0/nextcloud-0.1.0.tgz
     version: 0.1.0
+  rabbitmq:
+  - annotations:
+      artifacthub.io/license: BSD-3-Clause
+    apiVersion: v2
+    appVersion: 3.13.1
+    created: "2025-11-10T07:54:14.210936064Z"
+    description: A Helm chart for RabbitMQ message broker with management UI and Prometheus
+      metrics
+    digest: 9b419bcef6aaa301e41db0cb266e1ac3f75014c9097e20f9ae9080e690d4e790
+    home: https://www.rabbitmq.com/
+    icon: https://www.rabbitmq.com/img/rabbitmq-logo.svg
+    keywords:
+    - rabbitmq
+    - message-queue
+    - amqp
+    - messaging
+    - broker
+    - message-broker
+    maintainers:
+    - email: archmagece@users.noreply.github.com
+      name: archmagece
+    name: rabbitmq
+    sources:
+    - https://github.com/ScriptonBasestar-containers/sb-helm-charts
+    - https://github.com/rabbitmq/rabbitmq-server
+    - https://hub.docker.com/_/rabbitmq
+    type: application
+    urls:
+    - https://github.com/ScriptonBasestar-containers/sb-helm-charts/releases/download/rabbitmq-0.1.0/rabbitmq-0.1.0.tgz
+    version: 0.1.0
   redis:
   - apiVersion: v2
     appVersion: 7.4.1
@@ -179,4 +209,4 @@ entries:
     urls:
     - https://github.com/ScriptonBasestar-containers/sb-helm-charts/releases/download/wordpress-0.1.0/wordpress-0.1.0.tgz
     version: 0.1.0
-generated: "2025-11-10T07:50:03.043450488Z"
+generated: "2025-11-10T07:54:14.210941064Z"
