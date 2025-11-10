@@ -73,31 +73,79 @@ ingress:
   #    hosts:
   #      - chart-example.local
 
-resources: {}
-  # limits:
-  #   cpu: 100m
-  #   memory: 128Mi
-  # requests:
-  #   cpu: 100m
-  #   memory: 128Mi
+resources:
+  limits:
+    cpu: 1000m
+    memory: 1Gi
+  requests:
+    cpu: 250m
+    memory: 256Mi
 
-
+# This is to setup the liveness and readiness probes more information can be found here: https://kubernetes.io/docs/tasks/configure-pod-container/configure-liveness-readiness-startup-probes/
 livenessProbe:
   httpGet:
     path: /healthz
     port: app
+  initialDelaySeconds: 30
+  periodSeconds: 10
+  timeoutSeconds: 5
+  failureThreshold: 3
+
 readinessProbe:
   httpGet:
     path: /healthz
     port: app
+  initialDelaySeconds: 10
+  periodSeconds: 10
+  timeoutSeconds: 5
+  failureThreshold: 3
+
+startupProbe:
+  httpGet:
+    path: /healthz
+    port: app
+  initialDelaySeconds: 10
+  periodSeconds: 5
+  timeoutSeconds: 3
+  failureThreshold: 30
 
 # This section is for setting up autoscaling more information can be found here: https://kubernetes.io/docs/concepts/workloads/autoscaling/
 autoscaling:
   enabled: false
   minReplicas: 1
-  maxReplicas: 100
+  maxReplicas: 10
   targetCPUUtilizationPercentage: 80
   # targetMemoryUtilizationPercentage: 80
+
+# Pod Disruption Budget
+podDisruptionBudget:
+  enabled: false
+  minAvailable: 1
+  # maxUnavailable: 1
+
+# Network Policy
+networkPolicy:
+  enabled: false
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              name: default
+      ports:
+        - protocol: TCP
+          port: 1200
+  egress: []
+
+# Monitoring configuration
+monitoring:
+  serviceMonitor:
+    enabled: false
+    path: /
+    interval: 30s
+    scrapeTimeout: 10s
+    additionalLabels: {}
+    relabelings: []
+    targetLabels: []
 
 # Additional volumes on the output Deployment definition.
 volumes: []
