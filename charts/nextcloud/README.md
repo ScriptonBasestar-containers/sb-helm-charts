@@ -214,6 +214,71 @@ https://nextcloud.example.com
 | `cronjob.schedule` | Cron schedule | `"*/15 * * * *"` |
 | `cronjob.resources` | Cron job resources | See values.yaml |
 
+### High Availability & Security
+
+| Parameter | Description | Default |
+|-----------|-------------|---------|
+| `podDisruptionBudget.enabled` | Enable PodDisruptionBudget | `false` |
+| `podDisruptionBudget.minAvailable` | Minimum pods available | `1` |
+| `networkPolicy.enabled` | Enable NetworkPolicy | `false` |
+| `monitoring.serviceMonitor.enabled` | Enable Prometheus monitoring | `false` |
+
+#### Pod Disruption Budget
+
+Protects Nextcloud during cluster maintenance:
+
+```yaml
+podDisruptionBudget:
+  enabled: true
+  minAvailable: 1  # Ensure at least 1 pod is always running
+```
+
+**Benefits:**
+- Prevents all pods from being drained simultaneously
+- Ensures service availability during node maintenance
+- Critical for production deployments
+
+#### Network Policy
+
+Restricts network access for security:
+
+```yaml
+networkPolicy:
+  enabled: true
+  ingress:
+    - from:
+      - namespaceSelector:
+          matchLabels:
+            name: production
+      - podSelector:
+          matchLabels:
+            app: frontend  # Only allow frontend pods
+      ports:
+        - protocol: TCP
+          port: 80
+```
+
+**Benefits:**
+- Network-level security isolation
+- Restricts access to authorized clients only
+- Defense-in-depth security posture
+
+#### Prometheus Monitoring
+
+Enable metrics collection (requires Nextcloud serverinfo app):
+
+```yaml
+monitoring:
+  serviceMonitor:
+    enabled: true
+    path: /ocs/v2.php/apps/serverinfo/api/v1/info?format=json
+    interval: 30s
+    additionalLabels:
+      prometheus: kube-prometheus
+```
+
+**Note:** The serverinfo app must be installed in Nextcloud for metrics to work.
+
 ## Advanced Configuration
 
 ### Using Existing Secrets

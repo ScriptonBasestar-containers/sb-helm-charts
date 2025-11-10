@@ -213,6 +213,39 @@ autoscaling:
   maxReplicas: 3
   targetCPUUtilizationPercentage: 80
 
+# Pod Disruption Budget for high availability
+# Prevents service disruption during cluster maintenance
+podDisruptionBudget:
+  enabled: true
+  minAvailable: 1  # Ensure at least 1 pod is always available
+
+# Network Policy for security isolation
+# Restricts network access to Nextcloud
+networkPolicy:
+  enabled: false  # Enable in production with proper selectors
+  ingress:
+    - from:
+      - namespaceSelector:
+          matchLabels:
+            name: production
+      - podSelector:
+          matchLabels: {}
+      ports:
+        - protocol: TCP
+          port: 80
+  egress: []
+
+# Monitoring with Prometheus
+# Requires Nextcloud serverinfo app to be installed
+monitoring:
+  serviceMonitor:
+    enabled: false  # Enable if Prometheus Operator is available
+    path: /ocs/v2.php/apps/serverinfo/api/v1/info?format=json
+    interval: 30s
+    scrapeTimeout: 10s
+    additionalLabels:
+      prometheus: kube-prometheus
+
 # Background job cron
 cronjob:
   enabled: true

@@ -219,6 +219,52 @@ autoscaling:
   targetCPUUtilizationPercentage: 80
   # targetMemoryUtilizationPercentage: 80
 
+# Pod Disruption Budget
+# Ensures minimum availability during voluntary disruptions (e.g., node drains)
+podDisruptionBudget:
+  enabled: false
+  # Minimum number of pods that must be available
+  minAvailable: 1
+  # Maximum number of pods that can be unavailable
+  # Use either minAvailable or maxUnavailable, not both
+  # maxUnavailable: 1
+
+# Network Policy
+# Restricts network access to Nextcloud pods
+networkPolicy:
+  enabled: false
+  # Ingress rules
+  ingress:
+    # Allow ingress from pods with specific labels
+    - from:
+      - podSelector:
+          matchLabels: {}
+      ports:
+        - protocol: TCP
+          port: 80
+  # Egress rules (optional)
+  # Allow egress to PostgreSQL and Redis
+  egress: []
+
+# Monitoring configuration
+monitoring:
+  # Enable Prometheus ServiceMonitor
+  # Requires Prometheus Operator to be installed
+  serviceMonitor:
+    enabled: false
+    # Metrics path (Nextcloud serverinfo app provides metrics)
+    path: /ocs/v2.php/apps/serverinfo/api/v1/info?format=json
+    # Scrape interval
+    interval: 30s
+    # Scrape timeout
+    scrapeTimeout: 10s
+    # Additional labels for ServiceMonitor
+    additionalLabels: {}
+    # Metric relabeling
+    relabelings: []
+    # Target labels
+    targetLabels: []
+
 # Node selector
 nodeSelector: {}
 
