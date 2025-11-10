@@ -52,6 +52,31 @@ entries:
     urls:
     - https://github.com/ScriptonBasestar-containers/sb-helm-charts/releases/download/keycloak-0.3.0/keycloak-0.3.0.tgz
     version: 0.3.0
+  memcached:
+  - apiVersion: v2
+    appVersion: 1.6.32
+    created: "2025-11-10T07:50:02.592669777Z"
+    description: A Helm chart for Memcached - high-performance distributed memory
+      caching system
+    digest: 117c5e149772ead90235c32f3adbf3a686ad6701ebaa051ac550f65ff77a01c3
+    home: https://github.com/scriptonbasestar-container/sb-helm-charts
+    icon: https://memcached.org/memcached-logo.png
+    keywords:
+    - memcached
+    - cache
+    - memory
+    - performance
+    maintainers:
+    - email: archmagece@gmail.com
+      name: ScriptonBasestar
+    name: memcached
+    sources:
+    - https://github.com/scriptonbasestar-container/sb-helm-charts
+    - https://github.com/memcached/memcached
+    type: application
+    urls:
+    - https://github.com/ScriptonBasestar-containers/sb-helm-charts/releases/download/memcached-0.1.0/memcached-0.1.0.tgz
+    version: 0.1.0
   nextcloud:
   - apiVersion: v2
     appVersion: 1.16.0
@@ -62,6 +87,32 @@ entries:
     type: application
     urls:
     - https://github.com/ScriptonBasestar-containers/sb-helm-charts/releases/download/nextcloud-0.1.0/nextcloud-0.1.0.tgz
+    version: 0.1.0
+  redis:
+  - apiVersion: v2
+    appVersion: 7.4.1
+    created: "2025-11-10T07:50:02.796911023Z"
+    description: A Helm chart for Redis - in-memory data structure store
+    digest: b76d3f9c308e878e6ecd50d30d4d6b4b42247c768afcd60d026fb8abe4a5cab0
+    home: https://redis.io/
+    icon: https://raw.githubusercontent.com/ScriptonBasestar-containers/sb-helm-charts/master/charts/redis/icon.png
+    keywords:
+    - redis
+    - cache
+    - database
+    - nosql
+    - key-value
+    maintainers:
+    - email: archmagece@users.noreply.github.com
+      name: archmagece
+    name: redis
+    sources:
+    - https://github.com/ScriptonBasestar-containers/sb-helm-charts
+    - https://github.com/redis/redis
+    - https://hub.docker.com/_/redis
+    type: application
+    urls:
+    - https://github.com/ScriptonBasestar-containers/sb-helm-charts/releases/download/redis-0.1.0/redis-0.1.0.tgz
     version: 0.1.0
   rsshub:
   - apiVersion: v2
@@ -128,4 +179,4 @@ entries:
     urls:
     - https://github.com/ScriptonBasestar-containers/sb-helm-charts/releases/download/wordpress-0.1.0/wordpress-0.1.0.tgz
     version: 0.1.0
-generated: "2025-11-06T07:49:27.931081923Z"
+generated: "2025-11-10T07:50:03.043450488Z"
