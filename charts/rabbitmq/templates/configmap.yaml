@@ -1,0 +1,13 @@
+{{- if not .Values.rabbitmq.existingConfigMap }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "rabbitmq.fullname" . }}
+  labels:
+    {{- include "rabbitmq.labels" . | nindent 4 }}
+data:
+  rabbitmq.conf: |
+    {{- .Values.rabbitmq.conf | nindent 4 }}
+  enabled_plugins: |
+    {{- .Values.rabbitmq.plugins | nindent 4 }}
+{{- end }}

@@ -1,0 +1,329 @@
+# Default values for rabbitmq.
+# This is a YAML-formatted file.
+# Declare variables to be passed into your templates.
+
+# Number of RabbitMQ replicas
+# Note: Clustering is not yet supported - use replicaCount: 1
+replicaCount: 1
+
+# RabbitMQ Docker image configuration
+image:
+  repository: rabbitmq
+  tag: "3.13.1-management"
+  pullPolicy: IfNotPresent
+
+# Image pull secrets for private registries
+imagePullSecrets: []
+
+# Override the chart name
+nameOverride: ""
+fullnameOverride: ""
+
+# RabbitMQ-specific configuration
+rabbitmq:
+  # Admin user credentials
+  admin:
+    # Admin username
+    username: "guest"
+
+    # Admin password (REQUIRED - deployment will fail if empty)
+    # For production, generate a strong random password
+    password: ""
+
+    # Use existing secret for credentials
+    existingSecret:
+      enabled: false
+      secretName: ""
+      usernameKey: "username"
+      passwordKey: "password"
+
+  # RabbitMQ main configuration file (rabbitmq.conf)
+  # This will be mounted at /etc/rabbitmq/rabbitmq.conf
+  # See: https://www.rabbitmq.com/configure.html
+  conf: |
+    ## Network configuration
+    listeners.tcp.default = 5672
+
+    ## Management plugin configuration
+    management.tcp.port = 15672
+    management.tcp.ip = 0.0.0.0
+
+    ## Memory threshold
+    ## Set to 60% of available RAM
+    vm_memory_high_watermark.relative = 0.6
+
+    ## Disk free space limit
+    ## RabbitMQ will block producers when disk free space drops below this
+    disk_free_limit.absolute = 2GB
+
+    ## Default vhost
+    default_vhost = /
+
+    ## Default user and permissions
+    default_user = guest
+    default_pass = guest
+    default_permissions.configure = .*
+    default_permissions.read = .*
+    default_permissions.write = .*
+
+    ## Logging configuration
+    log.console = true
+    log.console.level = info
+    log.file = false
+
+    ## Queue master locator strategy
+    queue_master_locator = min-masters
+
+    ## Heartbeat timeout (seconds)
+    heartbeat = 60
+
+    ## Cluster partition handling (for future clustering support)
+    cluster_partition_handling = autoheal
+
+  # Enabled plugins list
+  # This will be mounted at /etc/rabbitmq/enabled_plugins
+  # Format: [plugin1,plugin2,plugin3].
+  plugins: |
+    [rabbitmq_management,rabbitmq_management_agent,rabbitmq_prometheus].
+
+  # Use existing ConfigMap for configuration
+  existingConfigMap: ""
+
+# Erlang cookie for clustering (future use)
+# Must be the same across all nodes in a cluster
+# erlangCookie: ""
+
+# Service Account configuration
+serviceAccount:
+  # Specifies whether a service account should be created
+  create: true
+  # Automatically mount a ServiceAccount's API credentials?
+  automount: true
+  # Annotations to add to the service account
+  annotations: {}
+  # The name of the service account to use.
+  # If not set and create is true, a name is generated using the fullname template
+  name: ""
+
+# Pod security context
+podSecurityContext:
+  fsGroup: 999
+  runAsNonRoot: true
+
+# Container security context
+securityContext:
+  runAsUser: 999
+  runAsNonRoot: true
+  readOnlyRootFilesystem: false
+  allowPrivilegeEscalation: false
+  capabilities:
+    drop:
+      - ALL
+
+# Service configuration
+service:
+  # Service type
+  type: ClusterIP
+
+  # AMQP protocol port
+  amqp:
+    port: 5672
+    targetPort: 5672
+    nodePort: ""
+
+  # Management UI port
+  management:
+    port: 15672
+    targetPort: 15672
+    nodePort: ""
+
+  # Prometheus metrics port
+  metrics:
+    port: 15692
+    targetPort: 15692
+
+  # Service annotations
+  annotations: {}
+
+  # ClusterIP address (leave empty for automatic assignment)
+  clusterIP: ""
+
+  # External traffic policy (for LoadBalancer/NodePort)
+  externalTrafficPolicy: ""
+
+  # Session affinity
+  sessionAffinity: None
+
+# Persistence configuration
+persistence:
+  # Enable persistence using PVC
+  enabled: true
+
+  # Use existing PVC
+  existingClaim: ""
+
+  # Storage class name
+  # If undefined (the default) or set to null, no storageClassName spec is set
+  # This means the default StorageClass will be used
+  storageClass: ""
+
+  # Access mode
+  accessMode: ReadWriteOnce
+
+  # Volume size
+  size: 10Gi
+
+  # Additional PVC annotations
+  annotations: {}
+
+  # Reclaim policy (Retain or Delete)
+  # Use Retain for production to prevent accidental data loss
+  # reclaimPolicy: Retain
+
+# Resource limits and requests
+resources:
+  limits:
+    cpu: 500m
+    memory: 512Mi
+  requests:
+    cpu: 100m
+    memory: 256Mi
+
+# Liveness probe configuration
+# Uses rabbitmq-diagnostics ping command
+livenessProbe:
+  enabled: true
+  exec:
+    command:
+      - rabbitmq-diagnostics
+      - ping
+  initialDelaySeconds: 60
+  periodSeconds: 10
+  timeoutSeconds: 5
+  failureThreshold: 3
+  successThreshold: 1
+
+# Readiness probe configuration
+# Uses rabbitmq-diagnostics check_running command
+readinessProbe:
+  enabled: true
+  exec:
+    command:
+      - rabbitmq-diagnostics
+      - check_running
+  initialDelaySeconds: 30
+  periodSeconds: 10
+  timeoutSeconds: 5
+  failureThreshold: 3
+  successThreshold: 1
+
+# Startup probe configuration (for slow-starting containers)
+startupProbe:
+  enabled: true
+  exec:
+    command:
+      - rabbitmq-diagnostics
+      - ping
+  initialDelaySeconds: 10
+  periodSeconds: 5
+  timeoutSeconds: 5
+  failureThreshold: 30
+  successThreshold: 1
+
+# Monitoring configuration
+monitoring:
+  # Enable Prometheus ServiceMonitor
+  # Requires Prometheus Operator to be installed
+  serviceMonitor:
+    enabled: false
+    # Scrape interval
+    interval: 30s
+    # Scrape timeout
+    scrapeTimeout: 10s
+    # Additional labels for ServiceMonitor
+    additionalLabels: {}
+    # Metric relabeling
+    relabelings: []
+    # Target labels
+    targetLabels: []
+
+# Autoscaling configuration
+autoscaling:
+  enabled: false
+  minReplicas: 1
+  maxReplicas: 5
+  targetCPUUtilizationPercentage: 80
+  targetMemoryUtilizationPercentage: 80
+
+# Pod Disruption Budget
+# Ensures minimum availability during voluntary disruptions (e.g., node drains)
+podDisruptionBudget:
+  enabled: false
+  # Minimum number of pods that must be available
+  minAvailable: 1
+  # Maximum number of pods that can be unavailable
+  # Use either minAvailable or maxUnavailable, not both
+  # maxUnavailable: 1
+
+# Network Policy
+# Restricts network access to RabbitMQ pods
+networkPolicy:
+  enabled: false
+  # Ingress rules
+  ingress:
+    # Allow ingress from pods with specific labels
+    - from:
+      - podSelector:
+          matchLabels: {}
+      ports:
+        - protocol: TCP
+          port: 5672
+        - protocol: TCP
+          port: 15672
+  # Egress rules (optional)
+  egress: []
+
+# Node selector for pod assignment
+nodeSelector: {}
+
+# Tolerations for pod assignment
+tolerations: []
+
+# Affinity for pod assignment
+affinity: {}
+
+# Pod annotations
+podAnnotations: {}
+
+# Pod labels
+podLabels: {}
+
+# Priority class name
+priorityClassName: ""
+
+# Extra environment variables
+extraEnv: []
+# - name: CUSTOM_VAR
+#   value: "custom_value"
+
+# Extra volumes
+extraVolumes: []
+# - name: custom-volume
+#   emptyDir: {}
+
+# Extra volume mounts
+extraVolumeMounts: []
+# - name: custom-volume
+#   mountPath: /custom/path
+
+# Init containers
+initContainers: []
+
+# Sidecar containers
+sidecarContainers: []
+
+# Update strategy
+updateStrategy:
+  type: RollingUpdate
+  rollingUpdate:
+    maxUnavailable: 1

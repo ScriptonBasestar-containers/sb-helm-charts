@@ -1,0 +1,24 @@
+apiVersion: v2
+name: rabbitmq
+version: 0.1.0
+appVersion: "3.13.1"
+type: application
+description: A Helm chart for RabbitMQ message broker with management UI and Prometheus metrics
+keywords:
+  - rabbitmq
+  - message-queue
+  - amqp
+  - messaging
+  - broker
+  - message-broker
+home: https://www.rabbitmq.com/
+icon: https://www.rabbitmq.com/img/rabbitmq-logo.svg
+sources:
+  - https://github.com/ScriptonBasestar-containers/sb-helm-charts
+  - https://github.com/rabbitmq/rabbitmq-server
+  - https://hub.docker.com/_/rabbitmq
+maintainers:
+  - name: archmagece
+    email: archmagece@users.noreply.github.com
+annotations:
+  artifacthub.io/license: BSD-3-Clause

@@ -1,0 +1,218 @@
+# Production-ready example configuration for RabbitMQ
+# Copy this file and customize for your environment
+
+# Single node deployment (default)
+replicaCount: 1
+
+image:
+  repository: rabbitmq
+  tag: "3.13.1-management"
+  pullPolicy: IfNotPresent
+
+# RabbitMQ configuration
+rabbitmq:
+  admin:
+    # CRITICAL: Change default credentials for production
+    username: "admin"
+    # Generate strong password: openssl rand -base64 32
+    password: "CHANGE_ME_STRONG_PASSWORD"
+
+  # Production-tuned rabbitmq.conf
+  conf: |
+    ## Network
+    listeners.tcp.default = 5672
+
+    ## Management UI
+    management.tcp.port = 15672
+    management.tcp.ip = 0.0.0.0
+
+    ## Memory threshold (60% of available RAM)
+    vm_memory_high_watermark.relative = 0.6
+    vm_memory_high_watermark_paging_ratio = 0.75
+
+    ## Disk space limit (5GB minimum)
+    disk_free_limit.absolute = 5GB
+
+    ## Connection and channel limits
+    channel_max = 2048
+
+    ## Default vhost and permissions
+    default_vhost = /production
+    default_user = admin
+    default_pass = CHANGE_ME_STRONG_PASSWORD
+    default_permissions.configure = .*
+    default_permissions.read = .*
+    default_permissions.write = .*
+
+    ## Logging
+    log.console = true
+    log.console.level = info
+    log.file = false
+
+    ## Queue settings
+    queue_master_locator = min-masters
+
+    ## Message TTL (optional: 7 days default)
+    # default_message_ttl = 604800000
+
+    ## Cluster partition handling
+    cluster_partition_handling = autoheal
+
+    ## Consumer timeout (30 minutes)
+    consumer_timeout = 1800000
+
+    ## Heartbeat
+    heartbeat = 60
+
+  plugins: |
+    [rabbitmq_management,rabbitmq_management_agent,rabbitmq_prometheus,rabbitmq_shovel,rabbitmq_shovel_management].
+
+# Service configuration
+service:
+  type: ClusterIP
+  amqp:
+    port: 5672
+  management:
+    port: 15672
+  metrics:
+    port: 15692
+
+# Persistence enabled with production size
+persistence:
+  enabled: true
+  storageClass: ""  # Use default StorageClass
+  accessMode: ReadWriteOnce
+  size: 50Gi
+  annotations:
+    # Example: prevent accidental deletion
+    "helm.sh/resource-policy": keep
+
+# Production resource limits
+resources:
+  limits:
+    cpu: 2000m
+    memory: 2Gi
+  requests:
+    cpu: 500m
+    memory: 1Gi
+
+# Health probes with production settings
+livenessProbe:
+  enabled: true
+  exec:
+    command:
+      - rabbitmq-diagnostics
+      - ping
+  initialDelaySeconds: 120
+  periodSeconds: 30
+  timeoutSeconds: 10
+  failureThreshold: 3
+
+readinessProbe:
+  enabled: true
+  exec:
+    command:
+      - rabbitmq-diagnostics
+      - check_running
+  initialDelaySeconds: 60
+  periodSeconds: 15
+  timeoutSeconds: 10
+  failureThreshold: 3
+
+startupProbe:
+  enabled: true
+  exec:
+    command:
+      - rabbitmq-diagnostics
+      - ping
+  initialDelaySeconds: 10
+  periodSeconds: 10
+  timeoutSeconds: 10
+  failureThreshold: 60
+
+# Enable Prometheus monitoring
+monitoring:
+  serviceMonitor:
+    enabled: true
+    interval: 30s
+    scrapeTimeout: 10s
+    additionalLabels:
+      prometheus: kube-prometheus
+
+# Autoscaling (optional - disable for single-node deployments)
+autoscaling:
+  enabled: false
+  minReplicas: 2
+  maxReplicas: 5
+  targetCPUUtilizationPercentage: 70
+  targetMemoryUtilizationPercentage: 75
+
+# Pod Disruption Budget for high availability
+podDisruptionBudget:
+  enabled: true
+  minAvailable: 1
+
+# Network Policy for security isolation
+networkPolicy:
+  enabled: false
+  ingress:
+    - from:
+      - namespaceSelector:
+          matchLabels:
+            name: production
+      - podSelector:
+          matchLabels: {}
+      ports:
+        - protocol: TCP
+          port: 5672
+        - protocol: TCP
+          port: 15672
+
+# Pod security
+podSecurityContext:
+  fsGroup: 999
+  runAsNonRoot: true
+
+securityContext:
+  runAsUser: 999
+  runAsNonRoot: true
+  readOnlyRootFilesystem: false
+  allowPrivilegeEscalation: false
+  capabilities:
+    drop:
+      - ALL
+
+# Example: Node affinity for dedicated RabbitMQ nodes
+# affinity:
+#   nodeAffinity:
+#     requiredDuringSchedulingIgnoredDuringExecution:
+#       nodeSelectorTerms:
+#       - matchExpressions:
+#         - key: workload-type
+#           operator: In
+#           values:
+#           - rabbitmq
+
+# Example: Pod anti-affinity for high availability (future clustering)
+# affinity:
+#   podAntiAffinity:
+#     requiredDuringSchedulingIgnoredDuringExecution:
+#     - labelSelector:
+#         matchExpressions:
+#         - key: app.kubernetes.io/name
+#           operator: In
+#           values:
+#           - rabbitmq
+#       topologyKey: kubernetes.io/hostname
+
+# Update strategy
+updateStrategy:
+  type: RollingUpdate
+  rollingUpdate:
+    maxUnavailable: 0
+
+# Pod annotations for monitoring
+podAnnotations:
+  prometheus.io/scrape: "true"
+  prometheus.io/port: "15692"
+  prometheus.io/path: "/metrics"

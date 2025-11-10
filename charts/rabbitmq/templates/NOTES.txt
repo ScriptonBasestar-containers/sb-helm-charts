@@ -1,0 +1,82 @@
+RabbitMQ has been installed!
+
+1. Get the admin credentials:
+
+   Username:
+   {{- if .Values.rabbitmq.admin.existingSecret.enabled }}
+     kubectl get secret {{ .Values.rabbitmq.admin.existingSecret.secretName }} -o jsonpath="{.data.{{ .Values.rabbitmq.admin.existingSecret.usernameKey }}}" | base64 --decode
+   {{- else }}
+     kubectl get secret {{ include "rabbitmq.fullname" . }} -o jsonpath="{.data.username}" | base64 --decode
+   {{- end }}
+
+   Password:
+   {{- if .Values.rabbitmq.admin.existingSecret.enabled }}
+     kubectl get secret {{ .Values.rabbitmq.admin.existingSecret.secretName }} -o jsonpath="{.data.{{ .Values.rabbitmq.admin.existingSecret.passwordKey }}}" | base64 --decode
+   {{- else }}
+     kubectl get secret {{ include "rabbitmq.fullname" . }} -o jsonpath="{.data.password}" | base64 --decode
+   {{- end }}
+
+2. Access the Management UI:
+
+   {{- if contains "NodePort" .Values.service.type }}
+   export NODE_PORT=$(kubectl get --namespace {{ .Release.Namespace }} -o jsonpath="{.spec.ports[?(@.name=='management')].nodePort}" services {{ include "rabbitmq.fullname" . }})
+   export NODE_IP=$(kubectl get nodes --namespace {{ .Release.Namespace }} -o jsonpath="{.items[0].status.addresses[0].address}")
+   echo "Management UI URL: http://$NODE_IP:$NODE_PORT"
+   {{- else if contains "LoadBalancer" .Values.service.type }}
+   NOTE: It may take a few minutes for the LoadBalancer IP to be available.
+   export SERVICE_IP=$(kubectl get svc --namespace {{ .Release.Namespace }} {{ include "rabbitmq.fullname" . }} --template "{{"{{ range (index .status.loadBalancer.ingress 0) }}{{.}}{{ end }}"}}")
+   echo "Management UI URL: http://$SERVICE_IP:{{ .Values.service.management.port }}"
+   {{- else if contains "ClusterIP" .Values.service.type }}
+   kubectl port-forward --namespace {{ .Release.Namespace }} svc/{{ include "rabbitmq.fullname" . }} 15672:{{ .Values.service.management.port }}
+   echo "Management UI URL: http://localhost:15672"
+   {{- end }}
+
+3. Connect to RabbitMQ AMQP:
+
+   {{- if contains "ClusterIP" .Values.service.type }}
+   From within the cluster:
+     Host: {{ include "rabbitmq.fullname" . }}.{{ .Release.Namespace }}.svc.cluster.local
+     Port: {{ .Values.service.amqp.port }}
+
+   From outside the cluster (port-forward):
+     kubectl port-forward --namespace {{ .Release.Namespace }} svc/{{ include "rabbitmq.fullname" . }} 5672:{{ .Values.service.amqp.port }}
+     Connection string: amqp://USERNAME:PASSWORD@localhost:5672/
+   {{- else }}
+   export SERVICE_IP=$(kubectl get svc --namespace {{ .Release.Namespace }} {{ include "rabbitmq.fullname" . }} -o jsonpath='{.status.loadBalancer.ingress[0].ip}')
+   Connection string: amqp://USERNAME:PASSWORD@$SERVICE_IP:{{ .Values.service.amqp.port }}/
+   {{- end }}
+
+4. Check RabbitMQ status:
+
+   kubectl exec -it deployment/{{ include "rabbitmq.fullname" . }} -- rabbitmqctl status
+
+5. List queues:
+
+   kubectl exec -it deployment/{{ include "rabbitmq.fullname" . }} -- rabbitmqctl list_queues
+
+{{- if .Values.monitoring.serviceMonitor.enabled }}
+
+6. Prometheus metrics available at:
+
+   kubectl port-forward --namespace {{ .Release.Namespace }} svc/{{ include "rabbitmq.fullname" . }} 15692:{{ .Values.service.metrics.port }}
+   Metrics URL: http://localhost:15692/metrics
+{{- end }}
+
+{{- if eq (.Values.replicaCount | int) 1 }}
+
+⚠️  NOTICE: Running in single-node mode (replicaCount: 1)
+   For production high availability, consider using StatefulSet with clustering (future release).
+{{- end }}
+
+{{- if not .Values.persistence.enabled }}
+
+⚠️  WARNING: Persistence is disabled!
+   All data will be lost when the pod is terminated.
+   Enable persistence with: --set persistence.enabled=true
+{{- end }}
+
+{{- if eq .Values.rabbitmq.admin.username "guest" }}
+
+⚠️  SECURITY WARNING: Using default username 'guest'
+   Change to a custom username for production deployments.
+{{- end }}
