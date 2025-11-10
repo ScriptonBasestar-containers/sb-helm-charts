@@ -1,0 +1,52 @@
+1. Get the application URL by running these commands:
+{{- if contains "NodePort" .Values.service.type }}
+  export NODE_PORT=$(kubectl get --namespace {{ .Release.Namespace }} -o jsonpath="{.spec.ports[0].nodePort}" services {{ include "memcached.fullname" . }})
+  export NODE_IP=$(kubectl get nodes --namespace {{ .Release.Namespace }} -o jsonpath="{.items[0].status.addresses[0].address}")
+  echo "Memcached is available at $NODE_IP:$NODE_PORT"
+{{- else if contains "LoadBalancer" .Values.service.type }}
+  NOTE: It may take a few minutes for the LoadBalancer IP to be available.
+        You can watch the status by running 'kubectl get --namespace {{ .Release.Namespace }} svc -w {{ include "memcached.fullname" . }}'
+  export SERVICE_IP=$(kubectl get svc --namespace {{ .Release.Namespace }} {{ include "memcached.fullname" . }} --template "{{"{{ range (index .status.loadBalancer.ingress 0) }}{{.}}{{ end }}"}}")
+  echo "Memcached is available at $SERVICE_IP:{{ .Values.service.port }}"
+{{- else if contains "ClusterIP" .Values.service.type }}
+  export POD_NAME=$(kubectl get pods --namespace {{ .Release.Namespace }} -l "app.kubernetes.io/name={{ include "memcached.name" . }},app.kubernetes.io/instance={{ .Release.Name }}" -o jsonpath="{.items[0].metadata.name}")
+  echo "Connect to Memcached by running:"
+  echo "  kubectl --namespace {{ .Release.Namespace }} port-forward $POD_NAME 11211:11211"
+  echo "Then connect to localhost:11211"
+{{- end }}
+
+2. Memcached Configuration:
+  - Memory: {{ .Values.memcached.maxMemory }}MB
+  - Max Connections: {{ .Values.memcached.maxConnections }}
+  - Chunk Size Growth Factor: {{ .Values.memcached.chunkSizeGrowthFactor }}
+  - Min Item Size: {{ .Values.memcached.minItemSize }} bytes
+  - CAS Enabled: {{ .Values.memcached.enableCas }}
+  - Verbosity: {{ .Values.memcached.verbosity }}
+
+3. Test the Memcached connection:
+  kubectl run --namespace {{ .Release.Namespace }} memcached-client --rm --tty -i --restart='Never' \
+    --image docker.io/bitnami/memcached:latest -- \
+    memcached-tool {{ include "memcached.fullname" . }}:{{ .Values.service.port }} stats
+
+4. Monitor Memcached stats:
+  kubectl run --namespace {{ .Release.Namespace }} memcached-client --rm --tty -i --restart='Never' \
+    --image docker.io/bitnami/memcached:latest -- \
+    sh -c 'echo "stats" | nc {{ include "memcached.fullname" . }} {{ .Values.service.port }}'
+
+{{- if .Values.autoscaling.enabled }}
+5. Horizontal Pod Autoscaler is enabled:
+  - Min Replicas: {{ .Values.autoscaling.minReplicas }}
+  - Max Replicas: {{ .Values.autoscaling.maxReplicas }}
+  {{- if .Values.autoscaling.targetCPUUtilizationPercentage }}
+  - Target CPU Utilization: {{ .Values.autoscaling.targetCPUUtilizationPercentage }}%
+  {{- end }}
+  {{- if .Values.autoscaling.targetMemoryUtilizationPercentage }}
+  - Target Memory Utilization: {{ .Values.autoscaling.targetMemoryUtilizationPercentage }}%
+  {{- end }}
+{{- end }}
+
+{{- if .Values.serviceMonitor.enabled }}
+6. ServiceMonitor is enabled for Prometheus Operator:
+  - Scrape interval: {{ .Values.serviceMonitor.interval }}
+  - Scrape timeout: {{ .Values.serviceMonitor.scrapeTimeout }}
+{{- end }}

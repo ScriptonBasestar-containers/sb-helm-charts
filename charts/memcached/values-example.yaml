@@ -1,0 +1,165 @@
+# Production example configuration for memcached
+# Copy this file to values.yaml and customize for your environment
+
+replicaCount: 3
+
+image:
+  repository: memcached
+  pullPolicy: IfNotPresent
+  tag: "1.6.32-alpine"
+
+serviceAccount:
+  create: true
+  automount: true
+  annotations: {}
+  name: ""
+
+podAnnotations:
+  prometheus.io/scrape: "true"
+  prometheus.io/port: "11211"
+
+podLabels:
+  app: memcached
+  environment: production
+
+podSecurityContext:
+  fsGroup: 11211
+  runAsUser: 11211
+  runAsNonRoot: true
+
+securityContext:
+  capabilities:
+    drop:
+    - ALL
+  readOnlyRootFilesystem: true
+  allowPrivilegeEscalation: false
+
+service:
+  type: ClusterIP
+  port: 11211
+  annotations:
+    service.kubernetes.io/topology-aware-hints: auto
+
+resources:
+  limits:
+    cpu: 1000m
+    memory: 1Gi
+  requests:
+    cpu: 500m
+    memory: 512Mi
+
+livenessProbe:
+  enabled: true
+  tcpSocket:
+    port: 11211
+  initialDelaySeconds: 30
+  periodSeconds: 10
+  timeoutSeconds: 5
+  failureThreshold: 6
+  successThreshold: 1
+
+readinessProbe:
+  enabled: true
+  tcpSocket:
+    port: 11211
+  initialDelaySeconds: 5
+  periodSeconds: 5
+  timeoutSeconds: 3
+  failureThreshold: 3
+  successThreshold: 1
+
+# Memcached configuration
+memcached:
+  # Maximum memory to use (in megabytes)
+  maxMemory: 512
+  # Maximum number of simultaneous connections
+  maxConnections: 2048
+  # Chunk size growth factor (1.25 is default, lower = less memory waste, higher = faster allocation)
+  chunkSizeGrowthFactor: 1.25
+  # Minimum space allocated for key+value+flags
+  minItemSize: 48
+  # Enable or disable CAS (Check and Set) operations
+  enableCas: true
+  # Verbose logging (0=disabled, 1=enabled, 2=very verbose)
+  verbosity: 0
+  # Additional command-line arguments
+  extraArgs:
+    - "-o"
+    - "modern"
+    # Hash table power (default 16, max 32)
+    # - "-o"
+    # - "hashpower=20"
+    # Enable large memory pages (Linux only)
+    # - "-L"
+
+# Additional environment variables
+extraEnv: []
+
+# Node selector for pod assignment
+nodeSelector:
+  kubernetes.io/os: linux
+
+# Tolerations for pod assignment
+tolerations: []
+
+# Affinity for pod assignment - anti-affinity to spread pods
+affinity:
+  podAntiAffinity:
+    preferredDuringSchedulingIgnoredDuringExecution:
+    - weight: 100
+      podAffinityTerm:
+        labelSelector:
+          matchExpressions:
+          - key: app.kubernetes.io/name
+            operator: In
+            values:
+            - memcached
+        topologyKey: kubernetes.io/hostname
+
+# PodDisruptionBudget - ensure at least 2 pods available during updates
+podDisruptionBudget:
+  enabled: true
+  minAvailable: 2
+
+# HorizontalPodAutoscaler - scale based on CPU and memory
+autoscaling:
+  enabled: true
+  minReplicas: 3
+  maxReplicas: 10
+  targetCPUUtilizationPercentage: 70
+  targetMemoryUtilizationPercentage: 80
+
+# NetworkPolicy - allow ingress from application pods
+networkPolicy:
+  enabled: true
+  ingress:
+    - from:
+      # Allow from pods with label app=myapp
+      - podSelector:
+          matchLabels:
+            app: myapp
+      # Allow from specific namespaces
+      - namespaceSelector:
+          matchLabels:
+            name: production
+      ports:
+      - protocol: TCP
+        port: 11211
+  egress:
+    # Allow DNS lookups
+    - to:
+      - namespaceSelector:
+          matchLabels:
+            name: kube-system
+      ports:
+      - protocol: UDP
+        port: 53
+
+# ServiceMonitor for Prometheus Operator
+serviceMonitor:
+  enabled: true
+  namespace: monitoring
+  interval: 30s
+  scrapeTimeout: 10s
+  labels:
+    prometheus: kube-prometheus

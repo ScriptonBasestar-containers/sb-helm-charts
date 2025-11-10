@@ -41,6 +41,7 @@ charts/{chart-name}/
 - **wireguard**: VPN solution (Deployment, no database, UDP service, NET_ADMIN capabilities)
 - **redis**: In-memory data store (StatefulSet, no external database, full redis.conf support)
 - **memcached**: High-performance distributed memory caching system (Deployment, no database)
+- **rabbitmq**: Message broker with management UI (Deployment, no database, AMQP + Prometheus metrics)
 - **rsshub**: RSS aggregator (well-maintained external chart available)
 - **browserless-chrome**: Headless browser for crawling
 - **devpi**: Python package index
@@ -164,6 +165,49 @@ make -f Makefile.wireguard.mk wg-logs
 
 # Open shell
 make -f Makefile.wireguard.mk wg-shell
+```
+
+### RabbitMQ Specific Commands
+
+```bash
+# Check cluster status
+make -f Makefile.rabbitmq.mk rmq-status
+
+# Check node health
+make -f Makefile.rabbitmq.mk rmq-node-health
+
+# List queues, exchanges, connections
+make -f Makefile.rabbitmq.mk rmq-list-queues
+make -f Makefile.rabbitmq.mk rmq-list-exchanges
+make -f Makefile.rabbitmq.mk rmq-list-connections
+
+# User management
+make -f Makefile.rabbitmq.mk rmq-add-user USER=myuser PASSWORD=mypass
+make -f Makefile.rabbitmq.mk rmq-set-user-tags USER=myuser TAGS=administrator
+make -f Makefile.rabbitmq.mk rmq-set-permissions VHOST=/ USER=myuser
+make -f Makefile.rabbitmq.mk rmq-list-users
+
+# Virtual host management
+make -f Makefile.rabbitmq.mk rmq-add-vhost VHOST=/my-vhost
+make -f Makefile.rabbitmq.mk rmq-list-vhosts
+
+# Access credentials
+make -f Makefile.rabbitmq.mk rmq-get-credentials
+
+# Port-forward services
+make -f Makefile.rabbitmq.mk rmq-port-forward-ui        # Management UI (15672)
+make -f Makefile.rabbitmq.mk rmq-port-forward-amqp      # AMQP (5672)
+make -f Makefile.rabbitmq.mk rmq-port-forward-metrics   # Prometheus metrics (15692)
+
+# Metrics and monitoring
+make -f Makefile.rabbitmq.mk rmq-metrics
+
+# Shell and logs
+make -f Makefile.rabbitmq.mk rmq-shell
+make -f Makefile.rabbitmq.mk rmq-logs
+
+# Restart deployment
+make -f Makefile.rabbitmq.mk rmq-restart
 ```
 
 ### Memcached Specific Commands
