@@ -8,8 +8,7 @@ metadata:
 data:
   redis.conf: |
 {{- .Values.redis.config | nindent 4 }}
-{{- if .Values.redis.password }}
-    # Password from Secret
-    requirepass REDIS_PASSWORD_PLACEHOLDER
+{{- if not .Values.redis.password }}
+    # No password authentication
 {{- end }}
 {{- end }}
