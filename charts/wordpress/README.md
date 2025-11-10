@@ -280,6 +280,145 @@ extraEnv:
       define('FORCE_SSL_ADMIN', true);
 ```
 
+## High Availability & Security
+
+WordPress chart supports production-grade high availability and security features:
+
+### HorizontalPodAutoscaler
+
+Automatically scale WordPress pods based on CPU and memory usage:
+
+```yaml
+autoscaling:
+  enabled: true
+  minReplicas: 2
+  maxReplicas: 10
+  targetCPUUtilizationPercentage: 70
+  targetMemoryUtilizationPercentage: 80
+```
+
+**Benefits:**
+- Automatically handles traffic spikes
+- Scales down during low traffic to save resources
+- Ensures consistent performance under varying loads
+
+**Requirements:**
+- Metrics Server installed in cluster
+- ReadWriteMany (RWX) storage for multi-replica deployments
+
+### PodDisruptionBudget
+
+Ensures minimum availability during voluntary disruptions (node drains, updates, etc.):
+
+```yaml
+podDisruptionBudget:
+  enabled: true
+  minAvailable: 1
+  # Alternative: maxUnavailable: 1
+```
+
+**Benefits:**
+- Prevents complete service outage during cluster maintenance
+- Controls the rate of pod evictions
+- Improves service reliability during rolling updates
+
+**Use Cases:**
+- Cluster upgrades without downtime
+- Node maintenance with guaranteed availability
+- Controlled rollout of configuration changes
+
+### NetworkPolicy
+
+Restricts network access to WordPress pods for enhanced security:
+
+```yaml
+networkPolicy:
+  enabled: true
+  ingress:
+    # Allow traffic from ingress controller
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              name: ingress-nginx
+      ports:
+        - protocol: TCP
+          port: 80
+  egress:
+    # Allow DNS resolution
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              name: kube-system
+      ports:
+        - protocol: UDP
+          port: 53
+    # Allow MySQL database access
+    - to:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: mysql
+      ports:
+        - protocol: TCP
+          port: 3306
+```
+
+**Benefits:**
+- Zero-trust network security model
+- Prevents lateral movement in case of compromise
+- Compliance with security best practices
+
+**Requirements:**
+- CNI plugin with NetworkPolicy support (Calico, Cilium, etc.)
+- Proper namespace and pod labels configured
+
+### ServiceMonitor
+
+Enable Prometheus metrics collection for monitoring:
+
+```yaml
+monitoring:
+  serviceMonitor:
+    enabled: true
+    path: /
+    interval: 30s
+    scrapeTimeout: 10s
+    additionalLabels:
+      prometheus: kube-prometheus
+```
+
+**Benefits:**
+- Real-time visibility into WordPress performance
+- Historical data for capacity planning
+- Integration with alerting systems
+
+**Requirements:**
+- Prometheus Operator installed in cluster
+- ServiceMonitor CRD available
+
+### Production Configuration Parameters
+
+| Parameter | Description | Default |
+|-----------|-------------|---------|
+| `autoscaling.enabled` | Enable HorizontalPodAutoscaler | `false` |
+| `autoscaling.minReplicas` | Minimum number of replicas | `1` |
+| `autoscaling.maxReplicas` | Maximum number of replicas | `5` |
+| `autoscaling.targetCPUUtilizationPercentage` | Target CPU utilization | `80` |
+| `autoscaling.targetMemoryUtilizationPercentage` | Target memory utilization | `80` |
+| `podDisruptionBudget.enabled` | Enable PodDisruptionBudget | `false` |
+| `podDisruptionBudget.minAvailable` | Minimum available pods | `1` |
+| `podDisruptionBudget.maxUnavailable` | Maximum unavailable pods | `""` |
+| `networkPolicy.enabled` | Enable NetworkPolicy | `false` |
+| `networkPolicy.ingress` | Ingress rules | `[]` |
+| `networkPolicy.egress` | Egress rules | `[]` |
+| `monitoring.serviceMonitor.enabled` | Enable ServiceMonitor | `false` |
+| `monitoring.serviceMonitor.path` | Metrics endpoint path | `/` |
+| `monitoring.serviceMonitor.interval` | Scrape interval | `30s` |
+| `monitoring.serviceMonitor.scrapeTimeout` | Scrape timeout | `10s` |
+
+### Complete Production Example
+
+See [values-example.yaml](./values-example.yaml) for a complete production-ready configuration with all HA features enabled.
+
 ## Maintenance
 
 ### Backup

@@ -131,9 +131,40 @@ startupProbe:
   timeoutSeconds: 5
   failureThreshold: 30  # Allow up to 5 minutes for startup
 
-# Autoscaling (disabled for home servers)
+# Autoscaling (disabled for home servers - single replica is sufficient)
 autoscaling:
   enabled: false
+  minReplicas: 1
+  maxReplicas: 3
+  targetCPUUtilizationPercentage: 80
+
+# Pod Disruption Budget (disabled for single-replica home servers)
+# Enable if running multiple replicas for higher availability
+podDisruptionBudget:
+  enabled: false
+  minAvailable: 1
+
+# Network Policy (disabled by default - enable for enhanced security)
+# When enabled, restricts network access to WordPress pods
+networkPolicy:
+  enabled: false
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              name: ingress-nginx
+      ports:
+        - protocol: TCP
+          port: 80
+  egress: []
+
+# Monitoring (disabled by default - enable if using Prometheus)
+monitoring:
+  serviceMonitor:
+    enabled: false
+    path: /
+    interval: 30s
+    scrapeTimeout: 10s
 
 # Node selector (optional - run on specific nodes)
 nodeSelector: {}

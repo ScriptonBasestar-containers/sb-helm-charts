@@ -184,11 +184,82 @@ securityContext:
   readOnlyRootFilesystem: false
 
 # Autoscaling (optional)
+# Enable for automatic scaling based on CPU/memory usage
 autoscaling:
   enabled: false
-  minReplicas: 1
-  maxReplicas: 5
-  targetCPUUtilizationPercentage: 80
+  minReplicas: 2
+  maxReplicas: 10
+  targetCPUUtilizationPercentage: 70
+  targetMemoryUtilizationPercentage: 80
+
+# Pod Disruption Budget
+# Ensures minimum availability during voluntary disruptions (node drains, updates)
+podDisruptionBudget:
+  enabled: true
+  minAvailable: 1
+  # Alternative: maxUnavailable: 1
+
+# Network Policy
+# Restricts network access to WordPress pods
+networkPolicy:
+  enabled: true
+  ingress:
+    # Allow traffic from ingress controller
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              name: ingress-nginx
+      ports:
+        - protocol: TCP
+          port: 80
+    # Allow traffic from other WordPress pods (for multi-replica setups)
+    - from:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: wordpress
+      ports:
+        - protocol: TCP
+          port: 80
+  egress:
+    # Allow DNS resolution
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              name: kube-system
+      ports:
+        - protocol: UDP
+          port: 53
+    # Allow MySQL database access
+    - to:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: mysql
+      ports:
+        - protocol: TCP
+          port: 3306
+    # Allow external HTTP/HTTPS (for plugin/theme updates, external APIs)
+    - to:
+        - namespaceSelector: {}
+      ports:
+        - protocol: TCP
+          port: 80
+        - protocol: TCP
+          port: 443
+
+# Monitoring configuration
+# ServiceMonitor for Prometheus Operator
+monitoring:
+  serviceMonitor:
+    enabled: true
+    path: /
+    interval: 30s
+    scrapeTimeout: 10s
+    additionalLabels:
+      prometheus: kube-prometheus
+    # Relabeling configurations (optional)
+    relabelings: []
+    # Target labels (optional)
+    targetLabels: []
 
 # Node selector (optional)
 # nodeSelector:

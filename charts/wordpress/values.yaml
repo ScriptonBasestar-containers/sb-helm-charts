@@ -200,6 +200,36 @@ autoscaling:
   targetCPUUtilizationPercentage: 80
   # targetMemoryUtilizationPercentage: 80
 
+# Pod Disruption Budget
+podDisruptionBudget:
+  enabled: false
+  minAvailable: 1
+  # maxUnavailable: 1
+
+# Network Policy
+networkPolicy:
+  enabled: false
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              name: ingress-nginx
+      ports:
+        - protocol: TCP
+          port: 80
+  egress: []
+
+# Monitoring configuration
+monitoring:
+  serviceMonitor:
+    enabled: false
+    path: /
+    interval: 30s
+    scrapeTimeout: 10s
+    additionalLabels: {}
+    relabelings: []
+    targetLabels: []
+
 # Node selector
 nodeSelector: {}
 
