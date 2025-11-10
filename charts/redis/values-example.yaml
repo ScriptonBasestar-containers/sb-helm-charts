@@ -1,0 +1,232 @@
+# values-example.yaml
+# Production-ready Redis configuration
+
+# Redis configuration
+redis:
+  # IMPORTANT: Set a strong password for production
+  password: "change-me-to-secure-password"
+
+  # Production Redis configuration
+  config: |
+    # Network
+    bind 0.0.0.0
+    protected-mode no
+    port 6379
+    tcp-backlog 511
+    timeout 0
+    tcp-keepalive 300
+
+    # General
+    daemonize no
+    loglevel notice
+
+    # Snapshotting
+    save 900 1
+    save 300 10
+    save 60 10000
+    stop-writes-on-bgsave-error yes
+    rdbcompression yes
+    rdbchecksum yes
+    dbfilename dump.rdb
+    dir /data
+
+    # Replication
+    replica-serve-stale-data yes
+    replica-read-only yes
+    repl-diskless-sync no
+    repl-diskless-sync-delay 5
+
+    # Security - password set via Secret
+
+    # Memory Management
+    maxmemory 1gb
+    maxmemory-policy allkeys-lru
+    maxclients 10000
+
+    # Append Only File
+    appendonly yes
+    appendfilename "appendonly.aof"
+    appendfsync everysec
+    no-appendfsync-on-rewrite no
+    auto-aof-rewrite-percentage 100
+    auto-aof-rewrite-min-size 64mb
+    aof-load-truncated yes
+
+    # Lua scripting
+    lua-time-limit 5000
+
+    # Slow log
+    slowlog-log-slower-than 10000
+    slowlog-max-len 128
+
+    # Latency monitor
+    latency-monitor-threshold 100
+
+    # Event notification
+    notify-keyspace-events ""
+
+# Persistence
+persistence:
+  enabled: true
+  storageClass: ""  # Use default or specify: "fast-ssd", "standard", etc.
+  accessMode: ReadWriteOnce
+  size: 20Gi
+
+# Replica count (for standalone)
+replicaCount: 1
+
+# Container image
+image:
+  repository: redis
+  pullPolicy: IfNotPresent
+  tag: "7.4.1-alpine"
+
+# Service account
+serviceAccount:
+  create: true
+  automount: true
+
+# Pod security
+podSecurityContext:
+  fsGroup: 999
+
+securityContext:
+  runAsUser: 999
+  runAsGroup: 999
+  runAsNonRoot: true
+  readOnlyRootFilesystem: false
+  capabilities:
+    drop:
+      - ALL
+
+# Service
+service:
+  type: ClusterIP
+  port: 6379
+
+# Resource limits (production)
+resources:
+  limits:
+    cpu: 1000m
+    memory: 1.5Gi
+  requests:
+    cpu: 500m
+    memory: 1Gi
+
+# Health probes
+livenessProbe:
+  tcpSocket:
+    port: redis
+  initialDelaySeconds: 30
+  periodSeconds: 10
+  timeoutSeconds: 5
+  failureThreshold: 6
+  successThreshold: 1
+
+readinessProbe:
+  exec:
+    command:
+      - redis-cli
+      - ping
+  initialDelaySeconds: 10
+  periodSeconds: 10
+  timeoutSeconds: 5
+  failureThreshold: 3
+  successThreshold: 1
+
+startupProbe:
+  tcpSocket:
+    port: redis
+  initialDelaySeconds: 10
+  periodSeconds: 10
+  timeoutSeconds: 5
+  failureThreshold: 30
+  successThreshold: 1
+
+# Autoscaling (not recommended for stateful Redis)
+autoscaling:
+  enabled: false
+
+# Pod Disruption Budget
+podDisruptionBudget:
+  enabled: true
+  minAvailable: 1
+
+# Network Policy (optional)
+networkPolicy:
+  enabled: false
+  ingress:
+    # Allow access from specific pods
+    podSelector: {}
+    # Example: Allow from app pods
+    # podSelector:
+    #   matchLabels:
+    #     app: myapp
+
+# Monitoring
+monitoring:
+  enabled: true
+  serviceMonitor:
+    enabled: true
+    interval: 30s
+    labels:
+      prometheus: kube-prometheus
+    path: /metrics
+
+# Prometheus metrics exporter
+metrics:
+  enabled: true
+  image:
+    repository: oliver006/redis_exporter
+    tag: v1.55.0-alpine
+    pullPolicy: IfNotPresent
+  resources:
+    limits:
+      cpu: 100m
+      memory: 128Mi
+    requests:
+      cpu: 50m
+      memory: 64Mi
+  port: 9121
+
+# Node selector (optional)
+nodeSelector: {}
+# Example: Run on specific nodes
+# nodeSelector:
+#   disk-type: ssd
+
+# Tolerations (optional)
+tolerations: []
+
+# Affinity rules (optional)
+affinity: {}
+# Example: Anti-affinity for HA
+# affinity:
+#   podAntiAffinity:
+#     preferredDuringSchedulingIgnoredDuringExecution:
+#       - weight: 100
+#         podAffinityTerm:
+#           labelSelector:
+#             matchLabels:
+#               app.kubernetes.io/name: redis
+#           topologyKey: kubernetes.io/hostname
+
+# Init containers (optional)
+initContainers: []
+# Example: Kernel parameter tuning
+# - name: sysctl
+#   image: busybox
+#   command:
+#     - sh
+#     - -c
+#     - |
+#       sysctl -w vm.overcommit_memory=1
+#       sysctl -w net.core.somaxconn=65535
+#   securityContext:
+#     privileged: true
+
+# Lifecycle hooks
+lifecycle:
+  preStop:
+    exec:
+      command: ["/bin/sh", "-c", "redis-cli shutdown save"]

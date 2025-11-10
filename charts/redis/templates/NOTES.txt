@@ -1,0 +1,58 @@
+1. Get the Redis password by running:
+
+{{- if .Values.redis.password }}
+   export REDIS_PASSWORD=$(kubectl get secret --namespace {{ .Release.Namespace }} {{ include "redis.fullname" . }} -o jsonpath="{.data.redis-password}" | base64 -d)
+{{- else }}
+   Redis is running WITHOUT password authentication (not recommended for production)
+{{- end }}
+
+2. Connect to Redis:
+
+   To connect to your Redis server from within the cluster:
+
+   kubectl run --namespace {{ .Release.Namespace }} redis-client --rm --tty -i --restart='Never' \
+     --image {{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }} -- redis-cli -h {{ include "redis.fullname" . }}{{- if .Values.redis.password }} -a $REDIS_PASSWORD{{- end }}
+
+   To connect from your local machine using port-forward:
+
+   kubectl port-forward --namespace {{ .Release.Namespace }} svc/{{ include "redis.fullname" . }} 6379:6379 &
+   redis-cli -h 127.0.0.1 -p 6379{{- if .Values.redis.password }} -a $REDIS_PASSWORD{{- end }}
+
+3. Check Redis status:
+
+   kubectl exec -it --namespace {{ .Release.Namespace }} {{ include "redis.fullname" . }}-0 -- redis-cli{{- if .Values.redis.password }} -a $REDIS_PASSWORD{{- end }} ping
+
+{{- if .Values.metrics.enabled }}
+
+4. Access Redis metrics:
+
+   Prometheus metrics are exposed on port {{ .Values.metrics.port }}
+
+   kubectl port-forward --namespace {{ .Release.Namespace }} svc/{{ include "redis.fullname" . }} {{ .Values.metrics.port }}:{{ .Values.metrics.port }}
+   curl http://localhost:{{ .Values.metrics.port }}/metrics
+
+{{- end }}
+
+{{- if .Values.persistence.enabled }}
+
+5. Persistence:
+
+   Data is persisted to {{ .Values.persistence.size }} PVC at /data
+   {{- if .Values.persistence.storageClass }}
+   Storage class: {{ .Values.persistence.storageClass }}
+   {{- else }}
+   Using default storage class
+   {{- end }}
+
+{{- else }}
+
+⚠️  WARNING: Persistence is disabled. Data will be lost when pods are terminated.
+
+{{- end }}
+
+{{- if not .Values.redis.password }}
+
+⚠️  SECURITY WARNING: Redis is running without password authentication!
+   Set redis.password in values.yaml for production deployments.
+
+{{- end }}

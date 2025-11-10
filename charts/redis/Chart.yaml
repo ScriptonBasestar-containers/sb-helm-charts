@@ -1,0 +1,21 @@
+apiVersion: v2
+name: redis
+version: 0.1.0
+appVersion: 7.4.1
+type: application
+description: A Helm chart for Redis - in-memory data structure store
+keywords:
+  - redis
+  - cache
+  - database
+  - nosql
+  - key-value
+home: https://redis.io/
+icon: https://raw.githubusercontent.com/ScriptonBasestar-containers/sb-helm-charts/master/charts/redis/icon.png
+sources:
+  - https://github.com/ScriptonBasestar-containers/sb-helm-charts
+  - https://github.com/redis/redis
+  - https://hub.docker.com/_/redis
+maintainers:
+  - name: archmagece
+    email: archmagece@users.noreply.github.com

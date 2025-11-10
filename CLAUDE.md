@@ -39,6 +39,8 @@ charts/{chart-name}/
 - **wordpress**: WordPress CMS (Deployment, MySQL, Apache)
 - **nextcloud**: Nextcloud with LinuxServer.io image (Deployment, PostgreSQL, config-based)
 - **wireguard**: VPN solution (Deployment, no database, UDP service, NET_ADMIN capabilities)
+- **redis**: In-memory data store (StatefulSet, no external database, full redis.conf support)
+- **memcached**: High-performance distributed memory caching system (Deployment, no database)
 - **rsshub**: RSS aggregator (well-maintained external chart available)
 - **browserless-chrome**: Headless browser for crawling
 - **devpi**: Python package index
@@ -162,6 +164,78 @@ make -f Makefile.wireguard.mk wg-logs
 
 # Open shell
 make -f Makefile.wireguard.mk wg-shell
+```
+
+### Memcached Specific Commands
+
+```bash
+# Show memcached statistics
+make -f Makefile.memcached.mk mc-stats
+
+# Flush all data (WARNING: clears all cached data)
+make -f Makefile.memcached.mk mc-flush
+
+# Show memcached version
+make -f Makefile.memcached.mk mc-version
+
+# Show memcached settings
+make -f Makefile.memcached.mk mc-settings
+
+# Show slab statistics
+make -f Makefile.memcached.mk mc-slabs
+
+# Show item statistics
+make -f Makefile.memcached.mk mc-items
+
+# View logs
+make -f Makefile.memcached.mk mc-logs
+
+# Open shell
+make -f Makefile.memcached.mk mc-shell
+
+# Port forward to memcached
+make -f Makefile.memcached.mk mc-port-forward
+```
+
+### Redis Specific Commands
+
+```bash
+# Ping Redis server
+make -f Makefile.redis.mk redis-ping
+
+# Get server info
+make -f Makefile.redis.mk redis-info
+
+# Monitor commands in real-time
+make -f Makefile.redis.mk redis-monitor
+
+# Check memory usage
+make -f Makefile.redis.mk redis-memory
+
+# Get statistics
+make -f Makefile.redis.mk redis-stats
+
+# List client connections
+make -f Makefile.redis.mk redis-clients
+
+# Data management
+make -f Makefile.redis.mk redis-bgsave           # Trigger background save
+make -f Makefile.redis.mk redis-backup           # Backup to tmp/redis-backups/
+make -f Makefile.redis.mk redis-restore FILE=... # Restore from backup
+
+# Analysis
+make -f Makefile.redis.mk redis-slowlog          # Get slow query log
+make -f Makefile.redis.mk redis-bigkeys          # Find biggest keys
+make -f Makefile.redis.mk redis-config-get PARAM=maxmemory
+
+# Run redis-cli command
+make -f Makefile.redis.mk redis-cli CMD="get mykey"
+
+# Open shell
+make -f Makefile.redis.mk redis-shell
+
+# View logs
+make -f Makefile.redis.mk redis-logs
 ```
 
 ### Kind (Local Testing)

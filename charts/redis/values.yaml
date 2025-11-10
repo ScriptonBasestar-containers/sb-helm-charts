@@ -1,0 +1,272 @@
+# Default values for redis.
+# This is a YAML-formatted file.
+# Declare variables to be passed into your templates.
+
+# Redis configuration
+redis:
+  # Redis password (leave empty for no password)
+  password: ""
+
+  # Redis configuration file (redis.conf)
+  # If not provided, uses Redis defaults
+  config: |
+    # Redis 7.x configuration
+    # Network
+    bind 0.0.0.0
+    protected-mode no
+    port 6379
+    tcp-backlog 511
+    timeout 0
+    tcp-keepalive 300
+
+    # General
+    daemonize no
+    supervised no
+    loglevel notice
+
+    # Snapshotting (persistence)
+    save 900 1
+    save 300 10
+    save 60 10000
+    stop-writes-on-bgsave-error yes
+    rdbcompression yes
+    rdbchecksum yes
+    dbfilename dump.rdb
+    dir /data
+
+    # Replication
+    # replica-serve-stale-data yes
+    # replica-read-only yes
+
+    # Security
+    # requirepass your-password-here
+
+    # Limits
+    maxmemory 256mb
+    maxmemory-policy allkeys-lru
+    maxclients 10000
+
+    # Append Only File (AOF)
+    appendonly no
+    appendfilename "appendonly.aof"
+    appendfsync everysec
+    no-appendfsync-on-rewrite no
+    auto-aof-rewrite-percentage 100
+    auto-aof-rewrite-min-size 64mb
+
+    # Slow log
+    slowlog-log-slower-than 10000
+    slowlog-max-len 128
+
+  # Use existing ConfigMap for redis.conf (optional)
+  existingConfigMap: ""
+
+  # Redis command-line arguments (overrides config file)
+  args: []
+  # Example:
+  # - "--maxmemory 512mb"
+  # - "--maxmemory-policy allkeys-lru"
+
+# Persistence
+persistence:
+  enabled: true
+  storageClass: ""  # Use default storage class if empty
+  accessMode: ReadWriteOnce
+  size: 8Gi
+  existingClaim: ""
+
+# Replica count (for Redis Sentinel/Cluster, use 3+)
+replicaCount: 1
+
+# Container image configuration
+image:
+  repository: redis
+  pullPolicy: IfNotPresent
+  tag: "7.4.1-alpine"
+
+# Image pull secrets for private registries
+imagePullSecrets: []
+
+# Override chart name
+nameOverride: ""
+fullnameOverride: ""
+
+# Service account configuration
+serviceAccount:
+  create: true
+  automount: true
+  annotations: {}
+  name: ""
+
+# Pod annotations
+podAnnotations: {}
+
+# Pod labels
+podLabels: {}
+
+# Pod security context
+podSecurityContext:
+  fsGroup: 999  # redis group
+
+# Container security context
+securityContext:
+  runAsUser: 999  # redis user
+  runAsGroup: 999
+  runAsNonRoot: true
+  readOnlyRootFilesystem: false
+  capabilities:
+    drop:
+      - ALL
+
+# Service configuration
+service:
+  type: ClusterIP
+  port: 6379
+  targetPort: 6379
+  annotations: {}
+
+# Resource limits and requests
+resources:
+  limits:
+    cpu: 500m
+    memory: 512Mi
+  requests:
+    cpu: 100m
+    memory: 128Mi
+
+# Liveness probe configuration
+livenessProbe:
+  tcpSocket:
+    port: redis
+  initialDelaySeconds: 30
+  periodSeconds: 10
+  timeoutSeconds: 5
+  failureThreshold: 6
+  successThreshold: 1
+
+# Readiness probe configuration
+readinessProbe:
+  exec:
+    command:
+      - redis-cli
+      - ping
+  initialDelaySeconds: 10
+  periodSeconds: 10
+  timeoutSeconds: 5
+  failureThreshold: 3
+  successThreshold: 1
+
+# Startup probe (for slow initialization)
+startupProbe:
+  tcpSocket:
+    port: redis
+  initialDelaySeconds: 10
+  periodSeconds: 10
+  timeoutSeconds: 5
+  failureThreshold: 30
+  successThreshold: 1
+
+# Autoscaling configuration (not recommended for stateful Redis)
+autoscaling:
+  enabled: false
+  minReplicas: 1
+  maxReplicas: 3
+  targetCPUUtilizationPercentage: 80
+
+# Pod Disruption Budget
+podDisruptionBudget:
+  enabled: false
+  minAvailable: 1
+
+# Network Policy
+networkPolicy:
+  enabled: false
+  ingress:
+    podSelector: {}
+    namespaceSelector: {}
+  egress:
+    extraRules: []
+
+# Monitoring configuration
+monitoring:
+  enabled: false
+  serviceMonitor:
+    enabled: false
+    interval: 30s
+    labels: {}
+    path: /metrics
+
+# Redis Exporter for Prometheus (sidecar)
+metrics:
+  enabled: false
+  image:
+    repository: oliver006/redis_exporter
+    tag: v1.55.0-alpine
+    pullPolicy: IfNotPresent
+  resources:
+    limits:
+      cpu: 100m
+      memory: 128Mi
+    requests:
+      cpu: 50m
+      memory: 64Mi
+  port: 9121
+
+# Node selector
+nodeSelector: {}
+
+# Tolerations
+tolerations: []
+
+# Affinity rules
+affinity: {}
+# Example anti-affinity for HA:
+# affinity:
+#   podAntiAffinity:
+#     preferredDuringSchedulingIgnoredDuringExecution:
+#       - weight: 100
+#         podAffinityTerm:
+#           labelSelector:
+#             matchExpressions:
+#               - key: app.kubernetes.io/name
+#                 operator: In
+#                 values:
+#                   - redis
+#           topologyKey: kubernetes.io/hostname
+
+# Additional environment variables
+extraEnv: []
+# Example:
+# - name: REDIS_EXTRA_FLAGS
+#   value: "--maxmemory 1gb"
+
+# Additional environment variables from ConfigMap or Secret
+extraEnvFrom: []
+
+# Additional volumes
+extraVolumes: []
+
+# Additional volume mounts
+extraVolumeMounts: []
+
+# Init containers
+initContainers: []
+# Example: sysctl tuning for production
+# - name: sysctl
+#   image: busybox
+#   command:
+#     - sh
+#     - -c
+#     - |
+#       sysctl -w vm.overcommit_memory=1
+#       sysctl -w net.core.somaxconn=65535
+#   securityContext:
+#     privileged: true
+
+# Lifecycle hooks
+lifecycle: {}
+# Example:
+# lifecycle:
+#   preStop:
+#     exec:
+#       command: ["/bin/sh", "-c", "redis-cli shutdown save"]

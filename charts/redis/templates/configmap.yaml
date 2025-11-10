@@ -1,0 +1,15 @@
+{{- if and (not .Values.redis.existingConfigMap) .Values.redis.config }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "redis.fullname" . }}
+  labels:
+    {{- include "redis.labels" . | nindent 4 }}
+data:
+  redis.conf: |
+{{- .Values.redis.config | nindent 4 }}
+{{- if .Values.redis.password }}
+    # Password from Secret
+    requirepass REDIS_PASSWORD_PLACEHOLDER
+{{- end }}
+{{- end }}
