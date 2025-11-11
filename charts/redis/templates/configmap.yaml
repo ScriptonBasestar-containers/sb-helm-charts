@@ -1,4 +1,5 @@
 {{- if and (not .Values.redis.existingConfigMap) .Values.redis.config }}
+{{- $usePassword := or .Values.redis.password .Values.redis.existingSecret }}
 apiVersion: v1
 kind: ConfigMap
 metadata:
@@ -8,7 +9,7 @@ metadata:
 data:
   redis.conf: |
 {{- .Values.redis.config | nindent 4 }}
-{{- if not .Values.redis.password }}
+{{- if not $usePassword }}
     # No password authentication
 {{- end }}
 {{- end }}

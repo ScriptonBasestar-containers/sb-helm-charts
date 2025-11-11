@@ -6,6 +6,10 @@
 redis:
   # Redis password (leave empty for no password)
   password: ""
+  # Use an existing Secret that contains the Redis password (overrides redis.password)
+  existingSecret: ""
+  # Key inside the secret that stores the password (used for generated and existing secrets)
+  secretKeyName: redis-password
 
   # Redis configuration file (redis.conf)
   # If not provided, uses Redis defaults

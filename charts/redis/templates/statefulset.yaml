@@ -1,3 +1,9 @@
+{{- $usePassword := or .Values.redis.password .Values.redis.existingSecret -}}
+{{- $secretName := include "redis.fullname" . -}}
+{{- if .Values.redis.existingSecret -}}
+{{- $secretName = .Values.redis.existingSecret -}}
+{{- end -}}
+{{- $secretKey := default "redis-password" .Values.redis.secretKeyName -}}
 apiVersion: apps/v1
 kind: StatefulSet
 metadata:
@@ -32,7 +38,7 @@ spec:
       securityContext:
         {{- toYaml .Values.podSecurityContext | nindent 8 }}
       initContainers:
-        {{- if .Values.redis.password }}
+        {{- if $usePassword }}
         - name: config-init
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
           imagePullPolicy: {{ .Values.image.pullPolicy }}
@@ -47,8 +53,8 @@ spec:
             - name: REDIS_PASSWORD
               valueFrom:
                 secretKeyRef:
-                  name: {{ include "redis.fullname" . }}
-                  key: redis-password
+                  name: {{ $secretName }}
+                  key: {{ $secretKey }}
           volumeMounts:
             - name: config
               mountPath: /tmp/redis
@@ -71,7 +77,7 @@ spec:
           command:
             - redis-server
           args:
-            {{- if .Values.redis.password }}
+            {{- if $usePassword }}
             - /etc/redis/redis.conf
             {{- else if or .Values.redis.config .Values.redis.existingConfigMap }}
             - /usr/local/etc/redis/redis.conf
@@ -80,12 +86,12 @@ spec:
             - {{ . | quote }}
             {{- end }}
           env:
-            {{- if .Values.redis.password }}
+            {{- if $usePassword }}
             - name: REDIS_PASSWORD
               valueFrom:
                 secretKeyRef:
-                  name: {{ include "redis.fullname" . }}
-                  key: redis-password
+                  name: {{ $secretName }}
+                  key: {{ $secretKey }}
             {{- end }}
             {{- with .Values.extraEnv }}
             {{- toYaml . | nindent 12 }}
@@ -104,7 +110,7 @@ spec:
           {{- end }}
           {{- if .Values.readinessProbe }}
           readinessProbe:
-            {{- if .Values.redis.password }}
+            {{- if $usePassword }}
             exec:
               command:
                 - sh
@@ -130,7 +136,7 @@ spec:
             - name: data
               mountPath: /data
             {{- end }}
-            {{- if .Values.redis.password }}
+            {{- if $usePassword }}
             - name: redis-config
               mountPath: /etc/redis
               readOnly: true
@@ -152,16 +158,16 @@ spec:
           imagePullPolicy: {{ .Values.metrics.image.pullPolicy }}
           args:
             - --redis.addr=localhost:6379
-            {{- if .Values.redis.password }}
+            {{- if $usePassword }}
             - --redis.password=$(REDIS_PASSWORD)
             {{- end }}
           env:
-            {{- if .Values.redis.password }}
+            {{- if $usePassword }}
             - name: REDIS_PASSWORD
               valueFrom:
                 secretKeyRef:
-                  name: {{ include "redis.fullname" . }}
-                  key: redis-password
+                  name: {{ $secretName }}
+                  key: {{ $secretKey }}
             {{- end }}
           ports:
             - name: metrics
@@ -171,7 +177,7 @@ spec:
             {{- toYaml .Values.metrics.resources | nindent 12 }}
         {{- end }}
       volumes:
-        {{- if .Values.redis.password }}
+        {{- if $usePassword }}
         - name: config
           configMap:
             name: {{ .Values.redis.existingConfigMap | default (include "redis.fullname" .) }}

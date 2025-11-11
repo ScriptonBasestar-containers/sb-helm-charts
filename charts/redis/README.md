@@ -49,6 +49,24 @@ Install with custom values:
 helm install my-redis ./charts/redis -f my-values.yaml
 ```
 
+### 2b. Reusing an Existing Secret
+
+If you already manage the Redis password through your own Secret, create it first (the key defaults to `redis-password`):
+
+```bash
+kubectl create secret generic redis-auth --from-literal=redis-password='super-secure'
+```
+
+Then reference it from the chart:
+
+```yaml
+redis:
+  existingSecret: redis-auth
+  # secretKeyName: custom-key  # Optional, defaults to redis-password
+```
+
+The chart will skip creating a Secret and will mount the referenced one instead.
+
 ### 3. Production Deployment
 
 See `values-example.yaml` for production-ready configuration with:
