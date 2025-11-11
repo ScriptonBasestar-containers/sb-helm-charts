@@ -12,11 +12,11 @@
 
 | 소프트웨어 | 차트 저장소 | 권장 이유 |
 |-----------|------------|----------|
-| **PostgreSQL** | [Bitnami PostgreSQL](https://github.com/bitnami/charts/tree/main/bitnami/postgresql) | ✅ 매우 성숙한 차트<br>✅ HA, 복제, 백업 완벽 지원<br>✅ 복잡한 데이터베이스 운영 로직 |
-| **MySQL** | [Bitnami MySQL](https://github.com/bitnami/charts/tree/main/bitnami/mysql) | ✅ 복제, 클러스터링 자동화<br>✅ Percona, Oracle 모두 지원<br>✅ 복잡한 초기화 스크립트 관리 |
-| **MariaDB** | [Bitnami MariaDB](https://github.com/bitnami/charts/tree/main/bitnami/mariadb) | ✅ Galera 클러스터 지원<br>✅ Primary-Secondary 복제 자동화 |
-| **Redis** | [Bitnami Redis](https://github.com/bitnami/charts/tree/main/bitnami/redis) | ✅ Sentinel, Cluster 모드 완벽 지원<br>✅ ACL, TLS 설정 자동화<br>✅ 복잡한 복제 토폴로지 관리 |
-| **MongoDB** | [Bitnami MongoDB](https://github.com/bitnami/charts/tree/main/bitnami/mongodb) | ✅ Replica Set, Sharding 지원<br>✅ Arbiter 노드 자동 구성 |
+| **PostgreSQL** | [CloudNativePG](https://github.com/cloudnative-pg/charts) | ✅ CNCF Sandbox 프로젝트<br>✅ Operator 기반 HA, 복제, 백업 지원<br>✅ 복잡한 데이터베이스 운영 로직 |
+| **MySQL** | [Percona Operator](https://github.com/percona/percona-server-mysql-operator) | ✅ 복제, 클러스터링 자동화<br>✅ Percona MySQL 공식 Operator<br>✅ 복잡한 초기화 스크립트 관리 |
+| **MariaDB** | [MariaDB Operator](https://github.com/mariadb-operator/mariadb-operator) | ✅ Galera 클러스터 지원<br>✅ Primary-Secondary 복제 자동화 |
+| **Redis** | [Redis Operator](https://github.com/spotahome/redis-operator) | ✅ Sentinel, Cluster 모드 지원<br>✅ 복잡한 복제 토폴로지 관리 |
+| **MongoDB** | [MongoDB Community Operator](https://github.com/mongodb/mongodb-kubernetes-operator) | ✅ 공식 Operator<br>✅ Replica Set, Sharding 지원 |
 
 **프로젝트 철학 부합도**: ⭐⭐⭐⭐⭐ (완벽)
 - 데이터베이스는 **항상 외부 의존성**으로 관리 (서브차트 금지)
@@ -29,9 +29,9 @@
 
 | 소프트웨어 | 차트 저장소 | 권장 이유 |
 |-----------|------------|----------|
-| **RabbitMQ** | [Bitnami RabbitMQ](https://github.com/bitnami/charts/tree/main/bitnami/rabbitmq) | ✅ 클러스터링, 쿼럼 큐 자동 구성<br>✅ Federation, Shovel 플러그인 관리<br>✅ 복잡한 플러그인 생태계 |
-| **Memcached** | [Bitnami Memcached](https://github.com/bitnami/charts/tree/main/bitnami/memcached) | ✅ 간단한 아키텍처지만 튜닝 옵션 다양<br>✅ 커넥션 풀링, 메모리 관리 최적화 |
-| **Apache Kafka** | [Bitnami Kafka](https://github.com/bitnami/charts/tree/main/bitnami/kafka) | ✅ ZooKeeper/KRaft 모드 모두 지원<br>✅ 파티션, 복제, 토픽 관리 자동화<br>✅ 매우 복잡한 분산 시스템 |
+| **RabbitMQ** | [RabbitMQ Cluster Operator](https://github.com/rabbitmq/cluster-operator) | ✅ 공식 Operator<br>✅ 클러스터링, 쿼럼 큐 자동 구성<br>✅ 복잡한 플러그인 생태계 |
+| **Memcached** | [Memcached Operator](https://github.com/ianlewis/memcached-operator) | ✅ Operator 기반 관리<br>✅ 커넥션 풀링, 메모리 관리 |
+| **Apache Kafka** | [Strimzi Kafka Operator](https://strimzi.io/) | ✅ CNCF Sandbox 프로젝트<br>✅ ZooKeeper/KRaft 모드 모두 지원<br>✅ 매우 복잡한 분산 시스템 |
 | **NATS** | [NATS Helm Charts](https://github.com/nats-io/k8s) | ✅ 공식 차트, JetStream 지원<br>✅ 클러스터 모드 설정 복잡 |
 
 **프로젝트 철학 부합도**: ⭐⭐⭐⭐⭐ (완벽)
@@ -114,7 +114,7 @@
 | 소프트웨어 | 차트 저장소 | 권장 이유 |
 |-----------|------------|----------|
 | **MinIO** | [MinIO](https://github.com/minio/minio/tree/master/helm/minio) | ✅ 공식 차트<br>✅ 분산 모드, 이레이저 코딩 복잡 |
-| **Cassandra** | [Bitnami Cassandra](https://github.com/bitnami/charts/tree/main/bitnami/cassandra) | ✅ 복잡한 분산 데이터베이스<br>✅ 노드 관리, 튜닝 매우 어려움 |
+| **Cassandra** | [K8ssandra](https://github.com/k8ssandra/k8ssandra) | ✅ CNCF Sandbox 프로젝트<br>✅ Operator 기반 복잡한 분산 데이터베이스<br>✅ 노드 관리, 백업, 복구 자동화 |
 | **Consul** | [HashiCorp Consul](https://github.com/hashicorp/consul-k8s/tree/main/charts/consul) | ✅ 공식 차트<br>✅ 서비스 메시, 분산 KV 복잡 |
 
 ---
@@ -152,9 +152,20 @@
 - [ ] **서브차트 의존성**이 매우 많음 (GitLab, Elastic Stack)
 - [ ] **운영 복잡도**가 설정 복잡도보다 큼
 
+### 2.3 유명 차트를 사용하지 않는 경우
+
+다음 **하나라도** 해당하면 유명 차트를 사용하지 않음:
+
+- [ ] **유료화** 되었거나 라이센스 제약이 심한 경우 (예: Bitnami 엔터프라이즈 전환)
+- [ ] **라이센스 정책**이 개인/소규모 프로젝트에 부담스러운 경우
+- [ ] **커뮤니티 버전 제한**으로 필수 기능 사용 불가
+- [ ] **상업적 이용 제한**이 있는 경우
+
+**참고**: Bitnami는 최근 엔터프라이즈 중심으로 전환하면서 일부 차트가 유료화되었습니다. 이러한 경우 커뮤니티 버전을 찾거나 자체 제작을 고려합니다.
+
 ---
 
-### 2.3 Decision Framework 체크리스트
+### 2.4 Decision Framework 체크리스트
 
 신규 차트 추가 시 다음 순서로 판단:
 
@@ -205,9 +216,9 @@
 
 | 차트 | 버전 | 문제점 | 권장 조치 |
 |------|------|--------|----------|
-| **redis** | v0.1.0 | ❌ 범용 인프라 컴포넌트<br>❌ Sentinel/Cluster 미지원<br>❌ Bitnami 차트가 훨씬 성숙 | [Bitnami Redis](https://github.com/bitnami/charts/tree/main/bitnami/redis)로 대체 |
-| **rabbitmq** | v0.1.0 | ❌ 복잡한 클러스터링 로직<br>❌ 플러그인 관리 복잡<br>❌ Bitnami 차트가 훨씬 성숙 | [Bitnami RabbitMQ](https://github.com/bitnami/charts/tree/main/bitnami/rabbitmq)로 대체 |
-| **memcached** | v0.1.0 | ❌ 범용 캐시 컴포넌트<br>❌ Bitnami 차트가 충분 | [Bitnami Memcached](https://github.com/bitnami/charts/tree/main/bitnami/memcached)로 대체 |
+| **redis** | v0.1.0 | ❌ 범용 인프라 컴포넌트<br>❌ Sentinel/Cluster 미지원<br>❌ Operator 기반 차트 권장 | [Redis Operator](https://github.com/spotahome/redis-operator) 검토 |
+| **rabbitmq** | v0.1.0 | ❌ 복잡한 클러스터링 로직<br>❌ 플러그인 관리 복잡<br>❌ 공식 Operator 권장 | [RabbitMQ Cluster Operator](https://github.com/rabbitmq/cluster-operator) 검토 |
+| **memcached** | v0.1.0 | ❌ 범용 캐시 컴포넌트<br>❌ Operator 기반 관리 권장 | [Memcached Operator](https://github.com/ianlewis/memcached-operator) 검토 |
 
 **프로젝트 철학 부합도**: ⭐⭐ (부합하지 않음)
 - 이들은 **범용 인프라**로서 앱 특화 설정이 없음
@@ -221,39 +232,15 @@
 ### 4.1 신규 차트 추가 시
 
 1. **오피셜 차트 우선 검토**
-   - Bitnami Charts: https://github.com/bitnami/charts
    - Artifact Hub: https://artifacthub.io/
+   - CNCF 프로젝트: https://www.cncf.io/projects/
+   - 공식 Operator/차트 저장소
 
-2. **Decision Framework 적용** (섹션 2.3 참조)
+2. **Decision Framework 적용** (섹션 2.4 참조)
 
 3. **자체 제작 시 문서화 필수**
    - `charts/{name}/README.md`에 "왜 자체 제작했는지" 명시
    - 오피셜 차트와의 차이점 설명
-
----
-
-### 4.2 기존 인프라 차트 마이그레이션
-
-**대상**: redis, rabbitmq, memcached
-
-**단계별 계획**:
-
-1. **Phase 1: 검증**
-   - [ ] Bitnami 차트와 기능 비교
-   - [ ] 마이그레이션 호환성 확인
-
-2. **Phase 2: 문서화**
-   - [ ] `docs/migration-to-official-charts.md` 작성
-   - [ ] 마이그레이션 가이드 작성
-
-3. **Phase 3: 실행**
-   - [ ] README.md에 오피셜 차트 사용 안내 추가
-   - [ ] `charts/redis/`, `charts/rabbitmq/`, `charts/memcached/` 제거
-   - [ ] `CLAUDE.md`에 "외부 차트 목록" 섹션 추가
-
-4. **Phase 4: 검증**
-   - [ ] CI/CD 업데이트
-   - [ ] 테스트 환경에서 검증
 
 ---
 
@@ -268,9 +255,9 @@
 | 분류 | 자체 제작 | 오피셜 차트 |
 |------|----------|------------|
 | **앱 특화 설정** | WordPress, Nextcloud, Keycloak | - |
-| **범용 인프라** | - | PostgreSQL, MySQL, Redis |
-| **복잡한 분산 시스템** | - | Kafka, Elasticsearch, GitLab |
-| **클러스터링** | Keycloak (앱 특화) | RabbitMQ, Redis Cluster |
+| **범용 인프라** | - | CloudNativePG, Percona, Redis Operator |
+| **복잡한 분산 시스템** | - | Strimzi (Kafka), Elasticsearch, GitLab |
+| **클러스터링** | Keycloak (앱 특화) | RabbitMQ Operator, Redis Operator |
 | **CRD/Operator 기반** | - | cert-manager, ArgoCD |
 | **보안 크리티컬** | - | Vault, external-secrets |
 
@@ -284,7 +271,9 @@
 
 ## 참조
 
-- [Bitnami Helm Charts](https://github.com/bitnami/charts)
 - [Artifact Hub](https://artifacthub.io/)
-- [Helm Hub (Deprecated)](https://hub.helm.sh/)
-- [CNCF Helm Charts](https://github.com/cncf/helm-charts)
+- [CNCF Projects](https://www.cncf.io/projects/)
+- [Kubernetes Operators](https://operatorhub.io/)
+- [CloudNativePG](https://cloudnative-pg.io/)
+- [Strimzi Kafka Operator](https://strimzi.io/)
+- [K8ssandra](https://k8ssandra.io/)
