@@ -113,7 +113,6 @@
 
 | 소프트웨어 | 차트 저장소 | 권장 이유 |
 |-----------|------------|----------|
-| **MinIO** | [MinIO](https://github.com/minio/minio/tree/master/helm/minio) | ✅ 공식 차트<br>✅ 분산 모드, 이레이저 코딩 복잡 |
 | **Cassandra** | [K8ssandra](https://github.com/k8ssandra/k8ssandra) | ✅ CNCF Sandbox 프로젝트<br>✅ Operator 기반 복잡한 분산 데이터베이스<br>✅ 노드 관리, 백업, 복구 자동화 |
 | **Consul** | [HashiCorp Consul](https://github.com/hashicorp/consul-k8s/tree/main/charts/consul) | ✅ 공식 차트<br>✅ 서비스 메시, 분산 KV 복잡 |
 
