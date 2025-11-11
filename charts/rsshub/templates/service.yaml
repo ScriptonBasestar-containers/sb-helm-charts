@@ -8,9 +8,9 @@ spec:
   type: {{ .Values.service.type }}
   ports:
     - port: {{ .Values.service.appPort }}
-      targetPort: app
+      targetPort: http
       protocol: TCP
-      name: app
+      name: http
     # - port: {{ .Values.service.docPort }}
     #   targetPort: doc
     #   protocol: TCP

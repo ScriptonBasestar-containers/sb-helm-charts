@@ -85,7 +85,7 @@ resources:
 livenessProbe:
   httpGet:
     path: /healthz
-    port: app
+    port: http
   initialDelaySeconds: 30
   periodSeconds: 10
   timeoutSeconds: 5
@@ -94,7 +94,7 @@ livenessProbe:
 readinessProbe:
   httpGet:
     path: /healthz
-    port: app
+    port: http
   initialDelaySeconds: 10
   periodSeconds: 10
   timeoutSeconds: 5
@@ -103,7 +103,7 @@ readinessProbe:
 startupProbe:
   httpGet:
     path: /healthz
-    port: app
+    port: http
   initialDelaySeconds: 10
   periodSeconds: 5
   timeoutSeconds: 3

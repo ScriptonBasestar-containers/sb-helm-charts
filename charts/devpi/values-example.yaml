@@ -1,0 +1,226 @@
+# Example values file for devpi production deployment
+# Copy this file to my-values.yaml and customize for your environment
+
+# Replica configuration
+replicaCount: 2
+
+# Container image
+image:
+  repository: ghcr.io/scriptonbasestar-containers/devpi/pypi
+  pullPolicy: IfNotPresent
+  tag: "latest"  # Or specify a specific version
+
+# Service configuration
+service:
+  type: ClusterIP
+  port: 3141
+
+# Ingress configuration
+ingress:
+  enabled: true
+  className: "nginx"
+
+  annotations:
+    # SSL/TLS configuration (if using cert-manager)
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
+
+    # Large file upload support (for large Python packages)
+    nginx.ingress.kubernetes.io/proxy-body-size: "500m"
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "600"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "600"
+
+    # Optional: Force HTTPS redirect
+    nginx.ingress.kubernetes.io/force-ssl-redirect: "true"
+
+  hosts:
+    - host: pypi.example.com
+      paths:
+        - path: /
+          pathType: Prefix
+
+  # TLS configuration
+  tls:
+    - secretName: devpi-tls
+      hosts:
+        - pypi.example.com
+
+# Resource limits and requests
+resources:
+  limits:
+    cpu: 500m       # 0.5 CPU core
+    memory: 512Mi   # 512 MB RAM
+  requests:
+    cpu: 100m       # 0.1 CPU cores
+    memory: 128Mi   # 128 MB RAM
+
+# Health check configuration
+livenessProbe:
+  httpGet:
+    path: /
+    port: http
+  initialDelaySeconds: 30
+  periodSeconds: 10
+  timeoutSeconds: 5
+  failureThreshold: 3
+
+readinessProbe:
+  httpGet:
+    path: /
+    port: http
+  initialDelaySeconds: 5
+  periodSeconds: 5
+  timeoutSeconds: 3
+  failureThreshold: 3
+
+startupProbe:
+  httpGet:
+    path: /
+    port: http
+  initialDelaySeconds: 10
+  periodSeconds: 5
+  timeoutSeconds: 3
+  failureThreshold: 30
+
+# Persistent storage configuration
+persistence:
+  enabled: true
+  storageClass: ""  # Use default storage class or specify: "fast-ssd", "standard", etc.
+  accessMode: ReadWriteOnce
+  size: 50Gi  # Adjust based on expected package repository size
+  # Use existing PVC (optional):
+  # existingClaim: "devpi-data-pvc"
+
+# Autoscaling (optional)
+# Enable for automatic scaling based on CPU/memory usage
+autoscaling:
+  enabled: true
+  minReplicas: 2
+  maxReplicas: 10
+  targetCPUUtilizationPercentage: 80
+  # targetMemoryUtilizationPercentage: 80
+
+# Pod Disruption Budget
+# Ensures minimum availability during voluntary disruptions (node drains, updates)
+podDisruptionBudget:
+  enabled: true
+  minAvailable: 1
+  # Alternative: maxUnavailable: 1
+
+# Network Policy
+# Restricts network access to devpi pods
+networkPolicy:
+  enabled: true
+  ingress:
+    # Allow traffic from ingress controller
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              name: ingress-nginx
+      ports:
+        - protocol: TCP
+          port: 3141
+    # Allow traffic from other devpi pods (for multi-replica setups)
+    - from:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: devpi
+      ports:
+        - protocol: TCP
+          port: 3141
+    # Allow traffic from application pods (adjust namespace/labels as needed)
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              name: default
+      ports:
+        - protocol: TCP
+          port: 3141
+  egress:
+    # Allow DNS resolution
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              name: kube-system
+      ports:
+        - protocol: UDP
+          port: 53
+    # Allow external HTTP/HTTPS (for syncing with PyPI)
+    - to:
+        - namespaceSelector: {}
+      ports:
+        - protocol: TCP
+          port: 80
+        - protocol: TCP
+          port: 443
+
+# Monitoring configuration
+# ServiceMonitor for Prometheus Operator
+monitoring:
+  serviceMonitor:
+    enabled: true
+    path: /
+    interval: 30s
+    scrapeTimeout: 10s
+    additionalLabels:
+      prometheus: kube-prometheus
+    # Relabeling configurations (optional)
+    relabelings: []
+    # Target labels (optional)
+    targetLabels: []
+
+# Security context (optional)
+# podSecurityContext:
+#   fsGroup: 1000
+
+# securityContext:
+#   runAsUser: 1000
+#   runAsGroup: 1000
+#   runAsNonRoot: true
+#   readOnlyRootFilesystem: false
+
+# Node selector (optional)
+# nodeSelector:
+#   disktype: ssd
+#   node-role: worker
+
+# Tolerations (optional)
+# tolerations:
+#   - key: "node-role"
+#     operator: "Equal"
+#     value: "worker"
+#     effect: "NoSchedule"
+
+# Affinity rules (optional)
+# Spread pods across different nodes for high availability
+# affinity:
+#   podAntiAffinity:
+#     preferredDuringSchedulingIgnoredDuringExecution:
+#       - weight: 100
+#         podAffinityTerm:
+#           labelSelector:
+#             matchExpressions:
+#               - key: app.kubernetes.io/name
+#                 operator: In
+#                 values:
+#                   - devpi
+#           topologyKey: kubernetes.io/hostname
+
+# Additional environment variables (optional)
+# Configure devpi specific settings
+# extraEnv:
+#   - name: DEVPI_SERVER_ARGS
+#     value: "--host=0.0.0.0 --port=3141"
+#   - name: DEVPI_REPLICA_URL
+#     value: "https://pypi.org/simple"
+
+# Additional volumes (optional)
+# volumes:
+#   - name: config
+#     configMap:
+#       name: devpi-config
+
+# Additional volume mounts (optional)
+# volumeMounts:
+#   - name: config
+#     mountPath: /data/.devpi/server
+#     readOnly: true

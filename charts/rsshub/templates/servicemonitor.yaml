@@ -13,7 +13,7 @@ spec:
     matchLabels:
       {{- include "rsshub.selectorLabels" . | nindent 6 }}
   endpoints:
-    - port: app
+    - port: http
       path: {{ .Values.monitoring.serviceMonitor.path }}
       interval: {{ .Values.monitoring.serviceMonitor.interval }}
       scrapeTimeout: {{ .Values.monitoring.serviceMonitor.scrapeTimeout }}
