@@ -120,7 +120,9 @@ strategy:
 # Image configuration
 image:
   repository: lscr.io/linuxserver/wireguard
-  tag: "latest"
+  # Using specific version for production stability
+  # Can use "latest" for auto-updates
+  tag: "1.0.20250521-r0-ls90"
   pullPolicy: IfNotPresent
 
 # Image pull secrets

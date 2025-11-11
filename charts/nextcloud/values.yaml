@@ -10,7 +10,7 @@ nextcloud:
   adminPassword: ""
 
   # Nextcloud version/edition
-  version: "28.0"  # Nextcloud version
+  version: "31.0.10"  # Nextcloud version
 
   # Trusted domains (required for external access)
   trustedDomains: []
@@ -94,7 +94,8 @@ image:
   repository: nextcloud
   pullPolicy: IfNotPresent
   # Overrides the image tag whose default is the chart appVersion
-  tag: "28.0-apache"
+  # Using stable-apache for production reliability
+  tag: "31.0.10-apache"
 
 # Image pull secrets for private registries
 imagePullSecrets: []

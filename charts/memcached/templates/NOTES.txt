@@ -25,13 +25,12 @@
 
 3. Test the Memcached connection:
   kubectl run --namespace {{ .Release.Namespace }} memcached-client --rm --tty -i --restart='Never' \
-    --image docker.io/bitnami/memcached:latest -- \
-    memcached-tool {{ include "memcached.fullname" . }}:{{ .Values.service.port }} stats
-
-4. Monitor Memcached stats:
-  kubectl run --namespace {{ .Release.Namespace }} memcached-client --rm --tty -i --restart='Never' \
-    --image docker.io/bitnami/memcached:latest -- \
+    --image busybox:latest -- \
     sh -c 'echo "stats" | nc {{ include "memcached.fullname" . }} {{ .Values.service.port }}'
+
+4. Alternative: Use the Makefile for operations
+  make -f Makefile.memcached.mk mc-stats
+  make -f Makefile.memcached.mk mc-port-forward
 
 {{- if .Values.autoscaling.enabled }}
 5. Horizontal Pod Autoscaler is enabled:

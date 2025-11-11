@@ -8,7 +8,8 @@ image:
   repository: memcached
   pullPolicy: IfNotPresent
   # Overrides the image tag whose default is the chart appVersion.
-  tag: ""
+  # Using Alpine for smaller image size and better security
+  tag: "1.6.39-alpine3.22"
 
 imagePullSecrets: []
 nameOverride: ""
