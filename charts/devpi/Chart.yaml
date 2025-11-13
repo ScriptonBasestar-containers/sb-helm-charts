@@ -3,5 +3,5 @@ name: devpi
 description: A Helm chart for devpi - Python Package Index Server
 
 type: application
-version: 0.1.0
+version: 0.2.0
 appVersion: "6.17.0"
