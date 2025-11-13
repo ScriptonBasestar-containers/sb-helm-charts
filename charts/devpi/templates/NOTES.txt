@@ -10,22 +10,58 @@
   export NODE_IP=$(kubectl get nodes --namespace {{ .Release.Namespace }} -o jsonpath="{.items[0].status.addresses[0].address}")
   echo http://$NODE_IP:$NODE_PORT
 {{- else if contains "LoadBalancer" .Values.service.type }}
-     NOTE: It may take a few minutes for the LoadBalancer IP to be available.
-           You can watch the status of by running 'kubectl get --namespace {{ .Release.Namespace }} svc -w {{ include "devpi.fullname" . }}'
+  NOTE: It may take a few minutes for the LoadBalancer IP to be available.
   export SERVICE_IP=$(kubectl get svc --namespace {{ .Release.Namespace }} {{ include "devpi.fullname" . }} --template "{{"{{ range (index .status.loadBalancer.ingress 0) }}{{.}}{{ end }}"}}")
   echo http://$SERVICE_IP:{{ .Values.service.port }}
 {{- else if contains "ClusterIP" .Values.service.type }}
   export POD_NAME=$(kubectl get pods --namespace {{ .Release.Namespace }} -l "app.kubernetes.io/name={{ include "devpi.name" . }},app.kubernetes.io/instance={{ .Release.Name }}" -o jsonpath="{.items[0].metadata.name}")
-  export CONTAINER_PORT=$(kubectl get pod --namespace {{ .Release.Namespace }} $POD_NAME -o jsonpath="{.spec.containers[0].ports[0].containerPort}")
-  echo "Visit http://127.0.0.1:8080 to use your devpi server"
-  kubectl --namespace {{ .Release.Namespace }} port-forward $POD_NAME 8080:$CONTAINER_PORT
+  kubectl --namespace {{ .Release.Namespace }} port-forward $POD_NAME {{ .Values.devpi.port }}:{{ .Values.devpi.port }}
+  echo "Visit http://127.0.0.1:{{ .Values.devpi.port }}"
 {{- end }}
 
-2. Configure pip to use devpi:
-   pip config set global.index-url http://<devpi-url>/root/pypi/+simple/
-   pip config set global.trusted-host <devpi-url>
+2. Get the root password:
+{{- if .Values.devpi.rootPassword }}
+  echo Root Password: {{ .Values.devpi.rootPassword }}
+{{- else if .Values.devpi.existingSecret }}
+  echo Root Password: $(kubectl get secret --namespace {{ .Release.Namespace }} {{ .Values.devpi.existingSecret }} -o jsonpath="{.data.{{ .Values.devpi.secretKeyName }}}" | base64 -d)
+{{- else }}
+  NOTE: No root password configured. Set devpi.rootPassword in values.yaml
+{{- end }}
 
-3. Create a new user:
-   devpi use http://<devpi-url>
-   devpi login <username> --password=<password>
-   devpi index <username>/dev create bases=root/pypi
+3. Using devpi client:
+  # Install client
+  pip install devpi-client
+
+  # Login
+  devpi use http://{{ include "devpi.fullname" . }}.{{ .Release.Namespace }}.svc.cluster.local:{{ .Values.devpi.port }}
+  devpi login root --password=YOUR_PASSWORD
+
+  # Create user and index
+  devpi user -c testuser password=test123
+  devpi index -c dev bases=root/pypi
+
+  # Upload packages
+  devpi use testuser/dev
+  devpi upload
+
+4. Configure pip to use devpi:
+  # Set index URL
+  pip config set global.index-url http://{{ include "devpi.fullname" . }}.{{ .Release.Namespace }}.svc.cluster.local:{{ .Values.devpi.port }}/root/pypi/+simple/
+
+  # Or use environment variable
+  export PIP_INDEX_URL=http://{{ include "devpi.fullname" . }}.{{ .Release.Namespace }}.svc.cluster.local:{{ .Values.devpi.port }}/root/pypi/+simple/
+
+{{- if .Values.postgresql.external.enabled }}
+5. External PostgreSQL database:
+  Host: {{ .Values.postgresql.external.host }}
+  Database: {{ .Values.postgresql.external.database }}
+  NOTE: Devpi will use PostgreSQL for metadata storage instead of SQLite
+{{- else }}
+5. Storage:
+  Devpi is using SQLite for metadata storage (default)
+  Consider using external PostgreSQL for production environments
+{{- end }}
+
+For more information, visit:
+- Devpi Documentation: https://devpi.net/docs/
+- Chart Repository: https://github.com/scriptonbasestar-container/sb-helm-charts

@@ -12,6 +12,11 @@ ScriptonBasestar Helm Charts - Personal server Helm charts focused on simplicity
 - Use simple Docker images where available; create custom images when needed
 - Configuration files should be used as-is, not translated through complex Helm abstractions
 
+**Development Guide:**
+- See [docs/CHART_DEVELOPMENT_GUIDE.md](docs/CHART_DEVELOPMENT_GUIDE.md) for comprehensive chart development patterns and standards
+- All new charts MUST follow the standard structure and patterns defined in the guide
+- Existing charts should be updated to align with these patterns over time
+
 ## Chart Structure
 
 Each chart follows a consistent structure:
