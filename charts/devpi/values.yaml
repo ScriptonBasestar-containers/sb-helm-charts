@@ -2,7 +2,7 @@
 # This is a YAML-formatted file.
 # Declare variables to be passed into your templates.
 
-# 1. Application-specific Configuration Block
+# 1. Application-specific Configuration
 devpi:
   # Devpi server root password (required)
   # This is the password for the root user
@@ -42,7 +42,7 @@ devpi:
   #   - "dev/testing"
   #   - "prod/stable"
 
-# 2. External Dependencies (ALWAYS disabled)
+# 2. External Dependencies
 postgresql:
   enabled: false
   # Devpi can optionally use PostgreSQL instead of SQLite
@@ -70,7 +70,7 @@ persistence:
   reclaimPolicy: Retain
   mountPath: /data
 
-# 4. Kubernetes Resources - Standard Section
+# 4. Kubernetes Resources
 replicaCount: 1
 
 strategy:

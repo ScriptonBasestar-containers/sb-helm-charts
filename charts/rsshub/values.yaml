@@ -2,7 +2,7 @@
 # This is a YAML-formatted file.
 # Declare variables to be passed into your templates.
 
-# 1. Application-specific Configuration Block
+# 1. Application-specific Configuration
 rsshub:
   # Node environment (production or development)
   nodeEnv: "production"
@@ -53,7 +53,7 @@ rsshub:
   # Logging
   logLevel: "info"  # error, warn, info, verbose, debug
 
-# 2. External Dependencies (ALWAYS disabled)
+# 2. External Dependencies
 postgresql:
   enabled: false
 
@@ -63,7 +63,7 @@ mysql:
 redis:
   enabled: false
 
-# 3. Persistence Configuration (optional for cache)
+# 3. Persistence Configuration
 persistence:
   enabled: false
   storageClass: ""
@@ -72,7 +72,7 @@ persistence:
   existingClaim: ""
   mountPath: /app/cache
 
-# 4. Kubernetes Resources - Standard Section
+# 4. Kubernetes Resources
 replicaCount: 1
 
 strategy:

@@ -96,7 +96,7 @@ persistence:
   reclaimPolicy: Retain  # Retain or Delete
   mountPath: /data  # Application-specific
 
-# 4. Kubernetes Resources - Standard Section
+# 4. Kubernetes Resources
 replicaCount: 1
 
 strategy:
