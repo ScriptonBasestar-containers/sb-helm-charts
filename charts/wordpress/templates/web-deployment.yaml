@@ -37,6 +37,39 @@ spec:
         {{- toYaml . | nindent 8 }}
       {{- end }}
       initContainers:
+        # Wait for MySQL database to be ready
+        - name: wait-for-db
+          image: mysql:8.0-debian
+          command:
+            - sh
+            - -c
+            - |
+              until mysqladmin ping -h "$WORDPRESS_DB_HOST" -P "$WORDPRESS_DB_PORT" -u "$WORDPRESS_DB_USER" -p"$WORDPRESS_DB_PASSWORD" --silent; do
+                echo "Waiting for MySQL at $WORDPRESS_DB_HOST:$WORDPRESS_DB_PORT..."
+                sleep 2
+              done
+              echo "MySQL is ready!"
+          env:
+            - name: WORDPRESS_DB_HOST
+              valueFrom:
+                secretKeyRef:
+                  name: {{ if .Values.mysql.external.existingSecret.enabled }}{{ .Values.mysql.external.existingSecret.secretName }}{{ else }}{{ include "wordpress.fullname" . }}-secret{{ end }}
+                  key: {{ if .Values.mysql.external.existingSecret.enabled }}WORDPRESS_DB_HOST{{ else }}WORDPRESS_DB_HOST{{ end }}
+            - name: WORDPRESS_DB_PORT
+              valueFrom:
+                secretKeyRef:
+                  name: {{ if .Values.mysql.external.existingSecret.enabled }}{{ .Values.mysql.external.existingSecret.secretName }}{{ else }}{{ include "wordpress.fullname" . }}-secret{{ end }}
+                  key: {{ if .Values.mysql.external.existingSecret.enabled }}WORDPRESS_DB_PORT{{ else }}WORDPRESS_DB_PORT{{ end }}
+            - name: WORDPRESS_DB_USER
+              valueFrom:
+                secretKeyRef:
+                  name: {{ if .Values.mysql.external.existingSecret.enabled }}{{ .Values.mysql.external.existingSecret.secretName }}{{ else }}{{ include "wordpress.fullname" . }}-secret{{ end }}
+                  key: {{ if .Values.mysql.external.existingSecret.enabled }}{{ .Values.mysql.external.existingSecret.usernameKey }}{{ else }}WORDPRESS_DB_USER{{ end }}
+            - name: WORDPRESS_DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ if .Values.mysql.external.existingSecret.enabled }}{{ .Values.mysql.external.existingSecret.secretName }}{{ else }}{{ include "wordpress.fullname" . }}-secret{{ end }}
+                  key: {{ if .Values.mysql.external.existingSecret.enabled }}{{ .Values.mysql.external.existingSecret.passwordKey }}{{ else }}WORDPRESS_DB_PASSWORD{{ end }}
         # Initialize WordPress
         - name: init-wordpress
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"

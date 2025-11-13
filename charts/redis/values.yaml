@@ -178,19 +178,6 @@ autoscaling:
   targetCPUUtilizationPercentage: 80
 
 # Pod Disruption Budget
-podDisruptionBudget:
-  enabled: false
-  minAvailable: 1
-
-# Network Policy
-networkPolicy:
-  enabled: false
-  ingress:
-    podSelector: {}
-    namespaceSelector: {}
-  egress:
-    extraRules: []
-
 # Monitoring configuration
 monitoring:
   enabled: false

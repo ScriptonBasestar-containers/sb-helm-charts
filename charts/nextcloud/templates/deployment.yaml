@@ -37,6 +37,31 @@ spec:
         {{- toYaml . | nindent 8 }}
       {{- end }}
       initContainers:
+        # Wait for PostgreSQL database to be ready
+        - name: wait-for-db
+          image: postgres:16-alpine
+          command:
+            - sh
+            - -c
+            - |
+              until pg_isready -h {{ .Values.postgresql.external.host }} \
+                               -p {{ .Values.postgresql.external.port }} \
+                               -U "$POSTGRES_USER"; do
+                echo "Waiting for PostgreSQL at {{ .Values.postgresql.external.host }}:{{ .Values.postgresql.external.port }}..."
+                sleep 2
+              done
+              echo "PostgreSQL is ready!"
+          env:
+            - name: POSTGRES_USER
+              valueFrom:
+                secretKeyRef:
+                  name: {{ if .Values.postgresql.external.existingSecret.enabled }}{{ .Values.postgresql.external.existingSecret.secretName }}{{ else }}{{ include "nextcloud.fullname" . }}-secret{{ end }}
+                  key: {{ if .Values.postgresql.external.existingSecret.enabled }}{{ .Values.postgresql.external.existingSecret.usernameKey }}{{ else }}postgres-username{{ end }}
+            - name: PGPASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ if .Values.postgresql.external.existingSecret.enabled }}{{ .Values.postgresql.external.existingSecret.secretName }}{{ else }}{{ include "nextcloud.fullname" . }}-secret{{ end }}
+                  key: {{ if .Values.postgresql.external.existingSecret.enabled }}{{ .Values.postgresql.external.existingSecret.passwordKey }}{{ else }}postgres-password{{ end }}
         # Wait for dependencies and configure Nextcloud
         - name: init-nextcloud
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
