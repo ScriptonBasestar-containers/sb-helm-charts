@@ -8,15 +8,19 @@ spec:
   {{- if not .Values.autoscaling.enabled }}
   replicas: {{ .Values.replicaCount }}
   {{- end }}
+  {{- with .Values.strategy }}
+  strategy:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
   selector:
     matchLabels:
       {{- include "rsshub.selectorLabels" . | nindent 6 }}
   template:
     metadata:
-      {{- with .Values.podAnnotations }}
       annotations:
+        {{- with .Values.podAnnotations }}
         {{- toYaml . | nindent 8 }}
-      {{- end }}
+        {{- end }}
       labels:
         {{- include "rsshub.labels" . | nindent 8 }}
         {{- with .Values.podLabels }}
@@ -28,49 +32,106 @@ spec:
         {{- toYaml . | nindent 8 }}
       {{- end }}
       serviceAccountName: {{ include "rsshub.serviceAccountName" . }}
-      {{- with .Values.podSecurityContext }}
       securityContext:
+        {{- toYaml .Values.podSecurityContext | nindent 8 }}
+      {{- with .Values.initContainers }}
+      initContainers:
         {{- toYaml . | nindent 8 }}
       {{- end }}
       containers:
         - name: {{ .Chart.Name }}
-          {{- with .Values.securityContext }}
           securityContext:
-            {{- toYaml . | nindent 12 }}
-          {{- end }}
+            {{- toYaml .Values.securityContext | nindent 12 }}
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
           imagePullPolicy: {{ .Values.image.pullPolicy }}
           ports:
             - name: http
-              containerPort: {{ .Values.service.appPort }}
+              containerPort: {{ .Values.service.targetPort }}
               protocol: TCP
-            # - name: doc
-            #   containerPort: {{ .Values.service.docPort }}
-            #   protocol: TCP
-          {{- with .Values.livenessProbe }}
+          env:
+            - name: NODE_ENV
+              value: {{ .Values.rsshub.nodeEnv | quote }}
+            - name: CACHE_TYPE
+              value: {{ .Values.rsshub.cache.type | quote }}
+            - name: CACHE_EXPIRE
+              value: {{ .Values.rsshub.cache.expire | quote }}
+            - name: CACHE_CONTENT_EXPIRE
+              value: {{ .Values.rsshub.cache.contentExpire | quote }}
+            {{- if eq .Values.rsshub.cache.type "redis" }}
+            {{- if .Values.rsshub.redis.url }}
+            - name: REDIS_URL
+              value: {{ .Values.rsshub.redis.url | quote }}
+            {{- else }}
+            - name: REDIS_HOST
+              value: {{ .Values.rsshub.redis.host | quote }}
+            - name: REDIS_PORT
+              value: {{ .Values.rsshub.redis.port | quote }}
+            {{- if .Values.rsshub.redis.password }}
+            - name: REDIS_PASSWORD
+              value: {{ .Values.rsshub.redis.password | quote }}
+            {{- end }}
+            - name: REDIS_DB
+              value: {{ .Values.rsshub.redis.db | quote }}
+            {{- end }}
+            {{- end }}
+            - name: UA
+              value: {{ .Values.rsshub.request.userAgent | quote }}
+            - name: TIMEOUT
+              value: {{ .Values.rsshub.request.timeout | quote }}
+            - name: RETRY
+              value: {{ .Values.rsshub.request.retry | quote }}
+            {{- if .Values.rsshub.accessKey }}
+            - name: ACCESS_KEY
+              value: {{ .Values.rsshub.accessKey | quote }}
+            {{- end }}
+            {{- if .Values.rsshub.puppeteer.wsEndpoint }}
+            - name: PUPPETEER_WS_ENDPOINT
+              value: {{ .Values.rsshub.puppeteer.wsEndpoint | quote }}
+            {{- end }}
+            - name: LOGGER_LEVEL
+              value: {{ .Values.rsshub.logLevel | quote }}
+            {{- with .Values.extraEnv }}
+            {{- toYaml . | nindent 12 }}
+            {{- end }}
+          {{- with .Values.extraEnvFrom }}
+          envFrom:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          {{- if .Values.livenessProbe.enabled }}
           livenessProbe:
-            {{- toYaml . | nindent 12 }}
+            {{- omit .Values.livenessProbe "enabled" | toYaml | nindent 12 }}
           {{- end }}
-          {{- with .Values.readinessProbe }}
+          {{- if .Values.readinessProbe.enabled }}
           readinessProbe:
-            {{- toYaml . | nindent 12 }}
+            {{- omit .Values.readinessProbe "enabled" | toYaml | nindent 12 }}
           {{- end }}
-          {{- with .Values.startupProbe }}
+          {{- if .Values.startupProbe.enabled }}
           startupProbe:
-            {{- toYaml . | nindent 12 }}
+            {{- omit .Values.startupProbe "enabled" | toYaml | nindent 12 }}
           {{- end }}
-          {{- with .Values.resources }}
           resources:
-            {{- toYaml . | nindent 12 }}
-          {{- end }}
-          {{- with .Values.volumeMounts }}
+            {{- toYaml .Values.resources | nindent 12 }}
           volumeMounts:
+            {{- if .Values.persistence.enabled }}
+            - name: rsshub-cache
+              mountPath: {{ .Values.persistence.mountPath }}
+            {{- end }}
+            {{- with .Values.extraVolumeMounts }}
+            {{- toYaml . | nindent 12 }}
+            {{- end }}
+          {{- with .Values.lifecycle }}
+          lifecycle:
             {{- toYaml . | nindent 12 }}
           {{- end }}
-      {{- with .Values.volumes }}
       volumes:
+        {{- if .Values.persistence.enabled }}
+        - name: rsshub-cache
+          persistentVolumeClaim:
+            claimName: {{ .Values.persistence.existingClaim | default (include "rsshub.fullname" .) }}
+        {{- end }}
+        {{- with .Values.extraVolumes }}
         {{- toYaml . | nindent 8 }}
-      {{- end }}
+        {{- end }}
       {{- with .Values.nodeSelector }}
       nodeSelector:
         {{- toYaml . | nindent 8 }}

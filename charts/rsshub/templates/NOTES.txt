@@ -10,13 +10,80 @@
   export NODE_IP=$(kubectl get nodes --namespace {{ .Release.Namespace }} -o jsonpath="{.items[0].status.addresses[0].address}")
   echo http://$NODE_IP:$NODE_PORT
 {{- else if contains "LoadBalancer" .Values.service.type }}
-     NOTE: It may take a few minutes for the LoadBalancer IP to be available.
-           You can watch its status by running 'kubectl get --namespace {{ .Release.Namespace }} svc -w {{ include "rsshub.fullname" . }}'
+  NOTE: It may take a few minutes for the LoadBalancer IP to be available.
   export SERVICE_IP=$(kubectl get svc --namespace {{ .Release.Namespace }} {{ include "rsshub.fullname" . }} --template "{{"{{ range (index .status.loadBalancer.ingress 0) }}{{.}}{{ end }}"}}")
-  echo http://$SERVICE_IP:{{ .Values.service.appPort }}
+  echo http://$SERVICE_IP:{{ .Values.service.port }}
 {{- else if contains "ClusterIP" .Values.service.type }}
   export POD_NAME=$(kubectl get pods --namespace {{ .Release.Namespace }} -l "app.kubernetes.io/name={{ include "rsshub.name" . }},app.kubernetes.io/instance={{ .Release.Name }}" -o jsonpath="{.items[0].metadata.name}")
-  export CONTAINER_PORT=$(kubectl get pod --namespace {{ .Release.Namespace }} $POD_NAME -o jsonpath="{.spec.containers[0].ports[0].containerPort}")
-  echo "Visit http://127.0.0.1:8080 to use your application"
-  kubectl --namespace {{ .Release.Namespace }} port-forward $POD_NAME 8080:$CONTAINER_PORT
+  kubectl --namespace {{ .Release.Namespace }} port-forward $POD_NAME 1200:1200
+  echo "Visit http://127.0.0.1:1200"
 {{- end }}
+
+2. Configuration Summary:
+  - Cache type: {{ .Values.rsshub.cache.type }}
+  - Cache expire: {{ .Values.rsshub.cache.expire }}s
+  - Node environment: {{ .Values.rsshub.nodeEnv }}
+  - Log level: {{ .Values.rsshub.logLevel }}
+{{- if .Values.rsshub.accessKey }}
+  - Access key: CONFIGURED (use ?key=YOUR_KEY in requests)
+{{- end }}
+{{- if .Values.rsshub.puppeteer.wsEndpoint }}
+  - Puppeteer endpoint: {{ .Values.rsshub.puppeteer.wsEndpoint }}
+{{- end }}
+
+3. Popular RSS Routes:
+
+  # GitHub user commits
+  http://{{ include "rsshub.fullname" . }}.{{ .Release.Namespace }}.svc.cluster.local:{{ .Values.service.port }}/github/commits/username
+
+  # Reddit subreddit
+  http://{{ include "rsshub.fullname" . }}.{{ .Release.Namespace }}.svc.cluster.local:{{ .Values.service.port }}/reddit/subreddit/kubernetes
+
+  # Twitter user timeline
+  http://{{ include "rsshub.fullname" . }}.{{ .Release.Namespace }}.svc.cluster.local:{{ .Values.service.port }}/twitter/user/username
+
+  # YouTube channel
+  http://{{ include "rsshub.fullname" . }}.{{ .Release.Namespace }}.svc.cluster.local:{{ .Values.service.port }}/youtube/user/@username
+
+  # Hacker News
+  http://{{ include "rsshub.fullname" . }}.{{ .Release.Namespace }}.svc.cluster.local:{{ .Values.service.port }}/hackernews/best
+
+4. Using with RSS Readers:
+
+  # Miniflux
+  Add subscription URL: http://{{ include "rsshub.fullname" . }}.{{ .Release.Namespace }}.svc.cluster.local:{{ .Values.service.port }}/path/to/route
+
+  # FreshRSS
+  Add feed: http://{{ include "rsshub.fullname" . }}.{{ .Release.Namespace }}.svc.cluster.local:{{ .Values.service.port }}/path/to/route
+
+  # Tiny Tiny RSS
+  Subscribe to feed: http://{{ include "rsshub.fullname" . }}.{{ .Release.Namespace }}.svc.cluster.local:{{ .Values.service.port }}/path/to/route
+
+{{- if .Values.rsshub.accessKey }}
+5. Using Access Key:
+
+  All requests must include access key:
+  http://{{ include "rsshub.fullname" . }}.{{ .Release.Namespace }}.svc.cluster.local:{{ .Values.service.port }}/path/to/route?key={{ .Values.rsshub.accessKey }}
+{{- end }}
+
+{{- if eq .Values.rsshub.cache.type "redis" }}
+6. Redis Cache:
+  {{- if .Values.rsshub.redis.url }}
+  Connection URL: {{ .Values.rsshub.redis.url }}
+  {{- else }}
+  Host: {{ .Values.rsshub.redis.host }}
+  Port: {{ .Values.rsshub.redis.port }}
+  Database: {{ .Values.rsshub.redis.db }}
+  {{- end }}
+{{- end }}
+
+{{- if .Values.persistence.enabled }}
+7. Persistent Cache:
+  Mount path: {{ .Values.persistence.mountPath }}
+  Storage size: {{ .Values.persistence.size }}
+{{- end }}
+
+For more information, visit:
+- RSSHub Documentation: https://docs.rsshub.app/
+- Route List: https://docs.rsshub.app/routes/
+- Chart Repository: https://github.com/scriptonbasestar-container/sb-helm-charts

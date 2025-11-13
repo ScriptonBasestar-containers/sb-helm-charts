@@ -4,16 +4,16 @@ metadata:
   name: {{ include "rsshub.fullname" . }}
   labels:
     {{- include "rsshub.labels" . | nindent 4 }}
+  {{- with .Values.service.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
 spec:
   type: {{ .Values.service.type }}
   ports:
-    - port: {{ .Values.service.appPort }}
-      targetPort: http
-      protocol: TCP
-      name: http
-    # - port: {{ .Values.service.docPort }}
-    #   targetPort: doc
-    #   protocol: TCP
-    #   name: doc
+    - name: http
+      port: {{ .Values.service.port }}
+      targetPort: {{ .Values.service.targetPort }}
+      protocol: {{ .Values.service.protocol }}
   selector:
     {{- include "rsshub.selectorLabels" . | nindent 4 }}
