@@ -1,3 +1,7 @@
+================================================================================
+Memcached has been successfully deployed!
+================================================================================
+
 1. Get the application URL by running these commands:
 {{- if contains "NodePort" .Values.service.type }}
   export NODE_PORT=$(kubectl get --namespace {{ .Release.Namespace }} -o jsonpath="{.spec.ports[0].nodePort}" services {{ include "memcached.fullname" . }})
@@ -9,31 +13,131 @@
   export SERVICE_IP=$(kubectl get svc --namespace {{ .Release.Namespace }} {{ include "memcached.fullname" . }} --template "{{"{{ range (index .status.loadBalancer.ingress 0) }}{{.}}{{ end }}"}}")
   echo "Memcached is available at $SERVICE_IP:{{ .Values.service.port }}"
 {{- else if contains "ClusterIP" .Values.service.type }}
+  # Access from within the cluster
+  Service DNS: {{ include "memcached.fullname" . }}.{{ .Release.Namespace }}.svc.cluster.local:{{ .Values.service.port }}
+
+  # Access from local machine (port-forward)
   export POD_NAME=$(kubectl get pods --namespace {{ .Release.Namespace }} -l "app.kubernetes.io/name={{ include "memcached.name" . }},app.kubernetes.io/instance={{ .Release.Name }}" -o jsonpath="{.items[0].metadata.name}")
-  echo "Connect to Memcached by running:"
-  echo "  kubectl --namespace {{ .Release.Namespace }} port-forward $POD_NAME 11211:11211"
-  echo "Then connect to localhost:11211"
+  kubectl --namespace {{ .Release.Namespace }} port-forward $POD_NAME 11211:11211
+  # Then connect to localhost:11211
 {{- end }}
 
-2. Memcached Configuration:
-  - Memory: {{ .Values.memcached.maxMemory }}MB
+2. Current Memcached Configuration:
+  - Memory Limit: {{ .Values.memcached.maxMemory }}MB
   - Max Connections: {{ .Values.memcached.maxConnections }}
   - Chunk Size Growth Factor: {{ .Values.memcached.chunkSizeGrowthFactor }}
   - Min Item Size: {{ .Values.memcached.minItemSize }} bytes
-  - CAS Enabled: {{ .Values.memcached.enableCas }}
-  - Verbosity: {{ .Values.memcached.verbosity }}
+  - CAS (Check and Set): {{ .Values.memcached.enableCas }}
+  - Verbosity Level: {{ .Values.memcached.verbosity }}
 
-3. Test the Memcached connection:
+3. Test Memcached connection:
+
+  # Using netcat (from busybox)
   kubectl run --namespace {{ .Release.Namespace }} memcached-client --rm --tty -i --restart='Never' \
     --image busybox:latest -- \
     sh -c 'echo "stats" | nc {{ include "memcached.fullname" . }} {{ .Values.service.port }}'
 
-4. Alternative: Use the Makefile for operations
+  # Using telnet
+  kubectl run --namespace {{ .Release.Namespace }} memcached-client --rm --tty -i --restart='Never' \
+    --image busybox:latest -- \
+    telnet {{ include "memcached.fullname" . }} {{ .Values.service.port }}
+
+4. Using Memcached with client libraries:
+
+  # Python (pymemcache)
+  from pymemcache.client.base import Client
+
+  client = Client(('{{ include "memcached.fullname" . }}.{{ .Release.Namespace }}.svc.cluster.local', {{ .Values.service.port }}))
+  client.set('key', 'value')
+  result = client.get('key')
+  print(result)  # b'value'
+
+  # Node.js (memjs)
+  const memjs = require('memjs');
+  const client = memjs.Client.create('{{ include "memcached.fullname" . }}.{{ .Release.Namespace }}.svc.cluster.local:{{ .Values.service.port }}');
+
+  client.set('key', 'value', {}, (err, val) => {
+    client.get('key', (err, val) => {
+      console.log(val.toString());  // 'value'
+    });
+  });
+
+  # Go (gomemcache)
+  import "github.com/bradfitz/gomemcache/memcache"
+
+  mc := memcache.New("{{ include "memcached.fullname" . }}.{{ .Release.Namespace }}.svc.cluster.local:{{ .Values.service.port }}")
+  mc.Set(&memcache.Item{Key: "key", Value: []byte("value")})
+  it, _ := mc.Get("key")
+  fmt.Println(string(it.Value))  // "value"
+
+  # Java (spymemcached)
+  import net.spy.memcached.MemcachedClient;
+
+  MemcachedClient c = new MemcachedClient(
+    new InetSocketAddress("{{ include "memcached.fullname" . }}.{{ .Release.Namespace }}.svc.cluster.local", {{ .Values.service.port }})
+  );
+  c.set("key", 3600, "value");
+  Object value = c.get("key");
+
+5. Common Memcached commands:
+
+  # Get statistics
+  echo "stats" | nc {{ include "memcached.fullname" . }} {{ .Values.service.port }}
+
+  # Get items statistics
+  echo "stats items" | nc {{ include "memcached.fullname" . }} {{ .Values.service.port }}
+
+  # Get slabs statistics
+  echo "stats slabs" | nc {{ include "memcached.fullname" . }} {{ .Values.service.port }}
+
+  # Get settings
+  echo "stats settings" | nc {{ include "memcached.fullname" . }} {{ .Values.service.port }}
+
+  # Set a key
+  printf "set mykey 0 3600 5\r\nhello\r\n" | nc {{ include "memcached.fullname" . }} {{ .Values.service.port }}
+
+  # Get a key
+  printf "get mykey\r\n" | nc {{ include "memcached.fullname" . }} {{ .Values.service.port }}
+
+  # Delete a key
+  printf "delete mykey\r\n" | nc {{ include "memcached.fullname" . }} {{ .Values.service.port }}
+
+  # Flush all data (WARNING: clears all cached data)
+  printf "flush_all\r\n" | nc {{ include "memcached.fullname" . }} {{ .Values.service.port }}
+
+6. Using Makefile for operations:
+
+  # Show statistics
   make -f Makefile.memcached.mk mc-stats
+
+  # Show version
+  make -f Makefile.memcached.mk mc-version
+
+  # Show settings
+  make -f Makefile.memcached.mk mc-settings
+
+  # Flush all data (WARNING: clears all cached data)
+  make -f Makefile.memcached.mk mc-flush
+
+  # Port forward to local machine
   make -f Makefile.memcached.mk mc-port-forward
 
+  # View logs
+  make -f Makefile.memcached.mk mc-logs
+
+  # Open shell in pod
+  make -f Makefile.memcached.mk mc-shell
+
+{{- if .Values.metrics.enabled }}
+7. Metrics Exporter is enabled:
+  - Prometheus metrics available at: http://{{ include "memcached.fullname" . }}.{{ .Release.Namespace }}.svc.cluster.local:{{ .Values.metrics.port }}/metrics
+  - Port forward to access metrics locally:
+    kubectl --namespace {{ .Release.Namespace }} port-forward svc/{{ include "memcached.fullname" . }} {{ .Values.metrics.port }}:{{ .Values.metrics.port }}
+    # Then access http://localhost:{{ .Values.metrics.port }}/metrics
+{{- end }}
+
 {{- if .Values.autoscaling.enabled }}
-5. Horizontal Pod Autoscaler is enabled:
+8. Horizontal Pod Autoscaler is enabled:
   - Min Replicas: {{ .Values.autoscaling.minReplicas }}
   - Max Replicas: {{ .Values.autoscaling.maxReplicas }}
   {{- if .Values.autoscaling.targetCPUUtilizationPercentage }}
@@ -42,10 +146,26 @@
   {{- if .Values.autoscaling.targetMemoryUtilizationPercentage }}
   - Target Memory Utilization: {{ .Values.autoscaling.targetMemoryUtilizationPercentage }}%
   {{- end }}
+
+  # Check HPA status
+  kubectl get hpa {{ include "memcached.fullname" . }} --namespace {{ .Release.Namespace }}
 {{- end }}
 
 {{- if .Values.serviceMonitor.enabled }}
-6. ServiceMonitor is enabled for Prometheus Operator:
+9. ServiceMonitor is enabled for Prometheus Operator:
   - Scrape interval: {{ .Values.serviceMonitor.interval }}
   - Scrape timeout: {{ .Values.serviceMonitor.scrapeTimeout }}
+  - Metrics will be automatically scraped by Prometheus
 {{- end }}
+
+{{- if .Values.podDisruptionBudget.enabled }}
+10. Pod Disruption Budget is enabled:
+  - Ensures high availability during cluster maintenance
+  - Min Available Pods: {{ .Values.podDisruptionBudget.minAvailable }}
+{{- end }}
+
+================================================================================
+For more information, visit:
+  - Memcached Documentation: https://github.com/memcached/memcached/wiki
+  - Chart Repository: https://github.com/scriptonbasestar-container/sb-helm-charts
+================================================================================

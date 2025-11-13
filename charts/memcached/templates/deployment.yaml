@@ -8,6 +8,10 @@ spec:
   {{- if not .Values.autoscaling.enabled }}
   replicas: {{ .Values.replicaCount }}
   {{- end }}
+  {{- with .Values.strategy }}
+  strategy:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
   selector:
     matchLabels:
       {{- include "memcached.selectorLabels" . | nindent 6 }}
@@ -31,6 +35,10 @@ spec:
       serviceAccountName: {{ include "memcached.serviceAccountName" . }}
       securityContext:
         {{- toYaml .Values.podSecurityContext | nindent 8 }}
+      {{- with .Values.initContainers }}
+      initContainers:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
       containers:
       - name: {{ .Chart.Name }}
         securityContext:
@@ -101,12 +109,43 @@ spec:
         env:
           {{- toYaml . | nindent 12 }}
         {{- end }}
+        {{- with .Values.extraEnvFrom }}
+        envFrom:
+          {{- toYaml . | nindent 12 }}
+        {{- end }}
+        {{- with .Values.lifecycle }}
+        lifecycle:
+          {{- toYaml . | nindent 12 }}
+        {{- end }}
         volumeMounts:
         - name: tmp
           mountPath: /tmp
         {{- with .Values.extraVolumeMounts }}
         {{- toYaml . | nindent 12 }}
         {{- end }}
+      {{- if .Values.metrics.enabled }}
+      # Memcached Exporter sidecar for Prometheus metrics
+      - name: metrics
+        image: "{{ .Values.metrics.image.repository }}:{{ .Values.metrics.image.tag }}"
+        imagePullPolicy: {{ .Values.metrics.image.pullPolicy }}
+        args:
+          - "--memcached.address=localhost:11211"
+          - "--web.listen-address=:{{ .Values.metrics.port }}"
+        ports:
+          - name: metrics
+            containerPort: {{ .Values.metrics.port }}
+            protocol: TCP
+        resources:
+          {{- toYaml .Values.metrics.resources | nindent 12 }}
+        securityContext:
+          capabilities:
+            drop:
+              - ALL
+          readOnlyRootFilesystem: true
+          runAsNonRoot: true
+          runAsUser: 65534
+          allowPrivilegeEscalation: false
+      {{- end }}
       volumes:
       - name: tmp
         emptyDir: {}

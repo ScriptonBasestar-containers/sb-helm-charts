@@ -2,6 +2,56 @@
 # This is a YAML-formatted file.
 # Declare variables to be passed into your templates.
 
+# ==============================================================================
+# Section 1: Memcached-specific Configuration
+# ==============================================================================
+
+memcached:
+  # Maximum memory to use for object storage (in megabytes)
+  maxMemory: 256
+
+  # Maximum number of simultaneous connections
+  maxConnections: 1024
+
+  # Chunk size growth factor
+  # Default 1.25 means slab sizes grow by 25% each time
+  chunkSizeGrowthFactor: 1.25
+
+  # Minimum space allocated for key+value+flags (in bytes)
+  minItemSize: 48
+
+  # Enable or disable CAS (Check and Set) operations
+  # CAS provides optimistic locking for cache updates
+  enableCas: true
+
+  # Verbose logging (0=disabled, 1=enabled, 2=very verbose, 3=extremely verbose)
+  verbosity: 0
+
+  # Additional command-line arguments
+  # Examples:
+  #  - "-o modern"              # Enable modern memory allocator
+  #  - "-o hashpower=20"        # Set hash table size (2^20 buckets)
+  #  - "-o tail_repair_time=0"  # Disable tail repair for performance
+  extraArgs: []
+
+# ==============================================================================
+# Section 2: External Dependencies
+# ==============================================================================
+
+# Memcached is standalone - no external dependencies required
+
+# ==============================================================================
+# Section 3: Persistence Configuration
+# ==============================================================================
+
+# Memcached is in-memory only - no persistence required
+persistence:
+  enabled: false
+
+# ==============================================================================
+# Section 4: Kubernetes Resources - Standard Section
+# ==============================================================================
+
 replicaCount: 1
 
 image:
@@ -15,6 +65,17 @@ imagePullSecrets: []
 nameOverride: ""
 fullnameOverride: ""
 
+# Deployment strategy
+strategy:
+  type: RollingUpdate
+  rollingUpdate:
+    maxUnavailable: 0
+    maxSurge: 1
+
+# ==============================================================================
+# Section 5: Service Account
+# ==============================================================================
+
 serviceAccount:
   # Specifies whether a service account should be created
   create: true
@@ -26,25 +87,49 @@ serviceAccount:
   # If not set and create is true, a name is generated using the fullname template
   name: ""
 
+# ==============================================================================
+# Section 6: Pod Configuration
+# ==============================================================================
+
 podAnnotations: {}
 podLabels: {}
 
 podSecurityContext:
   fsGroup: 11211
   runAsUser: 11211
+  runAsGroup: 11211
   runAsNonRoot: true
 
 securityContext:
   capabilities:
     drop:
-    - ALL
+      - ALL
   readOnlyRootFilesystem: true
+  runAsNonRoot: true
+  runAsUser: 11211
+  runAsGroup: 11211
   allowPrivilegeEscalation: false
+
+# ==============================================================================
+# Section 7: Service Configuration
+# ==============================================================================
 
 service:
   type: ClusterIP
   port: 11211
   annotations: {}
+
+# ==============================================================================
+# Section 8: Ingress Configuration
+# ==============================================================================
+
+# Memcached uses binary protocol - ingress not applicable
+ingress:
+  enabled: false
+
+# ==============================================================================
+# Section 9: Resources
+# ==============================================================================
 
 resources:
   limits:
@@ -53,6 +138,10 @@ resources:
   requests:
     cpu: 100m
     memory: 128Mi
+
+# ==============================================================================
+# Section 10: Health Probes
+# ==============================================================================
 
 livenessProbe:
   enabled: true
@@ -85,54 +174,9 @@ startupProbe:
   failureThreshold: 10
   successThreshold: 1
 
-# Memcached configuration
-memcached:
-  # Maximum memory to use for object storage (in megabytes)
-  maxMemory: 256
-  # Maximum number of simultaneous connections
-  maxConnections: 1024
-  # Chunk size growth factor
-  chunkSizeGrowthFactor: 1.25
-  # Minimum space allocated for key+value+flags
-  minItemSize: 48
-  # Enable or disable CAS (Check and Set) operations
-  enableCas: true
-  # Verbose logging (0=disabled, 1=enabled, 2=very verbose)
-  verbosity: 0
-  # Additional command-line arguments
-  extraArgs: []
-  #  - "-o modern"
-  #  - "-o hashpower=20"
-
-# Additional environment variables
-extraEnv: []
-#  - name: EXAMPLE_ENV
-#    value: "example-value"
-
-# Additional volumes
-extraVolumes: []
-#  - name: tmp
-#    emptyDir: {}
-
-# Additional volume mounts
-extraVolumeMounts: []
-#  - name: tmp
-#    mountPath: /tmp
-
-# Node selector for pod assignment
-nodeSelector: {}
-
-# Tolerations for pod assignment
-tolerations: []
-
-# Affinity for pod assignment
-affinity: {}
-
-# PodDisruptionBudget
-podDisruptionBudget:
-  enabled: false
-  minAvailable: 1
-  # maxUnavailable: 1
+# ==============================================================================
+# Section 11: Autoscaling
+# ==============================================================================
 
 # HorizontalPodAutoscaler
 autoscaling:
@@ -142,19 +186,40 @@ autoscaling:
   targetCPUUtilizationPercentage: 80
   targetMemoryUtilizationPercentage: 80
 
-# NetworkPolicy
+# ==============================================================================
+# Section 12: Pod Disruption Budget
+# ==============================================================================
+
+# Ensures minimum availability during voluntary disruptions
+podDisruptionBudget:
+  enabled: false
+  minAvailable: 1
+  # maxUnavailable: 1
+
+# ==============================================================================
+# Section 13: Network Policy
+# ==============================================================================
+
+# NetworkPolicy to restrict network access
 networkPolicy:
   enabled: false
-  # Ingress rules
+  # Ingress rules - allow from any pod by default
   ingress:
     - from:
-      - podSelector: {}
-  # Egress rules
-  egress:
-    - to:
-      - podSelector: {}
+        - podSelector: {}
+      ports:
+        - protocol: TCP
+          port: 11211
+  # Egress rules - typically memcached doesn't need egress
+  egress: []
+
+# ==============================================================================
+# Section 14: Monitoring
+# ==============================================================================
 
 # ServiceMonitor for Prometheus Operator
+# Note: Standard memcached doesn't expose metrics
+# Consider using memcached-exporter sidecar for production monitoring
 serviceMonitor:
   enabled: false
   # Namespace for ServiceMonitor (defaults to release namespace)
@@ -165,3 +230,79 @@ serviceMonitor:
   scrapeTimeout: 10s
   # Additional labels for ServiceMonitor
   labels: {}
+
+# Memcached Exporter sidecar for Prometheus metrics
+# See: https://github.com/prometheus/memcached_exporter
+metrics:
+  enabled: false
+  image:
+    repository: prom/memcached-exporter
+    tag: v0.14.4
+    pullPolicy: IfNotPresent
+  resources:
+    limits:
+      cpu: 100m
+      memory: 128Mi
+    requests:
+      cpu: 50m
+      memory: 64Mi
+  port: 9150
+
+# ==============================================================================
+# Section 15: Scheduling
+# ==============================================================================
+
+# Node selector for pod assignment
+nodeSelector: {}
+
+# Tolerations for pod assignment
+tolerations: []
+
+# Affinity for pod assignment
+affinity: {}
+# Example anti-affinity for HA:
+# affinity:
+#   podAntiAffinity:
+#     preferredDuringSchedulingIgnoredDuringExecution:
+#       - weight: 100
+#         podAffinityTerm:
+#           labelSelector:
+#             matchExpressions:
+#               - key: app.kubernetes.io/name
+#                 operator: In
+#                 values:
+#                   - memcached
+#           topologyKey: kubernetes.io/hostname
+
+# ==============================================================================
+# Section 16: Extensibility
+# ==============================================================================
+
+# Additional environment variables
+extraEnv: []
+#  - name: EXAMPLE_ENV
+#    value: "example-value"
+
+# Additional environment variables from ConfigMap or Secret
+extraEnvFrom: []
+
+# Additional volumes
+extraVolumes: []
+#  - name: cache-socket
+#    emptyDir: {}
+
+# Additional volume mounts
+extraVolumeMounts: []
+#  - name: cache-socket
+#    mountPath: /var/run/memcached
+
+# Init containers
+initContainers: []
+
+# Lifecycle hooks
+lifecycle: {}
+# Example:
+# lifecycle:
+#   preStop:
+#     exec:
+#       command: ["/bin/sh", "-c", "sleep 5"]
