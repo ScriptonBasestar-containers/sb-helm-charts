@@ -15,5 +15,11 @@ spec:
     targetPort: memcached
     protocol: TCP
     name: memcached
+  {{- if .Values.metrics.enabled }}
+  - port: {{ .Values.metrics.port }}
+    targetPort: metrics
+    protocol: TCP
+    name: metrics
+  {{- end }}
   selector:
     {{- include "memcached.selectorLabels" . | nindent 4 }}

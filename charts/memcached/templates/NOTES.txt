@@ -151,10 +151,10 @@ Memcached has been successfully deployed!
   kubectl get hpa {{ include "memcached.fullname" . }} --namespace {{ .Release.Namespace }}
 {{- end }}
 
-{{- if .Values.serviceMonitor.enabled }}
+{{- if and .Values.monitoring.enabled .Values.monitoring.serviceMonitor.enabled }}
 9. ServiceMonitor is enabled for Prometheus Operator:
-  - Scrape interval: {{ .Values.serviceMonitor.interval }}
-  - Scrape timeout: {{ .Values.serviceMonitor.scrapeTimeout }}
+  - Scrape interval: {{ .Values.monitoring.serviceMonitor.interval }}
+  - Scrape timeout: {{ .Values.monitoring.serviceMonitor.scrapeTimeout }}
   - Metrics will be automatically scraped by Prometheus
 {{- end }}
 

@@ -2,9 +2,7 @@
 # This is a YAML-formatted file.
 # Declare variables to be passed into your templates.
 
-# ==============================================================================
-# Section 1: Memcached-specific Configuration
-# ==============================================================================
+# 1. Application-specific Configuration
 
 memcached:
   # Maximum memory to use for object storage (in megabytes)
@@ -34,23 +32,16 @@ memcached:
   #  - "-o tail_repair_time=0"  # Disable tail repair for performance
   extraArgs: []
 
-# ==============================================================================
-# Section 2: External Dependencies
-# ==============================================================================
-
+# 2. External Dependencies
 # Memcached is standalone - no external dependencies required
 
-# ==============================================================================
-# Section 3: Persistence Configuration
-# ==============================================================================
+# 3. Persistence Configuration
 
 # Memcached is in-memory only - no persistence required
 persistence:
   enabled: false
 
-# ==============================================================================
-# Section 4: Kubernetes Resources - Standard Section
-# ==============================================================================
+# 4. Kubernetes Resources
 
 replicaCount: 1
 
@@ -72,9 +63,7 @@ strategy:
     maxUnavailable: 0
     maxSurge: 1
 
-# ==============================================================================
-# Section 5: Service Account
-# ==============================================================================
+# 5. Service Account
 
 serviceAccount:
   # Specifies whether a service account should be created
@@ -87,9 +76,7 @@ serviceAccount:
   # If not set and create is true, a name is generated using the fullname template
   name: ""
 
-# ==============================================================================
-# Section 6: Pod Configuration
-# ==============================================================================
+# 6. Pod Configuration
 
 podAnnotations: {}
 podLabels: {}
@@ -110,26 +97,19 @@ securityContext:
   runAsGroup: 11211
   allowPrivilegeEscalation: false
 
-# ==============================================================================
-# Section 7: Service Configuration
-# ==============================================================================
+# 7. Service Configuration
 
 service:
   type: ClusterIP
   port: 11211
   annotations: {}
 
-# ==============================================================================
-# Section 8: Ingress Configuration
-# ==============================================================================
-
+# 8. Ingress Configuration
 # Memcached uses binary protocol - ingress not applicable
 ingress:
   enabled: false
 
-# ==============================================================================
-# Section 9: Resources
-# ==============================================================================
+# 9. Resources
 
 resources:
   limits:
@@ -139,9 +119,7 @@ resources:
     cpu: 100m
     memory: 128Mi
 
-# ==============================================================================
-# Section 10: Health Probes
-# ==============================================================================
+# 10. Health Probes
 
 livenessProbe:
   enabled: true
@@ -158,7 +136,7 @@ readinessProbe:
   tcpSocket:
     port: 11211
   initialDelaySeconds: 5
-  periodSeconds: 5
+  periodSeconds: 10
   timeoutSeconds: 3
   failureThreshold: 3
   successThreshold: 1
@@ -174,9 +152,7 @@ startupProbe:
   failureThreshold: 10
   successThreshold: 1
 
-# ==============================================================================
-# Section 11: Autoscaling
-# ==============================================================================
+# 11. Autoscaling
 
 # HorizontalPodAutoscaler
 autoscaling:
@@ -186,9 +162,7 @@ autoscaling:
   targetCPUUtilizationPercentage: 80
   targetMemoryUtilizationPercentage: 80
 
-# ==============================================================================
-# Section 12: Pod Disruption Budget
-# ==============================================================================
+# 12. Pod Disruption Budget
 
 # Ensures minimum availability during voluntary disruptions
 podDisruptionBudget:
@@ -196,9 +170,7 @@ podDisruptionBudget:
   minAvailable: 1
   # maxUnavailable: 1
 
-# ==============================================================================
-# Section 13: Network Policy
-# ==============================================================================
+# 13. Network Policy
 
 # NetworkPolicy to restrict network access
 networkPolicy:
@@ -213,23 +185,23 @@ networkPolicy:
   # Egress rules - typically memcached doesn't need egress
   egress: []
 
-# ==============================================================================
-# Section 14: Monitoring
-# ==============================================================================
+# 14. Monitoring
 
-# ServiceMonitor for Prometheus Operator
-# Note: Standard memcached doesn't expose metrics
-# Consider using memcached-exporter sidecar for production monitoring
-serviceMonitor:
+monitoring:
   enabled: false
-  # Namespace for ServiceMonitor (defaults to release namespace)
-  namespace: ""
-  # Interval at which metrics should be scraped
-  interval: 30s
-  # Timeout after which the scrape is ended
-  scrapeTimeout: 10s
-  # Additional labels for ServiceMonitor
-  labels: {}
+  # ServiceMonitor for Prometheus Operator
+  # Note: Standard memcached doesn't expose metrics
+  # Consider using memcached-exporter sidecar for production monitoring
+  serviceMonitor:
+    enabled: false
+    # Namespace for ServiceMonitor (defaults to release namespace)
+    namespace: ""
+    # Interval at which metrics should be scraped
+    interval: 30s
+    # Timeout after which the scrape is ended
+    scrapeTimeout: 10s
+    # Additional labels for ServiceMonitor
+    labels: {}
 
 # Memcached Exporter sidecar for Prometheus metrics
 # See: https://github.com/prometheus/memcached_exporter
@@ -248,9 +220,7 @@ metrics:
       memory: 64Mi
   port: 9150
 
-# ==============================================================================
-# Section 15: Scheduling
-# ==============================================================================
+# 15. Scheduling
 
 # Node selector for pod assignment
 nodeSelector: {}
@@ -274,9 +244,7 @@ affinity: {}
 #                   - memcached
 #           topologyKey: kubernetes.io/hostname
 
-# ==============================================================================
-# Section 16: Extensibility
-# ==============================================================================
+# 16. Extensibility
 
 # Additional environment variables
 extraEnv: []

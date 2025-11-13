@@ -201,9 +201,9 @@ startupProbe:
     path: /health
     port: http
   initialDelaySeconds: 10
-  periodSeconds: 10
+  periodSeconds: 5  # 5초로 변경 - 빠른 시작 감지
   timeoutSeconds: 5
-  failureThreshold: 30
+  failureThreshold: 30  # 총 150초 (5초 * 30회) 대기
   successThreshold: 1
 
 # 11. Autoscaling

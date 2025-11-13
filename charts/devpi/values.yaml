@@ -102,6 +102,7 @@ podLabels: {}
 podSecurityContext:
   fsGroup: 1000
   runAsUser: 1000
+  runAsGroup: 1000
   runAsNonRoot: true
 
 securityContext:
@@ -111,6 +112,7 @@ securityContext:
   readOnlyRootFilesystem: false  # Devpi needs to write to /tmp
   runAsNonRoot: true
   runAsUser: 1000
+  runAsGroup: 1000
   allowPrivilegeEscalation: false
 
 # 7. Service Configuration
