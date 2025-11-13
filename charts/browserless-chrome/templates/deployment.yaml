@@ -8,15 +8,19 @@ spec:
   {{- if not .Values.autoscaling.enabled }}
   replicas: {{ .Values.replicaCount }}
   {{- end }}
+  {{- with .Values.strategy }}
+  strategy:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
   selector:
     matchLabels:
       {{- include "browserless-chrome.selectorLabels" . | nindent 6 }}
   template:
     metadata:
-      {{- with .Values.podAnnotations }}
       annotations:
+        {{- with .Values.podAnnotations }}
         {{- toYaml . | nindent 8 }}
-      {{- end }}
+        {{- end }}
       labels:
         {{- include "browserless-chrome.labels" . | nindent 8 }}
         {{- with .Values.podLabels }}
@@ -28,46 +32,86 @@ spec:
         {{- toYaml . | nindent 8 }}
       {{- end }}
       serviceAccountName: {{ include "browserless-chrome.serviceAccountName" . }}
-      {{- with .Values.podSecurityContext }}
       securityContext:
+        {{- toYaml .Values.podSecurityContext | nindent 8 }}
+      {{- with .Values.initContainers }}
+      initContainers:
         {{- toYaml . | nindent 8 }}
       {{- end }}
       containers:
         - name: {{ .Chart.Name }}
-          {{- with .Values.securityContext }}
           securityContext:
-            {{- toYaml . | nindent 12 }}
-          {{- end }}
+            {{- toYaml .Values.securityContext | nindent 12 }}
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
           imagePullPolicy: {{ .Values.image.pullPolicy }}
           ports:
             - name: http
-              containerPort: {{ .Values.service.port }}
+              containerPort: {{ .Values.service.targetPort }}
               protocol: TCP
-          {{- with .Values.livenessProbe }}
+          env:
+            - name: CONCURRENT
+              value: {{ .Values.browserless.concurrent | quote }}
+            {{- if or .Values.browserless.token .Values.browserless.existingSecret }}
+            - name: TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.browserless.existingSecret | default (include "browserless-chrome.fullname" .) }}
+                  key: {{ .Values.browserless.secretKeyName }}
+            {{- end }}
+            - name: CONNECTION_TIMEOUT
+              value: {{ .Values.browserless.connectionTimeout | quote }}
+            - name: MAX_QUEUE_LENGTH
+              value: {{ .Values.browserless.maxQueueLength | quote }}
+            {{- if .Values.browserless.debug }}
+            - name: DEBUG
+              value: "*"
+            {{- end }}
+            {{- if .Values.browserless.demoMode }}
+            - name: DEMO_MODE
+              value: "true"
+            {{- end }}
+            {{- with .Values.extraEnv }}
+            {{- toYaml . | nindent 12 }}
+            {{- end }}
+          {{- with .Values.extraEnvFrom }}
+          envFrom:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          {{- if .Values.livenessProbe.enabled }}
           livenessProbe:
-            {{- toYaml . | nindent 12 }}
+            {{- omit .Values.livenessProbe "enabled" | toYaml | nindent 12 }}
           {{- end }}
-          {{- with .Values.readinessProbe }}
+          {{- if .Values.readinessProbe.enabled }}
           readinessProbe:
-            {{- toYaml . | nindent 12 }}
+            {{- omit .Values.readinessProbe "enabled" | toYaml | nindent 12 }}
           {{- end }}
-          {{- with .Values.startupProbe }}
+          {{- if .Values.startupProbe.enabled }}
           startupProbe:
-            {{- toYaml . | nindent 12 }}
+            {{- omit .Values.startupProbe "enabled" | toYaml | nindent 12 }}
           {{- end }}
-          {{- with .Values.resources }}
           resources:
-            {{- toYaml . | nindent 12 }}
-          {{- end }}
-          {{- with .Values.volumeMounts }}
+            {{- toYaml .Values.resources | nindent 12 }}
           volumeMounts:
+            {{- if .Values.persistence.enabled }}
+            - name: browserless-data
+              mountPath: {{ .Values.persistence.mountPath }}
+            {{- end }}
+            {{- with .Values.extraVolumeMounts }}
+            {{- toYaml . | nindent 12 }}
+            {{- end }}
+          {{- with .Values.lifecycle }}
+          lifecycle:
             {{- toYaml . | nindent 12 }}
           {{- end }}
-      {{- with .Values.volumes }}
       volumes:
+        {{- if .Values.persistence.enabled }}
+        - name: browserless-data
+          persistentVolumeClaim:
+            claimName: {{ .Values.persistence.existingClaim | default (include "browserless-chrome.fullname" .) }}
+        {{- end }}
+        {{- with .Values.extraVolumes }}
         {{- toYaml . | nindent 8 }}
-      {{- end }}
+        {{- end }}
       {{- with .Values.nodeSelector }}
       nodeSelector:
         {{- toYaml . | nindent 8 }}

@@ -10,13 +10,88 @@
   export NODE_IP=$(kubectl get nodes --namespace {{ .Release.Namespace }} -o jsonpath="{.items[0].status.addresses[0].address}")
   echo http://$NODE_IP:$NODE_PORT
 {{- else if contains "LoadBalancer" .Values.service.type }}
-     NOTE: It may take a few minutes for the LoadBalancer IP to be available.
-           You can watch its status by running 'kubectl get --namespace {{ .Release.Namespace }} svc -w {{ include "browserless-chrome.fullname" . }}'
+  NOTE: It may take a few minutes for the LoadBalancer IP to be available.
   export SERVICE_IP=$(kubectl get svc --namespace {{ .Release.Namespace }} {{ include "browserless-chrome.fullname" . }} --template "{{"{{ range (index .status.loadBalancer.ingress 0) }}{{.}}{{ end }}"}}")
   echo http://$SERVICE_IP:{{ .Values.service.port }}
 {{- else if contains "ClusterIP" .Values.service.type }}
   export POD_NAME=$(kubectl get pods --namespace {{ .Release.Namespace }} -l "app.kubernetes.io/name={{ include "browserless-chrome.name" . }},app.kubernetes.io/instance={{ .Release.Name }}" -o jsonpath="{.items[0].metadata.name}")
-  export CONTAINER_PORT=$(kubectl get pod --namespace {{ .Release.Namespace }} $POD_NAME -o jsonpath="{.spec.containers[0].ports[0].containerPort}")
-  echo "Visit http://127.0.0.1:8080 to use your application"
-  kubectl --namespace {{ .Release.Namespace }} port-forward $POD_NAME 8080:$CONTAINER_PORT
+  kubectl --namespace {{ .Release.Namespace }} port-forward $POD_NAME 3000:3000
+  echo "Visit http://127.0.0.1:3000"
 {{- end }}
+
+2. Get the API token:
+{{- if .Values.browserless.token }}
+  echo Token: {{ .Values.browserless.token }}
+{{- else if .Values.browserless.existingSecret }}
+  echo Token: $(kubectl get secret --namespace {{ .Release.Namespace }} {{ .Values.browserless.existingSecret }} -o jsonpath="{.data.{{ .Values.browserless.secretKeyName }}}" | base64 -d)
+{{- else }}
+  NOTE: No token configured. Set browserless.token in values.yaml for production use.
+{{- end }}
+
+3. Using browserless with Puppeteer:
+
+  # JavaScript/Node.js example
+  const puppeteer = require('puppeteer-core');
+
+  const browser = await puppeteer.connect({
+    browserWSEndpoint: 'ws://{{ include "browserless-chrome.fullname" . }}.{{ .Release.Namespace }}.svc.cluster.local:{{ .Values.service.port }}?token=YOUR_TOKEN'
+  });
+
+  const page = await browser.newPage();
+  await page.goto('https://example.com');
+  const screenshot = await page.screenshot();
+  await browser.close();
+
+4. Using browserless with Playwright:
+
+  # Python example
+  from playwright.sync_api import sync_playwright
+
+  with sync_playwright() as p:
+      browser = p.chromium.connect_over_cdp(
+          'ws://{{ include "browserless-chrome.fullname" . }}.{{ .Release.Namespace }}.svc.cluster.local:{{ .Values.service.port }}?token=YOUR_TOKEN'
+      )
+      page = browser.new_page()
+      page.goto('https://example.com')
+      page.screenshot(path='screenshot.png')
+      browser.close()
+
+5. REST API Examples:
+
+  # Screenshot endpoint
+  curl -X POST \
+    http://{{ include "browserless-chrome.fullname" . }}.{{ .Release.Namespace }}.svc.cluster.local:{{ .Values.service.port }}/screenshot?token=YOUR_TOKEN \
+    -H 'Content-Type: application/json' \
+    -d '{"url": "https://example.com"}' \
+    --output screenshot.png
+
+  # PDF generation
+  curl -X POST \
+    http://{{ include "browserless-chrome.fullname" . }}.{{ .Release.Namespace }}.svc.cluster.local:{{ .Values.service.port }}/pdf?token=YOUR_TOKEN \
+    -H 'Content-Type: application/json' \
+    -d '{"url": "https://example.com"}' \
+    --output page.pdf
+
+  # HTML content
+  curl -X POST \
+    http://{{ include "browserless-chrome.fullname" . }}.{{ .Release.Namespace }}.svc.cluster.local:{{ .Values.service.port }}/content?token=YOUR_TOKEN \
+    -H 'Content-Type: application/json' \
+    -d '{"url": "https://example.com"}'
+
+6. Configuration:
+  - Concurrent sessions: {{ .Values.browserless.concurrent }}
+  - Connection timeout: {{ .Values.browserless.connectionTimeout }}ms
+  - Max queue length: {{ .Values.browserless.maxQueueLength }}
+{{- if .Values.browserless.demoMode }}
+  - Demo mode: ENABLED (UI accessible without token)
+{{- end }}
+
+{{- if .Values.persistence.enabled }}
+7. Persistent storage:
+  Mount path: {{ .Values.persistence.mountPath }}
+  Storage size: {{ .Values.persistence.size }}
+{{- end }}
+
+For more information, visit:
+- Browserless Documentation: https://docs.browserless.io/
+- Chart Repository: https://github.com/scriptonbasestar-container/sb-helm-charts
