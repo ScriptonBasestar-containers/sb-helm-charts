@@ -5,6 +5,10 @@ KUBECTL ?= kubectl
 KIND_CLUSTER_NAME ?= sb-helm-charts
 KIND_CONFIG ?= kind-config.yaml
 
+# Kubernetes 운영 변수
+NAMESPACE ?= default
+RELEASE_NAME ?= $(CHART_NAME)
+
 # 차트 관련 변수 (각 차트별 Makefile에서 재정의)
 CHART_NAME ?= $(error CHART_NAME is not set)
 CHART_DIR ?= charts/$(CHART_NAME)
