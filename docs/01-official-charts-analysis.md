@@ -109,7 +109,35 @@
 
 ---
 
-### 1.7 기타 복잡한 분산 시스템
+### 1.7 Object Storage (오브젝트 스토리지)
+
+| 소프트웨어 | 차트 저장소 | 판단 | 권장 이유 |
+|-----------|------------|------|----------|
+| **MinIO** | [MinIO Official](https://github.com/minio/minio/tree/master/helm/minio) | ⚖️ 상황 판단 | ✅ 공식 차트, 엔터프라이즈 지원<br>✅ 안정적인 프로덕션 사용<br>⚠️ 라이센스 변경 (AGPLv3 → 독점)<br>⚠️ 설정 복잡도 높음 |
+| **RustFS** | [공식 차트](https://github.com/rustfs/rustfs/tree/main/helm) | ⚠️ 자체 제작 권장 | ⚠️ Alpha 단계 (v1.0.0-alpha.66)<br>⚠️ 프로덕션 미권장 (공식 경고)<br>✅ 공식 차트는 기본 기능만 제공<br>✅ 프로젝트 철학 부합 (설정 파일 우선)<br>✅ 티어드 스토리지 등 고급 기능 필요 |
+| **Ceph** | [Rook Operator](https://rook.io/) | ✅ 오피셜 사용 | ✅ CNCF Graduated 프로젝트<br>✅ 매우 복잡한 분산 스토리지<br>✅ Operator 필수 |
+| **SeaweedFS** | [SeaweedFS Helm](https://github.com/seaweedfs/seaweedfs/tree/master/k8s/charts/seaweedfs) | ⚖️ 상황 판단 | ✅ 공식 차트 존재<br>⚠️ 설정 복잡도 중간<br>⚠️ 커뮤니티 크기 작음 |
+
+**프로젝트 철학 부합도**: ⭐⭐⭐ (중간)
+
+**RustFS 자체 제작 근거**:
+1. **Alpha 소프트웨어**: 공식 차트도 기본 기능만 제공, 프로덕션 안정성 부족
+2. **설정 파일 우선**: 프로젝트 철학에 완벽히 부합
+3. **고급 기능 필요**:
+   - Tiered Storage (Hot SSD + Cold HDD)
+   - 홈서버/스타트업 최적화 설정
+   - Production features (NetworkPolicy, PDB, ServiceMonitor)
+4. **학습 기회**: 분산 스토리지 패턴 구현 경험
+
+**MinIO vs RustFS 선택 기준**:
+- **프로덕션 안정성 우선** → MinIO 공식 차트
+- **학습 및 실험** → RustFS 자체 차트
+- **홈서버/NAS** → RustFS 자체 차트 (리소스 최적화)
+- **엔터프라이즈 지원 필요** → MinIO 공식 차트
+
+---
+
+### 1.8 기타 복잡한 분산 시스템
 
 | 소프트웨어 | 차트 저장소 | 권장 이유 |
 |-----------|------------|----------|
@@ -135,6 +163,7 @@
 - ✅ **WordPress**: wp-config.php 직접 마운트, wp-cli 통합
 - ✅ **Nextcloud**: config.php 직접 관리, LinuxServer.io 이미지
 - ✅ **WireGuard**: wg0.conf 직접 마운트, NET_ADMIN capabilities
+- ✅ **RustFS**: 티어드 스토리지, 홈서버/스타트업 최적화, Alpha 소프트웨어
 - ✅ **browserless-chrome**: 오피셜 차트 없음
 - ✅ **devpi**: 오피셜 차트 없음
 
@@ -205,6 +234,7 @@
 | **wordpress** | v0.1.0 | ✅ wp-config.php 직접 마운트<br>wp-cli 통합 | 유지 |
 | **nextcloud** | v0.1.0 | ✅ config.php 직접 관리<br>LinuxServer.io 이미지 | 유지 |
 | **wireguard** | v0.1.0 | ✅ wg0.conf 직접 마운트<br>오피셜 차트 없음 | 유지 |
+| **rustfs** | v0.1.0 | ✅ 티어드 스토리지 지원<br>✅ 홈서버/스타트업 최적화<br>⚠️ Alpha 소프트웨어 | 유지 (학습/실험 목적)<br>프로덕션: MinIO 검토 |
 | **browserless-chrome** | - | ✅ 오피셜 차트 없음 | 유지 |
 | **devpi** | - | ✅ 오피셜 차트 없음 | 유지 |
 | **rsshub** | v0.1.0 | ⚠️ 외부 차트 참조 권장 | [RSSHub 차트](https://github.com/NaturalSelectionLabs/helm-charts/tree/main/charts/rsshub) 검토 |
