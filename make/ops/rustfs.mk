@@ -11,21 +11,21 @@ rustfs-get-credentials:
 	@echo "=== RustFS Credentials ==="
 	@echo ""
 	@echo "Root User:"
-	@$(KUBECTL) get secret rustfs -o jsonpath='{.data.root-user}' | base64 -d
+	@$(KUBECTL) get secret -l app.kubernetes.io/name=$(CHART_NAME) -o jsonpath='{.items[0].data.root-user}' | base64 -d
 	@echo ""
 	@echo "Root Password:"
-	@$(KUBECTL) get secret rustfs -o jsonpath='{.data.root-password}' | base64 -d
+	@$(KUBECTL) get secret -l app.kubernetes.io/name=$(CHART_NAME) -o jsonpath='{.items[0].data.root-password}' | base64 -d
 	@echo ""
 
 .PHONY: rustfs-port-forward-api
 rustfs-port-forward-api:
 	@echo "Port-forwarding RustFS API (S3) to localhost:9000..."
-	@$(KUBECTL) port-forward svc/rustfs 9000:9000
+	@$(KUBECTL) port-forward svc/$$($(KUBECTL) get svc -l app.kubernetes.io/name=$(CHART_NAME),app.kubernetes.io/component!=headless -o jsonpath='{.items[0].metadata.name}') 9000:9000
 
 .PHONY: rustfs-port-forward-console
 rustfs-port-forward-console:
 	@echo "Port-forwarding RustFS Console to localhost:9001..."
-	@$(KUBECTL) port-forward svc/rustfs-console 9001:9001
+	@$(KUBECTL) port-forward svc/$$($(KUBECTL) get svc -l app.kubernetes.io/name=$(CHART_NAME),app.kubernetes.io/component!=headless -o jsonpath='{.items[0].metadata.name}') 9001:9001
 
 .PHONY: rustfs-test-s3
 rustfs-test-s3:
@@ -33,7 +33,7 @@ rustfs-test-s3:
 	@echo "Checking if 'mc' is installed..."
 	@which mc > /dev/null || (echo "Error: MinIO Client 'mc' not found. Install from: https://min.io/docs/minio/linux/reference/minio-mc.html" && exit 1)
 	@echo "Configuring mc alias 'rustfs'..."
-	@mc alias set rustfs http://localhost:9000 $$($(KUBECTL) get secret rustfs -o jsonpath='{.data.root-user}' | base64 -d) $$($(KUBECTL) get secret rustfs -o jsonpath='{.data.root-password}' | base64 -d)
+	@mc alias set rustfs http://localhost:9000 $$($(KUBECTL) get secret -l app.kubernetes.io/name=$(CHART_NAME) -o jsonpath='{.items[0].data.root-user}' | base64 -d) $$($(KUBECTL) get secret -l app.kubernetes.io/name=$(CHART_NAME) -o jsonpath='{.items[0].data.root-password}' | base64 -d)
 	@echo "Testing connection..."
 	@mc admin info rustfs
 	@echo "Listing buckets..."
@@ -42,18 +42,18 @@ rustfs-test-s3:
 .PHONY: rustfs-health
 rustfs-health:
 	@echo "Checking RustFS health status..."
-	@$(KUBECTL) exec -it rustfs-0 -- curl -s http://localhost:9000/rustfs/health/live || echo "Liveness check failed"
-	@$(KUBECTL) exec -it rustfs-0 -- curl -s http://localhost:9000/rustfs/health/ready || echo "Readiness check failed"
+	@$(KUBECTL) exec -it $$($(KUBECTL) get pod -l app.kubernetes.io/name=$(CHART_NAME) -o jsonpath="{.items[0].metadata.name}") -- curl -s http://localhost:9000/rustfs/health/live || echo "Liveness check failed"
+	@$(KUBECTL) exec -it $$($(KUBECTL) get pod -l app.kubernetes.io/name=$(CHART_NAME) -o jsonpath="{.items[0].metadata.name}") -- curl -s http://localhost:9000/rustfs/health/ready || echo "Readiness check failed"
 
 .PHONY: rustfs-metrics
 rustfs-metrics:
 	@echo "Fetching RustFS metrics..."
-	@$(KUBECTL) exec rustfs-0 -- curl -s http://localhost:9000/metrics || echo "Metrics endpoint not accessible"
+	@$(KUBECTL) exec $$($(KUBECTL) get pod -l app.kubernetes.io/name=$(CHART_NAME) -o jsonpath="{.items[0].metadata.name}") -- curl -s http://localhost:9000/metrics || echo "Metrics endpoint not accessible"
 
 .PHONY: rustfs-logs
 rustfs-logs:
 	@echo "Tailing RustFS logs (pod 0)..."
-	@$(KUBECTL) logs -f rustfs-0
+	@$(KUBECTL) logs -f $$($(KUBECTL) get pod -l app.kubernetes.io/name=$(CHART_NAME) -o jsonpath="{.items[0].metadata.name}")
 
 .PHONY: rustfs-logs-all
 rustfs-logs-all:
@@ -63,20 +63,20 @@ rustfs-logs-all:
 .PHONY: rustfs-shell
 rustfs-shell:
 	@echo "Opening shell in RustFS pod 0..."
-	@$(KUBECTL) exec -it rustfs-0 -- /bin/sh
+	@$(KUBECTL) exec -it $$($(KUBECTL) get pod -l app.kubernetes.io/name=$(CHART_NAME) -o jsonpath="{.items[0].metadata.name}") -- /bin/sh
 
 .PHONY: rustfs-scale
 rustfs-scale:
 	@echo "Scaling RustFS StatefulSet to $(REPLICAS) replicas..."
 	@if [ -z "$(REPLICAS)" ]; then echo "Error: REPLICAS parameter required"; exit 1; fi
-	@$(KUBECTL) scale statefulset rustfs --replicas=$(REPLICAS)
+	@$(KUBECTL) scale statefulset $$($(KUBECTL) get statefulset -l app.kubernetes.io/name=$(CHART_NAME) -o jsonpath='{.items[0].metadata.name}') --replicas=$(REPLICAS)
 	@echo "Waiting for pods to be ready..."
 	@$(KUBECTL) wait --for=condition=ready pod -l app.kubernetes.io/name=$(CHART_NAME) --timeout=300s
 
 .PHONY: rustfs-status
 rustfs-status:
 	@echo "=== RustFS StatefulSet Status ==="
-	@$(KUBECTL) get statefulset rustfs
+	@$(KUBECTL) get statefulset -l app.kubernetes.io/name=$(CHART_NAME)
 	@echo ""
 	@echo "=== RustFS Pods ==="
 	@$(KUBECTL) get pods -l app.kubernetes.io/name=$(CHART_NAME)
@@ -123,9 +123,9 @@ rustfs-backup:
 .PHONY: rustfs-restart
 rustfs-restart:
 	@echo "Restarting RustFS StatefulSet..."
-	@$(KUBECTL) rollout restart statefulset/rustfs
+	@$(KUBECTL) rollout restart statefulset/$$($(KUBECTL) get statefulset -l app.kubernetes.io/name=$(CHART_NAME) -o jsonpath='{.items[0].metadata.name}')
 	@echo "Waiting for rollout to complete..."
-	@$(KUBECTL) rollout status statefulset/rustfs
+	@$(KUBECTL) rollout status statefulset/$$($(KUBECTL) get statefulset -l app.kubernetes.io/name=$(CHART_NAME) -o jsonpath='{.items[0].metadata.name}')
 
 # 도움말 확장
 .PHONY: help
