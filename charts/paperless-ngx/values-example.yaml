@@ -1,0 +1,126 @@
+# Production example configuration for Paperless-ngx
+
+paperless:
+  adminUser: "admin"
+  adminPassword: "CHANGE_ME"  # Use strong password
+  adminEmail: "admin@example.com"
+  secretKey: "CHANGE_ME"  # Generate with: openssl rand -base64 32
+  url: "https://paperless.example.com"
+  timezone: "America/New_York"
+
+  ocr:
+    language: "eng+deu+fra"  # English, German, French
+    mode: "skip"
+
+  consumer:
+    polling: 0  # Use inotify
+    deleteSourceDocuments: true
+    recursive: false
+    subdirectoriesAsTags: true
+
+  email:
+    enabled: true
+    host: "smtp.gmail.com"
+    port: 587
+    username: "paperless@example.com"
+    password: "CHANGE_ME"
+    from: "paperless@example.com"
+    useTLS: true
+
+postgresql:
+  external:
+    enabled: true
+    host: "postgres-postgresql"
+    port: 5432
+    database: "paperless"
+    username: "paperless"
+    password: "CHANGE_ME"
+    sslMode: "prefer"
+
+redis:
+  external:
+    enabled: true
+    host: "redis"
+    port: 6379
+
+persistence:
+  enabled: true
+  consume:
+    enabled: true
+    storageClass: "fast-ssd"
+    size: 20Gi
+  data:
+    enabled: true
+    storageClass: "fast-ssd"
+    size: 20Gi
+  media:
+    enabled: true
+    storageClass: "standard"
+    size: 100Gi
+  export:
+    enabled: true
+    storageClass: "standard"
+    size: 20Gi
+
+replicaCount: 2
+
+image:
+  tag: "2.14.7"
+
+resources:
+  limits:
+    cpu: 2000m
+    memory: 2Gi
+  requests:
+    cpu: 500m
+    memory: 512Mi
+
+service:
+  type: ClusterIP
+
+ingress:
+  enabled: true
+  className: "nginx"
+  annotations:
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
+    nginx.ingress.kubernetes.io/proxy-body-size: "100m"
+  hosts:
+    - host: paperless.example.com
+      paths:
+        - path: /
+          pathType: Prefix
+  tls:
+    - secretName: paperless-tls
+      hosts:
+        - paperless.example.com
+
+podDisruptionBudget:
+  enabled: true
+  minAvailable: 1
+
+networkPolicy:
+  enabled: true
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              name: production
+      ports:
+        - protocol: TCP
+          port: 8000
+
+monitoring:
+  enabled: true
+  serviceMonitor:
+    enabled: true
+    interval: 30s
+
+affinity:
+  podAntiAffinity:
+    preferredDuringSchedulingIgnoredDuringExecution:
+      - weight: 100
+        podAffinityTerm:
+          labelSelector:
+            matchLabels:
+              app.kubernetes.io/name: paperless-ngx
+          topologyKey: kubernetes.io/hostname

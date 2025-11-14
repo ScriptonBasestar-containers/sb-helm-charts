@@ -1,0 +1,323 @@
+# Default values for paperless-ngx.
+# This is a YAML-formatted file.
+# Declare variables to be passed into your templates.
+
+# 1. Application-specific Configuration
+paperless:
+  # Admin user (created on first run)
+  adminUser: "admin"
+  adminPassword: ""  # REQUIRED: Set admin password
+  adminEmail: "admin@example.com"
+
+  # Application settings
+  url: "http://localhost:8000"  # Public URL for Paperless-ngx
+  secretKey: ""  # REQUIRED: Generate with: openssl rand -base64 32
+
+  # Time zone
+  timezone: "UTC"
+
+  # OCR settings
+  ocr:
+    language: "eng"  # OCR language (e.g., eng, deu, fra, spa)
+    # Additional languages (space-separated): "eng deu fra"
+    mode: "skip"  # skip, redo, force
+
+  # Document processing
+  consumer:
+    # Polling interval in seconds
+    polling: 0  # 0 = inotify (recommended), >0 = polling
+    # Delete source documents after consumption
+    deleteSourceDocuments: true
+    # Recursively watch consume directory
+    recursive: false
+    # Subdirectories as tags
+    subdirectoriesAsTags: false
+
+  # Email settings (optional)
+  email:
+    enabled: false
+    host: ""
+    port: 587
+    username: ""
+    password: ""
+    from: "paperless@example.com"
+    useTLS: true
+    useSSL: false
+
+# 2. External Dependencies
+postgresql:
+  enabled: false  # ALWAYS false - use external database
+  external:
+    enabled: true
+    host: ""  # REQUIRED: PostgreSQL host
+    port: 5432
+    database: "paperless"
+    username: "paperless"
+    password: ""  # REQUIRED: Set database password
+    sslMode: "prefer"  # disable, allow, prefer, require, verify-ca, verify-full
+
+redis:
+  enabled: false  # ALWAYS false - use external Redis
+  external:
+    enabled: true
+    host: ""  # REQUIRED: Redis host
+    port: 6379
+    password: ""  # Optional: Redis password
+    database: 0
+
+# 3. Persistence Configuration
+persistence:
+  # Enable persistence
+  enabled: true
+
+  # Consume directory (incoming documents)
+  consume:
+    enabled: true
+    storageClass: ""
+    size: 10Gi
+    accessMode: ReadWriteOnce
+    existingClaim: ""
+    mountPath: /usr/src/paperless/consume
+
+  # Data directory (application data and index)
+  data:
+    enabled: true
+    storageClass: ""
+    size: 10Gi
+    accessMode: ReadWriteOnce
+    existingClaim: ""
+    mountPath: /usr/src/paperless/data
+
+  # Media directory (processed documents)
+  media:
+    enabled: true
+    storageClass: ""
+    size: 50Gi
+    accessMode: ReadWriteOnce
+    existingClaim: ""
+    mountPath: /usr/src/paperless/media
+
+  # Export directory (document exports)
+  export:
+    enabled: true
+    storageClass: ""
+    size: 10Gi
+    accessMode: ReadWriteOnce
+    existingClaim: ""
+    mountPath: /usr/src/paperless/export
+
+# 4. Kubernetes Resources
+replicaCount: 1
+
+strategy:
+  type: Recreate  # Recreate for stateful app
+
+image:
+  repository: ghcr.io/paperless-ngx/paperless-ngx
+  tag: "2.14.7"
+  pullPolicy: IfNotPresent
+
+imagePullSecrets: []
+nameOverride: ""
+fullnameOverride: ""
+
+# 5. Service Account
+serviceAccount:
+  create: true
+  automount: true
+  annotations: {}
+  name: ""
+
+# 6. Pod Configuration
+podAnnotations: {}
+podLabels: {}
+
+podSecurityContext:
+  fsGroup: 1000
+  runAsUser: 1000
+  runAsGroup: 1000
+  runAsNonRoot: true
+
+securityContext:
+  capabilities:
+    drop:
+      - ALL
+  readOnlyRootFilesystem: false  # Paperless needs write access
+  runAsNonRoot: true
+  runAsUser: 1000
+  runAsGroup: 1000
+  allowPrivilegeEscalation: false
+
+# 7. Service Configuration
+service:
+  type: ClusterIP
+  port: 8000
+  targetPort: 8000
+  protocol: TCP
+  annotations: {}
+
+# 8. Ingress Configuration
+ingress:
+  enabled: false
+  className: ""
+  annotations: {}
+    # kubernetes.io/ingress.class: nginx
+    # kubernetes.io/tls-acme: "true"
+    # cert-manager.io/cluster-issuer: letsencrypt-prod
+  hosts:
+    - host: paperless.local
+      paths:
+        - path: /
+          pathType: Prefix
+  tls: []
+  #  - secretName: paperless-tls
+  #    hosts:
+  #      - paperless.local
+
+# 9. Resources
+resources:
+  limits:
+    cpu: 2000m
+    memory: 2Gi
+  requests:
+    cpu: 500m
+    memory: 512Mi
+
+# 10. Health Probes
+livenessProbe:
+  enabled: true
+  httpGet:
+    path: /
+    port: http
+  initialDelaySeconds: 60
+  periodSeconds: 10
+  timeoutSeconds: 5
+  failureThreshold: 6
+  successThreshold: 1
+
+readinessProbe:
+  enabled: true
+  httpGet:
+    path: /
+    port: http
+  initialDelaySeconds: 30
+  periodSeconds: 10
+  timeoutSeconds: 5
+  failureThreshold: 3
+  successThreshold: 1
+
+startupProbe:
+  enabled: true
+  httpGet:
+    path: /
+    port: http
+  initialDelaySeconds: 20
+  periodSeconds: 5
+  timeoutSeconds: 5
+  failureThreshold: 30
+  successThreshold: 1
+
+# 11. Autoscaling
+autoscaling:
+  enabled: false
+  minReplicas: 1
+  maxReplicas: 3
+  targetCPUUtilizationPercentage: 80
+  targetMemoryUtilizationPercentage: 80
+
+# 12. Pod Disruption Budget
+podDisruptionBudget:
+  enabled: false
+  minAvailable: 1
+  # maxUnavailable: 1
+
+# 13. Network Policy
+networkPolicy:
+  enabled: false
+  ingress:
+    - from:
+        - podSelector: {}
+        - namespaceSelector: {}
+      ports:
+        - protocol: TCP
+          port: 8000
+  egress:
+    # Allow DNS
+    - to:
+        - namespaceSelector: {}
+      ports:
+        - protocol: UDP
+          port: 53
+    # Allow PostgreSQL
+    - to:
+        - namespaceSelector: {}
+      ports:
+        - protocol: TCP
+          port: 5432
+    # Allow Redis
+    - to:
+        - namespaceSelector: {}
+      ports:
+        - protocol: TCP
+          port: 6379
+    # Allow HTTP/HTTPS (for email, updates, etc.)
+    - to:
+        - namespaceSelector: {}
+      ports:
+        - protocol: TCP
+          port: 80
+        - protocol: TCP
+          port: 443
+
+# 14. Monitoring
+monitoring:
+  enabled: false
+  serviceMonitor:
+    enabled: false
+    interval: 30s
+    scrapeTimeout: 10s
+    labels: {}
+    path: /api/metrics/
+
+# 15. Scheduling
+nodeSelector: {}
+tolerations: []
+affinity: {}
+priorityClassName: ""
+topologySpreadConstraints: []
+
+# 16. Extensibility
+extraEnv: []
+# Example:
+# extraEnv:
+#   - name: PAPERLESS_ENABLE_HTTP_REMOTE_USER
+#     value: "true"
+
+extraEnvFrom: []
+
+extraVolumes: []
+extraVolumeMounts: []
+
+initContainers: []
+# Example: Wait for PostgreSQL
+# initContainers:
+#   - name: wait-for-db
+#     image: postgres:17-alpine
+#     command:
+#       - sh
+#       - -c
+#       - |
+#         until pg_isready -h $POSTGRES_HOST -p $POSTGRES_PORT -U $POSTGRES_USER; do
+#           echo "Waiting for PostgreSQL..."
+#           sleep 2
+#         done
+#     env:
+#       - name: POSTGRES_HOST
+#         value: "postgres-service"
+
+lifecycle: {}
+# Example: Graceful shutdown
+# lifecycle:
+#   preStop:
+#     exec:
+#       command: ["/bin/sh", "-c", "sleep 15"]

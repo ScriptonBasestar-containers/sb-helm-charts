@@ -1,0 +1,25 @@
+apiVersion: v2
+name: paperless-ngx
+description: A powerful open-source document management system with OCR, full-text search, and modern web UI
+type: application
+version: 0.1.0
+appVersion: "2.14.7"
+keywords:
+  - paperless
+  - document-management
+  - ocr
+  - dms
+home: https://docs.paperless-ngx.com/
+icon: https://raw.githubusercontent.com/paperless-ngx/paperless-ngx/main/resources/logo/web/png/Black%20logo%20-%20no%20background.png
+sources:
+  - https://github.com/scriptonbasestar-container/sb-helm-charts
+  - https://github.com/paperless-ngx/paperless-ngx
+maintainers:
+  - name: ScriptonBasestar
+annotations:
+  artifacthub.io/license: BSD-3-Clause
+  artifacthub.io/links: |
+    - name: Documentation
+      url: https://docs.paperless-ngx.com/
+    - name: Source Code
+      url: https://github.com/paperless-ngx/paperless-ngx

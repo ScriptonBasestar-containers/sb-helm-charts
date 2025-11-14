@@ -1,0 +1,75 @@
+{{- if and .Values.persistence.enabled .Values.persistence.consume.enabled (not .Values.persistence.consume.existingClaim) }}
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ include "paperless-ngx.consume.pvcName" . }}
+  labels:
+    {{- include "paperless-ngx.labels" . | nindent 4 }}
+    app.kubernetes.io/component: consume
+spec:
+  accessModes:
+    - {{ .Values.persistence.consume.accessMode }}
+  {{- if .Values.persistence.consume.storageClass }}
+  storageClassName: {{ .Values.persistence.consume.storageClass | quote }}
+  {{- end }}
+  resources:
+    requests:
+      storage: {{ .Values.persistence.consume.size }}
+---
+{{- end }}
+{{- if and .Values.persistence.enabled .Values.persistence.data.enabled (not .Values.persistence.data.existingClaim) }}
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ include "paperless-ngx.data.pvcName" . }}
+  labels:
+    {{- include "paperless-ngx.labels" . | nindent 4 }}
+    app.kubernetes.io/component: data
+spec:
+  accessModes:
+    - {{ .Values.persistence.data.accessMode }}
+  {{- if .Values.persistence.data.storageClass }}
+  storageClassName: {{ .Values.persistence.data.storageClass | quote }}
+  {{- end }}
+  resources:
+    requests:
+      storage: {{ .Values.persistence.data.size }}
+---
+{{- end }}
+{{- if and .Values.persistence.enabled .Values.persistence.media.enabled (not .Values.persistence.media.existingClaim) }}
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ include "paperless-ngx.media.pvcName" . }}
+  labels:
+    {{- include "paperless-ngx.labels" . | nindent 4 }}
+    app.kubernetes.io/component: media
+spec:
+  accessModes:
+    - {{ .Values.persistence.media.accessMode }}
+  {{- if .Values.persistence.media.storageClass }}
+  storageClassName: {{ .Values.persistence.media.storageClass | quote }}
+  {{- end }}
+  resources:
+    requests:
+      storage: {{ .Values.persistence.media.size }}
+---
+{{- end }}
+{{- if and .Values.persistence.enabled .Values.persistence.export.enabled (not .Values.persistence.export.existingClaim) }}
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ include "paperless-ngx.export.pvcName" . }}
+  labels:
+    {{- include "paperless-ngx.labels" . | nindent 4 }}
+    app.kubernetes.io/component: export
+spec:
+  accessModes:
+    - {{ .Values.persistence.export.accessMode }}
+  {{- if .Values.persistence.export.storageClass }}
+  storageClassName: {{ .Values.persistence.export.storageClass | quote }}
+  {{- end }}
+  resources:
+    requests:
+      storage: {{ .Values.persistence.export.size }}
+{{- end }}
