@@ -1,0 +1,19 @@
+apiVersion: v2
+name: uptime-kuma
+description: A self-hosted monitoring tool with beautiful UI and alerting
+type: application
+version: 0.1.0
+appVersion: "2.0.2"
+keywords:
+  - monitoring
+  - uptime
+  - status-page
+  - alerting
+home: https://uptime.kuma.pet
+sources:
+  - https://github.com/scriptonbasestar-docker/sb-helm-charts
+  - https://github.com/louislam/uptime-kuma
+maintainers:
+  - name: ScriptonBasestar
+    url: https://github.com/scriptonbasestar-docker
+icon: https://uptime.kuma.pet/img/icon.svg

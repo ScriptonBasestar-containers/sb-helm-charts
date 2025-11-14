@@ -1,0 +1,176 @@
+{{- include "uptime-kuma.validateMariaDB" . -}}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "uptime-kuma.fullname" . }}
+  labels:
+    {{- include "uptime-kuma.labels" . | nindent 4 }}
+spec:
+  {{- if not .Values.autoscaling.enabled }}
+  replicas: {{ .Values.replicaCount }}
+  {{- end }}
+  strategy:
+    {{- toYaml .Values.strategy | nindent 4 }}
+  selector:
+    matchLabels:
+      {{- include "uptime-kuma.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      annotations:
+        checksum/secret: {{ include (print $.Template.BasePath "/secret.yaml") . | sha256sum }}
+        {{- with .Values.podAnnotations }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+      labels:
+        {{- include "uptime-kuma.labels" . | nindent 8 }}
+        {{- with .Values.podLabels }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+    spec:
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      serviceAccountName: {{ include "uptime-kuma.serviceAccountName" . }}
+      securityContext:
+        {{- toYaml .Values.podSecurityContext | nindent 8 }}
+      {{- with .Values.initContainers }}
+      initContainers:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      containers:
+        - name: {{ .Chart.Name }}
+          securityContext:
+            {{- toYaml .Values.securityContext | nindent 12 }}
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          ports:
+            - name: http
+              containerPort: {{ .Values.uptimeKuma.port }}
+              protocol: TCP
+          env:
+            # Port and host configuration
+            - name: UPTIME_KUMA_PORT
+              value: {{ .Values.uptimeKuma.port | quote }}
+            - name: UPTIME_KUMA_HOST
+              value: {{ .Values.uptimeKuma.host | quote }}
+
+            # Data directory
+            - name: DATA_DIR
+              value: {{ .Values.uptimeKuma.dataDir | quote }}
+
+            # Database configuration
+            - name: UPTIME_KUMA_DB_TYPE
+              value: {{ .Values.uptimeKuma.database.type | quote }}
+            {{- if eq .Values.uptimeKuma.database.type "mariadb" }}
+            - name: UPTIME_KUMA_DB_HOSTNAME
+              value: {{ .Values.uptimeKuma.database.mariadb.host | quote }}
+            - name: UPTIME_KUMA_DB_PORT
+              value: {{ .Values.uptimeKuma.database.mariadb.port | quote }}
+            - name: UPTIME_KUMA_DB_NAME
+              value: {{ .Values.uptimeKuma.database.mariadb.database | quote }}
+            - name: UPTIME_KUMA_DB_USERNAME
+              value: {{ .Values.uptimeKuma.database.mariadb.username | quote }}
+            - name: UPTIME_KUMA_DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "uptime-kuma.fullname" . }}
+                  key: mariadb-password
+            {{- end }}
+
+            {{- if .Values.uptimeKuma.ssl.enabled }}
+            # SSL/TLS configuration
+            - name: UPTIME_KUMA_SSL_KEY
+              value: {{ .Values.uptimeKuma.ssl.keyPath | quote }}
+            - name: UPTIME_KUMA_SSL_CERT
+              value: {{ .Values.uptimeKuma.ssl.certPath | quote }}
+            {{- if .Values.uptimeKuma.ssl.keyPassphrase }}
+            - name: UPTIME_KUMA_SSL_KEY_PASSPHRASE
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "uptime-kuma.fullname" . }}
+                  key: ssl-key-passphrase
+            {{- end }}
+            {{- end }}
+
+            # Security settings
+            - name: UPTIME_KUMA_WS_ORIGIN_CHECK
+              value: {{ .Values.uptimeKuma.security.wsOriginCheck | quote }}
+            - name: UPTIME_KUMA_DISABLE_FRAME_SAMEORIGIN
+              value: {{ .Values.uptimeKuma.security.disableFrameSameOrigin | quote }}
+
+            {{- if .Values.uptimeKuma.logging.hideLog }}
+            # Logging configuration
+            - name: UPTIME_KUMA_HIDE_LOG
+              value: {{ .Values.uptimeKuma.logging.hideLog | quote }}
+            {{- end }}
+            {{- if .Values.uptimeKuma.logging.sqlLog }}
+            - name: SQL_LOG
+              value: "1"
+            {{- end }}
+            {{- if .Values.uptimeKuma.logging.responseBodyMonitorId }}
+            - name: UPTIME_KUMA_LOG_RESPONSE_BODY_MONITOR_ID
+              value: {{ .Values.uptimeKuma.logging.responseBodyMonitorId | quote }}
+            {{- end }}
+
+            {{- with .Values.extraEnv }}
+            {{- toYaml . | nindent 12 }}
+            {{- end }}
+          {{- with .Values.extraEnvFrom }}
+          envFrom:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          {{- if .Values.livenessProbe.enabled }}
+          livenessProbe:
+            {{- omit .Values.livenessProbe "enabled" | toYaml | nindent 12 }}
+          {{- end }}
+          {{- if .Values.readinessProbe.enabled }}
+          readinessProbe:
+            {{- omit .Values.readinessProbe "enabled" | toYaml | nindent 12 }}
+          {{- end }}
+          {{- if .Values.startupProbe.enabled }}
+          startupProbe:
+            {{- omit .Values.startupProbe "enabled" | toYaml | nindent 12 }}
+          {{- end }}
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+          volumeMounts:
+            {{- if .Values.persistence.enabled }}
+            - name: data
+              mountPath: {{ .Values.persistence.mountPath }}
+            {{- end }}
+            {{- with .Values.extraVolumeMounts }}
+            {{- toYaml . | nindent 12 }}
+            {{- end }}
+          {{- with .Values.lifecycle }}
+          lifecycle:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+      volumes:
+        {{- if .Values.persistence.enabled }}
+        - name: data
+          persistentVolumeClaim:
+            claimName: {{ include "uptime-kuma.pvcName" . }}
+        {{- end }}
+        {{- with .Values.extraVolumes }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.topologySpreadConstraints }}
+      topologySpreadConstraints:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.priorityClassName }}
+      priorityClassName: {{ . }}
+      {{- end }}

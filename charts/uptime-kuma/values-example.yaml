@@ -1,0 +1,146 @@
+# Production example configuration for Uptime Kuma
+
+# Use external MariaDB for production
+uptimeKuma:
+  port: 3001
+  host: "::"
+
+  # MariaDB configuration (production recommended)
+  database:
+    type: "mariadb"
+    mariadb:
+      host: "mariadb-primary.database.svc.cluster.local"
+      port: 3306
+      database: "uptime_kuma"
+      username: "uptime_kuma"
+      password: "CHANGE_ME"  # Use strong password
+
+  # SSL/TLS (if not using ingress TLS)
+  ssl:
+    enabled: false
+    # keyPath: "/certs/tls.key"
+    # certPath: "/certs/tls.crt"
+
+  # Security settings
+  security:
+    wsOriginCheck: "bypass"  # Required for reverse proxy
+    disableFrameSameOrigin: false
+
+  # Logging
+  logging:
+    hideLog: "debug_monitor"  # Hide debug logs
+    sqlLog: false
+
+# Persistence (required even with MariaDB for temp files)
+persistence:
+  enabled: true
+  storageClass: "fast-ssd"
+  accessMode: ReadWriteOnce
+  size: 4Gi
+
+# High availability with MariaDB
+replicaCount: 2
+
+image:
+  repository: louislam/uptime-kuma
+  tag: "2"  # Use major version tag
+  pullPolicy: IfNotPresent
+
+resources:
+  limits:
+    cpu: 1000m
+    memory: 1Gi
+  requests:
+    cpu: 200m
+    memory: 256Mi
+
+# Production ingress
+ingress:
+  enabled: true
+  className: "nginx"
+  annotations:
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
+    nginx.ingress.kubernetes.io/proxy-body-size: "10m"
+    # WebSocket support (critical for Uptime Kuma)
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "3600"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "3600"
+  hosts:
+    - host: uptime.example.com
+      paths:
+        - path: /
+          pathType: Prefix
+  tls:
+    - secretName: uptime-kuma-tls
+      hosts:
+        - uptime.example.com
+
+# High availability
+podDisruptionBudget:
+  enabled: true
+  minAvailable: 1
+
+autoscaling:
+  enabled: false  # Not recommended - use fixed replicas for monitoring
+
+# Network security
+networkPolicy:
+  enabled: true
+  policyTypes:
+    - Ingress
+    - Egress
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              name: production
+      ports:
+        - protocol: TCP
+          port: 3001
+  egress:
+    # Allow egress to monitored services
+    - to:
+        - namespaceSelector: {}
+      ports:
+        - protocol: TCP
+          port: 443  # HTTPS
+        - protocol: TCP
+          port: 80   # HTTP
+        - protocol: TCP
+          port: 3306 # MariaDB
+    # Allow DNS
+    - to:
+        - namespaceSelector: {}
+      ports:
+        - protocol: UDP
+          port: 53
+
+# Monitoring (if Prometheus Operator is available)
+monitoring:
+  enabled: true
+  serviceMonitor:
+    enabled: true
+    interval: 60s
+    path: /metrics  # Note: May require additional exporter
+
+# Pod placement
+affinity:
+  podAntiAffinity:
+    preferredDuringSchedulingIgnoredDuringExecution:
+      - weight: 100
+        podAffinityTerm:
+          labelSelector:
+            matchLabels:
+              app.kubernetes.io/name: uptime-kuma
+          topologyKey: kubernetes.io/hostname
+
+# Deployment strategy (use Recreate for SQLite, RollingUpdate for MariaDB)
+strategy:
+  type: RollingUpdate
+  rollingUpdate:
+    maxSurge: 1
+    maxUnavailable: 0
+
+# Timezone
+extraEnv:
+  - name: TZ
+    value: "America/New_York"

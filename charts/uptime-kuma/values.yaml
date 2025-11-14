@@ -1,0 +1,245 @@
+# Default values for uptime-kuma
+
+# Uptime Kuma application configuration
+uptimeKuma:
+  # Port configuration
+  port: 3001
+  host: "::"  # :: for IPv4+IPv6, 0.0.0.0 for IPv4 only
+
+  # Data directory (inside container)
+  dataDir: "/app/data"
+
+  # Database configuration (v2.0.0+)
+  database:
+    # Database type: sqlite or mariadb
+    type: "sqlite"  # Change to "mariadb" for external MySQL/MariaDB
+
+    # MariaDB configuration (only used when type is "mariadb")
+    mariadb:
+      host: ""
+      port: 3306
+      database: "uptime_kuma"
+      username: "uptime_kuma"
+      password: ""  # Required if using MariaDB
+
+  # SSL/TLS configuration
+  ssl:
+    enabled: false
+    # Paths to SSL certificate files (must be mounted via volumes)
+    keyPath: ""
+    certPath: ""
+    keyPassphrase: ""
+
+  # Security settings
+  security:
+    # WebSocket origin check (bypass for reverse proxy)
+    wsOriginCheck: "cors-like"  # or "bypass"
+    # Allow iframe embedding from different domains
+    disableFrameSameOrigin: false
+
+  # Logging configuration
+  logging:
+    # Hide specific log types (comma-separated)
+    # Examples: debug_monitor, info_monitor
+    hideLog: ""
+    # Enable SQL query logging
+    sqlLog: false
+    # Log response body for specific monitor ID (debugging)
+    responseBodyMonitorId: ""
+
+# Persistence configuration
+persistence:
+  enabled: true
+  # existingClaim: ""
+  storageClass: ""
+  accessMode: ReadWriteOnce
+  size: 4Gi
+  mountPath: /app/data
+  annotations: {}
+
+# MySQL/MariaDB (disabled by default)
+# Use external MySQL/MariaDB for production
+mysql:
+  enabled: false
+  external:
+    enabled: false
+    host: ""
+    port: 3306
+    database: "uptime_kuma"
+    username: "uptime_kuma"
+    password: ""
+
+# Deployment configuration
+replicaCount: 1
+
+image:
+  repository: louislam/uptime-kuma
+  pullPolicy: IfNotPresent
+  tag: ""  # Defaults to Chart.appVersion
+
+imagePullSecrets: []
+nameOverride: ""
+fullnameOverride: ""
+
+serviceAccount:
+  create: true
+  automount: true
+  annotations: {}
+  name: ""
+
+podAnnotations: {}
+podLabels: {}
+
+podSecurityContext:
+  fsGroup: 1000
+  runAsNonRoot: true
+  runAsUser: 1000
+
+securityContext:
+  allowPrivilegeEscalation: false
+  capabilities:
+    drop:
+      - ALL
+  readOnlyRootFilesystem: false  # Uptime Kuma needs write access to /app
+
+service:
+  type: ClusterIP
+  port: 3001
+  targetPort: 3001
+  annotations: {}
+
+ingress:
+  enabled: false
+  className: ""
+  annotations: {}
+    # cert-manager.io/cluster-issuer: "letsencrypt-prod"
+    # nginx.ingress.kubernetes.io/proxy-body-size: "10m"
+  hosts:
+    - host: uptime-kuma.local
+      paths:
+        - path: /
+          pathType: Prefix
+  tls: []
+    # - secretName: uptime-kuma-tls
+    #   hosts:
+    #     - uptime-kuma.local
+
+resources:
+  limits:
+    cpu: 500m
+    memory: 512Mi
+  requests:
+    cpu: 100m
+    memory: 128Mi
+
+livenessProbe:
+  enabled: true
+  httpGet:
+    path: /
+    port: http
+  initialDelaySeconds: 30
+  periodSeconds: 10
+  timeoutSeconds: 5
+  successThreshold: 1
+  failureThreshold: 3
+
+readinessProbe:
+  enabled: true
+  httpGet:
+    path: /
+    port: http
+  initialDelaySeconds: 10
+  periodSeconds: 10
+  timeoutSeconds: 5
+  successThreshold: 1
+  failureThreshold: 3
+
+startupProbe:
+  enabled: true
+  httpGet:
+    path: /
+    port: http
+  initialDelaySeconds: 0
+  periodSeconds: 5
+  timeoutSeconds: 3
+  successThreshold: 1
+  failureThreshold: 30
+
+# HorizontalPodAutoscaler
+autoscaling:
+  enabled: false
+  minReplicas: 1
+  maxReplicas: 3
+  targetCPUUtilizationPercentage: 80
+  targetMemoryUtilizationPercentage: 80
+
+# PodDisruptionBudget
+podDisruptionBudget:
+  enabled: false
+  minAvailable: 1
+  # maxUnavailable: 1
+
+# NetworkPolicy
+networkPolicy:
+  enabled: false
+  policyTypes:
+    - Ingress
+    - Egress
+  ingress: []
+  egress: []
+
+# ServiceMonitor for Prometheus Operator
+monitoring:
+  enabled: false
+  serviceMonitor:
+    enabled: false
+    interval: 30s
+    path: /metrics
+    labels: {}
+    annotations: {}
+
+nodeSelector: {}
+
+tolerations: []
+
+affinity: {}
+
+topologySpreadConstraints: []
+
+priorityClassName: ""
+
+# Deployment strategy
+strategy:
+  type: Recreate  # Use Recreate for single-replica with RWO volume
+  # rollingUpdate:
+  #   maxSurge: 1
+  #   maxUnavailable: 0
+
+# Additional volumes
+extraVolumes: []
+  # - name: ssl-certs
+  #   secret:
+  #     secretName: uptime-kuma-ssl
+
+# Additional volume mounts
+extraVolumeMounts: []
+  # - name: ssl-certs
+  #   mountPath: /etc/ssl/certs
+  #   readOnly: true
+
+# Extra environment variables
+extraEnv: []
+  # - name: TZ
+  #   value: "Asia/Seoul"
+
+# Extra environment variables from secrets/configmaps
+extraEnvFrom: []
+
+# Init containers
+initContainers: []
+
+# Lifecycle hooks
+lifecycle: {}
+  # preStop:
+  #   exec:
+  #     command: ["/bin/sh", "-c", "sleep 15"]

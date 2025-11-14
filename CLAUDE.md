@@ -54,6 +54,7 @@ charts/{chart-name}/
 - **vaultwarden**: Bitwarden-compatible password manager
 - **immich**: AI-powered photo and video management
 - **paperless-ngx**: Document management system with OCR (4 PVC architecture)
+- **uptime-kuma**: Self-hosted monitoring tool with beautiful UI and 90+ notification services
 
 ### Infrastructure Charts (Dev/Test - Consider Operators for Production)
 
@@ -327,6 +328,37 @@ make -f make/ops/paperless-ngx.mk paperless-process-status
 
 # Restart deployment
 make -f make/ops/paperless-ngx.mk paperless-restart
+```
+
+### Uptime Kuma Specific Commands
+
+```bash
+# View logs and access shell
+make -f make/ops/uptime-kuma.mk uk-logs
+make -f make/ops/uptime-kuma.mk uk-shell
+
+# Port forward to localhost:3001
+make -f make/ops/uptime-kuma.mk uk-port-forward
+
+# Health checks
+make -f make/ops/uptime-kuma.mk uk-check-db
+make -f make/ops/uptime-kuma.mk uk-check-storage
+
+# Backup and restore (SQLite)
+make -f make/ops/uptime-kuma.mk uk-backup-sqlite
+make -f make/ops/uptime-kuma.mk uk-restore-sqlite FILE=path/to/kuma.db
+
+# User management
+make -f make/ops/uptime-kuma.mk uk-reset-password
+
+# System information
+make -f make/ops/uptime-kuma.mk uk-version
+make -f make/ops/uptime-kuma.mk uk-node-info
+make -f make/ops/uptime-kuma.mk uk-get-settings
+
+# Operations
+make -f make/ops/uptime-kuma.mk uk-restart
+make -f make/ops/uptime-kuma.mk uk-scale REPLICAS=2
 ```
 
 ### RustFS Specific Commands
