@@ -13,19 +13,25 @@
    Master-Slave replication is ENABLED with {{ add 1 .Values.replication.replicas }} total pods (1 master + {{ .Values.replication.replicas }} replicas)
 
    Available service endpoints:
-   - {{ include "redis.fullname" . }}.{{ .Release.Namespace }}.svc.cluster.local          → Master (read/write)
-   - {{ include "redis.fullname" . }}-master.{{ .Release.Namespace }}.svc.cluster.local   → Master explicitly
-   - {{ include "redis.fullname" . }}-replicas.{{ .Release.Namespace }}.svc.cluster.local → Replicas (read-only, load balanced)
+   - {{ include "redis.fullname" . }}.{{ .Release.Namespace }}.svc.cluster.local        → Master (read/write)
+   - {{ include "redis.fullname" . }}-master.{{ .Release.Namespace }}.svc.cluster.local → Master explicitly
+
+   Individual replica access (via StatefulSet DNS):
+   {{- $fullname := include "redis.fullname" . -}}
+   {{- $namespace := .Release.Namespace -}}
+   {{- range $i := until (int .Values.replication.replicas) }}
+   - {{ $fullname }}-{{ add1 $i }}.{{ $fullname }}-headless.{{ $namespace }}.svc.cluster.local → Replica {{ add1 $i }}
+   {{- end }}
 
    To connect to MASTER from within the cluster:
 
    kubectl run --namespace {{ .Release.Namespace }} redis-client --rm --tty -i --restart='Never' \
      --image {{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }} -- redis-cli -h {{ include "redis.fullname" . }}-master{{- if .Values.redis.password }} -a $REDIS_PASSWORD{{- end }}
 
-   To connect to REPLICAS (read-only) from within the cluster:
+   To connect to a specific REPLICA (read-only):
 
    kubectl run --namespace {{ .Release.Namespace }} redis-client --rm --tty -i --restart='Never' \
-     --image {{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }} -- redis-cli -h {{ include "redis.fullname" . }}-replicas{{- if .Values.redis.password }} -a $REDIS_PASSWORD{{- end }}
+     --image {{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }} -- redis-cli -h {{ include "redis.fullname" . }}-1.{{ include "redis.fullname" . }}-headless.{{ .Release.Namespace }}.svc.cluster.local{{- if .Values.redis.password }} -a $REDIS_PASSWORD{{- end }}
 
    To port-forward to master:
 

@@ -2,6 +2,10 @@
 CHART_NAME := redis
 CHART_DIR := charts/$(CHART_NAME)
 
+# Redis password (optional - fetched from secret if not provided)
+REDIS_PASSWORD ?= $(shell $(KUBECTL) get secret $(CHART_NAME) -o jsonpath='{.data.redis-password}' 2>/dev/null | base64 -d 2>/dev/null || echo "")
+REDIS_AUTH := $(if $(REDIS_PASSWORD),-a '$(REDIS_PASSWORD)',)
+
 # 공통 Makefile 포함
 include $(dir $(lastword $(MAKEFILE_LIST)))../common.mk
 
@@ -9,48 +13,48 @@ include $(dir $(lastword $(MAKEFILE_LIST)))../common.mk
 .PHONY: redis-cli
 redis-cli:
 	@echo "Running redis-cli command..."
-	@$(KUBECTL) exec -it $$($(KUBECTL) get pod -l app.kubernetes.io/name=$(CHART_NAME) -o jsonpath="{.items[0].metadata.name}") -- redis-cli $(CMD)
+	@$(KUBECTL) exec -it $$($(KUBECTL) get pod -l app.kubernetes.io/name=$(CHART_NAME) -o jsonpath="{.items[0].metadata.name}") -- redis-cli $(REDIS_AUTH) $(CMD)
 
 .PHONY: redis-ping
 redis-ping:
 	@echo "Pinging Redis server..."
-	@$(KUBECTL) exec $$($(KUBECTL) get pod -l app.kubernetes.io/name=$(CHART_NAME) -o jsonpath="{.items[0].metadata.name}") -- redis-cli ping
+	@$(KUBECTL) exec $$($(KUBECTL) get pod -l app.kubernetes.io/name=$(CHART_NAME) -o jsonpath="{.items[0].metadata.name}") -- redis-cli $(REDIS_AUTH) ping
 
 .PHONY: redis-info
 redis-info:
 	@echo "Getting Redis server info..."
-	@$(KUBECTL) exec $$($(KUBECTL) get pod -l app.kubernetes.io/name=$(CHART_NAME) -o jsonpath="{.items[0].metadata.name}") -- redis-cli info
+	@$(KUBECTL) exec $$($(KUBECTL) get pod -l app.kubernetes.io/name=$(CHART_NAME) -o jsonpath="{.items[0].metadata.name}") -- redis-cli $(REDIS_AUTH) info
 
 .PHONY: redis-monitor
 redis-monitor:
 	@echo "Monitoring Redis commands in real-time..."
-	@$(KUBECTL) exec -it $$($(KUBECTL) get pod -l app.kubernetes.io/name=$(CHART_NAME) -o jsonpath="{.items[0].metadata.name}") -- redis-cli monitor
+	@$(KUBECTL) exec -it $$($(KUBECTL) get pod -l app.kubernetes.io/name=$(CHART_NAME) -o jsonpath="{.items[0].metadata.name}") -- redis-cli $(REDIS_AUTH) monitor
 
 .PHONY: redis-memory
 redis-memory:
 	@echo "Getting Redis memory info..."
-	@$(KUBECTL) exec $$($(KUBECTL) get pod -l app.kubernetes.io/name=$(CHART_NAME) -o jsonpath="{.items[0].metadata.name}") -- redis-cli info memory
+	@$(KUBECTL) exec $$($(KUBECTL) get pod -l app.kubernetes.io/name=$(CHART_NAME) -o jsonpath="{.items[0].metadata.name}") -- redis-cli $(REDIS_AUTH) info memory
 
 .PHONY: redis-stats
 redis-stats:
 	@echo "Getting Redis stats..."
-	@$(KUBECTL) exec $$($(KUBECTL) get pod -l app.kubernetes.io/name=$(CHART_NAME) -o jsonpath="{.items[0].metadata.name}") -- redis-cli info stats
+	@$(KUBECTL) exec $$($(KUBECTL) get pod -l app.kubernetes.io/name=$(CHART_NAME) -o jsonpath="{.items[0].metadata.name}") -- redis-cli $(REDIS_AUTH) info stats
 
 .PHONY: redis-clients
 redis-clients:
 	@echo "Listing Redis client connections..."
-	@$(KUBECTL) exec $$($(KUBECTL) get pod -l app.kubernetes.io/name=$(CHART_NAME) -o jsonpath="{.items[0].metadata.name}") -- redis-cli client list
+	@$(KUBECTL) exec $$($(KUBECTL) get pod -l app.kubernetes.io/name=$(CHART_NAME) -o jsonpath="{.items[0].metadata.name}") -- redis-cli $(REDIS_AUTH) client list
 
 .PHONY: redis-bgsave
 redis-bgsave:
 	@echo "Triggering background save..."
-	@$(KUBECTL) exec $$($(KUBECTL) get pod -l app.kubernetes.io/name=$(CHART_NAME) -o jsonpath="{.items[0].metadata.name}") -- redis-cli bgsave
+	@$(KUBECTL) exec $$($(KUBECTL) get pod -l app.kubernetes.io/name=$(CHART_NAME) -o jsonpath="{.items[0].metadata.name}") -- redis-cli $(REDIS_AUTH) bgsave
 
 .PHONY: redis-backup
 redis-backup:
 	@echo "Backing up Redis data..."
 	@mkdir -p tmp/redis-backups
-	@$(KUBECTL) exec $$($(KUBECTL) get pod -l app.kubernetes.io/name=$(CHART_NAME) -o jsonpath="{.items[0].metadata.name}") -- redis-cli bgsave
+	@$(KUBECTL) exec $$($(KUBECTL) get pod -l app.kubernetes.io/name=$(CHART_NAME) -o jsonpath="{.items[0].metadata.name}") -- redis-cli $(REDIS_AUTH) bgsave
 	@sleep 5
 	@$(KUBECTL) cp $$($(KUBECTL) get pod -l app.kubernetes.io/name=$(CHART_NAME) -o jsonpath="{.items[0].metadata.name}"):/data/dump.rdb tmp/redis-backups/dump-$$(date +%Y%m%d-%H%M%S).rdb
 	@echo "Backup completed: tmp/redis-backups/dump-$$(date +%Y%m%d-%H%M%S).rdb"
@@ -69,26 +73,26 @@ redis-flushall:
 	@echo "WARNING: This will delete ALL data in Redis!"
 	@echo "Press Ctrl+C to cancel, or Enter to continue..."
 	@read confirm
-	@$(KUBECTL) exec $$($(KUBECTL) get pod -l app.kubernetes.io/name=$(CHART_NAME) -o jsonpath="{.items[0].metadata.name}") -- redis-cli flushall
+	@$(KUBECTL) exec $$($(KUBECTL) get pod -l app.kubernetes.io/name=$(CHART_NAME) -o jsonpath="{.items[0].metadata.name}") -- redis-cli $(REDIS_AUTH) flushall
 	@echo "All data flushed"
 
 .PHONY: redis-slowlog
 redis-slowlog:
 	@echo "Getting Redis slow log..."
-	@$(KUBECTL) exec $$($(KUBECTL) get pod -l app.kubernetes.io/name=$(CHART_NAME) -o jsonpath="{.items[0].metadata.name}") -- redis-cli slowlog get 10
+	@$(KUBECTL) exec $$($(KUBECTL) get pod -l app.kubernetes.io/name=$(CHART_NAME) -o jsonpath="{.items[0].metadata.name}") -- redis-cli $(REDIS_AUTH) slowlog get 10
 
 .PHONY: redis-bigkeys
 redis-bigkeys:
 	@echo "Finding biggest keys..."
-	@$(KUBECTL) exec $$($(KUBECTL) get pod -l app.kubernetes.io/name=$(CHART_NAME) -o jsonpath="{.items[0].metadata.name}") -- redis-cli --bigkeys
+	@$(KUBECTL) exec $$($(KUBECTL) get pod -l app.kubernetes.io/name=$(CHART_NAME) -o jsonpath="{.items[0].metadata.name}") -- redis-cli $(REDIS_AUTH) --bigkeys
 
 .PHONY: redis-config-get
 redis-config-get:
 	@echo "Getting Redis configuration: $(PARAM)"
 	@if [ -z "$(PARAM)" ]; then \
-		$(KUBECTL) exec $$($(KUBECTL) get pod -l app.kubernetes.io/name=$(CHART_NAME) -o jsonpath="{.items[0].metadata.name}") -- redis-cli config get '*'; \
+		$(KUBECTL) exec $$($(KUBECTL) get pod -l app.kubernetes.io/name=$(CHART_NAME) -o jsonpath="{.items[0].metadata.name}") -- redis-cli $(REDIS_AUTH) config get '*'; \
 	else \
-		$(KUBECTL) exec $$($(KUBECTL) get pod -l app.kubernetes.io/name=$(CHART_NAME) -o jsonpath="{.items[0].metadata.name}") -- redis-cli config get $(PARAM); \
+		$(KUBECTL) exec $$($(KUBECTL) get pod -l app.kubernetes.io/name=$(CHART_NAME) -o jsonpath="{.items[0].metadata.name}") -- redis-cli $(REDIS_AUTH) config get $(PARAM); \
 	fi
 
 # Replication specific commands
@@ -98,21 +102,21 @@ redis-replication-info:
 	@for pod in $$($(KUBECTL) get pods -l app.kubernetes.io/name=$(CHART_NAME) -o jsonpath='{.items[*].metadata.name}'); do \
 		echo ""; \
 		echo "=== Pod: $$pod ==="; \
-		$(KUBECTL) exec $$pod -- redis-cli info replication | grep -E "role:|connected_slaves:|master_host:|master_port:|master_link_status:"; \
+		$(KUBECTL) exec $$pod -- redis-cli $(REDIS_AUTH) info replication | grep -E "role:|connected_slaves:|master_host:|master_port:|master_link_status:"; \
 	done
 
 .PHONY: redis-master-info
 redis-master-info:
 	@echo "Getting master pod info..."
-	@$(KUBECTL) exec $(CHART_NAME)-0 -- redis-cli info replication
+	@$(KUBECTL) exec $(CHART_NAME)-0 -- redis-cli $(REDIS_AUTH) info replication
 
 .PHONY: redis-replica-lag
 redis-replica-lag:
 	@echo "Checking replication lag for all replicas..."
-	@for pod in $$($(KUBECTL) get pods -l app.kubernetes.io/name=$(CHART_NAME),redis-role=replica -o jsonpath='{.items[*].metadata.name}'); do \
+	@for pod in $$($(KUBECTL) get pods -l app.kubernetes.io/name=$(CHART_NAME) -o jsonpath='{.items[*].metadata.name}' | tr ' ' '\n' | grep -v '\-0$$'); do \
 		echo ""; \
 		echo "=== Replica: $$pod ==="; \
-		$(KUBECTL) exec $$pod -- redis-cli info replication | grep -E "master_link_status:|master_last_io_seconds_ago:|master_sync_in_progress:"; \
+		$(KUBECTL) exec $$pod -- redis-cli $(REDIS_AUTH) info replication | grep -E "master_link_status:|master_last_io_seconds_ago:|master_sync_in_progress:"; \
 	done
 
 .PHONY: redis-role
@@ -122,7 +126,7 @@ redis-role:
 		echo "Error: POD parameter required (e.g., POD=redis-0)"; \
 		exit 1; \
 	fi
-	@$(KUBECTL) exec $(POD) -- redis-cli role
+	@$(KUBECTL) exec $(POD) -- redis-cli $(REDIS_AUTH) role
 
 .PHONY: redis-shell
 redis-shell:

@@ -51,7 +51,7 @@ Three service endpoints are automatically created:
 3. **`redis-replicas.{namespace}.svc.cluster.local`**
    - Routes to: Replica pods (load balanced)
    - Use for: Read-only operations, scaling reads
-   - Example: `redis-replicas.default.svc.cluster.local`
+   - Example: `redis-1.redis-headless.default.svc.cluster.local`
 
 ## Configuration
 
@@ -169,7 +169,7 @@ From within the cluster:
 
 ```bash
 # Connects to read-only replicas (load balanced)
-redis-cli -h redis-replicas.default.svc.cluster.local -a $REDIS_PASSWORD
+redis-cli -h redis-1.redis-headless.default.svc.cluster.local -a $REDIS_PASSWORD
 
 # Only read commands work
 GET mykey        # ✅ Works
@@ -193,7 +193,7 @@ master = redis.StrictRedis(
 
 # Read pool (replicas)
 replicas = redis.StrictRedis(
-    host='redis-replicas.default.svc.cluster.local',
+    host='redis-1.redis-headless.default.svc.cluster.local',
     port=6379,
     password='secure-password',
     decode_responses=True
@@ -219,7 +219,7 @@ masterClient := redis.NewClient(&redis.Options{
 
 // Replica client (reads)
 replicaClient := redis.NewClient(&redis.Options{
-    Addr:     "redis-replicas.default.svc.cluster.local:6379",
+    Addr:     "redis-1.redis-headless.default.svc.cluster.local:6379",
     Password: "secure-password",
 })
 
@@ -424,7 +424,7 @@ Error: READONLY You can't write against a read only replica
 redis_host: redis-master.default.svc.cluster.local
 
 # Incorrect (replicas)
-redis_host: redis-replicas.default.svc.cluster.local
+redis_host: redis-1.redis-headless.default.svc.cluster.local
 ```
 
 ### Replica not syncing after pod restart
@@ -512,7 +512,7 @@ Direct read-heavy operations to replicas:
 ```yaml
 # Application config
 REDIS_MASTER_HOST: redis-master.default.svc.cluster.local
-REDIS_REPLICA_HOST: redis-replicas.default.svc.cluster.local
+REDIS_REPLICA_HOST: redis-1.redis-headless.default.svc.cluster.local
 ```
 
 ### 6. Plan for Failover

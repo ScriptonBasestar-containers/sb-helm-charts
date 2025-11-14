@@ -74,10 +74,12 @@ redis:
 # This creates:
 # - 1 master pod (read/write)
 # - 2 replica pods (read-only)
-# - Total: 3 pods with 3 service endpoints
+# - Total: 3 pods with service endpoints:
 #   - redis.{namespace}.svc.cluster.local → Master
 #   - redis-master.{namespace}.svc.cluster.local → Master explicitly
-#   - redis-replicas.{namespace}.svc.cluster.local → Replicas (load balanced)
+# - Individual replicas via StatefulSet DNS:
+#   - redis-1.redis-headless.{namespace}.svc.cluster.local → Replica 1
+#   - redis-2.redis-headless.{namespace}.svc.cluster.local → Replica 2
 #
 # Note: Manual failover only. For automatic failover, use Redis Operator.
 

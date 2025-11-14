@@ -80,7 +80,9 @@ replication:
   # Automatically created services:
   # - redis.{namespace}.svc.cluster.local → master (read/write)
   # - redis-master.{namespace}.svc.cluster.local → master explicitly
-  # - redis-replicas.{namespace}.svc.cluster.local → read-only replicas (load balanced)
+  # Individual replica access via StatefulSet DNS:
+  # - redis-1.redis-headless.{namespace}.svc.cluster.local → replica 1
+  # - redis-2.redis-headless.{namespace}.svc.cluster.local → replica 2
 
 # Persistence
 persistence:

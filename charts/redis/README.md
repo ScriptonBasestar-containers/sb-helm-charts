@@ -154,15 +154,18 @@ replication:
 **This creates:**
 - 1 master pod (read/write)
 - N replica pods (read-only)
-- 3 service endpoints:
+- Service endpoints:
   - `redis.{namespace}.svc.cluster.local` → Master (for writes)
   - `redis-master.{namespace}.svc.cluster.local` → Master explicitly
-  - `redis-replicas.{namespace}.svc.cluster.local` → Read-only replicas (load balanced)
+- Individual replica access via StatefulSet DNS:
+  - `redis-1.redis-headless.{namespace}.svc.cluster.local` → Replica 1
+  - `redis-2.redis-headless.{namespace}.svc.cluster.local` → Replica 2
 
 **Use cases:**
 - Scale read operations across multiple replicas
 - Reduce load on master for read-heavy workloads
 - Basic data redundancy (manual failover only)
+- Choose specific replica for read operations
 
 **Important notes:**
 - ⚠️ **Manual failover only** - no automatic master promotion
