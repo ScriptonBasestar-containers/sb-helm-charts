@@ -3,7 +3,7 @@ CHART_NAME := keycloak
 CHART_DIR := charts/$(CHART_NAME)
 
 # 공통 Makefile 포함
-include Makefile.common.mk
+include $(dir $(lastword $(MAKEFILE_LIST)))../common.mk
 
 # keycloak 특화 타겟
 .PHONY: kc-cli

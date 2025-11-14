@@ -5,7 +5,7 @@ CHART_NAME := rabbitmq
 CHART_DIR := charts/$(CHART_NAME)
 
 # Include common targets (lint, build, install, upgrade, uninstall, etc.)
-include Makefile.common.mk
+include $(dir $(lastword $(MAKEFILE_LIST)))../common.mk
 
 # ==============================================================================
 # RabbitMQ Operational Commands
@@ -200,12 +200,12 @@ rmq-describe: ## Describe RabbitMQ resources
 # Help Targets
 # ==============================================================================
 
-.PHONY: help-common
-help-common:
-	@$(MAKE) -f Makefile.common.mk CHART_NAME=$(CHART_NAME) help
+.PHONY: 
+:
+	@$(MAKE) -f  CHART_NAME=$(CHART_NAME) help
 
 .PHONY: help
-help: help-common
+help: 
 	@echo ""
 	@echo "RabbitMQ Operational Commands:"
 	@echo "  rmq-status               - Show cluster status"

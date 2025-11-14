@@ -1,6 +1,6 @@
 # Makefile for memcached chart operations
 # Include common targets and variables
-include Makefile.common.mk
+include $(dir $(lastword $(MAKEFILE_LIST)))../common.mk
 
 CHART_NAME := memcached
 CHART_DIR := charts/$(CHART_NAME)

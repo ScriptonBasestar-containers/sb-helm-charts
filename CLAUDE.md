@@ -80,26 +80,26 @@ make dependency-update
 
 ### Working with Individual Charts
 
-Each chart has its own Makefile: `Makefile.{chart-name}.mk`
+Each chart has operational commands in `make/ops/{chart-name}.mk`
 
 ```bash
 # Work with specific chart (replace {chart} with: nextcloud, wordpress, etc.)
-make -f Makefile.{chart}.mk lint
-make -f Makefile.{chart}.mk build
-make -f Makefile.{chart}.mk template
-make -f Makefile.{chart}.mk install
-make -f Makefile.{chart}.mk upgrade
-make -f Makefile.{chart}.mk uninstall
+make -f make/ops/{chart}.mk lint
+make -f make/ops/{chart}.mk build
+make -f make/ops/{chart}.mk template
+make -f make/ops/{chart}.mk install
+make -f make/ops/{chart}.mk upgrade
+make -f make/ops/{chart}.mk uninstall
 ```
 
 ### WordPress Specific Commands
 
 ```bash
 # Run wp-cli command
-make -f Makefile.wordpress.mk wp-cli CMD="plugin list"
+make -f make/ops/wordpress.mk wp-cli CMD="plugin list"
 
 # Install WordPress
-make -f Makefile.wordpress.mk wp-install \
+make -f make/ops/wordpress.mk wp-install \
   URL=https://example.com \
   TITLE="My Site" \
   ADMIN_USER=admin \
@@ -107,184 +107,184 @@ make -f Makefile.wordpress.mk wp-install \
   ADMIN_EMAIL=admin@example.com
 
 # Update WordPress core, plugins, and themes
-make -f Makefile.wordpress.mk wp-update
+make -f make/ops/wordpress.mk wp-update
 ```
 
 ### Keycloak Specific Commands
 
 ```bash
 # Backup all realms to tmp/keycloak-backups/
-make -f Makefile.keycloak.mk kc-backup-all-realms
+make -f make/ops/keycloak.mk kc-backup-all-realms
 
 # Import realm from file
-make -f Makefile.keycloak.mk kc-import-realm FILE=realm.json
+make -f make/ops/keycloak.mk kc-import-realm FILE=realm.json
 
 # List all realms
-make -f Makefile.keycloak.mk kc-list-realms
+make -f make/ops/keycloak.mk kc-list-realms
 
 # Open shell in Keycloak pod
-make -f Makefile.keycloak.mk kc-pod-shell
+make -f make/ops/keycloak.mk kc-pod-shell
 
 # Test PostgreSQL connection
-make -f Makefile.keycloak.mk kc-db-test
+make -f make/ops/keycloak.mk kc-db-test
 
 # Run kcadm.sh command
-make -f Makefile.keycloak.mk kc-cli CMD="get realms"
+make -f make/ops/keycloak.mk kc-cli CMD="get realms"
 
 # Check cluster status
-make -f Makefile.keycloak.mk kc-cluster-status
+make -f make/ops/keycloak.mk kc-cluster-status
 
 # Fetch Prometheus metrics
-make -f Makefile.keycloak.mk kc-metrics
+make -f make/ops/keycloak.mk kc-metrics
 ```
 
 ### WireGuard Specific Commands
 
 ```bash
 # Show WireGuard status
-make -f Makefile.wireguard.mk wg-show
+make -f make/ops/wireguard.mk wg-show
 
 # Get server public key
-make -f Makefile.wireguard.mk wg-pubkey
+make -f make/ops/wireguard.mk wg-pubkey
 
 # Get peer configuration (auto mode)
-make -f Makefile.wireguard.mk wg-get-peer PEER=peer1
+make -f make/ops/wireguard.mk wg-get-peer PEER=peer1
 
 # List all peers (auto mode)
-make -f Makefile.wireguard.mk wg-list-peers
+make -f make/ops/wireguard.mk wg-list-peers
 
 # Display QR code for mobile (auto mode)
-make -f Makefile.wireguard.mk wg-qr PEER=peer1
+make -f make/ops/wireguard.mk wg-qr PEER=peer1
 
 # Show current wg0.conf
-make -f Makefile.wireguard.mk wg-config
+make -f make/ops/wireguard.mk wg-config
 
 # Get service endpoint (LoadBalancer IP or NodePort)
-make -f Makefile.wireguard.mk wg-endpoint
+make -f make/ops/wireguard.mk wg-endpoint
 
 # Restart WireGuard
-make -f Makefile.wireguard.mk wg-restart
+make -f make/ops/wireguard.mk wg-restart
 
 # View logs
-make -f Makefile.wireguard.mk wg-logs
+make -f make/ops/wireguard.mk wg-logs
 
 # Open shell
-make -f Makefile.wireguard.mk wg-shell
+make -f make/ops/wireguard.mk wg-shell
 ```
 
 ### RabbitMQ Specific Commands
 
 ```bash
 # Check cluster status
-make -f Makefile.rabbitmq.mk rmq-status
+make -f make/ops/rabbitmq.mk rmq-status
 
 # Check node health
-make -f Makefile.rabbitmq.mk rmq-node-health
+make -f make/ops/rabbitmq.mk rmq-node-health
 
 # List queues, exchanges, connections
-make -f Makefile.rabbitmq.mk rmq-list-queues
-make -f Makefile.rabbitmq.mk rmq-list-exchanges
-make -f Makefile.rabbitmq.mk rmq-list-connections
+make -f make/ops/rabbitmq.mk rmq-list-queues
+make -f make/ops/rabbitmq.mk rmq-list-exchanges
+make -f make/ops/rabbitmq.mk rmq-list-connections
 
 # User management
-make -f Makefile.rabbitmq.mk rmq-add-user USER=myuser PASSWORD=mypass
-make -f Makefile.rabbitmq.mk rmq-set-user-tags USER=myuser TAGS=administrator
-make -f Makefile.rabbitmq.mk rmq-set-permissions VHOST=/ USER=myuser
-make -f Makefile.rabbitmq.mk rmq-list-users
+make -f make/ops/rabbitmq.mk rmq-add-user USER=myuser PASSWORD=mypass
+make -f make/ops/rabbitmq.mk rmq-set-user-tags USER=myuser TAGS=administrator
+make -f make/ops/rabbitmq.mk rmq-set-permissions VHOST=/ USER=myuser
+make -f make/ops/rabbitmq.mk rmq-list-users
 
 # Virtual host management
-make -f Makefile.rabbitmq.mk rmq-add-vhost VHOST=/my-vhost
-make -f Makefile.rabbitmq.mk rmq-list-vhosts
+make -f make/ops/rabbitmq.mk rmq-add-vhost VHOST=/my-vhost
+make -f make/ops/rabbitmq.mk rmq-list-vhosts
 
 # Access credentials
-make -f Makefile.rabbitmq.mk rmq-get-credentials
+make -f make/ops/rabbitmq.mk rmq-get-credentials
 
 # Port-forward services
-make -f Makefile.rabbitmq.mk rmq-port-forward-ui        # Management UI (15672)
-make -f Makefile.rabbitmq.mk rmq-port-forward-amqp      # AMQP (5672)
-make -f Makefile.rabbitmq.mk rmq-port-forward-metrics   # Prometheus metrics (15692)
+make -f make/ops/rabbitmq.mk rmq-port-forward-ui        # Management UI (15672)
+make -f make/ops/rabbitmq.mk rmq-port-forward-amqp      # AMQP (5672)
+make -f make/ops/rabbitmq.mk rmq-port-forward-metrics   # Prometheus metrics (15692)
 
 # Metrics and monitoring
-make -f Makefile.rabbitmq.mk rmq-metrics
+make -f make/ops/rabbitmq.mk rmq-metrics
 
 # Shell and logs
-make -f Makefile.rabbitmq.mk rmq-shell
-make -f Makefile.rabbitmq.mk rmq-logs
+make -f make/ops/rabbitmq.mk rmq-shell
+make -f make/ops/rabbitmq.mk rmq-logs
 
 # Restart deployment
-make -f Makefile.rabbitmq.mk rmq-restart
+make -f make/ops/rabbitmq.mk rmq-restart
 ```
 
 ### Memcached Specific Commands
 
 ```bash
 # Show memcached statistics
-make -f Makefile.memcached.mk mc-stats
+make -f make/ops/memcached.mk mc-stats
 
 # Flush all data (WARNING: clears all cached data)
-make -f Makefile.memcached.mk mc-flush
+make -f make/ops/memcached.mk mc-flush
 
 # Show memcached version
-make -f Makefile.memcached.mk mc-version
+make -f make/ops/memcached.mk mc-version
 
 # Show memcached settings
-make -f Makefile.memcached.mk mc-settings
+make -f make/ops/memcached.mk mc-settings
 
 # Show slab statistics
-make -f Makefile.memcached.mk mc-slabs
+make -f make/ops/memcached.mk mc-slabs
 
 # Show item statistics
-make -f Makefile.memcached.mk mc-items
+make -f make/ops/memcached.mk mc-items
 
 # View logs
-make -f Makefile.memcached.mk mc-logs
+make -f make/ops/memcached.mk mc-logs
 
 # Open shell
-make -f Makefile.memcached.mk mc-shell
+make -f make/ops/memcached.mk mc-shell
 
 # Port forward to memcached
-make -f Makefile.memcached.mk mc-port-forward
+make -f make/ops/memcached.mk mc-port-forward
 ```
 
 ### Redis Specific Commands
 
 ```bash
 # Ping Redis server
-make -f Makefile.redis.mk redis-ping
+make -f make/ops/redis.mk redis-ping
 
 # Get server info
-make -f Makefile.redis.mk redis-info
+make -f make/ops/redis.mk redis-info
 
 # Monitor commands in real-time
-make -f Makefile.redis.mk redis-monitor
+make -f make/ops/redis.mk redis-monitor
 
 # Check memory usage
-make -f Makefile.redis.mk redis-memory
+make -f make/ops/redis.mk redis-memory
 
 # Get statistics
-make -f Makefile.redis.mk redis-stats
+make -f make/ops/redis.mk redis-stats
 
 # List client connections
-make -f Makefile.redis.mk redis-clients
+make -f make/ops/redis.mk redis-clients
 
 # Data management
-make -f Makefile.redis.mk redis-bgsave           # Trigger background save
-make -f Makefile.redis.mk redis-backup           # Backup to tmp/redis-backups/
-make -f Makefile.redis.mk redis-restore FILE=... # Restore from backup
+make -f make/ops/redis.mk redis-bgsave           # Trigger background save
+make -f make/ops/redis.mk redis-backup           # Backup to tmp/redis-backups/
+make -f make/ops/redis.mk redis-restore FILE=... # Restore from backup
 
 # Analysis
-make -f Makefile.redis.mk redis-slowlog          # Get slow query log
-make -f Makefile.redis.mk redis-bigkeys          # Find biggest keys
-make -f Makefile.redis.mk redis-config-get PARAM=maxmemory
+make -f make/ops/redis.mk redis-slowlog          # Get slow query log
+make -f make/ops/redis.mk redis-bigkeys          # Find biggest keys
+make -f make/ops/redis.mk redis-config-get PARAM=maxmemory
 
 # Run redis-cli command
-make -f Makefile.redis.mk redis-cli CMD="get mykey"
+make -f make/ops/redis.mk redis-cli CMD="get mykey"
 
 # Open shell
-make -f Makefile.redis.mk redis-shell
+make -f make/ops/redis.mk redis-shell
 
 # View logs
-make -f Makefile.redis.mk redis-logs
+make -f make/ops/redis.mk redis-logs
 ```
 
 ### Kind (Local Testing)
