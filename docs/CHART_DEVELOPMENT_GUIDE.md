@@ -9,12 +9,13 @@ Charts are classified into three categories based on their complexity and depend
 ### 1. Standalone Services (No External Dependencies)
 Services that don't require external databases.
 
-**Examples:** redis, memcached, wireguard, browserless-chrome
+**Examples:** redis, memcached, wireguard, browserless-chrome, rustfs
 
 **Characteristics:**
 - No `postgresql`/`mysql`/`redis` external configuration blocks
 - Self-contained data storage (in-memory or PVC)
 - Simpler configuration management
+- May support clustering via headless services (redis, rustfs)
 
 ### 2. Database-Dependent Services
 Services that require external PostgreSQL, MySQL, or Redis.
@@ -1789,3 +1790,271 @@ When creating a new chart, ensure:
 - [ ] PVC reclaim policy is `Retain` for production
 - [ ] Deployment/StatefulSet choice is appropriate
 - [ ] Template includes checksum annotations for config/secret changes
+
+## Advanced Patterns
+
+### Tiered Storage (RustFS Example)
+
+For applications that benefit from mixing storage types (SSD + HDD), implement tiered storage:
+
+```yaml
+# Enable/disable tiered storage
+storageTiers:
+  enabled: false
+
+  # Hot tier (fast storage - SSD)
+  hot:
+    storageClass: "fast-ssd"
+    size: 50Gi
+    dataDirs: 2
+
+  # Cold tier (slow storage - HDD)
+  cold:
+    storageClass: "standard-hdd"
+    size: 200Gi
+    dataDirs: 2
+```
+
+**Implementation considerations:**
+
+1. **Conditional VolumeClaimTemplates**: Use separate PVCs for each tier
+   ```yaml
+   {{- if .Values.storageTiers.enabled }}
+   {{- range $i := until (int .Values.storageTiers.hot.dataDirs) }}
+   - metadata:
+       name: hot-{{ $i }}
+     spec:
+       storageClassName: {{ $.Values.storageTiers.hot.storageClass | quote }}
+   {{- end }}
+   {{- end }}
+   ```
+
+2. **Volume Mounts**: Mount each tier to separate paths
+   ```yaml
+   volumeMounts:
+     - name: hot-0
+       mountPath: /data/hot-0
+     - name: cold-0
+       mountPath: /data/cold-0
+   ```
+
+3. **Application Command**: Generate paths dynamically
+   ```yaml
+   command:
+     - myapp
+     - server
+     {{- range $i := until (int .Values.storageTiers.hot.dataDirs) }}
+     - /data/hot-{{ $i }}
+     {{- end }}
+     {{- range $i := until (int .Values.storageTiers.cold.dataDirs) }}
+     - /data/cold-{{ $i }}
+     {{- end }}
+   ```
+
+**Use cases:**
+- Object storage (hot: frequently accessed, cold: archives)
+- Time-series databases (hot: recent data, cold: historical)
+- Media servers (hot: popular content, cold: catalog)
+
+**Reference implementation:** [charts/rustfs](../charts/rustfs/)
+
+### Multiple Configuration Variants
+
+Provide optimized configurations for different deployment scenarios:
+
+1. **values.yaml**: Default/balanced configuration
+2. **values-homeserver.yaml**: Low-resource environments
+   - Reduced CPU/RAM (50% of default)
+   - Single replica
+   - HDD storage optimization
+   - Disabled monitoring
+3. **values-startup.yaml**: Production/enterprise
+   - High availability (4+ replicas)
+   - Autoscaling enabled
+   - NetworkPolicy + PDB
+   - LoadBalancer + Ingress
+   - Monitoring enabled
+
+**Example structure (RustFS):**
+
+```yaml
+# values-homeserver.yaml
+resources:
+  limits:
+    cpu: 1000m     # 1 core for home server
+    memory: 2Gi
+persistence:
+  size: 100Gi      # Smaller datasets
+replicaCount: 1    # No HA
+
+# values-startup.yaml
+resources:
+  limits:
+    cpu: 4000m     # 4 cores for production
+    memory: 8Gi
+persistence:
+  size: 500Gi      # Larger capacity
+replicaCount: 4    # HA cluster
+autoscaling:
+  enabled: true
+  maxReplicas: 10
+podDisruptionBudget:
+  enabled: true
+  minAvailable: 3
+```
+
+### StatefulSet with Multiple Data Directories
+
+For distributed storage systems that require multiple data directories per pod:
+
+```yaml
+# values.yaml
+rustfs:
+  dataDirs: 4  # Number of data directories per pod
+
+# statefulset.yaml
+volumeClaimTemplates:
+  {{- range $i := until (int .Values.rustfs.dataDirs) }}
+  - metadata:
+      name: data-{{ $i }}
+    spec:
+      accessModes: [ "ReadWriteOnce" ]
+      storageClassName: {{ $.Values.persistence.storageClass | quote }}
+      resources:
+        requests:
+          storage: {{ $.Values.persistence.size }}
+  {{- end }}
+
+# Container volumeMounts
+volumeMounts:
+  {{- range $i := until (int .Values.rustfs.dataDirs) }}
+  - name: data-{{ $i }}
+    mountPath: /data/rustfs{{ $i }}
+  {{- end }}
+```
+
+**Benefits:**
+- Better performance (parallel I/O)
+- Flexible storage allocation
+- Per-disk failure isolation
+
+**When to use:**
+- Distributed file systems (MinIO, RustFS)
+- Database sharding
+- Parallel processing systems
+
+### Headless Service for Clustering
+
+For StatefulSet clustering with stable network identities:
+
+```yaml
+# service-headless.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "app.fullname" . }}-headless
+spec:
+  type: ClusterIP
+  clusterIP: None
+  publishNotReadyAddresses: true  # Allow DNS for non-ready pods
+  ports:
+    - port: 9000
+      name: api
+  selector:
+    {{- include "app.selectorLabels" . | nindent 4 }}
+```
+
+**DNS patterns:**
+- Single pod: `<pod-name>.<service-name>.<namespace>.svc.cluster.local`
+- All pods: `<service-name>.<namespace>.svc.cluster.local`
+- Pod range: `{0...3}.<service-name>.<namespace>.svc.cluster.local` (Helm expansion)
+
+**Example usage (RustFS cluster):**
+```go
+// Application detects cluster members via DNS
+members := "{0...3}.rustfs-headless.default.svc.cluster.local:9000"
+```
+
+### Init Container for Storage Verification
+
+For production deployments with multiple storage tiers:
+
+```yaml
+initContainers:
+  - name: check-storage
+    image: busybox:1.36
+    command:
+      - sh
+      - -c
+      - |
+        echo "Checking storage mount points..."
+        for dir in /data/hot-0 /data/hot-1 /data/cold-0 /data/cold-1; do
+          if [ ! -d "$dir" ]; then
+            echo "ERROR: $dir not mounted!"
+            exit 1
+          fi
+          echo "✓ $dir mounted successfully"
+        done
+    volumeMounts:
+      - name: hot-0
+        mountPath: /data/hot-0
+      - name: hot-1
+        mountPath: /data/hot-1
+      - name: cold-0
+        mountPath: /data/cold-0
+      - name: cold-1
+        mountPath: /data/cold-1
+```
+
+**Benefits:**
+- Fail-fast on misconfiguration
+- Clear error messages
+- Prevents data corruption
+
+### Comprehensive Operational Makefile
+
+Provide day-2 operations commands for production environments:
+
+```makefile
+# Makefile.rustfs.mk
+
+# Credentials management
+rustfs-get-credentials:
+	@kubectl get secret $(RELEASE_NAME)-secret -n $(NAMESPACE) \
+	  -o jsonpath='{.data.root-password}' | base64 -d
+
+# Port forwarding
+rustfs-port-forward-api:
+	kubectl port-forward -n $(NAMESPACE) svc/$(RELEASE_NAME) 9000:9000
+
+# Health checks
+rustfs-health:
+	kubectl exec $(POD) -n $(NAMESPACE) -- \
+	  wget -q -O- http://localhost:9000/health/live
+
+# Scaling
+rustfs-scale:
+	kubectl scale statefulset $(RELEASE_NAME) -n $(NAMESPACE) --replicas=$(REPLICAS)
+
+# Backup (VolumeSnapshot)
+rustfs-backup:
+	TIMESTAMP=$$(date +%Y%m%d-%H%M%S); \
+	for pvc in $$(kubectl get pvc -n $(NAMESPACE) -l app=$(CHART_NAME) -o name); do \
+	  kubectl create volumesnapshot $$pvc-snapshot-$$TIMESTAMP -n $(NAMESPACE) \
+	    --source=$$pvc; \
+	done
+
+# Application-specific testing
+rustfs-test-s3:
+	mc alias set rustfs-test http://localhost:9000 $(USER) $(PASS)
+	mc mb rustfs-test/testbucket
+	mc ls rustfs-test
+```
+
+**Categories:**
+1. Access & Credentials
+2. Debugging (logs, shell, describe)
+3. Health & Metrics
+4. Scaling & Updates
+5. Backup & Restore
+6. Application-specific operations

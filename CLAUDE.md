@@ -47,6 +47,7 @@ charts/{chart-name}/
 - **redis**: In-memory data store (StatefulSet, no external database, full redis.conf support)
 - **memcached**: High-performance distributed memory caching system (Deployment, no database)
 - **rabbitmq**: Message broker with management UI (Deployment, no database, AMQP + Prometheus metrics)
+- **rustfs**: High-performance S3-compatible object storage (StatefulSet, tiered storage, clustering)
 - **rsshub**: RSS aggregator (well-maintained external chart available)
 - **browserless-chrome**: Headless browser for crawling
 - **devpi**: Python package index
@@ -285,6 +286,41 @@ make -f make/ops/redis.mk redis-shell
 
 # View logs
 make -f make/ops/redis.mk redis-logs
+```
+
+### RustFS Specific Commands
+
+```bash
+# Get RustFS credentials
+make -f Makefile.rustfs.mk rustfs-get-credentials
+
+# Port forward services
+make -f Makefile.rustfs.mk rustfs-port-forward-api      # S3 API (9000)
+make -f Makefile.rustfs.mk rustfs-port-forward-console  # Console (9001)
+
+# Test S3 API (requires MinIO Client 'mc')
+make -f Makefile.rustfs.mk rustfs-test-s3
+
+# Health and metrics
+make -f Makefile.rustfs.mk rustfs-health
+make -f Makefile.rustfs.mk rustfs-metrics
+
+# View logs and shell
+make -f Makefile.rustfs.mk rustfs-logs
+make -f Makefile.rustfs.mk rustfs-shell
+
+# Scale cluster
+make -f Makefile.rustfs.mk rustfs-scale REPLICAS=6
+
+# Backup (requires VolumeSnapshot CRD)
+make -f Makefile.rustfs.mk rustfs-backup
+
+# View all resources
+make -f Makefile.rustfs.mk rustfs-all
+
+# Install variants
+make -f Makefile.rustfs.mk install-homeserver  # Home server config
+make -f Makefile.rustfs.mk install-startup     # Production config
 ```
 
 ### Kind (Local Testing)
