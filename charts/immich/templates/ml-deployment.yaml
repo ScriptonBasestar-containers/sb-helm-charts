@@ -1,0 +1,114 @@
+{{- if .Values.immich.machineLearning.enabled }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "immich.fullname" . }}-ml
+  labels:
+    {{- include "immich.ml.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.immich.machineLearning.replicaCount }}
+  selector:
+    matchLabels:
+      {{- include "immich.ml.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      annotations:
+        checksum/secret: {{ include (print $.Template.BasePath "/secret.yaml") . | sha256sum }}
+        {{- with .Values.podAnnotations }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+      labels:
+        {{- include "immich.ml.labels" . | nindent 8 }}
+        {{- with .Values.podLabels }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+    spec:
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      serviceAccountName: {{ include "immich.serviceAccountName" . }}
+      securityContext:
+        {{- toYaml .Values.podSecurityContext | nindent 8 }}
+      containers:
+        - name: machine-learning
+          securityContext:
+            {{- toYaml .Values.securityContext | nindent 12 }}
+          image: {{ include "immich.ml.image" . | quote }}
+          imagePullPolicy: {{ .Values.immich.machineLearning.image.pullPolicy }}
+          env:
+            # Database configuration (for job coordination)
+            - name: DB_HOSTNAME
+              value: {{ include "immich.postgresql.host" . | quote }}
+            - name: DB_PORT
+              value: {{ .Values.postgresql.external.port | quote }}
+            - name: DB_DATABASE_NAME
+              value: {{ .Values.postgresql.external.database | quote }}
+            - name: DB_USERNAME
+              value: {{ .Values.postgresql.external.username | quote }}
+            - name: DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "immich.fullname" . }}
+                  key: db-password
+
+            # Redis configuration
+            - name: REDIS_HOSTNAME
+              value: {{ include "immich.redis.host" . | quote }}
+            - name: REDIS_PORT
+              value: {{ .Values.redis.external.port | quote }}
+            - name: REDIS_DBINDEX
+              value: {{ .Values.redis.external.database | quote }}
+            {{- if .Values.redis.external.password }}
+            - name: REDIS_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "immich.fullname" . }}
+                  key: redis-password
+            {{- end }}
+
+            # ML configuration
+            - name: TZ
+              value: {{ .Values.immich.env.TZ | quote }}
+            - name: LOG_LEVEL
+              value: {{ .Values.immich.env.LOG_LEVEL | quote }}
+
+          volumeMounts:
+            {{- if .Values.immich.machineLearning.modelCache.enabled }}
+            - name: model-cache
+              mountPath: /cache
+            {{- end }}
+            - name: library
+              mountPath: {{ .Values.immich.env.IMMICH_MEDIA_LOCATION }}
+              readOnly: true
+
+          resources:
+            {{- toYaml .Values.immich.machineLearning.resources | nindent 12 }}
+
+      volumes:
+        {{- if .Values.immich.machineLearning.modelCache.enabled }}
+        - name: model-cache
+          persistentVolumeClaim:
+            claimName: {{ include "immich.ml.pvcName" . }}
+        {{- end }}
+        - name: library
+          {{- if .Values.persistence.enabled }}
+          persistentVolumeClaim:
+            claimName: {{ include "immich.library.pvcName" . }}
+          {{- else }}
+          emptyDir: {}
+          {{- end }}
+
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+{{- end }}

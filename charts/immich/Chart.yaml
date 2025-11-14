@@ -1,0 +1,31 @@
+apiVersion: v2
+name: immich
+description: High-performance self-hosted photo and video management solution with AI-powered features
+type: application
+version: 0.1.0
+appVersion: "v1.122.3"
+icon: https://immich.app/img/immich-logo.svg
+keywords:
+  - immich
+  - photos
+  - media
+  - gallery
+  - ai
+  - machine-learning
+home: https://immich.app
+sources:
+  - https://github.com/scriptonbasestar-container/sb-helm-charts/tree/master/charts/immich
+  - https://github.com/immich-app/immich
+maintainers:
+  - name: archmagece
+    email: archmagece@users.noreply.github.com
+annotations:
+  artifacthub.io/license: BSD-3-Clause
+  category: Media
+  artifacthub.io/changes: |
+    - kind: added
+      description: Initial Immich chart with microservices architecture
+  artifacthub.io/prerelease: "true"
+  artifacthub.io/recommendations: |
+    - url: https://artifacthub.io/packages/helm/bitnami/postgresql
+    - url: https://artifacthub.io/packages/helm/bitnami/redis
