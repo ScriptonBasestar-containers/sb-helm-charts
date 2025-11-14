@@ -2,6 +2,21 @@
 
 A production-ready Helm chart for deploying [RabbitMQ](https://www.rabbitmq.com/) message broker on Kubernetes with management UI and Prometheus metrics support.
 
+## ⚠️ Production Consideration
+
+**For production environments requiring clustering and high availability**, consider using [RabbitMQ Cluster Operator](https://github.com/rabbitmq/cluster-operator):
+
+- ✅ Native RabbitMQ clustering support
+- ✅ Automatic node recovery
+- ✅ CRD-based management
+- ✅ Official operator from RabbitMQ team
+
+**This chart is recommended for:**
+- Development/testing environments
+- Single-node deployments
+- Simple message queuing needs
+- Configuration-first approach preference
+
 ## Overview
 
 RabbitMQ is a widely-used open-source message broker that implements the Advanced Message Queuing Protocol (AMQP). This chart provides a simple, configuration-first approach to deploying RabbitMQ on Kubernetes.

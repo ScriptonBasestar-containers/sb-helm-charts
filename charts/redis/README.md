@@ -2,6 +2,23 @@
 
 [Redis](https://redis.io/) is an open-source, in-memory data structure store used as a database, cache, message broker, and streaming engine.
 
+## ⚠️ Production Consideration
+
+**For production environments requiring high availability**, consider using [Spotahome Redis Operator](https://github.com/spotahome/redis-operator) instead:
+
+- ✅ Automatic failover with Sentinel
+- ✅ Master-Replica replication
+- ✅ Self-healing capabilities
+- ✅ CRD-based management
+
+See [Redis Operator Migration Guide](../../docs/03-redis-operator-migration.md) for detailed comparison and migration instructions.
+
+**This chart is recommended for:**
+- Development/testing environments
+- Simple cache servers
+- Single-application deployments
+- Resource-constrained environments
+
 ## Features
 
 - ✅ StatefulSet-based deployment for data persistence

@@ -40,17 +40,29 @@ charts/{chart-name}/
 
 ## Available Charts
 
+### Application Charts (Self-Hosted)
+
 - **keycloak**: IAM solution (StatefulSet, PostgreSQL, clustering, realm management)
 - **wordpress**: WordPress CMS (Deployment, MySQL, Apache)
 - **nextcloud**: Nextcloud with LinuxServer.io image (Deployment, PostgreSQL, config-based)
 - **wireguard**: VPN solution (Deployment, no database, UDP service, NET_ADMIN capabilities)
-- **redis**: In-memory data store (StatefulSet, no external database, full redis.conf support)
-- **memcached**: High-performance distributed memory caching system (Deployment, no database)
-- **rabbitmq**: Message broker with management UI (Deployment, no database, AMQP + Prometheus metrics)
 - **rustfs**: High-performance S3-compatible object storage (StatefulSet, tiered storage, clustering)
 - **rsshub**: RSS aggregator (well-maintained external chart available)
 - **browserless-chrome**: Headless browser for crawling
 - **devpi**: Python package index
+- **jellyfin**: Media server with hardware transcoding support
+- **vaultwarden**: Bitwarden-compatible password manager
+- **immich**: AI-powered photo and video management
+
+### Infrastructure Charts (Dev/Test - Consider Operators for Production)
+
+- **redis**: In-memory data store (StatefulSet, no external database, full redis.conf support)
+  - ⚠️ For production HA, consider [Spotahome Redis Operator](https://github.com/spotahome/redis-operator)
+  - See [docs/03-redis-operator-migration.md](docs/03-redis-operator-migration.md)
+- **memcached**: High-performance distributed memory caching system (Deployment, no database)
+  - ⚠️ For production, consider [Memcached Operator](https://github.com/ianlewis/memcached-operator)
+- **rabbitmq**: Message broker with management UI (Deployment, no database, AMQP + Prometheus metrics)
+  - ⚠️ For production clustering, consider [RabbitMQ Cluster Operator](https://github.com/rabbitmq/cluster-operator)
 
 ## Common Development Commands
 

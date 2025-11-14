@@ -2,6 +2,21 @@
 
 [Memcached](https://memcached.org/) is a high-performance, distributed memory object caching system, generic in nature, but intended for use in speeding up dynamic web applications by alleviating database load.
 
+## ⚠️ Production Consideration
+
+**For production environments requiring advanced management**, consider using [Memcached Operator](https://github.com/ianlewis/memcached-operator):
+
+- ✅ Automated cluster management
+- ✅ CRD-based configuration
+- ✅ Declarative deployment model
+- ✅ Kubernetes-native management
+
+**This chart is recommended for:**
+- Development/testing environments
+- Simple caching needs
+- Single or few-replica deployments
+- Minimal operational overhead
+
 ## Features
 
 - ✅ Deployment-based for horizontal scaling
