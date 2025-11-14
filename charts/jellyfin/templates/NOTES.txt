@@ -1,0 +1,96 @@
+1. Get the application URL by running these commands:
+{{- if .Values.ingress.enabled }}
+{{- range $host := .Values.ingress.hosts }}
+  {{- range .paths }}
+  http{{ if $.Values.ingress.tls }}s{{ end }}://{{ $host.host }}{{ .path }}
+  {{- end }}
+{{- end }}
+{{- else if contains "NodePort" .Values.service.type }}
+  export NODE_PORT=$(kubectl get --namespace {{ .Release.Namespace }} -o jsonpath="{.spec.ports[?(@.name=='http')].nodePort}" services {{ include "jellyfin.fullname" . }})
+  export NODE_IP=$(kubectl get nodes --namespace {{ .Release.Namespace }} -o jsonpath="{.items[0].status.addresses[0].address}")
+  echo http://$NODE_IP:$NODE_PORT
+{{- else if contains "LoadBalancer" .Values.service.type }}
+  NOTE: It may take a few minutes for the LoadBalancer IP to be available.
+       You can watch the status of by running 'kubectl get --namespace {{ .Release.Namespace }} svc -w {{ include "jellyfin.fullname" . }}'
+  {{- $httpPort := 8096 }}
+  {{- range .Values.service.ports }}
+    {{- if eq .name "http" }}
+      {{- $httpPort = .port }}
+    {{- end }}
+  {{- end }}
+  export SERVICE_IP=$(kubectl get svc --namespace {{ .Release.Namespace }} {{ include "jellyfin.fullname" . }} --template "{{"{{ range (index .status.loadBalancer.ingress 0) }}{{.}}{{ end }}"}}")
+  echo http://$SERVICE_IP:{{ $httpPort }}
+{{- else if contains "ClusterIP" .Values.service.type }}
+  export POD_NAME=$(kubectl get pods --namespace {{ .Release.Namespace }} -l "app.kubernetes.io/name={{ include "jellyfin.name" . }},app.kubernetes.io/instance={{ .Release.Name }}" -o jsonpath="{.items[0].metadata.name}")
+  kubectl --namespace {{ .Release.Namespace }} port-forward $POD_NAME 8096:8096
+  echo "Visit http://127.0.0.1:8096 to use Jellyfin"
+{{- end }}
+
+2. Initial Setup:
+   - Open the web UI and complete the initial setup wizard
+   - Create an admin user account
+   - Add your media libraries (mounted at):
+   {{- if .Values.jellyfin.mediaDirectories }}
+   {{- range .Values.jellyfin.mediaDirectories }}
+     - {{ .mountPath }} ({{ .name }})
+   {{- end }}
+   {{- else }}
+     WARNING: No media directories configured! Add them in values.yaml under jellyfin.mediaDirectories
+   {{- end }}
+
+3. Hardware Acceleration Configuration:
+   {{- if .Values.jellyfin.hardwareAcceleration.enabled }}
+   - Type: {{ .Values.jellyfin.hardwareAcceleration.type }}
+   {{- if eq .Values.jellyfin.hardwareAcceleration.type "intel-qsv" }}
+   - Navigate to: Admin Dashboard > Playback > Transcoding
+   - Select "Intel QuickSync (QSV)" or "Video Acceleration API (VA-API)"
+   - Device: {{ .Values.jellyfin.hardwareAcceleration.intel.renderDevice }}
+   - Enable: "Enable hardware decoding" and "Enable hardware encoding"
+   {{- else if eq .Values.jellyfin.hardwareAcceleration.type "nvidia-nvenc" }}
+   - Navigate to: Admin Dashboard > Playback > Transcoding
+   - Select "NVIDIA NVENC"
+   - Enable: "Enable hardware decoding" and "Enable hardware encoding"
+   - Note: NVIDIA driver version 522.25+ required (Jellyfin 10.10+)
+   {{- else if eq .Values.jellyfin.hardwareAcceleration.type "amd-vaapi" }}
+   - Navigate to: Admin Dashboard > Playback > Transcoding
+   - Select "Video Acceleration API (VA-API)"
+   - Enable: "Enable hardware decoding" and "Enable hardware encoding"
+   {{- end }}
+   {{- else }}
+   - Hardware acceleration is DISABLED (CPU transcoding only)
+   - To enable GPU transcoding, set:
+       jellyfin.hardwareAcceleration.enabled=true
+       jellyfin.hardwareAcceleration.type=intel-qsv  # or nvidia-nvenc, amd-vaapi
+   {{- end }}
+
+4. Storage Configuration:
+   - Config: {{ .Values.persistence.config.size }} ({{ .Values.persistence.config.mountPath }})
+   - Cache: {{ .Values.persistence.cache.size }} ({{ .Values.persistence.cache.mountPath }})
+   {{- if .Values.jellyfin.mediaDirectories }}
+   - Media volumes: {{ len .Values.jellyfin.mediaDirectories }} configured
+   {{- end }}
+
+5. Operational Commands:
+   # View logs
+   kubectl logs -f deployment/{{ include "jellyfin.fullname" . }} -n {{ .Release.Namespace }}
+
+   # Get pod shell
+   kubectl exec -it deployment/{{ include "jellyfin.fullname" . }} -n {{ .Release.Namespace }} -- /bin/bash
+
+   # Check resource usage
+   kubectl top pod -l app.kubernetes.io/name={{ include "jellyfin.name" . }} -n {{ .Release.Namespace }}
+
+6. Remote Access (Optional):
+   {{- if .Values.jellyfin.network.publishedServerUrl }}
+   - Published server URL: {{ .Values.jellyfin.network.publishedServerUrl }}
+   - Configure reverse proxy (nginx, traefik) with WebSocket support
+   - Enable HTTPS for secure remote streaming
+   {{- else }}
+   - Set jellyfin.network.publishedServerUrl for remote access
+   - Example: https://jellyfin.example.com
+   {{- end }}
+
+For more information, visit:
+- Jellyfin Documentation: https://jellyfin.org/docs/
+- Hardware Acceleration: https://jellyfin.org/docs/general/post-install/transcoding/hardware-acceleration/
+- Chart Repository: https://github.com/scriptonbasestar-container/sb-helm-charts

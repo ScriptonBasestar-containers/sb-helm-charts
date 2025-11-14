@@ -1,0 +1,26 @@
+apiVersion: v2
+name: jellyfin
+description: Jellyfin - The Free Software Media System (Plex Alternative)
+type: application
+version: 0.1.0
+appVersion: "10.10.3"
+home: https://github.com/scriptonbasestar-container/sb-helm-charts
+sources:
+  - https://github.com/scriptonbasestar-container/sb-helm-charts
+  - https://scriptonbasestar-container.github.io/sb-helm-charts
+  - https://github.com/jellyfin/jellyfin
+  - https://hub.docker.com/r/jellyfin/jellyfin
+maintainers:
+  - name: archmagece
+    email: archmagece@users.noreply.github.com
+keywords:
+  - jellyfin
+  - media-server
+  - streaming
+  - plex-alternative
+  - transcoding
+  - gpu-acceleration
+icon: https://raw.githubusercontent.com/jellyfin/jellyfin-ux/master/branding/SVG/icon-transparent.svg
+annotations:
+  artifacthub.io/license: BSD-3-Clause
+  category: Media

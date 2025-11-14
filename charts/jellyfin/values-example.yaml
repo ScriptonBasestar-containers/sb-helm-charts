@@ -1,0 +1,255 @@
+# Jellyfin Helm Chart - Production Configuration Example
+#
+# Optimized for:
+# - Production deployments
+# - High-performance servers
+# - Multiple concurrent streams (10-20+)
+# - NVIDIA GPU hardware acceleration
+#
+# Prerequisites:
+# - NVIDIA GPU Operator installed
+# - Ingress controller (nginx, traefik)
+# - Cert-manager for TLS certificates
+
+# ========================================
+# Jellyfin Configuration
+# ========================================
+jellyfin:
+  # Multiple media libraries
+  mediaDirectories:
+    - name: movies
+      mountPath: /media/movies
+      existingClaim: "jellyfin-movies-pvc"
+      readOnly: false
+    - name: tvshows
+      mountPath: /media/tvshows
+      existingClaim: "jellyfin-tvshows-pvc"
+      readOnly: false
+    - name: music
+      mountPath: /media/music
+      existingClaim: "jellyfin-music-pvc"
+      readOnly: false
+    - name: photos
+      mountPath: /media/photos
+      existingClaim: "jellyfin-photos-pvc"
+      readOnly: false
+
+  # NVIDIA NVENC hardware acceleration
+  hardwareAcceleration:
+    enabled: true
+    type: "nvidia-nvenc"
+    nvidia:
+      runtimeClassName: "nvidia"
+
+  transcoding:
+    cacheSize: 20Gi
+    threads: 0  # Auto-detect
+
+  network:
+    publishedServerUrl: "https://jellyfin.example.com"
+    enableDlna: false
+
+# ========================================
+# Persistence - Production Sizes
+# ========================================
+persistence:
+  enabled: true
+
+  config:
+    enabled: true
+    storageClass: "fast-ssd"  # Use SSD for database performance
+    size: 10Gi
+    accessMode: ReadWriteOnce
+    mountPath: /config
+
+  cache:
+    enabled: true
+    storageClass: "fast-ssd"  # Use SSD for transcoding cache
+    size: 50Gi
+    accessMode: ReadWriteOnce
+    mountPath: /cache
+
+# ========================================
+# Resources - Production Allocation
+# ========================================
+replicaCount: 1
+
+resources:
+  limits:
+    cpu: 8000m      # 8 cores max
+    memory: 16Gi    # 16GB max
+    nvidia.com/gpu: 1  # 1 NVIDIA GPU
+  requests:
+    cpu: 2000m      # 2 cores baseline
+    memory: 8Gi     # 8GB baseline
+
+# ========================================
+# Service - LoadBalancer or ClusterIP
+# ========================================
+service:
+  type: ClusterIP  # Use LoadBalancer for direct access
+  ports:
+    - name: http
+      port: 8096
+      targetPort: 8096
+      protocol: TCP
+    - name: https
+      port: 8920
+      targetPort: 8920
+      protocol: TCP
+
+# ========================================
+# Ingress - Production with TLS
+# ========================================
+ingress:
+  enabled: true
+  className: "nginx"
+  annotations:
+    nginx.ingress.kubernetes.io/proxy-body-size: "10G"
+    nginx.ingress.kubernetes.io/proxy-buffering: "off"
+    nginx.ingress.kubernetes.io/proxy-request-buffering: "off"
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
+    # WebSocket support
+    nginx.ingress.kubernetes.io/configuration-snippet: |
+      proxy_set_header Upgrade $http_upgrade;
+      proxy_set_header Connection "upgrade";
+  hosts:
+    - host: jellyfin.example.com
+      paths:
+        - path: /
+          pathType: Prefix
+  tls:
+    - secretName: jellyfin-tls
+      hosts:
+        - jellyfin.example.com
+
+# ========================================
+# Health Probes - Production Timing
+# ========================================
+livenessProbe:
+  enabled: true
+  httpGet:
+    path: /health
+    port: http
+  initialDelaySeconds: 60
+  periodSeconds: 10
+  timeoutSeconds: 5
+  failureThreshold: 6
+
+readinessProbe:
+  enabled: true
+  httpGet:
+    path: /health
+    port: http
+  initialDelaySeconds: 30
+  periodSeconds: 10
+  timeoutSeconds: 5
+  failureThreshold: 3
+
+startupProbe:
+  enabled: true
+  httpGet:
+    path: /health
+    port: http
+  initialDelaySeconds: 10
+  periodSeconds: 5
+  timeoutSeconds: 5
+  failureThreshold: 30
+
+# ========================================
+# Scheduling - NVIDIA GPU Node Affinity
+# ========================================
+nodeSelector:
+  nvidia.com/gpu.present: "true"
+
+tolerations:
+  - key: nvidia.com/gpu
+    operator: Exists
+    effect: NoSchedule
+
+affinity:
+  nodeAffinity:
+    requiredDuringSchedulingIgnoredDuringExecution:
+      nodeSelectorTerms:
+        - matchExpressions:
+            - key: nvidia.com/gpu.present
+              operator: In
+              values:
+                - "true"
+
+# ========================================
+# Pod Disruption Budget
+# ========================================
+podDisruptionBudget:
+  enabled: true
+  minAvailable: 1
+
+# ========================================
+# Network Policy
+# ========================================
+networkPolicy:
+  enabled: true
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              name: ingress-nginx
+      ports:
+        - protocol: TCP
+          port: 8096
+  egress:
+    - to:
+        - namespaceSelector: {}
+      ports:
+        - protocol: TCP
+          port: 53  # DNS
+        - protocol: UDP
+          port: 53  # DNS
+    - to:
+        - podSelector: {}
+
+# ========================================
+# Monitoring
+# ========================================
+monitoring:
+  enabled: true
+  serviceMonitor:
+    enabled: true
+    interval: 30s
+    scrapeTimeout: 10s
+    labels:
+      prometheus: kube-prometheus
+    path: /metrics
+
+# ========================================
+# Pod Annotations for Auto-Restart
+# ========================================
+podAnnotations:
+  prometheus.io/scrape: "true"
+  prometheus.io/port: "8096"
+  prometheus.io/path: "/metrics"
+
+# ========================================
+# Environment Variables
+# ========================================
+extraEnv:
+  - name: JELLYFIN_PublishedServerUrl
+    value: "https://jellyfin.example.com"
+  - name: TZ
+    value: "America/New_York"
+
+# ========================================
+# Runtime Configuration
+# ========================================
+podSecurityContext:
+  fsGroup: 1000
+  runAsUser: 1000
+  runAsGroup: 1000
+  runAsNonRoot: true
+
+securityContext:
+  capabilities:
+    drop:
+      - ALL
+  readOnlyRootFilesystem: false
+  allowPrivilegeEscalation: false

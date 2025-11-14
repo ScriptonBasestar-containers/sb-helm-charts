@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: "{{ include "jellyfin.fullname" . }}-test-connection"
+  labels:
+    {{- include "jellyfin.labels" . | nindent 4 }}
+  annotations:
+    "helm.sh/hook": test
+spec:
+  containers:
+    - name: wget
+      image: busybox:1.36
+      command: ['wget']
+      args: ['{{ include "jellyfin.fullname" . }}:{{ (index .Values.service.ports 0).port }}/health']
+  restartPolicy: Never

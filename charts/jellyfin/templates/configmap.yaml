@@ -1,0 +1,33 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "jellyfin.fullname" . }}
+  labels:
+    {{- include "jellyfin.labels" . | nindent 4 }}
+data:
+  # Jellyfin configuration can be managed through the web UI
+  # This ConfigMap is reserved for future use
+  README: |
+    Jellyfin configuration is stored in the /config volume.
+    Initial setup is done through the web UI at http://<service>:8096
+
+    Hardware Acceleration:
+    {{- if .Values.jellyfin.hardwareAcceleration.enabled }}
+    - Type: {{ .Values.jellyfin.hardwareAcceleration.type }}
+    {{- if eq .Values.jellyfin.hardwareAcceleration.type "intel-qsv" }}
+    - Device: {{ .Values.jellyfin.hardwareAcceleration.intel.renderDevice }}
+    - Configure in Admin Dashboard > Playback > Transcoding
+    - Select "Intel QuickSync (QSV)" or "Video Acceleration API (VA-API)"
+    {{- else if eq .Values.jellyfin.hardwareAcceleration.type "nvidia-nvenc" }}
+    - GPU Enabled: NVIDIA NVENC
+    - Configure in Admin Dashboard > Playback > Transcoding
+    - Select "NVIDIA NVENC"
+    {{- end }}
+    {{- else }}
+    - Hardware acceleration is disabled (CPU transcoding only)
+    {{- end }}
+
+    Media Directories:
+    {{- range .Values.jellyfin.mediaDirectories }}
+    - {{ .name }}: {{ .mountPath }}
+    {{- end }}
