@@ -53,6 +53,7 @@ charts/{chart-name}/
 - **jellyfin**: Media server with hardware transcoding support
 - **vaultwarden**: Bitwarden-compatible password manager
 - **immich**: AI-powered photo and video management
+- **paperless-ngx**: Document management system with OCR (4 PVC architecture)
 
 ### Infrastructure Charts (Dev/Test - Consider Operators for Production)
 
@@ -298,6 +299,34 @@ make -f make/ops/redis.mk redis-shell
 
 # View logs
 make -f make/ops/redis.mk redis-logs
+```
+
+### Paperless-ngx Specific Commands
+
+```bash
+# View logs and access shell
+make -f make/ops/paperless-ngx.mk paperless-logs
+make -f make/ops/paperless-ngx.mk paperless-shell
+
+# Port forward to localhost:8000
+make -f make/ops/paperless-ngx.mk paperless-port-forward
+
+# Health checks
+make -f make/ops/paperless-ngx.mk paperless-check-db
+make -f make/ops/paperless-ngx.mk paperless-check-redis
+make -f make/ops/paperless-ngx.mk paperless-check-storage
+
+# Database management
+make -f make/ops/paperless-ngx.mk paperless-migrate
+make -f make/ops/paperless-ngx.mk paperless-create-superuser
+
+# Document operations
+make -f make/ops/paperless-ngx.mk paperless-document-exporter
+make -f make/ops/paperless-ngx.mk paperless-consume-list
+make -f make/ops/paperless-ngx.mk paperless-process-status
+
+# Restart deployment
+make -f make/ops/paperless-ngx.mk paperless-restart
 ```
 
 ### RustFS Specific Commands
