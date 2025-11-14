@@ -22,6 +22,7 @@ See [Redis Operator Migration Guide](../../docs/03-redis-operator-migration.md) 
 ## Features
 
 - ✅ StatefulSet-based deployment for data persistence
+- ✅ **Master-Slave replication** (1 master + N read-only replicas)
 - ✅ Customizable redis.conf configuration file
 - ✅ Password authentication support
 - ✅ Persistent volume for data storage
@@ -138,6 +139,51 @@ monitoring:
 
 metrics:
   enabled: true
+```
+
+### Master-Slave Replication
+
+Enable read-only replicas for scaling read operations:
+
+```yaml
+replication:
+  enabled: true
+  replicas: 2  # Number of read-only replicas (in addition to 1 master)
+```
+
+**This creates:**
+- 1 master pod (read/write)
+- N replica pods (read-only)
+- 3 service endpoints:
+  - `redis.{namespace}.svc.cluster.local` → Master (for writes)
+  - `redis-master.{namespace}.svc.cluster.local` → Master explicitly
+  - `redis-replicas.{namespace}.svc.cluster.local` → Read-only replicas (load balanced)
+
+**Use cases:**
+- Scale read operations across multiple replicas
+- Reduce load on master for read-heavy workloads
+- Basic data redundancy (manual failover only)
+
+**Important notes:**
+- ⚠️ **Manual failover only** - no automatic master promotion
+- ⚠️ For automatic failover, use [Redis Operator](../../docs/03-redis-operator-migration.md) with Sentinel
+- ✅ Each replica has its own persistent volume
+- ✅ Password authentication is synced via `masterauth`
+
+**Monitoring replication:**
+
+```bash
+# Check replication status
+make -f make/ops/redis.mk redis-replication-info
+
+# Check master status
+make -f make/ops/redis.mk redis-master-info
+
+# Check replica lag
+make -f make/ops/redis.mk redis-replica-lag
+
+# Check specific pod role
+make -f make/ops/redis.mk redis-role POD=redis-0
 ```
 
 ### High Availability

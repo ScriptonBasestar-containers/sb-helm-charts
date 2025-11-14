@@ -65,6 +65,22 @@ redis:
     # Event notification
     notify-keyspace-events ""
 
+# Master-Slave Replication (optional)
+# Uncomment to enable read-scaling with replicas
+# replication:
+#   enabled: true
+#   replicas: 2  # Number of read-only replicas (in addition to 1 master)
+#
+# This creates:
+# - 1 master pod (read/write)
+# - 2 replica pods (read-only)
+# - Total: 3 pods with 3 service endpoints
+#   - redis.{namespace}.svc.cluster.local → Master
+#   - redis-master.{namespace}.svc.cluster.local → Master explicitly
+#   - redis-replicas.{namespace}.svc.cluster.local → Replicas (load balanced)
+#
+# Note: Manual failover only. For automatic failover, use Redis Operator.
+
 # Persistence
 persistence:
   enabled: true
@@ -72,7 +88,8 @@ persistence:
   accessMode: ReadWriteOnce
   size: 20Gi
 
-# Replica count (for standalone)
+# Replica count (only used when replication.enabled=false)
+# When replication.enabled=true, uses 1 master + replication.replicas slaves
 replicaCount: 1
 
 # Container image

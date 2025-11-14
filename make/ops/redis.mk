@@ -91,6 +91,39 @@ redis-config-get:
 		$(KUBECTL) exec $$($(KUBECTL) get pod -l app.kubernetes.io/name=$(CHART_NAME) -o jsonpath="{.items[0].metadata.name}") -- redis-cli config get $(PARAM); \
 	fi
 
+# Replication specific commands
+.PHONY: redis-replication-info
+redis-replication-info:
+	@echo "Getting replication status for all Redis pods..."
+	@for pod in $$($(KUBECTL) get pods -l app.kubernetes.io/name=$(CHART_NAME) -o jsonpath='{.items[*].metadata.name}'); do \
+		echo ""; \
+		echo "=== Pod: $$pod ==="; \
+		$(KUBECTL) exec $$pod -- redis-cli info replication | grep -E "role:|connected_slaves:|master_host:|master_port:|master_link_status:"; \
+	done
+
+.PHONY: redis-master-info
+redis-master-info:
+	@echo "Getting master pod info..."
+	@$(KUBECTL) exec $(CHART_NAME)-0 -- redis-cli info replication
+
+.PHONY: redis-replica-lag
+redis-replica-lag:
+	@echo "Checking replication lag for all replicas..."
+	@for pod in $$($(KUBECTL) get pods -l app.kubernetes.io/name=$(CHART_NAME),redis-role=replica -o jsonpath='{.items[*].metadata.name}'); do \
+		echo ""; \
+		echo "=== Replica: $$pod ==="; \
+		$(KUBECTL) exec $$pod -- redis-cli info replication | grep -E "master_link_status:|master_last_io_seconds_ago:|master_sync_in_progress:"; \
+	done
+
+.PHONY: redis-role
+redis-role:
+	@echo "Checking role of pod: $(POD)"
+	@if [ -z "$(POD)" ]; then \
+		echo "Error: POD parameter required (e.g., POD=redis-0)"; \
+		exit 1; \
+	fi
+	@$(KUBECTL) exec $(POD) -- redis-cli role
+
 .PHONY: redis-shell
 redis-shell:
 	@echo "Opening shell in Redis pod..."
@@ -132,6 +165,12 @@ help: help-common
 	@echo "  redis-slowlog        - Get slow query log"
 	@echo "  redis-bigkeys        - Find biggest keys"
 	@echo "  redis-config-get     - Get config (optional PARAM parameter)"
+	@echo ""
+	@echo "Replication (Master-Slave):"
+	@echo "  redis-replication-info - Get replication status for all pods"
+	@echo "  redis-master-info      - Get master pod replication info"
+	@echo "  redis-replica-lag      - Check replication lag for all replicas"
+	@echo "  redis-role             - Check role of specific pod (requires POD parameter)"
 	@echo ""
 	@echo "Utilities:"
 	@echo "  redis-shell          - Open shell in Redis pod"

@@ -1,18 +1,19 @@
+{{- if .Values.replication.enabled }}
 apiVersion: v1
 kind: Service
 metadata:
-  name: {{ include "redis.fullname" . }}
+  name: {{ include "redis.fullname" . }}-headless
   labels:
     {{- include "redis.labels" . | nindent 4 }}
-    {{- if .Values.replication.enabled }}
-    app.kubernetes.io/component: master
-    {{- end }}
+    app.kubernetes.io/component: headless
   {{- with .Values.service.annotations }}
   annotations:
     {{- toYaml . | nindent 4 }}
   {{- end }}
 spec:
-  type: {{ .Values.service.type }}
+  type: ClusterIP
+  clusterIP: None  # Headless service
+  publishNotReadyAddresses: true  # Needed for StatefulSet DNS
   ports:
     - port: {{ .Values.service.port }}
       targetPort: redis
@@ -20,7 +21,4 @@ spec:
       name: redis
   selector:
     {{- include "redis.selectorLabels" . | nindent 4 }}
-    {{- if .Values.replication.enabled }}
-    # In replication mode, route to master only (redis-0)
-    statefulset.kubernetes.io/pod-name: {{ include "redis.fullname" . }}-0
-    {{- end }}
+{{- end }}

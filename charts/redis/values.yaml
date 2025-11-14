@@ -71,6 +71,17 @@ redis:
   # - "--maxmemory 512mb"
   # - "--maxmemory-policy allkeys-lru"
 
+# Master-Slave Replication
+# When enabled, creates 1 master + N replicas with read-only replication
+replication:
+  enabled: false  # Default: single instance mode
+  # Number of read-only replicas (when replication.enabled=true)
+  replicas: 2
+  # Automatically created services:
+  # - redis.{namespace}.svc.cluster.local → master (read/write)
+  # - redis-master.{namespace}.svc.cluster.local → master explicitly
+  # - redis-replicas.{namespace}.svc.cluster.local → read-only replicas (load balanced)
+
 # Persistence
 persistence:
   enabled: true
@@ -79,7 +90,8 @@ persistence:
   size: 8Gi
   existingClaim: ""
 
-# Replica count (for Redis Sentinel/Cluster, use 3+)
+# Replica count (only used when replication.enabled=false)
+# When replication.enabled=true, uses 1 master + replication.replicas slaves
 replicaCount: 1
 
 # Container image configuration

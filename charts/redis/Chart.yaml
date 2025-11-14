@@ -1,15 +1,17 @@
 apiVersion: v2
 name: redis
-version: 0.1.0
+version: 0.2.0
 appVersion: 7.4.1
 type: application
-description: A Helm chart for Redis - in-memory data structure store
+description: A Helm chart for Redis with master-slave replication support - in-memory data structure store
 keywords:
   - redis
   - cache
   - database
   - nosql
   - key-value
+  - replication
+  - master-slave
 home: https://redis.io/
 icon: https://raw.githubusercontent.com/ScriptonBasestar-containers/sb-helm-charts/master/charts/redis/icon.png
 sources:

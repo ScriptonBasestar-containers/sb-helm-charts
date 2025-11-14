@@ -8,6 +8,32 @@
 
 2. Connect to Redis:
 
+{{- if .Values.replication.enabled }}
+
+   Master-Slave replication is ENABLED with {{ add 1 .Values.replication.replicas }} total pods (1 master + {{ .Values.replication.replicas }} replicas)
+
+   Available service endpoints:
+   - {{ include "redis.fullname" . }}.{{ .Release.Namespace }}.svc.cluster.local          → Master (read/write)
+   - {{ include "redis.fullname" . }}-master.{{ .Release.Namespace }}.svc.cluster.local   → Master explicitly
+   - {{ include "redis.fullname" . }}-replicas.{{ .Release.Namespace }}.svc.cluster.local → Replicas (read-only, load balanced)
+
+   To connect to MASTER from within the cluster:
+
+   kubectl run --namespace {{ .Release.Namespace }} redis-client --rm --tty -i --restart='Never' \
+     --image {{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }} -- redis-cli -h {{ include "redis.fullname" . }}-master{{- if .Values.redis.password }} -a $REDIS_PASSWORD{{- end }}
+
+   To connect to REPLICAS (read-only) from within the cluster:
+
+   kubectl run --namespace {{ .Release.Namespace }} redis-client --rm --tty -i --restart='Never' \
+     --image {{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }} -- redis-cli -h {{ include "redis.fullname" . }}-replicas{{- if .Values.redis.password }} -a $REDIS_PASSWORD{{- end }}
+
+   To port-forward to master:
+
+   kubectl port-forward --namespace {{ .Release.Namespace }} svc/{{ include "redis.fullname" . }}-master 6379:6379 &
+   redis-cli -h 127.0.0.1 -p 6379{{- if .Values.redis.password }} -a $REDIS_PASSWORD{{- end }}
+
+{{- else }}
+
    To connect to your Redis server from within the cluster:
 
    kubectl run --namespace {{ .Release.Namespace }} redis-client --rm --tty -i --restart='Never' \
@@ -18,13 +44,37 @@
    kubectl port-forward --namespace {{ .Release.Namespace }} svc/{{ include "redis.fullname" . }} 6379:6379 &
    redis-cli -h 127.0.0.1 -p 6379{{- if .Values.redis.password }} -a $REDIS_PASSWORD{{- end }}
 
+{{- end }}
+
 3. Check Redis status:
 
    kubectl exec -it --namespace {{ .Release.Namespace }} {{ include "redis.fullname" . }}-0 -- redis-cli{{- if .Values.redis.password }} -a $REDIS_PASSWORD{{- end }} ping
 
+{{- if .Values.replication.enabled }}
+
+4. Check replication status:
+
+   # Check all pods replication info
+   make -f make/ops/redis.mk redis-replication-info
+
+   # Check master info
+   make -f make/ops/redis.mk redis-master-info
+
+   # Check replica lag
+   make -f make/ops/redis.mk redis-replica-lag
+
+   # Check specific pod role
+   make -f make/ops/redis.mk redis-role POD={{ include "redis.fullname" . }}-0
+
+{{- end }}
+
 {{- if .Values.metrics.enabled }}
 
+{{- if .Values.replication.enabled }}
+5. Access Redis metrics:
+{{- else }}
 4. Access Redis metrics:
+{{- end }}
 
    Prometheus metrics are exposed on port {{ .Values.metrics.port }}
 
@@ -35,7 +85,13 @@
 
 {{- if .Values.persistence.enabled }}
 
+{{- if and .Values.replication.enabled .Values.metrics.enabled }}
+6. Persistence:
+{{- else if or .Values.replication.enabled .Values.metrics.enabled }}
 5. Persistence:
+{{- else }}
+4. Persistence:
+{{- end }}
 
    Data is persisted to {{ .Values.persistence.size }} PVC at /data
    {{- if .Values.persistence.storageClass }}

@@ -292,6 +292,12 @@ make -f make/ops/redis.mk redis-slowlog          # Get slow query log
 make -f make/ops/redis.mk redis-bigkeys          # Find biggest keys
 make -f make/ops/redis.mk redis-config-get PARAM=maxmemory
 
+# Replication (Master-Slave)
+make -f make/ops/redis.mk redis-replication-info # Get replication status for all pods
+make -f make/ops/redis.mk redis-master-info      # Get master pod replication info
+make -f make/ops/redis.mk redis-replica-lag      # Check replication lag
+make -f make/ops/redis.mk redis-role POD=redis-0 # Check role of specific pod
+
 # Run redis-cli command
 make -f make/ops/redis.mk redis-cli CMD="get mykey"
 

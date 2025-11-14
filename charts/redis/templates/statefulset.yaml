@@ -11,8 +11,13 @@ metadata:
   labels:
     {{- include "redis.labels" . | nindent 4 }}
 spec:
+  {{- if .Values.replication.enabled }}
+  serviceName: {{ include "redis.fullname" . }}-headless
+  replicas: {{ add 1 .Values.replication.replicas }}  # 1 master + N replicas
+  {{- else }}
   serviceName: {{ include "redis.fullname" . }}
   replicas: {{ .Values.replicaCount }}
+  {{- end }}
   selector:
     matchLabels:
       {{- include "redis.selectorLabels" . | nindent 6 }}
@@ -38,7 +43,60 @@ spec:
       securityContext:
         {{- toYaml .Values.podSecurityContext | nindent 8 }}
       initContainers:
-        {{- if $usePassword }}
+        {{- if .Values.replication.enabled }}
+        - name: setup-replication
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          command:
+            - sh
+            - -c
+            - |
+              set -e
+              # Extract pod ordinal from hostname
+              POD_NAME=$(hostname)
+              POD_ORDINAL=${POD_NAME##*-}
+
+              # Copy base config
+              cp /tmp/redis/redis.conf /etc/redis/redis.conf
+
+              # Configure based on role
+              if [ "$POD_ORDINAL" = "0" ]; then
+                echo "# Master configuration" >> /etc/redis/redis.conf
+                echo "Setting up as MASTER (pod ordinal: $POD_ORDINAL)"
+              else
+                echo "# Replica configuration" >> /etc/redis/redis.conf
+                echo "replicaof {{ include "redis.fullname" . }}-0.{{ include "redis.fullname" . }}-headless.{{ .Release.Namespace }}.svc.cluster.local 6379" >> /etc/redis/redis.conf
+                echo "replica-serve-stale-data yes" >> /etc/redis/redis.conf
+                echo "replica-read-only yes" >> /etc/redis/redis.conf
+                echo "Setting up as REPLICA of {{ include "redis.fullname" . }}-0 (pod ordinal: $POD_ORDINAL)"
+              fi
+
+              {{- if $usePassword }}
+              # Add password authentication
+              echo "requirepass $REDIS_PASSWORD" >> /etc/redis/redis.conf
+              echo "masterauth $REDIS_PASSWORD" >> /etc/redis/redis.conf
+              {{- end }}
+
+              chmod 644 /etc/redis/redis.conf
+              echo "Configuration complete"
+          {{- if $usePassword }}
+          env:
+            - name: REDIS_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ $secretName }}
+                  key: {{ $secretKey }}
+          {{- end }}
+          volumeMounts:
+            - name: config
+              mountPath: /tmp/redis
+              readOnly: true
+            - name: redis-config
+              mountPath: /etc/redis
+          securityContext:
+            runAsUser: 999
+            runAsGroup: 999
+        {{- else if $usePassword }}
         - name: config-init
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
           imagePullPolicy: {{ .Values.image.pullPolicy }}
@@ -77,7 +135,7 @@ spec:
           command:
             - redis-server
           args:
-            {{- if $usePassword }}
+            {{- if or .Values.replication.enabled $usePassword }}
             - /etc/redis/redis.conf
             {{- else if or .Values.redis.config .Values.redis.existingConfigMap }}
             - /usr/local/etc/redis/redis.conf
@@ -136,7 +194,7 @@ spec:
             - name: data
               mountPath: /data
             {{- end }}
-            {{- if $usePassword }}
+            {{- if or .Values.replication.enabled $usePassword }}
             - name: redis-config
               mountPath: /etc/redis
               readOnly: true
@@ -177,7 +235,7 @@ spec:
             {{- toYaml .Values.metrics.resources | nindent 12 }}
         {{- end }}
       volumes:
-        {{- if $usePassword }}
+        {{- if or .Values.replication.enabled $usePassword }}
         - name: config
           configMap:
             name: {{ .Values.redis.existingConfigMap | default (include "redis.fullname" .) }}
