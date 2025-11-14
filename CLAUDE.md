@@ -365,35 +365,30 @@ make -f make/ops/uptime-kuma.mk uk-scale REPLICAS=2
 
 ```bash
 # Get RustFS credentials
-make -f Makefile.rustfs.mk rustfs-get-credentials
+make -f make/ops/rustfs.mk rustfs-get-credentials
 
 # Port forward services
-make -f Makefile.rustfs.mk rustfs-port-forward-api      # S3 API (9000)
-make -f Makefile.rustfs.mk rustfs-port-forward-console  # Console (9001)
+make -f make/ops/rustfs.mk rustfs-port-forward-api      # S3 API (9000)
+make -f make/ops/rustfs.mk rustfs-port-forward-console  # Console (9001)
 
 # Test S3 API (requires MinIO Client 'mc')
-make -f Makefile.rustfs.mk rustfs-test-s3
+make -f make/ops/rustfs.mk rustfs-test-s3
 
-# Health and metrics
-make -f Makefile.rustfs.mk rustfs-health
-make -f Makefile.rustfs.mk rustfs-metrics
+# Health and monitoring
+make -f make/ops/rustfs.mk rustfs-health
+make -f make/ops/rustfs.mk rustfs-metrics
+make -f make/ops/rustfs.mk rustfs-status
+make -f make/ops/rustfs.mk rustfs-all
 
-# View logs and shell
-make -f Makefile.rustfs.mk rustfs-logs
-make -f Makefile.rustfs.mk rustfs-shell
+# Operations
+make -f make/ops/rustfs.mk rustfs-scale REPLICAS=4
+make -f make/ops/rustfs.mk rustfs-restart
+make -f make/ops/rustfs.mk rustfs-backup SNAPSHOT_CLASS=csi-hostpath-snapclass
 
-# Scale cluster
-make -f Makefile.rustfs.mk rustfs-scale REPLICAS=6
-
-# Backup (requires VolumeSnapshot CRD)
-make -f Makefile.rustfs.mk rustfs-backup
-
-# View all resources
-make -f Makefile.rustfs.mk rustfs-all
-
-# Install variants
-make -f Makefile.rustfs.mk install-homeserver  # Home server config
-make -f Makefile.rustfs.mk install-startup     # Production config
+# Logs and shell
+make -f make/ops/rustfs.mk rustfs-logs           # Pod 0 logs
+make -f make/ops/rustfs.mk rustfs-logs-all       # All pods logs
+make -f make/ops/rustfs.mk rustfs-shell
 ```
 
 ### Kind (Local Testing)
