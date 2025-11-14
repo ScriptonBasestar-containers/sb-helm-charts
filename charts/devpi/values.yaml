@@ -68,7 +68,7 @@ persistence:
   accessMode: ReadWriteOnce
   existingClaim: ""
   reclaimPolicy: Retain
-  mountPath: /data
+  mountPath: /devpi/server
 
 # 4. Kubernetes Resources
 replicaCount: 1
@@ -142,12 +142,14 @@ ingress:
 
 # 9. Resources
 resources:
+  # IMPORTANT: jonasal/devpi-server requires minimum 512Mi memory
+  # Initial PyPI indexing is memory-intensive
   limits:
-    cpu: 500m
-    memory: 512Mi
+    cpu: 1000m
+    memory: 1Gi
   requests:
     cpu: 100m
-    memory: 128Mi
+    memory: 512Mi
 
 # 10. Health Probes
 livenessProbe:

@@ -27,8 +27,28 @@ Devpi 차트의 Docker 이미지가 변경되었습니다:
 
 `jonasal/devpi-server` 이미지의 기본 설정:
 - **포트**: 3141 (동일)
-- **데이터 경로**: `/data` (확인 필요)
+- **데이터 경로**: `/devpi/server` ✅ (테스트 확인됨)
 - **로그**: stdout/stderr
+
+## ✅ Migration Testing Results
+
+**Tested on**: 2025-11-14 with Kind cluster (Kubernetes v1.34.0)
+**Image**: `jonasal/devpi-server:6.17.0-alpine`
+**Status**: ✅ Successfully verified
+
+### Critical Findings
+
+1. **Environment Variable**: Must use `DEVPI_PASSWORD` (chart updated)
+2. **Mount Path**: Must be `/devpi/server` (chart updated to use this path)
+3. **Memory**: Minimum 512Mi required (chart updated: requests=512Mi, limits=1Gi)
+4. **Initial Startup**: First run performs full PyPI index (may take several minutes)
+
+### Changes Made to Chart
+
+- ✅ Updated environment variable name to `DEVPI_PASSWORD`
+- ✅ Changed `persistence.mountPath` default to `/devpi/server`
+- ✅ Increased memory requests to 512Mi (limits to 1Gi)
+- ✅ Tested and verified working in Kind cluster
 
 ## Migration Steps
 

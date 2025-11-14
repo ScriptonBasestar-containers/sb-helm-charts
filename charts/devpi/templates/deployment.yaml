@@ -50,7 +50,7 @@ spec:
               protocol: TCP
           env:
             {{- if or .Values.devpi.rootPassword .Values.devpi.existingSecret }}
-            - name: DEVPI_ROOT_PASSWORD
+            - name: DEVPI_PASSWORD
               valueFrom:
                 secretKeyRef:
                   name: {{ .Values.devpi.existingSecret | default (include "devpi.fullname" .) }}
