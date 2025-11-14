@@ -23,11 +23,11 @@ The Redis chart supports **master-slave replication** to scale read operations a
 │         │                              │                     │
 │         │                              │                     │
 │  ┌──────▼────────┐            ┌───────▼──────────┐         │
-│  │ redis-master  │            │ redis-replicas    │         │
+│  │ redis-master  │            │ redis-headless    │         │
 │  │ Service       │            │ Service           │         │
-│  └───────────────┘            └───────────────────┘         │
-│         │                              │                     │
-│  ┌──────▼─────────────────────────────▼──────────┐         │
+│  └───────────────┘            │ (StatefulSet DNS) │         │
+│         │                      └───────────────────┘         │
+│  ┌──────▼─────────────────────────────────────────┐         │
 │  │           redis Service (Master)               │         │
 │  │           (Default endpoint for writes)        │         │
 │  └────────────────────────────────────────────────┘         │
@@ -36,22 +36,27 @@ The Redis chart supports **master-slave replication** to scale read operations a
 
 ### Service Endpoints
 
-Three service endpoints are automatically created:
+Two service endpoints are automatically created for the master:
 
 1. **`redis.{namespace}.svc.cluster.local`**
-   - Routes to: Master pod
+   - Routes to: Master pod (redis-0)
    - Use for: Write operations, default endpoint
    - Example: `redis.default.svc.cluster.local`
 
 2. **`redis-master.{namespace}.svc.cluster.local`**
-   - Routes to: Master pod (explicit)
+   - Routes to: Master pod (redis-0) explicitly
    - Use for: When you need to explicitly target the master
    - Example: `redis-master.default.svc.cluster.local`
 
-3. **`redis-replicas.{namespace}.svc.cluster.local`**
-   - Routes to: Replica pods (load balanced)
-   - Use for: Read-only operations, scaling reads
-   - Example: `redis-1.redis-headless.default.svc.cluster.local`
+### Individual Replica Access
+
+Replicas are accessed via StatefulSet DNS (not load-balanced):
+
+- **`redis-1.redis-headless.{namespace}.svc.cluster.local`** → Replica 1
+- **`redis-2.redis-headless.{namespace}.svc.cluster.local`** → Replica 2
+- **`redis-N.redis-headless.{namespace}.svc.cluster.local`** → Replica N
+
+Use these for: Read-only operations when you need to target a specific replica
 
 ## Configuration
 
