@@ -2,6 +2,28 @@
 
 Production-ready RSSHub deployment on Kubernetes for generating RSS feeds from various sources.
 
+## 💡 Alternative: All-in-One Chart
+
+**For quick setup with Redis and Puppeteer included**, consider using [NaturalSelectionLabs RSSHub Chart](https://github.com/NaturalSelectionLabs/helm-charts/tree/main/charts/rsshub):
+
+```bash
+helm repo add nsl https://naturalselectionlabs.github.io/helm-charts
+helm install rsshub nsl/rsshub
+```
+
+**NSL Chart includes:**
+- ✅ Built-in Redis caching
+- ✅ Built-in Puppeteer (browserless/chrome)
+- ✅ Single-chart deployment
+
+**This chart is recommended for:**
+- Production environments requiring component isolation
+- Custom Redis configuration (Redis Operator)
+- Independent scaling of RSSHub, Redis, and Puppeteer
+- Integration with existing infrastructure
+
+See [Chart Comparison Guide](../../docs/04-rsshub-chart-comparison.md) for detailed analysis and migration instructions.
+
 ## Features
 
 - **RSSHub**: Everything is RSSable - generate RSS feeds for websites

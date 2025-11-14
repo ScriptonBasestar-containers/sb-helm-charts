@@ -130,9 +130,14 @@
 
 ### 외부 차트 참조
 
-| 차트 | 권장 조치 |
-|------|----------|
-| rsshub | [RSSHub 차트](https://github.com/NaturalSelectionLabs/helm-charts/tree/main/charts/rsshub) 검토 |
+| 차트 | 권장 조치 | 권장 대상 |
+|------|----------|----------|
+| rsshub | [NaturalSelectionLabs RSSHub](https://github.com/NaturalSelectionLabs/helm-charts/tree/main/charts/rsshub) 참조 | 홈서버, All-in-One 솔루션 |
+
+**RSSHub 차트 선택 가이드:**
+- **NSL 차트 권장**: 홈서버, 소규모 배포, 빠른 프로토타이핑 (Redis + Puppeteer 내장)
+- **자체 차트 권장**: 프로덕션, 컴포넌트 독립 관리, 외부 Redis Operator 연동
+- **상세 비교**: [docs/04-rsshub-chart-comparison.md](./04-rsshub-chart-comparison.md)
 
 ---
 
