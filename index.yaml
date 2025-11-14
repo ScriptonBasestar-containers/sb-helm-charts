@@ -2,6 +2,16 @@ apiVersion: v1
 entries:
   browserless-chrome:
   - apiVersion: v2
+    appVersion: 1.61.1
+    created: "2025-11-14T01:11:58.319790236Z"
+    description: A Helm chart for Kubernetes
+    digest: 499471911ad64c4e8c4b3beec60c21283726ffebbbbdf81b7652a63c93c1e16d
+    name: browserless-chrome
+    type: application
+    urls:
+    - https://github.com/ScriptonBasestar-containers/sb-helm-charts/releases/download/browserless-chrome-0.2.0/browserless-chrome-0.2.0.tgz
+    version: 0.2.0
+  - apiVersion: v2
     appVersion: 1.16.0
     created: "2025-04-07T07:45:04.670683517Z"
     description: A Helm chart for Kubernetes
@@ -12,6 +22,16 @@ entries:
     - https://github.com/ScriptonBasestar/sb-helm-charts/releases/download/browserless-chrome-0.1.0/browserless-chrome-0.1.0.tgz
     version: 0.1.0
   devpi:
+  - apiVersion: v2
+    appVersion: 6.17.0
+    created: "2025-11-14T01:11:58.490127765Z"
+    description: A Helm chart for devpi - Python Package Index Server
+    digest: d172c398d45d028ff9a1964ccc9b41c27d90c051c8d0b122d49183cc9536b9c7
+    name: devpi
+    type: application
+    urls:
+    - https://github.com/ScriptonBasestar-containers/sb-helm-charts/releases/download/devpi-0.2.0/devpi-0.2.0.tgz
+    version: 0.2.0
   - apiVersion: v2
     appVersion: 1.16.0
     created: "2025-11-06T07:49:26.957091821Z"
@@ -53,6 +73,30 @@ entries:
     - https://github.com/ScriptonBasestar-containers/sb-helm-charts/releases/download/keycloak-0.3.0/keycloak-0.3.0.tgz
     version: 0.3.0
   memcached:
+  - apiVersion: v2
+    appVersion: 1.6.39
+    created: "2025-11-14T01:11:58.650267212Z"
+    description: A Helm chart for Memcached - high-performance distributed memory
+      caching system
+    digest: ad008ccfa62d725498dcf7269082c6fbfc79657acedb80c76f2bc3dfd2b5bdfd
+    home: https://github.com/scriptonbasestar-container/sb-helm-charts
+    icon: https://memcached.org/memcached-logo.png
+    keywords:
+    - memcached
+    - cache
+    - memory
+    - performance
+    maintainers:
+    - email: archmagece@gmail.com
+      name: ScriptonBasestar
+    name: memcached
+    sources:
+    - https://github.com/scriptonbasestar-container/sb-helm-charts
+    - https://github.com/memcached/memcached
+    type: application
+    urls:
+    - https://github.com/ScriptonBasestar-containers/sb-helm-charts/releases/download/memcached-0.2.0/memcached-0.2.0.tgz
+    version: 0.2.0
   - apiVersion: v2
     appVersion: 1.6.32
     created: "2025-11-10T07:50:02.592669777Z"
@@ -146,6 +190,16 @@ entries:
     version: 0.1.0
   rsshub:
   - apiVersion: v2
+    appVersion: "2025-11-09"
+    created: "2025-11-14T01:11:59.051607594Z"
+    description: A Helm chart for Kubernetes
+    digest: db32dd5850356b1c1de353b8f55b301ac9293fa3197dc71f412fb47d316b08af
+    name: rsshub
+    type: application
+    urls:
+    - https://github.com/ScriptonBasestar-containers/sb-helm-charts/releases/download/rsshub-0.2.0/rsshub-0.2.0.tgz
+    version: 0.2.0
+  - apiVersion: v2
     appVersion: "2025-04-06"
     created: "2025-04-06T15:22:24.826955118Z"
     description: A Helm chart for Kubernetes
@@ -209,4 +263,4 @@ entries:
     urls:
     - https://github.com/ScriptonBasestar-containers/sb-helm-charts/releases/download/wordpress-0.1.0/wordpress-0.1.0.tgz
     version: 0.1.0
-generated: "2025-11-10T07:54:14.210941064Z"
+generated: "2025-11-14T01:11:59.386027566Z"
