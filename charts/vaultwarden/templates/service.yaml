@@ -1,0 +1,39 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "vaultwarden.fullname" . }}
+  labels:
+    {{- include "vaultwarden.labels" . | nindent 4 }}
+spec:
+  type: {{ .Values.service.type }}
+  ports:
+    {{- range .Values.service.ports }}
+    - port: {{ .port }}
+      targetPort: {{ .targetPort }}
+      protocol: {{ .protocol }}
+      name: {{ .name }}
+    {{- end }}
+  selector:
+    {{- include "vaultwarden.selectorLabels" . | nindent 4 }}
+---
+{{- if eq (include "vaultwarden.workloadType" .) "StatefulSet" }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "vaultwarden.fullname" . }}-headless
+  labels:
+    {{- include "vaultwarden.labels" . | nindent 4 }}
+spec:
+  type: ClusterIP
+  clusterIP: None
+  publishNotReadyAddresses: true
+  ports:
+    {{- range .Values.service.ports }}
+    - port: {{ .port }}
+      targetPort: {{ .targetPort }}
+      protocol: {{ .protocol }}
+      name: {{ .name }}
+    {{- end }}
+  selector:
+    {{- include "vaultwarden.selectorLabels" . | nindent 4 }}
+{{- end }}

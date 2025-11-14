@@ -1,0 +1,268 @@
+{{- include "vaultwarden.validateConfig" . -}}
+{{- $workloadType := include "vaultwarden.workloadType" . -}}
+apiVersion: apps/v1
+kind: {{ $workloadType }}
+metadata:
+  name: {{ include "vaultwarden.fullname" . }}
+  labels:
+    {{- include "vaultwarden.labels" . | nindent 4 }}
+spec:
+  {{- if eq $workloadType "StatefulSet" }}
+  serviceName: {{ include "vaultwarden.fullname" . }}-headless
+  {{- end }}
+  {{- if not .Values.autoscaling.enabled }}
+  replicas: {{ .Values.replicaCount }}
+  {{- end }}
+  selector:
+    matchLabels:
+      {{- include "vaultwarden.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      annotations:
+        checksum/config: {{ include (print $.Template.BasePath "/secret.yaml") . | sha256sum }}
+        {{- with .Values.podAnnotations }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+      labels:
+        {{- include "vaultwarden.labels" . | nindent 8 }}
+        {{- with .Values.podLabels }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+    spec:
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      serviceAccountName: {{ include "vaultwarden.serviceAccountName" . }}
+      securityContext:
+        {{- toYaml .Values.podSecurityContext | nindent 8 }}
+      {{- if and (or .Values.postgresql.enabled .Values.mysql.enabled) .Values.persistence.enabled }}
+      initContainers:
+        {{- if .Values.postgresql.enabled }}
+        - name: wait-for-db
+          image: postgres:16-alpine
+          command:
+            - sh
+            - -c
+            - |
+              until pg_isready -h {{ .Values.postgresql.external.host }} -p {{ .Values.postgresql.external.port }} -U {{ .Values.postgresql.external.username }}; do
+                echo "Waiting for PostgreSQL..."
+                sleep 2
+              done
+          env:
+            - name: PGPASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "vaultwarden.fullname" . }}
+                  key: database-password
+        {{- else if .Values.mysql.enabled }}
+        - name: wait-for-db
+          image: mariadb:11-alpine
+          command:
+            - sh
+            - -c
+            - |
+              until mysqladmin ping -h {{ .Values.mysql.external.host }} -P {{ .Values.mysql.external.port }} -u {{ .Values.mysql.external.username }} -p${MYSQL_PWD} --silent; do
+                echo "Waiting for MySQL..."
+                sleep 2
+              done
+          env:
+            - name: MYSQL_PWD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "vaultwarden.fullname" . }}
+                  key: database-password
+        {{- end }}
+      {{- end }}
+      containers:
+        - name: {{ .Chart.Name }}
+          securityContext:
+            {{- toYaml .Values.securityContext | nindent 12 }}
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          ports:
+            - name: http
+              containerPort: 80
+              protocol: TCP
+            {{- if .Values.vaultwarden.security.websocketEnabled }}
+            - name: websocket
+              containerPort: 3012
+              protocol: TCP
+            {{- end }}
+          env:
+            # Domain configuration (REQUIRED)
+            {{- if .Values.vaultwarden.domain }}
+            - name: DOMAIN
+              value: {{ .Values.vaultwarden.domain | quote }}
+            {{- end }}
+
+            # Database configuration
+            {{- if or .Values.postgresql.enabled .Values.mysql.enabled }}
+            - name: DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "vaultwarden.fullname" . }}
+                  key: database-url
+            {{- else }}
+            - name: DATA_FOLDER
+              value: "/data"
+            {{- end }}
+
+            # Admin panel configuration
+            {{- if .Values.vaultwarden.admin.enabled }}
+            {{- if not .Values.vaultwarden.admin.disableAdminToken }}
+            - name: ADMIN_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "vaultwarden.fullname" . }}
+                  key: admin-token
+            {{- else }}
+            - name: DISABLE_ADMIN_TOKEN
+              value: "true"
+            {{- end }}
+            {{- end }}
+
+            # SMTP configuration
+            {{- if .Values.vaultwarden.smtp.enabled }}
+            - name: SMTP_HOST
+              value: {{ .Values.vaultwarden.smtp.host | quote }}
+            - name: SMTP_FROM
+              value: {{ .Values.vaultwarden.smtp.from | quote }}
+            - name: SMTP_FROM_NAME
+              value: {{ .Values.vaultwarden.smtp.fromName | quote }}
+            - name: SMTP_PORT
+              value: {{ .Values.vaultwarden.smtp.port | quote }}
+            - name: SMTP_SECURITY
+              value: {{ .Values.vaultwarden.smtp.security | quote }}
+            {{- if .Values.vaultwarden.smtp.username }}
+            - name: SMTP_USERNAME
+              value: {{ .Values.vaultwarden.smtp.username | quote }}
+            {{- end }}
+            {{- if .Values.vaultwarden.smtp.password }}
+            - name: SMTP_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "vaultwarden.fullname" . }}
+                  key: smtp-password
+            {{- end }}
+            {{- end }}
+
+            # Sign-up configuration
+            - name: SIGNUPS_ALLOWED
+              value: {{ .Values.vaultwarden.signups.allowed | quote }}
+            {{- if .Values.vaultwarden.signups.verifySignup }}
+            - name: SIGNUPS_VERIFY
+              value: "true"
+            {{- end }}
+            {{- if .Values.vaultwarden.signups.allowedDomains }}
+            - name: SIGNUPS_DOMAINS_WHITELIST
+              value: {{ .Values.vaultwarden.signups.allowedDomains | quote }}
+            {{- end }}
+            - name: INVITATIONS_ALLOWED
+              value: {{ .Values.vaultwarden.signups.allowInvitations | quote }}
+
+            # Security settings
+            {{- if .Values.vaultwarden.security.require2FA }}
+            - name: REQUIRE_DEVICE_EMAIL
+              value: "true"
+            {{- end }}
+            - name: SHOW_PASSWORD_HINT
+              value: {{ .Values.vaultwarden.security.showPasswordHint | quote }}
+            - name: WEBSOCKET_ENABLED
+              value: {{ .Values.vaultwarden.security.websocketEnabled | quote }}
+            - name: ICON_SERVICE
+              value: {{ .Values.vaultwarden.security.iconService | quote }}
+            {{- if .Values.vaultwarden.security.disableIconDownload }}
+            - name: DISABLE_ICON_DOWNLOAD
+              value: "true"
+            {{- end }}
+
+            # Attachment configuration
+            {{- if .Values.vaultwarden.attachments.maxSize }}
+            - name: ATTACHMENT_SIZE_LIMIT
+              value: {{ mul .Values.vaultwarden.attachments.maxSize 1048576 | quote }}
+            {{- end }}
+
+            # Send configuration
+            {{- if not .Values.vaultwarden.sends.enabled }}
+            - name: SENDS_ALLOWED
+              value: "false"
+            {{- end }}
+            {{- if .Values.vaultwarden.sends.hideEmail }}
+            - name: SEND_HIDE_EMAIL
+              value: "true"
+            {{- end }}
+
+            # Performance tuning
+            {{- if .Values.vaultwarden.workers }}
+            - name: WEB_VAULT_WORKERS
+              value: {{ .Values.vaultwarden.workers | quote }}
+            {{- end }}
+
+            # Extra environment variables
+            {{- with .Values.vaultwarden.extraEnv }}
+            {{- toYaml . | nindent 12 }}
+            {{- end }}
+
+          volumeMounts:
+            - name: data
+              mountPath: {{ .Values.persistence.data.mountPath }}
+
+          {{- if .Values.livenessProbe.enabled }}
+          livenessProbe:
+            {{- omit .Values.livenessProbe "enabled" | toYaml | nindent 12 }}
+          {{- end }}
+          {{- if .Values.readinessProbe.enabled }}
+          readinessProbe:
+            {{- omit .Values.readinessProbe "enabled" | toYaml | nindent 12 }}
+          {{- end }}
+          {{- if .Values.startupProbe.enabled }}
+          startupProbe:
+            {{- omit .Values.startupProbe "enabled" | toYaml | nindent 12 }}
+          {{- end }}
+
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+
+      volumes:
+        {{- if eq $workloadType "Deployment" }}
+        - name: data
+          {{- if .Values.persistence.enabled }}
+          persistentVolumeClaim:
+            claimName: {{ include "vaultwarden.dataVolumeName" . }}
+          {{- else }}
+          emptyDir: {}
+          {{- end }}
+        {{- end }}
+
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+
+  {{- if eq $workloadType "StatefulSet" }}
+  {{- if .Values.persistence.enabled }}
+  volumeClaimTemplates:
+    - metadata:
+        name: data
+        labels:
+          {{- include "vaultwarden.labels" . | nindent 10 }}
+      spec:
+        accessModes:
+          - {{ .Values.persistence.data.accessMode }}
+        {{- if .Values.persistence.data.storageClass }}
+        storageClassName: {{ .Values.persistence.data.storageClass }}
+        {{- end }}
+        resources:
+          requests:
+            storage: {{ .Values.persistence.data.size }}
+  {{- end }}
+  {{- end }}

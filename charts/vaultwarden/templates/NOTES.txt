@@ -1,0 +1,107 @@
+1. Get the application URL by running these commands:
+{{- if .Values.ingress.enabled }}
+{{- range $host := .Values.ingress.hosts }}
+  {{- range .paths }}
+  http{{ if $.Values.ingress.tls }}s{{ end }}://{{ $host.host }}{{ .path }}
+  {{- end }}
+{{- end }}
+{{- else if contains "NodePort" .Values.service.type }}
+  export NODE_PORT=$(kubectl get --namespace {{ .Release.Namespace }} -o jsonpath="{.spec.ports[?(@.name=='http')].nodePort}" services {{ include "vaultwarden.fullname" . }})
+  export NODE_IP=$(kubectl get nodes --namespace {{ .Release.Namespace }} -o jsonpath="{.items[0].status.addresses[0].address}")
+  echo http://$NODE_IP:$NODE_PORT
+{{- else if contains "LoadBalancer" .Values.service.type }}
+  NOTE: It may take a few minutes for the LoadBalancer IP to be available.
+       You can watch the status of by running 'kubectl get --namespace {{ .Release.Namespace }} svc -w {{ include "vaultwarden.fullname" . }}'
+  {{- $httpPort := 80 }}
+  {{- range .Values.service.ports }}
+    {{- if eq .name "http" }}
+      {{- $httpPort = .port }}
+    {{- end }}
+  {{- end }}
+  export SERVICE_IP=$(kubectl get svc --namespace {{ .Release.Namespace }} {{ include "vaultwarden.fullname" . }} --template "{{"{{"}} range (index .status.loadBalancer.ingress 0) {{"}}"}}{{"{{"}}. {{"}}"}}{{"{{"}} end {{"}}"}}")
+  echo http://$SERVICE_IP:{{ $httpPort }}
+{{- else if contains "ClusterIP" .Values.service.type }}
+  export POD_NAME=$(kubectl get pods --namespace {{ .Release.Namespace }} -l "app.kubernetes.io/name={{ include "vaultwarden.name" . }},app.kubernetes.io/instance={{ .Release.Name }}" -o jsonpath="{.items[0].metadata.name}")
+  kubectl --namespace {{ .Release.Namespace }} port-forward $POD_NAME 8080:80
+  echo "Visit http://127.0.0.1:8080 to use Vaultwarden"
+{{- end }}
+
+2. Database Mode:
+{{- if .Values.sqlite.enabled }}
+   - Running in SQLite mode (embedded database)
+   - Workload type: {{ include "vaultwarden.workloadType" . }}
+   - Data stored in PVC: {{ include "vaultwarden.dataVolumeName" . }}
+{{- else if .Values.postgresql.enabled }}
+   - Running with external PostgreSQL backend
+   - Workload type: {{ include "vaultwarden.workloadType" . }}
+   - Database: {{ .Values.postgresql.external.host }}:{{ .Values.postgresql.external.port }}/{{ .Values.postgresql.external.database }}
+{{- else if .Values.mysql.enabled }}
+   - Running with external MySQL/MariaDB backend
+   - Workload type: {{ include "vaultwarden.workloadType" . }}
+   - Database: {{ .Values.mysql.external.host }}:{{ .Values.mysql.external.port }}/{{ .Values.mysql.external.database }}
+{{- end }}
+
+3. Admin Panel:
+{{- if .Values.vaultwarden.admin.enabled }}
+   - Access: /admin
+   {{- if not .Values.vaultwarden.admin.disableAdminToken }}
+   - Admin token (retrieve from secret):
+     kubectl get secret {{ include "vaultwarden.fullname" . }} -n {{ .Release.Namespace }} -o jsonpath="{.data.admin-token}" | base64 -d
+   {{- else }}
+   - WARNING: Admin panel is accessible without authentication! (disableAdminToken=true)
+   {{- end }}
+{{- else }}
+   - Admin panel is disabled
+{{- end }}
+
+4. SMTP Configuration:
+{{- if .Values.vaultwarden.smtp.enabled }}
+   - SMTP enabled: {{ .Values.vaultwarden.smtp.host }}:{{ .Values.vaultwarden.smtp.port }}
+   - From: {{ .Values.vaultwarden.smtp.from }}
+   - Security: {{ .Values.vaultwarden.smtp.security }}
+{{- else }}
+   - SMTP not configured (email features disabled)
+   - To enable: set vaultwarden.smtp.enabled=true and configure SMTP settings
+{{- end }}
+
+5. Sign-up Configuration:
+   - Sign-ups allowed: {{ .Values.vaultwarden.signups.allowed }}
+   {{- if .Values.vaultwarden.signups.verifySignup }}
+   - Email verification: Required
+   {{- end }}
+   {{- if .Values.vaultwarden.signups.allowedDomains }}
+   - Allowed domains: {{ .Values.vaultwarden.signups.allowedDomains }}
+   {{- end }}
+   - Invitations allowed: {{ .Values.vaultwarden.signups.allowInvitations }}
+
+6. Security Features:
+   {{- if .Values.vaultwarden.security.require2FA }}
+   - Two-factor authentication: REQUIRED for all users
+   {{- else }}
+   - Two-factor authentication: Optional
+   {{- end }}
+   - WebSocket notifications: {{ .Values.vaultwarden.security.websocketEnabled }}
+   - Icon service: {{ .Values.vaultwarden.security.iconService }}
+
+7. Operational Commands:
+   # View logs
+   kubectl logs -f {{ if eq (include "vaultwarden.workloadType" .) "StatefulSet" }}statefulset{{- else }}deployment{{- end }}/{{ include "vaultwarden.fullname" . }} -n {{ .Release.Namespace }}
+
+   # Get pod shell
+   kubectl exec -it {{ if eq (include "vaultwarden.workloadType" .) "StatefulSet" }}statefulset{{- else }}deployment{{- end }}/{{ include "vaultwarden.fullname" . }} -n {{ .Release.Namespace }} -- /bin/sh
+
+   # Check resource usage
+   kubectl top pod -l app.kubernetes.io/name={{ include "vaultwarden.name" . }} -n {{ .Release.Namespace }}
+
+{{- if not .Values.vaultwarden.domain }}
+
+8. IMPORTANT: Set the DOMAIN variable!
+   The web-vault requires a secure context (HTTPS or http://localhost).
+   Update your values.yaml:
+     vaultwarden:
+       domain: "https://vault.example.com"
+{{- end }}
+
+For more information, visit:
+- Vaultwarden Documentation: https://github.com/dani-garcia/vaultwarden/wiki
+- Chart Repository: https://github.com/scriptonbasestar-container/sb-helm-charts

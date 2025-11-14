@@ -1,0 +1,337 @@
+# Vaultwarden Helm Chart - Default Values
+#
+# This is a YAML-formatted file.
+# Declare variables to be passed into your templates.
+
+# ========================================
+# 1. Vaultwarden Configuration
+# ========================================
+vaultwarden:
+  # Domain URL for web-vault (REQUIRED for proper functionality)
+  # Web Crypto API requires HTTPS or http://localhost
+  domain: ""  # e.g., "https://vault.example.com"
+
+  # Admin panel configuration
+  admin:
+    enabled: true
+    # Admin token (leave empty to generate random token)
+    # If set, must be argon2 PHC string (use `vaultwarden hash` to generate)
+    token: ""
+    # Disable admin token (open access - NOT RECOMMENDED)
+    disableAdminToken: false
+
+  # SMTP configuration for email notifications
+  smtp:
+    enabled: false
+    host: ""
+    port: 587
+    security: "starttls"  # starttls, force_tls, off
+    username: ""
+    password: ""
+    from: ""
+    fromName: "Vaultwarden"
+
+  # Sign-up configuration
+  signups:
+    allowed: true
+    # Require email verification for new accounts
+    verifySignup: false
+    # Allowed email domains (comma-separated, empty = all)
+    allowedDomains: ""
+    # Allow invitations even if signups are disabled
+    allowInvitations: true
+
+  # Security settings
+  security:
+    # Require two-factor authentication for all users
+    require2FA: false
+    # Show password hints
+    showPasswordHint: true
+    # Enable WebSocket notifications
+    websocketEnabled: true
+    # Icon download configuration
+    iconService: "internal"  # internal, bitwarden, duckduckgo, google
+    disableIconDownload: false
+
+  # Attachment configuration
+  attachments:
+    # Maximum file size for attachments (in MB)
+    maxSize: 10
+
+  # Send configuration (Bitwarden Send feature)
+  sends:
+    # Enable Bitwarden Send
+    enabled: true
+    # Allow users to hide their email on Sends
+    hideEmail: true
+
+  # Performance tuning
+  workers: 0  # 0 = auto-detect CPU cores
+
+  # Advanced: Additional environment variables
+  # These will override auto-generated vars
+  extraEnv: []
+  # - name: LOG_LEVEL
+  #   value: "debug"
+
+# ========================================
+# 2. External Dependencies
+# ========================================
+# Vaultwarden supports SQLite (embedded) or external PostgreSQL/MySQL
+
+# SQLite mode (default) - uses PVC for data directory
+sqlite:
+  enabled: true
+
+# PostgreSQL backend
+postgresql:
+  enabled: false  # Set to true to use external PostgreSQL instead of SQLite
+  external:
+    enabled: false
+    host: ""
+    port: 5432
+    database: "vaultwarden"
+    username: "vaultwarden"
+    password: ""  # Required if postgresql.enabled=true
+
+# MySQL/MariaDB backend (alternative to PostgreSQL)
+mysql:
+  enabled: false  # Set to true to use external MySQL instead of SQLite
+  external:
+    enabled: false
+    host: ""
+    port: 3306
+    database: "vaultwarden"
+    username: "vaultwarden"
+    password: ""  # Required if mysql.enabled=true
+
+# ========================================
+# 3. Persistence
+# ========================================
+persistence:
+  enabled: true
+
+  # Data directory (SQLite database + attachments)
+  data:
+    enabled: true
+    storageClass: ""
+    accessMode: ReadWriteOnce
+    size: 1Gi
+    mountPath: /data
+    # Use existing claim
+    existingClaim: ""
+    # Reclaim policy
+    reclaimPolicy: Retain
+
+# ========================================
+# 4. Deployment Mode
+# ========================================
+# When using SQLite: StatefulSet (requires stable storage)
+# When using external DB: Deployment (stateless)
+#
+# This is controlled automatically:
+# - sqlite.enabled=true → StatefulSet
+# - postgresql.enabled=true OR mysql.enabled=true → Deployment
+
+workloadType: "auto"  # auto, statefulset, deployment
+
+# ========================================
+# 5. Basic Kubernetes Configuration
+# ========================================
+replicaCount: 1
+
+image:
+  repository: vaultwarden/server
+  pullPolicy: IfNotPresent
+  # Overrides the image tag whose default is the chart appVersion
+  tag: ""
+
+imagePullSecrets: []
+nameOverride: ""
+fullnameOverride: ""
+
+# ========================================
+# 6. Service Account
+# ========================================
+serviceAccount:
+  # Specifies whether a service account should be created
+  create: true
+  # Automatically mount a ServiceAccount's API credentials?
+  automount: true
+  # Annotations to add to the service account
+  annotations: {}
+  # The name of the service account to use.
+  # If not set and create is true, a name is generated using the fullname template
+  name: ""
+
+# ========================================
+# 7. Pod Configuration
+# ========================================
+podAnnotations: {}
+podLabels: {}
+
+podSecurityContext:
+  fsGroup: 1000
+  runAsUser: 1000
+  runAsGroup: 1000
+  runAsNonRoot: true
+
+securityContext:
+  allowPrivilegeEscalation: false
+  capabilities:
+    drop:
+      - ALL
+  readOnlyRootFilesystem: false  # Vaultwarden needs write access to /data
+
+# ========================================
+# 8. Service Configuration
+# ========================================
+service:
+  type: ClusterIP
+  ports:
+    - name: http
+      port: 80
+      targetPort: 80
+      protocol: TCP
+    # WebSocket port (if websocketEnabled: true)
+    - name: websocket
+      port: 3012
+      targetPort: 3012
+      protocol: TCP
+
+# ========================================
+# 9. Ingress Configuration
+# ========================================
+ingress:
+  enabled: false
+  className: ""
+  annotations: {}
+    # nginx.ingress.kubernetes.io/proxy-body-size: "10m"
+    # cert-manager.io/cluster-issuer: "letsencrypt-prod"
+  hosts:
+    - host: vault.example.com
+      paths:
+        - path: /
+          pathType: Prefix
+  tls: []
+  #  - secretName: vaultwarden-tls
+  #    hosts:
+  #      - vault.example.com
+
+# ========================================
+# 10. Resource Configuration
+# ========================================
+resources:
+  limits:
+    cpu: 1000m
+    memory: 512Mi
+  requests:
+    cpu: 100m
+    memory: 128Mi
+
+# ========================================
+# 11. Health Probes
+# ========================================
+livenessProbe:
+  enabled: true
+  httpGet:
+    path: /alive
+    port: http
+  initialDelaySeconds: 30
+  periodSeconds: 10
+  timeoutSeconds: 5
+  failureThreshold: 3
+
+readinessProbe:
+  enabled: true
+  httpGet:
+    path: /alive
+    port: http
+  initialDelaySeconds: 10
+  periodSeconds: 10
+  timeoutSeconds: 5
+  failureThreshold: 3
+
+startupProbe:
+  enabled: true
+  httpGet:
+    path: /alive
+    port: http
+  initialDelaySeconds: 5
+  periodSeconds: 5
+  timeoutSeconds: 5
+  failureThreshold: 30
+
+# ========================================
+# 12. Autoscaling (Deployment mode only)
+# ========================================
+autoscaling:
+  enabled: false
+  minReplicas: 1
+  maxReplicas: 5
+  targetCPUUtilizationPercentage: 80
+  targetMemoryUtilizationPercentage: 80
+
+# ========================================
+# 13. Pod Disruption Budget
+# ========================================
+podDisruptionBudget:
+  enabled: false
+  minAvailable: 1
+  # maxUnavailable: 1
+
+# ========================================
+# 14. Network Policy
+# ========================================
+networkPolicy:
+  enabled: false
+  # Ingress rules
+  ingress: []
+  # - from:
+  #   - namespaceSelector:
+  #       matchLabels:
+  #         name: ingress-nginx
+  #   ports:
+  #   - protocol: TCP
+  #     port: 80
+  # Egress rules
+  egress: []
+  # - to:
+  #   - namespaceSelector: {}
+  #   ports:
+  #   - protocol: TCP
+  #     port: 5432  # PostgreSQL
+
+# ========================================
+# 15. Scheduling
+# ========================================
+nodeSelector: {}
+
+tolerations: []
+
+affinity: {}
+
+# ========================================
+# 16. Backup Configuration (Optional)
+# ========================================
+backup:
+  enabled: false
+  # Backup schedule (CronJob)
+  schedule: "0 2 * * *"  # Daily at 2 AM
+  # Backup retention (days)
+  retention: 7
+  # Storage for backups
+  storageClass: ""
+  size: 5Gi
+
+# ========================================
+# 17. Monitoring (Optional)
+# ========================================
+# NOTE: Vaultwarden does not natively expose Prometheus metrics
+# Consider using a third-party exporter if monitoring is required
+monitoring:
+  enabled: false
+  serviceMonitor:
+    enabled: false
+    interval: 30s
+    scrapeTimeout: 10s
