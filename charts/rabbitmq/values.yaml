@@ -1,25 +1,9 @@
-# Default values for rabbitmq.
+# Default values for rabbitmq
 # This is a YAML-formatted file.
 # Declare variables to be passed into your templates.
 
-# Number of RabbitMQ replicas
-# Note: Clustering is not yet supported - use replicaCount: 1
-replicaCount: 1
+# 1. Application-specific Configuration
 
-# RabbitMQ Docker image configuration
-image:
-  repository: rabbitmq
-  tag: "3.13.1-management"
-  pullPolicy: IfNotPresent
-
-# Image pull secrets for private registries
-imagePullSecrets: []
-
-# Override the chart name
-nameOverride: ""
-fullnameOverride: ""
-
-# RabbitMQ-specific configuration
 rabbitmq:
   # Admin user credentials
   admin:
@@ -91,9 +75,66 @@ rabbitmq:
 
 # Erlang cookie for clustering (future use)
 # Must be the same across all nodes in a cluster
-# erlangCookie: ""
+erlangCookie: ""
 
-# Service Account configuration
+# 2. External Dependencies
+
+# RabbitMQ does not require external databases
+postgresql:
+  enabled: false
+mysql:
+  enabled: false
+redis:
+  enabled: false
+
+# 3. Persistence Configuration
+
+persistence:
+  # Enable persistence using PVC
+  enabled: true
+
+  # Use existing PVC
+  existingClaim: ""
+
+  # Storage class name
+  # If undefined (the default) or set to null, no storageClassName spec is set
+  # This means the default StorageClass will be used
+  storageClass: ""
+
+  # Access mode
+  accessMode: ReadWriteOnce
+
+  # Volume size
+  size: 10Gi
+
+  # Additional PVC annotations
+  annotations: {}
+
+  # Reclaim policy (Retain or Delete)
+  # Use Retain for production to prevent accidental data loss
+  reclaimPolicy: Retain
+
+# 4. Kubernetes Resources
+
+replicaCount: 1
+
+image:
+  repository: rabbitmq
+  tag: "3.13.1-management"
+  pullPolicy: IfNotPresent
+
+imagePullSecrets: []
+nameOverride: ""
+fullnameOverride: ""
+
+# Deployment strategy
+strategy:
+  type: RollingUpdate
+  rollingUpdate:
+    maxUnavailable: 1
+
+# 5. Service Account
+
 serviceAccount:
   # Specifies whether a service account should be created
   create: true
@@ -105,22 +146,29 @@ serviceAccount:
   # If not set and create is true, a name is generated using the fullname template
   name: ""
 
-# Pod security context
+# 6. Pod Configuration
+
+podAnnotations: {}
+podLabels: {}
+
 podSecurityContext:
   fsGroup: 999
+  runAsUser: 999
+  runAsGroup: 999
   runAsNonRoot: true
 
-# Container security context
 securityContext:
-  runAsUser: 999
-  runAsNonRoot: true
-  readOnlyRootFilesystem: false
-  allowPrivilegeEscalation: false
   capabilities:
     drop:
       - ALL
+  readOnlyRootFilesystem: false
+  runAsNonRoot: true
+  runAsUser: 999
+  runAsGroup: 999
+  allowPrivilegeEscalation: false
 
-# Service configuration
+# 7. Service Configuration
+
 service:
   # Service type
   type: ClusterIP
@@ -154,33 +202,28 @@ service:
   # Session affinity
   sessionAffinity: None
 
-# Persistence configuration
-persistence:
-  # Enable persistence using PVC
-  enabled: true
+# 8. Ingress Configuration
 
-  # Use existing PVC
-  existingClaim: ""
-
-  # Storage class name
-  # If undefined (the default) or set to null, no storageClassName spec is set
-  # This means the default StorageClass will be used
-  storageClass: ""
-
-  # Access mode
-  accessMode: ReadWriteOnce
-
-  # Volume size
-  size: 10Gi
-
-  # Additional PVC annotations
+ingress:
+  enabled: false
+  className: ""
   annotations: {}
+  # Example annotations:
+  #   nginx.ingress.kubernetes.io/backend-protocol: "HTTP"
+  #   cert-manager.io/cluster-issuer: "letsencrypt-prod"
+  hosts:
+    - host: rabbitmq.local
+      paths:
+        - path: /
+          pathType: Prefix
+  tls: []
+  # Example TLS configuration:
+  #   - secretName: rabbitmq-tls
+  #     hosts:
+  #       - rabbitmq.local
 
-  # Reclaim policy (Retain or Delete)
-  # Use Retain for production to prevent accidental data loss
-  # reclaimPolicy: Retain
+# 9. Resources
 
-# Resource limits and requests
 resources:
   limits:
     cpu: 500m
@@ -188,6 +231,8 @@ resources:
   requests:
     cpu: 100m
     memory: 256Mi
+
+# 10. Health Probes
 
 # Liveness probe configuration
 # Uses rabbitmq-diagnostics ping command
@@ -197,10 +242,10 @@ livenessProbe:
     command:
       - rabbitmq-diagnostics
       - ping
-  initialDelaySeconds: 60
+  initialDelaySeconds: 30
   periodSeconds: 10
   timeoutSeconds: 5
-  failureThreshold: 3
+  failureThreshold: 6
   successThreshold: 1
 
 # Readiness probe configuration
@@ -211,7 +256,7 @@ readinessProbe:
     command:
       - rabbitmq-diagnostics
       - check_running
-  initialDelaySeconds: 30
+  initialDelaySeconds: 10
   periodSeconds: 10
   timeoutSeconds: 5
   failureThreshold: 3
@@ -230,24 +275,8 @@ startupProbe:
   failureThreshold: 30
   successThreshold: 1
 
-# Monitoring configuration
-monitoring:
-  # Enable Prometheus ServiceMonitor
-  # Requires Prometheus Operator to be installed
-  serviceMonitor:
-    enabled: false
-    # Scrape interval
-    interval: 30s
-    # Scrape timeout
-    scrapeTimeout: 10s
-    # Additional labels for ServiceMonitor
-    additionalLabels: {}
-    # Metric relabeling
-    relabelings: []
-    # Target labels
-    targetLabels: []
+# 11. Autoscaling
 
-# Autoscaling configuration
 autoscaling:
   enabled: false
   minReplicas: 1
@@ -255,7 +284,8 @@ autoscaling:
   targetCPUUtilizationPercentage: 80
   targetMemoryUtilizationPercentage: 80
 
-# Pod Disruption Budget
+# 12. Pod Disruption Budget
+
 # Ensures minimum availability during voluntary disruptions (e.g., node drains)
 podDisruptionBudget:
   enabled: false
@@ -265,7 +295,8 @@ podDisruptionBudget:
   # Use either minAvailable or maxUnavailable, not both
   # maxUnavailable: 1
 
-# Network Policy
+# 13. Network Policy
+
 # Restricts network access to RabbitMQ pods
 networkPolicy:
   enabled: false
@@ -283,6 +314,25 @@ networkPolicy:
   # Egress rules (optional)
   egress: []
 
+# 14. Monitoring
+
+monitoring:
+  enabled: false
+  # ServiceMonitor for Prometheus Operator
+  # Requires Prometheus Operator to be installed
+  serviceMonitor:
+    enabled: false
+    # Namespace for ServiceMonitor (defaults to release namespace)
+    namespace: ""
+    # Scrape interval
+    interval: 30s
+    # Scrape timeout
+    scrapeTimeout: 10s
+    # Additional labels for ServiceMonitor
+    labels: {}
+
+# 15. Scheduling
+
 # Node selector for pod assignment
 nodeSelector: {}
 
@@ -292,19 +342,21 @@ tolerations: []
 # Affinity for pod assignment
 affinity: {}
 
-# Pod annotations
-podAnnotations: {}
-
-# Pod labels
-podLabels: {}
-
 # Priority class name
 priorityClassName: ""
+
+# Topology spread constraints
+topologySpreadConstraints: []
+
+# 16. Extensibility
 
 # Extra environment variables
 extraEnv: []
 # - name: CUSTOM_VAR
 #   value: "custom_value"
+
+# Additional environment variables from ConfigMap or Secret
+extraEnvFrom: []
 
 # Extra volumes
 extraVolumes: []
@@ -319,11 +371,10 @@ extraVolumeMounts: []
 # Init containers
 initContainers: []
 
-# Sidecar containers
-sidecarContainers: []
-
-# Update strategy
-updateStrategy:
-  type: RollingUpdate
-  rollingUpdate:
-    maxUnavailable: 1
+# Lifecycle hooks
+lifecycle: {}
+# Example:
+# lifecycle:
+#   preStop:
+#     exec:
+#       command: ["/bin/sh", "-c", "sleep 5"]

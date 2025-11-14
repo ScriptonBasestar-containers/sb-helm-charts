@@ -1,8 +1,9 @@
-# Default values for wireguard.
+# Default values for wireguard
 # This is a YAML-formatted file.
 # Declare variables to be passed into your templates.
 
-# WireGuard configuration
+# 1. Application-specific Configuration
+
 wireguard:
   # Configuration mode: "manual" or "auto"
   # - manual: Use serverConfig (wg0.conf file) - RECOMMENDED
@@ -74,7 +75,8 @@ wireguard:
     #   - "10.13.13.1 vpn.local"
     #   - "10.13.13.2 client1.vpn.local"
 
-# External dependencies
+# 2. External Dependencies
+
 # WireGuard does not require external databases
 postgresql:
   enabled: false
@@ -83,7 +85,8 @@ mysql:
 redis:
   enabled: false
 
-# Persistence
+# 3. Persistence Configuration
+
 persistence:
   enabled: true
 
@@ -108,16 +111,10 @@ persistence:
   # - Delete: Remove data after chart deletion
   reclaimPolicy: Retain
 
-# Kubernetes resources
+# 4. Kubernetes Resources
+
 replicaCount: 1
 
-# Deployment strategy
-strategy:
-  # Recreate: Required for PVC with ReadWriteOnce
-  # RollingUpdate: Not suitable for single-replica UDP service with PVC
-  type: Recreate
-
-# Image configuration
 image:
   repository: lscr.io/linuxserver/wireguard
   # Using specific version for production stability
@@ -125,14 +122,18 @@ image:
   tag: "1.0.20250521-r0-ls90"
   pullPolicy: IfNotPresent
 
-# Image pull secrets
 imagePullSecrets: []
-
-# Override name
 nameOverride: ""
 fullnameOverride: ""
 
-# Service account
+# Deployment strategy
+strategy:
+  # Recreate: Required for PVC with ReadWriteOnce
+  # RollingUpdate: Not suitable for single-replica UDP service with PVC
+  type: Recreate
+
+# 5. Service Account
+
 serviceAccount:
   # Specifies whether a service account should be created
   create: true
@@ -143,13 +144,11 @@ serviceAccount:
   # Name of the service account (generated if not set)
   name: ""
 
-# Pod annotations
-podAnnotations: {}
+# 6. Pod Configuration
 
-# Pod labels
+podAnnotations: {}
 podLabels: {}
 
-# Pod security context
 podSecurityContext:
   # Required sysctls for IP forwarding and routing
   sysctls:
@@ -157,19 +156,30 @@ podSecurityContext:
       value: "1"
     - name: net.ipv4.conf.all.src_valid_mark
       value: "1"
+  fsGroup: 1000
+  runAsUser: 0
+  runAsGroup: 0
+  runAsNonRoot: false
 
-# Container security context
 securityContext:
   capabilities:
+    drop:
+      - ALL
     add:
       # Required: Network interface management
       - NET_ADMIN
       # Optional: Kernel module loading (only if wireguard module not pre-loaded)
       - SYS_MODULE
+  readOnlyRootFilesystem: false
+  runAsNonRoot: false
+  runAsUser: 0
+  runAsGroup: 0
+  allowPrivilegeEscalation: true
   # Avoid full privileged mode - use specific capabilities instead
   privileged: false
 
-# Service configuration
+# 7. Service Configuration
+
 service:
   # Service type
   # - LoadBalancer: Recommended (requires MetalLB or cloud provider)
@@ -197,13 +207,14 @@ service:
   # Service annotations
   annotations: {}
 
-  # Optional: DNS service for CoreDNS
-  dns:
-    enabled: false
-    type: ClusterIP
-    port: 53
+# 8. Ingress Configuration
 
-# Resources
+# WireGuard uses UDP protocol - ingress not applicable
+ingress:
+  enabled: false
+
+# 9. Resources
+
 resources:
   limits:
     cpu: 500m
@@ -211,6 +222,8 @@ resources:
   requests:
     cpu: 100m
     memory: 128Mi
+
+# 10. Health Probes
 
 # Liveness probe
 livenessProbe:
@@ -254,10 +267,65 @@ startupProbe:
   failureThreshold: 30
   successThreshold: 1
 
-# Autoscaling
+# 11. Autoscaling
+
 # Not applicable for WireGuard (UDP service, single replica)
 autoscaling:
   enabled: false
+
+# 12. Pod Disruption Budget
+
+# Not applicable for single-replica UDP service
+podDisruptionBudget:
+  enabled: false
+  minAvailable: 1
+
+# 13. Network Policy
+
+networkPolicy:
+  enabled: false
+  # Ingress rules
+  ingress:
+    - from:
+      # Allow from specific namespaces
+      - namespaceSelector:
+          matchLabels: {}
+      # Allow from specific pods
+      - podSelector:
+          matchLabels: {}
+      # Allow from specific IP blocks (CIDR)
+      # - ipBlock:
+      #     cidr: 0.0.0.0/0  # Allow from anywhere (not recommended)
+      ports:
+        - protocol: UDP
+          port: 51820
+  # Egress rules
+  egress:
+    # Allow all egress by default (WireGuard may need to reach various endpoints)
+    - to:
+      - podSelector: {}
+
+# 14. Monitoring
+
+monitoring:
+  enabled: false
+  # ServiceMonitor for Prometheus Operator
+  serviceMonitor:
+    enabled: false
+    # Namespace for ServiceMonitor (defaults to release namespace)
+    namespace: ""
+    # ServiceMonitor interval
+    interval: 30s
+    # ServiceMonitor scrape timeout
+    scrapeTimeout: 10s
+    # ServiceMonitor labels
+    labels: {}
+    # Metrics path
+    path: /metrics
+  # Metrics port (if WireGuard exports metrics)
+  port: 9586
+
+# 15. Scheduling
 
 # Node selector
 nodeSelector: {}
@@ -274,61 +342,7 @@ priorityClassName: ""
 # Topology spread constraints
 topologySpreadConstraints: []
 
-# Network Policy
-networkPolicy:
-  enabled: false
-
-  # Ingress rules
-  ingress:
-    # Allow from specific namespaces
-    namespaceSelector: {}
-    # Example:
-    # namespaceSelector:
-    #   matchLabels:
-    #     name: trusted-namespace
-
-    # Allow from specific pods
-    podSelector: {}
-
-    # Allow from specific IP blocks (CIDR)
-    ipBlocks: []
-    # Example:
-    # ipBlocks:
-    #   - 0.0.0.0/0  # Allow from anywhere (not recommended)
-    #   - 192.168.1.0/24  # Allow from specific network
-
-  # Egress rules
-  egress:
-    # Allow all egress by default (WireGuard may need to reach various endpoints)
-    allowAll: true
-
-    # Or specify custom egress rules
-    customRules: []
-    # Example:
-    # customRules:
-    #   - to:
-    #       - ipBlock:
-    #           cidr: 0.0.0.0/0
-
-# Monitoring
-monitoring:
-  # Enable ServiceMonitor for Prometheus Operator
-  enabled: false
-
-  # ServiceMonitor labels
-  labels: {}
-
-  # ServiceMonitor interval
-  interval: 30s
-
-  # ServiceMonitor scrape timeout
-  scrapeTimeout: 10s
-
-  # Metrics port (if WireGuard exports metrics)
-  port: 9586
-
-  # Metrics path
-  path: /metrics
+# 16. Extensibility
 
 # Extra environment variables
 extraEnv: []
@@ -340,6 +354,9 @@ extraEnv: []
 #     value: "1000"
 #   - name: PGID
 #     value: "1000"
+
+# Additional environment variables from ConfigMap or Secret
+extraEnvFrom: []
 
 # Extra volumes
 extraVolumes: []
@@ -356,3 +373,9 @@ extraVolumeMounts: []
 #   - name: custom-config
 #     mountPath: /custom-config
 #     readOnly: true
+
+# Init containers
+initContainers: []
+
+# Lifecycle hooks
+lifecycle: {}

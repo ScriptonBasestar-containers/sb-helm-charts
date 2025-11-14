@@ -35,6 +35,10 @@ spec:
       {{- if .Values.priorityClassName }}
       priorityClassName: {{ .Values.priorityClassName }}
       {{- end }}
+      {{- with .Values.initContainers }}
+      initContainers:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
       containers:
         - name: wireguard
           securityContext:
@@ -71,18 +75,14 @@ spec:
             {{- with .Values.extraEnv }}
             {{- toYaml . | nindent 12 }}
             {{- end }}
+          {{- with .Values.extraEnvFrom }}
+          envFrom:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
           ports:
             - name: wireguard
               containerPort: 51820
               protocol: UDP
-            {{- if .Values.service.dns.enabled }}
-            - name: dns-udp
-              containerPort: 53
-              protocol: UDP
-            - name: dns-tcp
-              containerPort: 53
-              protocol: TCP
-            {{- end }}
           {{- if .Values.livenessProbe.enabled }}
           livenessProbe:
             {{- omit .Values.livenessProbe "enabled" | toYaml | nindent 12 }}
@@ -112,6 +112,10 @@ spec:
             {{- with .Values.extraVolumeMounts }}
             {{- toYaml . | nindent 12 }}
             {{- end }}
+          {{- with .Values.lifecycle }}
+          lifecycle:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
       volumes:
         # Persistent storage for peer configs, QR codes, etc.
         - name: config

@@ -6,7 +6,7 @@ metadata:
     {{- include "rabbitmq.labels" . | nindent 4 }}
 spec:
   replicas: {{ .Values.replicaCount }}
-  {{- with .Values.updateStrategy }}
+  {{- with .Values.strategy }}
   strategy:
     {{- toYaml . | nindent 4 }}
   {{- end }}
@@ -71,6 +71,10 @@ spec:
             {{- with .Values.extraEnv }}
             {{- toYaml . | nindent 12 }}
             {{- end }}
+          {{- with .Values.extraEnvFrom }}
+          envFrom:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
           ports:
             - name: amqp
               containerPort: 5672
@@ -117,9 +121,10 @@ spec:
             {{- with .Values.extraVolumeMounts }}
             {{- toYaml . | nindent 12 }}
             {{- end }}
-        {{- with .Values.sidecarContainers }}
-        {{- toYaml . | nindent 8 }}
-        {{- end }}
+          {{- with .Values.lifecycle }}
+          lifecycle:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
       volumes:
         - name: config
           configMap:
