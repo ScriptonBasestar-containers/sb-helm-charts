@@ -1,0 +1,25 @@
+apiVersion: v2
+name: rustfs
+description: High-performance S3-compatible object storage built with Rust, supporting migration and coexistence with MinIO/Ceph
+type: application
+version: 0.1.0
+appVersion: "1.0.0-alpha.66"
+keywords:
+  - rustfs
+  - object-storage
+  - s3
+  - minio-alternative
+  - rust
+home: https://rustfs.com/
+icon: https://rustfs.com/logo.png
+sources:
+  - https://github.com/scriptonbasestar-container/sb-helm-charts
+  - https://github.com/rustfs/rustfs
+maintainers:
+  - name: ScriptonBasestar
+    email: github@scriptonsol.com
+dependencies: []
+annotations:
+  # Chart license (BSD-3-Clause)
+  # Application license: Apache-2.0 (see README.md)
+  licenses: BSD-3-Clause

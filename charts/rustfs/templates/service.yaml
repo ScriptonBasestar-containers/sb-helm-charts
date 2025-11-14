@@ -1,0 +1,29 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "rustfs.fullname" . }}
+  labels:
+    {{- include "rustfs.labels" . | nindent 4 }}
+  {{- with .Values.service.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  type: {{ .Values.service.type }}
+  ports:
+    - port: {{ .Values.service.api.port }}
+      targetPort: api
+      protocol: TCP
+      name: api
+      {{- if and (eq .Values.service.type "NodePort") .Values.service.api.nodePort }}
+      nodePort: {{ .Values.service.api.nodePort }}
+      {{- end }}
+    - port: {{ .Values.service.console.port }}
+      targetPort: console
+      protocol: TCP
+      name: console
+      {{- if and (eq .Values.service.type "NodePort") .Values.service.console.nodePort }}
+      nodePort: {{ .Values.service.console.nodePort }}
+      {{- end }}
+  selector:
+    {{- include "rustfs.selectorLabels" . | nindent 4 }}

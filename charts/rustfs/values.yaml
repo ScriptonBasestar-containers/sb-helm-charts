@@ -1,0 +1,364 @@
+# Default values for rustfs.
+# This is a YAML-formatted file.
+# Declare variables to be passed into your templates.
+
+# RustFS configuration
+rustfs:
+  # Root credentials for RustFS admin console
+  # WARNING: Change these values in production!
+  rootUser: "rustfsadmin"
+  rootPassword: ""  # Required - deployment will fail if empty
+
+  # Use existing Secret for credentials (overrides rootUser/rootPassword)
+  existingSecret: ""
+  # Keys inside the secret
+  rootUserKey: "root-user"
+  rootPasswordKey: "root-password"
+
+  # Region configuration
+  region: "us-east-1"
+
+  # Console port (web UI)
+  consolePort: 9001
+
+  # API endpoint port
+  apiPort: 9000
+
+  # Number of data directories per pod (multi-drive support)
+  # Each directory will be mounted as /data/rustfs0, /data/rustfs1, etc.
+  dataDirs: 4
+
+  # Extra environment variables
+  # Example: RUSTFS_CACHE_SIZE, RUSTFS_WORKERS
+  extraEnv: []
+
+  # Additional command-line arguments
+  args: []
+  # Example:
+  # - "--anonymous"
+  # - "--json"
+
+# Persistence configuration
+# RustFS requires persistent storage for data
+persistence:
+  enabled: true
+
+  # Storage class selection
+  # Set to empty string "" to use default storage class
+  # For HDD: use "hdd-storage" or your HDD storage class
+  # For SSD: use "ssd-storage" or your SSD storage class
+  storageClass: ""
+
+  # Access mode
+  # ReadWriteOnce: Single node access (typical for most deployments)
+  # ReadWriteMany: Multi-node access (requires NFS/CephFS/etc)
+  accessMode: ReadWriteOnce
+
+  # Storage size per data directory
+  # Total storage = size * dataDirs * replicaCount
+  # Example: 100Gi * 4 dirs * 1 replica = 400Gi total
+  size: 100Gi
+
+  # Reclaim policy (Retain recommended for production)
+  # Retain: Keep PVC after StatefulSet deletion
+  # Delete: Auto-delete PVC with StatefulSet
+  reclaimPolicy: Retain
+
+  # Use existing PVC (for manual PVC creation)
+  existingClaim: ""
+
+  # Annotations for PVCs
+  annotations: {}
+
+# Multiple storage tiers support (advanced)
+# Allows mixing HDD and SSD storage
+storageTiers:
+  enabled: false
+
+  # Hot tier (fast storage - SSD)
+  hot:
+    storageClass: "ssd-storage"
+    size: 50Gi
+    dataDirs: 2  # Number of hot storage directories
+
+  # Cold tier (slow storage - HDD)
+  cold:
+    storageClass: "hdd-storage"
+    size: 200Gi
+    dataDirs: 2  # Number of cold storage directories
+
+# Replica count (for clustering)
+# 1: Single instance (no HA)
+# 4+: Recommended for production HA
+replicaCount: 1
+
+# Container image configuration
+image:
+  repository: rustfs/rustfs
+  pullPolicy: IfNotPresent
+  tag: "1.0.0-alpha.66"
+
+# Image pull secrets for private registries
+imagePullSecrets: []
+
+# Override chart name
+nameOverride: ""
+fullnameOverride: ""
+
+# Service account configuration
+serviceAccount:
+  create: true
+  automount: true
+  annotations: {}
+  name: ""
+
+# Pod annotations
+podAnnotations: {}
+
+# Pod labels
+podLabels: {}
+
+# Pod security context
+podSecurityContext:
+  fsGroup: 1000
+  fsGroupChangePolicy: "OnRootMismatch"
+
+# Container security context
+securityContext:
+  runAsUser: 1000
+  runAsGroup: 1000
+  runAsNonRoot: true
+  readOnlyRootFilesystem: false
+  capabilities:
+    drop:
+      - ALL
+
+# Service configuration
+service:
+  # Service type
+  # ClusterIP: Internal access only (use with Ingress)
+  # NodePort: External access via node ports
+  # LoadBalancer: Cloud load balancer
+  type: ClusterIP
+
+  # API service (S3 endpoints)
+  api:
+    port: 9000
+    targetPort: 9000
+    nodePort: null  # Set if using NodePort
+
+  # Console service (web UI)
+  console:
+    port: 9001
+    targetPort: 9001
+    nodePort: null  # Set if using NodePort
+
+  annotations: {}
+  # Example: AWS load balancer annotations
+  # annotations:
+  #   service.beta.kubernetes.io/aws-load-balancer-type: nlb
+
+# Headless service for StatefulSet DNS
+# Required for pod-to-pod communication in clustering
+headlessService:
+  enabled: true
+
+# Ingress configuration
+ingress:
+  enabled: false
+  className: "nginx"  # or "traefik"
+  annotations: {}
+  # Example annotations for Nginx:
+  # annotations:
+  #   nginx.ingress.kubernetes.io/affinity: "cookie"
+  #   nginx.ingress.kubernetes.io/session-cookie-name: "rustfs-route"
+  #   nginx.ingress.kubernetes.io/proxy-body-size: "0"
+  #   nginx.ingress.kubernetes.io/proxy-request-buffering: "off"
+  # Example annotations for Traefik:
+  # annotations:
+  #   traefik.ingress.kubernetes.io/affinity: "true"
+  #   traefik.ingress.kubernetes.io/session-cookie-name: "rustfs"
+
+  # API endpoint ingress
+  api:
+    enabled: true
+    hosts:
+      - host: s3.example.com
+        paths:
+          - path: /
+            pathType: Prefix
+    tls: []
+    # Example TLS configuration:
+    # tls:
+    #   - secretName: s3-tls
+    #     hosts:
+    #       - s3.example.com
+
+  # Console endpoint ingress
+  console:
+    enabled: true
+    hosts:
+      - host: console.s3.example.com
+        paths:
+          - path: /
+            pathType: Prefix
+    tls: []
+
+# Resource limits and requests
+resources:
+  limits:
+    cpu: 2000m
+    memory: 4Gi
+  requests:
+    cpu: 500m
+    memory: 1Gi
+
+# Liveness probe configuration
+livenessProbe:
+  httpGet:
+    path: /rustfs/health/live
+    port: api
+  initialDelaySeconds: 60
+  periodSeconds: 30
+  timeoutSeconds: 10
+  failureThreshold: 5
+  successThreshold: 1
+
+# Readiness probe configuration
+readinessProbe:
+  httpGet:
+    path: /rustfs/health/ready
+    port: api
+  initialDelaySeconds: 30
+  periodSeconds: 15
+  timeoutSeconds: 10
+  failureThreshold: 3
+  successThreshold: 1
+
+# Startup probe (for slow initialization)
+startupProbe:
+  httpGet:
+    path: /rustfs/health/live
+    port: api
+  initialDelaySeconds: 0
+  periodSeconds: 10
+  timeoutSeconds: 10
+  failureThreshold: 30
+  successThreshold: 1
+
+# Autoscaling configuration
+# WARNING: StatefulSet autoscaling requires Kubernetes 1.27+
+autoscaling:
+  enabled: false
+  minReplicas: 1
+  maxReplicas: 10
+  targetCPUUtilizationPercentage: 70
+  targetMemoryUtilizationPercentage: 80
+
+# Pod Disruption Budget
+# Ensures minimum availability during voluntary disruptions
+podDisruptionBudget:
+  enabled: false
+  # For single replica: set minAvailable: 0 to allow disruptions
+  # For HA (4+ replicas): set minAvailable: 2
+  minAvailable: 1
+  # Alternative: maxUnavailable
+  # maxUnavailable: 1
+
+# Network Policy
+# Restricts network access to RustFS pods
+networkPolicy:
+  enabled: false
+  ingress:
+    # Allow S3 API access
+    - from:
+      - podSelector:
+          matchLabels: {}
+      ports:
+        - protocol: TCP
+          port: 9000
+        - protocol: TCP
+          port: 9001
+  egress:
+    # Allow DNS resolution
+    - to:
+      - namespaceSelector: {}
+        podSelector:
+          matchLabels:
+            k8s-app: kube-dns
+      ports:
+        - protocol: UDP
+          port: 53
+
+# Monitoring configuration
+monitoring:
+  enabled: false
+  serviceMonitor:
+    enabled: false
+    interval: 30s
+    labels: {}
+    # Prometheus path (adjust based on RustFS metrics endpoint)
+    path: /metrics
+    port: api
+
+# Node selector
+nodeSelector: {}
+# Example: Select nodes with fast storage
+# nodeSelector:
+#   storage-type: ssd
+
+# Tolerations
+tolerations: []
+
+# Affinity rules
+affinity: {}
+# Example anti-affinity for HA (separate pods across nodes):
+# affinity:
+#   podAntiAffinity:
+#     preferredDuringSchedulingIgnoredDuringExecution:
+#       - weight: 100
+#         podAffinityTerm:
+#           labelSelector:
+#             matchLabels:
+#               app.kubernetes.io/name: rustfs
+#           topologyKey: kubernetes.io/hostname
+
+# Additional environment variables from ConfigMap or Secret
+extraEnvFrom: []
+
+# Additional volumes
+extraVolumes: []
+
+# Additional volume mounts
+extraVolumeMounts: []
+
+# Init containers
+initContainers: []
+# Example: Data directory permissions fix
+# - name: fix-permissions
+#   image: busybox
+#   command: ['sh', '-c', 'chown -R 1000:1000 /data']
+#   volumeMounts:
+#     - name: data
+#       mountPath: /data
+#   securityContext:
+#     runAsUser: 0
+
+# Lifecycle hooks
+lifecycle: {}
+# Example: Graceful shutdown
+# lifecycle:
+#   preStop:
+#     exec:
+#       command: ["/bin/sh", "-c", "sleep 15"]
+
+# Update strategy for StatefulSet
+updateStrategy:
+  type: RollingUpdate
+  rollingUpdate:
+    partition: 0
+
+# Pod management policy
+# Parallel: Pods are started/stopped in parallel (faster but less safe)
+# OrderedReady: Pods are started/stopped one by one (safer for stateful apps)
+podManagementPolicy: Parallel

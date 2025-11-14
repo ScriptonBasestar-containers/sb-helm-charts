@@ -1,0 +1,113 @@
+🚀 RustFS has been deployed!
+
+** Please be patient while the chart is being deployed **
+
+RustFS can be accessed via the following endpoints:
+
+{{- if .Values.ingress.enabled }}
+
+{{- if .Values.ingress.api.enabled }}
+🌐 S3 API Endpoint:
+{{- range .Values.ingress.api.hosts }}
+  - https://{{ .host }}
+{{- end }}
+{{- end }}
+
+{{- if .Values.ingress.console.enabled }}
+🖥️  Web Console:
+{{- range .Values.ingress.console.hosts }}
+  - https://{{ .host }}
+{{- end }}
+{{- end }}
+
+{{- else if eq .Values.service.type "LoadBalancer" }}
+
+⏳ Waiting for LoadBalancer IP...
+   Run: kubectl get svc {{ include "rustfs.fullname" . }} -n {{ .Release.Namespace }} -w
+
+Once the LoadBalancer IP is available:
+🌐 S3 API: http://<EXTERNAL-IP>:{{ .Values.service.api.port }}
+🖥️  Console: http://<EXTERNAL-IP>:{{ .Values.service.console.port }}
+
+{{- else if eq .Values.service.type "NodePort" }}
+
+🌐 S3 API: http://<NODE-IP>:{{ .Values.service.api.nodePort | default "NodePort" }}
+🖥️  Console: http://<NODE-IP>:{{ .Values.service.console.nodePort | default "NodePort" }}
+
+Get NodePort:
+  export NODE_PORT_API=$(kubectl get svc {{ include "rustfs.fullname" . }} -n {{ .Release.Namespace }} -o jsonpath="{.spec.ports[0].nodePort}")
+  export NODE_PORT_CONSOLE=$(kubectl get svc {{ include "rustfs.fullname" . }} -n {{ .Release.Namespace }} -o jsonpath="{.spec.ports[1].nodePort}")
+  export NODE_IP=$(kubectl get nodes -o jsonpath="{.items[0].status.addresses[0].address}")
+  echo "S3 API: http://$NODE_IP:$NODE_PORT_API"
+  echo "Console: http://$NODE_IP:$NODE_PORT_CONSOLE"
+
+{{- else }}
+
+🔧 Port forwarding (for local access):
+
+  # S3 API
+  kubectl port-forward -n {{ .Release.Namespace }} svc/{{ include "rustfs.fullname" . }} {{ .Values.service.api.port }}:{{ .Values.service.api.port }}
+
+  # Web Console
+  kubectl port-forward -n {{ .Release.Namespace }} svc/{{ include "rustfs.fullname" . }} {{ .Values.service.console.port }}:{{ .Values.service.console.port }}
+
+Then access:
+🌐 S3 API: http://localhost:{{ .Values.service.api.port }}
+🖥️  Console: http://localhost:{{ .Values.service.console.port }}
+
+{{- end }}
+
+🔐 Credentials:
+
+  Root User:
+    kubectl get secret {{ include "rustfs.secretName" . }} -n {{ .Release.Namespace }} -o jsonpath="{.data.{{ .Values.rustfs.rootUserKey }}}" | base64 -d
+
+  Root Password:
+    kubectl get secret {{ include "rustfs.secretName" . }} -n {{ .Release.Namespace }} -o jsonpath="{.data.{{ .Values.rustfs.rootPasswordKey }}}" | base64 -d
+
+📊 Deployment Status:
+
+  kubectl get pods -n {{ .Release.Namespace }} -l app.kubernetes.io/name={{ include "rustfs.name" . }}
+  kubectl get statefulset {{ include "rustfs.fullname" . }} -n {{ .Release.Namespace }}
+
+{{- if gt (int .Values.replicaCount) 1 }}
+
+🔗 Cluster Mode Enabled ({{ .Values.replicaCount }} replicas)
+   Verify cluster status after all pods are ready.
+{{- end }}
+
+{{- if .Values.persistence.enabled }}
+
+💾 Persistent Storage:
+   - Storage Class: {{ .Values.persistence.storageClass | default "default" }}
+   {{- if .Values.storageTiers.enabled }}
+   - Hot Tier: {{ .Values.storageTiers.hot.size }} x {{ .Values.storageTiers.hot.dataDirs }} (SSD)
+   - Cold Tier: {{ .Values.storageTiers.cold.size }} x {{ .Values.storageTiers.cold.dataDirs }} (HDD)
+   {{- else }}
+   - Size: {{ .Values.persistence.size }} x {{ .Values.rustfs.dataDirs }} directories
+   {{- end }}
+   - Total: ~{{ .Values.persistence.size | replace "Gi" "" | atoi | mul (int .Values.rustfs.dataDirs) | mul (int .Values.replicaCount) }}Gi
+
+View PVCs:
+  kubectl get pvc -n {{ .Release.Namespace }} -l app.kubernetes.io/name={{ include "rustfs.name" . }}
+{{- end }}
+
+⚠️  IMPORTANT NOTES:
+
+1. 🚧 RustFS is in ALPHA stage - NOT recommended for production use
+2. 🔐 Change default credentials immediately via web console
+3. 📦 Persistent storage is {{ if .Values.persistence.enabled }}ENABLED{{ else }}DISABLED{{ end }}
+   {{- if not .Values.persistence.enabled }}
+   ⚠️  Data will be lost on pod restart!
+   {{- end }}
+
+{{- if .Values.monitoring.enabled }}
+4. 📈 Monitoring: ServiceMonitor enabled for Prometheus
+{{- end }}
+
+📚 Documentation:
+   - RustFS Docs: https://docs.rustfs.com/
+   - Chart Repo: https://github.com/scriptonbasestar-container/sb-helm-charts
+   - RustFS GitHub: https://github.com/rustfs/rustfs
+
+🎉 Happy object storage!

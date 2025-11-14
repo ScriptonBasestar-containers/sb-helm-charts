@@ -1,0 +1,19 @@
+{{- if .Values.headlessService.enabled }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "rustfs.headlessServiceName" . }}
+  labels:
+    {{- include "rustfs.labels" . | nindent 4 }}
+spec:
+  type: ClusterIP
+  clusterIP: None
+  publishNotReadyAddresses: true
+  ports:
+    - port: {{ .Values.service.api.port }}
+      targetPort: api
+      protocol: TCP
+      name: api
+  selector:
+    {{- include "rustfs.selectorLabels" . | nindent 4 }}
+{{- end }}

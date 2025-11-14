@@ -1,0 +1,219 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: {{ include "rustfs.fullname" . }}
+  labels:
+    {{- include "rustfs.labels" . | nindent 4 }}
+spec:
+  serviceName: {{ include "rustfs.headlessServiceName" . }}
+  replicas: {{ .Values.replicaCount }}
+  podManagementPolicy: {{ .Values.podManagementPolicy }}
+  updateStrategy:
+    {{- toYaml .Values.updateStrategy | nindent 4 }}
+  selector:
+    matchLabels:
+      {{- include "rustfs.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      annotations:
+        checksum/secret: {{ include (print $.Template.BasePath "/secret.yaml") . | sha256sum }}
+        {{- with .Values.podAnnotations }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+      labels:
+        {{- include "rustfs.labels" . | nindent 8 }}
+        {{- with .Values.podLabels }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+    spec:
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      serviceAccountName: {{ include "rustfs.serviceAccountName" . }}
+      securityContext:
+        {{- toYaml .Values.podSecurityContext | nindent 8 }}
+      {{- with .Values.initContainers }}
+      initContainers:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      containers:
+        - name: rustfs
+          securityContext:
+            {{- toYaml .Values.securityContext | nindent 12 }}
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          command:
+            - /bin/sh
+            - -c
+            - |
+              set -e
+              echo "Starting RustFS server..."
+              {{- if gt (int .Values.replicaCount) 1 }}
+              # Multi-node cluster mode
+              rustfs server {{ include "rustfs.serverCommand" . }} \
+                --console-address ":{{ .Values.rustfs.consolePort }}" \
+                {{- range .Values.rustfs.args }}
+                {{ . }} \
+                {{- end }}
+              {{- else }}
+              # Single node mode
+              rustfs server \
+                {{- if .Values.storageTiers.enabled }}
+                {{- range $i := until (int .Values.storageTiers.hot.dataDirs) }}
+                /data/hot-{{ $i }} \
+                {{- end }}
+                {{- range $i := until (int .Values.storageTiers.cold.dataDirs) }}
+                /data/cold-{{ $i }} \
+                {{- end }}
+                {{- else }}
+                {{- range $i := until (int .Values.rustfs.dataDirs) }}
+                /data/rustfs{{ $i }} \
+                {{- end }}
+                {{- end }}
+                --console-address ":{{ .Values.rustfs.consolePort }}" \
+                {{- range .Values.rustfs.args }}
+                {{ . }} \
+                {{- end }}
+              {{- end }}
+          env:
+            - name: RUSTFS_ROOT_USER
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "rustfs.secretName" . }}
+                  key: {{ .Values.rustfs.rootUserKey }}
+            - name: RUSTFS_ROOT_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "rustfs.secretName" . }}
+                  key: {{ .Values.rustfs.rootPasswordKey }}
+            - name: RUSTFS_REGION_NAME
+              value: {{ .Values.rustfs.region | quote }}
+            {{- with .Values.rustfs.extraEnv }}
+            {{- toYaml . | nindent 12 }}
+            {{- end }}
+          {{- with .Values.extraEnvFrom }}
+          envFrom:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          ports:
+            - name: api
+              containerPort: {{ .Values.rustfs.apiPort }}
+              protocol: TCP
+            - name: console
+              containerPort: {{ .Values.rustfs.consolePort }}
+              protocol: TCP
+          {{- if .Values.livenessProbe }}
+          livenessProbe:
+            {{- toYaml .Values.livenessProbe | nindent 12 }}
+          {{- end }}
+          {{- if .Values.readinessProbe }}
+          readinessProbe:
+            {{- toYaml .Values.readinessProbe | nindent 12 }}
+          {{- end }}
+          {{- if .Values.startupProbe }}
+          startupProbe:
+            {{- toYaml .Values.startupProbe | nindent 12 }}
+          {{- end }}
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+          volumeMounts:
+            {{- if .Values.storageTiers.enabled }}
+            {{- range $i := until (int .Values.storageTiers.hot.dataDirs) }}
+            - name: hot-{{ $i }}
+              mountPath: /data/hot-{{ $i }}
+            {{- end }}
+            {{- range $i := until (int .Values.storageTiers.cold.dataDirs) }}
+            - name: cold-{{ $i }}
+              mountPath: /data/cold-{{ $i }}
+            {{- end }}
+            {{- else }}
+            {{- range $i := until (int .Values.rustfs.dataDirs) }}
+            - name: data-{{ $i }}
+              mountPath: /data/rustfs{{ $i }}
+            {{- end }}
+            {{- end }}
+            {{- with .Values.extraVolumeMounts }}
+            {{- toYaml . | nindent 12 }}
+            {{- end }}
+          {{- with .Values.lifecycle }}
+          lifecycle:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+      {{- with .Values.extraVolumes }}
+      volumes:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+  {{- if and .Values.persistence.enabled (not .Values.persistence.existingClaim) }}
+  volumeClaimTemplates:
+    {{- if .Values.storageTiers.enabled }}
+    {{- range $i := until (int .Values.storageTiers.hot.dataDirs) }}
+    - metadata:
+        name: hot-{{ $i }}
+        {{- with $.Values.persistence.annotations }}
+        annotations:
+          {{- toYaml . | nindent 10 }}
+        {{- end }}
+      spec:
+        accessModes:
+          - {{ $.Values.persistence.accessMode }}
+        {{- if $.Values.storageTiers.hot.storageClass }}
+        storageClassName: {{ $.Values.storageTiers.hot.storageClass | quote }}
+        {{- else if $.Values.persistence.storageClass }}
+        storageClassName: {{ $.Values.persistence.storageClass | quote }}
+        {{- end }}
+        resources:
+          requests:
+            storage: {{ $.Values.storageTiers.hot.size }}
+    {{- end }}
+    {{- range $i := until (int .Values.storageTiers.cold.dataDirs) }}
+    - metadata:
+        name: cold-{{ $i }}
+        {{- with $.Values.persistence.annotations }}
+        annotations:
+          {{- toYaml . | nindent 10 }}
+        {{- end }}
+      spec:
+        accessModes:
+          - {{ $.Values.persistence.accessMode }}
+        {{- if $.Values.storageTiers.cold.storageClass }}
+        storageClassName: {{ $.Values.storageTiers.cold.storageClass | quote }}
+        {{- else if $.Values.persistence.storageClass }}
+        storageClassName: {{ $.Values.persistence.storageClass | quote }}
+        {{- end }}
+        resources:
+          requests:
+            storage: {{ $.Values.storageTiers.cold.size }}
+    {{- end }}
+    {{- else }}
+    {{- range $i := until (int .Values.rustfs.dataDirs) }}
+    - metadata:
+        name: data-{{ $i }}
+        {{- with $.Values.persistence.annotations }}
+        annotations:
+          {{- toYaml . | nindent 10 }}
+        {{- end }}
+      spec:
+        accessModes:
+          - {{ $.Values.persistence.accessMode }}
+        {{- if $.Values.persistence.storageClass }}
+        storageClassName: {{ $.Values.persistence.storageClass | quote }}
+        {{- end }}
+        resources:
+          requests:
+            storage: {{ $.Values.persistence.size }}
+    {{- end }}
+    {{- end }}
+  {{- end }}
