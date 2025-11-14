@@ -1,23 +1,52 @@
 # Production-ready example configuration for RabbitMQ
 # Copy this file and customize for your environment
 
-# Single node deployment (default)
-replicaCount: 1
+# ==============================================================================
+# Example 1: Basic Production Deployment
+# ==============================================================================
+# Minimal production setup with strong security and persistence
 
-image:
-  repository: rabbitmq
-  tag: "3.13.1-management"
-  pullPolicy: IfNotPresent
-
-# RabbitMQ configuration
 rabbitmq:
   admin:
-    # CRITICAL: Change default credentials for production
     username: "admin"
-    # Generate strong password: openssl rand -base64 32
+    # CRITICAL: Change password for production
+    # Generate with: openssl rand -base64 32
     password: "CHANGE_ME_STRONG_PASSWORD"
 
-  # Production-tuned rabbitmq.conf
+persistence:
+  enabled: true
+  storageClass: ""  # Use default StorageClass
+  size: 20Gi
+  reclaimPolicy: Retain  # Prevent accidental data loss
+
+resources:
+  limits:
+    cpu: 2000m
+    memory: 2Gi
+  requests:
+    cpu: 500m
+    memory: 1Gi
+
+monitoring:
+  enabled: true
+  serviceMonitor:
+    enabled: true
+    interval: 30s
+    scrapeTimeout: 10s
+    labels:
+      prometheus: kube-prometheus
+
+---
+# ==============================================================================
+# Example 2: Production-Tuned Configuration
+# ==============================================================================
+# Advanced RabbitMQ settings for high-performance production
+
+rabbitmq:
+  admin:
+    username: "admin"
+    password: "CHANGE_ME_STRONG_PASSWORD"
+
   conf: |
     ## Network
     listeners.tcp.default = 5672
@@ -26,17 +55,17 @@ rabbitmq:
     management.tcp.port = 15672
     management.tcp.ip = 0.0.0.0
 
-    ## Memory threshold (60% of available RAM)
-    vm_memory_high_watermark.relative = 0.6
+    ## Memory threshold (70% for production)
+    vm_memory_high_watermark.relative = 0.7
     vm_memory_high_watermark_paging_ratio = 0.75
 
     ## Disk space limit (5GB minimum)
     disk_free_limit.absolute = 5GB
 
-    ## Connection and channel limits
+    ## Connection limits
     channel_max = 2048
 
-    ## Default vhost and permissions
+    ## Default vhost
     default_vhost = /production
     default_user = admin
     default_pass = CHANGE_ME_STRONG_PASSWORD
@@ -44,16 +73,13 @@ rabbitmq:
     default_permissions.read = .*
     default_permissions.write = .*
 
-    ## Logging
+    ## Logging (warning level for production)
     log.console = true
-    log.console.level = info
+    log.console.level = warning
     log.file = false
 
     ## Queue settings
     queue_master_locator = min-masters
-
-    ## Message TTL (optional: 7 days default)
-    # default_message_ttl = 604800000
 
     ## Cluster partition handling
     cluster_partition_handling = autoheal
@@ -67,152 +93,207 @@ rabbitmq:
   plugins: |
     [rabbitmq_management,rabbitmq_management_agent,rabbitmq_prometheus,rabbitmq_shovel,rabbitmq_shovel_management].
 
-# Service configuration
+persistence:
+  enabled: true
+  size: 50Gi
+  reclaimPolicy: Retain
+
+resources:
+  limits:
+    cpu: 4000m
+    memory: 4Gi
+  requests:
+    cpu: 1000m
+    memory: 2Gi
+
+---
+# ==============================================================================
+# Example 3: Ingress with TLS
+# ==============================================================================
+# Expose management UI via HTTPS
+
+ingress:
+  enabled: true
+  className: "nginx"
+  annotations:
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
+    nginx.ingress.kubernetes.io/force-ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/whitelist-source-range: "10.0.0.0/8"
+  hosts:
+    - host: rabbitmq.example.com
+      paths:
+        - path: /
+          pathType: Prefix
+  tls:
+    - secretName: rabbitmq-tls
+      hosts:
+        - rabbitmq.example.com
+
+---
+# ==============================================================================
+# Example 4: NodePort Service (Bare-Metal/K3s)
+# ==============================================================================
+
 service:
-  type: ClusterIP
+  type: NodePort
   amqp:
     port: 5672
+    nodePort: 30672
   management:
     port: 15672
+    nodePort: 30673
   metrics:
     port: 15692
 
-# Persistence enabled with production size
-persistence:
-  enabled: true
-  storageClass: ""  # Use default StorageClass
-  accessMode: ReadWriteOnce
-  size: 50Gi
-  annotations:
-    # Example: prevent accidental deletion
-    "helm.sh/resource-policy": keep
+---
+# ==============================================================================
+# Example 5: Network Policy Enabled
+# ==============================================================================
 
-# Production resource limits
-resources:
-  limits:
-    cpu: 2000m
-    memory: 2Gi
-  requests:
-    cpu: 500m
-    memory: 1Gi
-
-# Health probes with production settings
-livenessProbe:
-  enabled: true
-  exec:
-    command:
-      - rabbitmq-diagnostics
-      - ping
-  initialDelaySeconds: 120
-  periodSeconds: 30
-  timeoutSeconds: 10
-  failureThreshold: 3
-
-readinessProbe:
-  enabled: true
-  exec:
-    command:
-      - rabbitmq-diagnostics
-      - check_running
-  initialDelaySeconds: 60
-  periodSeconds: 15
-  timeoutSeconds: 10
-  failureThreshold: 3
-
-startupProbe:
-  enabled: true
-  exec:
-    command:
-      - rabbitmq-diagnostics
-      - ping
-  initialDelaySeconds: 10
-  periodSeconds: 10
-  timeoutSeconds: 10
-  failureThreshold: 60
-
-# Enable Prometheus monitoring
-monitoring:
-  serviceMonitor:
-    enabled: true
-    interval: 30s
-    scrapeTimeout: 10s
-    additionalLabels:
-      prometheus: kube-prometheus
-
-# Autoscaling (optional - disable for single-node deployments)
-autoscaling:
-  enabled: false
-  minReplicas: 2
-  maxReplicas: 5
-  targetCPUUtilizationPercentage: 70
-  targetMemoryUtilizationPercentage: 75
-
-# Pod Disruption Budget for high availability
-podDisruptionBudget:
-  enabled: true
-  minAvailable: 1
-
-# Network Policy for security isolation
 networkPolicy:
-  enabled: false
+  enabled: true
   ingress:
     - from:
       - namespaceSelector:
           matchLabels:
             name: production
       - podSelector:
-          matchLabels: {}
+          matchLabels:
+            app: myapp
       ports:
         - protocol: TCP
           port: 5672
         - protocol: TCP
           port: 15672
 
-# Pod security
-podSecurityContext:
-  fsGroup: 999
-  runAsNonRoot: true
+---
+# ==============================================================================
+# Example 6: Using Existing Secret
+# ==============================================================================
 
-securityContext:
-  runAsUser: 999
-  runAsNonRoot: true
-  readOnlyRootFilesystem: false
-  allowPrivilegeEscalation: false
-  capabilities:
-    drop:
-      - ALL
+rabbitmq:
+  admin:
+    existingSecret:
+      enabled: true
+      secretName: "rabbitmq-admin-secret"
+      usernameKey: "username"
+      passwordKey: "password"
 
-# Example: Node affinity for dedicated RabbitMQ nodes
-# affinity:
-#   nodeAffinity:
-#     requiredDuringSchedulingIgnoredDuringExecution:
-#       nodeSelectorTerms:
-#       - matchExpressions:
-#         - key: workload-type
-#           operator: In
-#           values:
-#           - rabbitmq
+# Create secret separately:
+# kubectl create secret generic rabbitmq-admin-secret \
+#   --from-literal=username=admin \
+#   --from-literal=password=YOUR_PASSWORD
 
-# Example: Pod anti-affinity for high availability (future clustering)
-# affinity:
-#   podAntiAffinity:
-#     requiredDuringSchedulingIgnoredDuringExecution:
-#     - labelSelector:
-#         matchExpressions:
-#         - key: app.kubernetes.io/name
-#           operator: In
-#           values:
-#           - rabbitmq
-#       topologyKey: kubernetes.io/hostname
+---
+# ==============================================================================
+# Example 7: Home Server / Resource-Constrained
+# ==============================================================================
 
-# Update strategy
-updateStrategy:
+resources:
+  limits:
+    cpu: 500m
+    memory: 512Mi
+  requests:
+    cpu: 100m
+    memory: 256Mi
+
+persistence:
+  enabled: true
+  size: 5Gi
+
+rabbitmq:
+  conf: |
+    listeners.tcp.default = 5672
+    management.tcp.port = 15672
+    vm_memory_high_watermark.relative = 0.5
+    disk_free_limit.absolute = 1GB
+    log.console = true
+    log.console.level = info
+
+---
+# ==============================================================================
+# Example 8: Complete Production Setup
+# ==============================================================================
+
+rabbitmq:
+  admin:
+    username: "admin"
+    password: "CHANGE_ME_STRONG_PASSWORD"
+  conf: |
+    listeners.tcp.default = 5672
+    management.tcp.port = 15672
+    vm_memory_high_watermark.relative = 0.7
+    disk_free_limit.absolute = 5GB
+    channel_max = 2048
+    log.console = true
+    log.console.level = warning
+    queue_master_locator = min-masters
+    cluster_partition_handling = autoheal
+  plugins: |
+    [rabbitmq_management,rabbitmq_management_agent,rabbitmq_prometheus,rabbitmq_shovel,rabbitmq_shovel_management].
+
+persistence:
+  enabled: true
+  storageClass: "fast-ssd"
+  size: 50Gi
+  reclaimPolicy: Retain
+
+strategy:
   type: RollingUpdate
   rollingUpdate:
     maxUnavailable: 0
+    maxSurge: 1
 
-# Pod annotations for monitoring
-podAnnotations:
-  prometheus.io/scrape: "true"
-  prometheus.io/port: "15692"
-  prometheus.io/path: "/metrics"
+resources:
+  limits:
+    cpu: 4000m
+    memory: 4Gi
+  requests:
+    cpu: 1000m
+    memory: 2Gi
+
+ingress:
+  enabled: true
+  className: "nginx"
+  annotations:
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
+    nginx.ingress.kubernetes.io/force-ssl-redirect: "true"
+  hosts:
+    - host: rabbitmq.internal.example.com
+      paths:
+        - path: /
+          pathType: Prefix
+  tls:
+    - secretName: rabbitmq-tls
+      hosts:
+        - rabbitmq.internal.example.com
+
+podDisruptionBudget:
+  enabled: true
+  minAvailable: 1
+
+networkPolicy:
+  enabled: true
+  ingress:
+    - from:
+      - namespaceSelector:
+          matchLabels:
+            name: production
+      ports:
+        - protocol: TCP
+          port: 5672
+
+monitoring:
+  enabled: true
+  serviceMonitor:
+    enabled: true
+    namespace: "monitoring"
+    interval: 15s
+    scrapeTimeout: 10s
+    labels:
+      prometheus: kube-prometheus
+
+nodeSelector:
+  node-role.kubernetes.io/worker: "true"
+
+priorityClassName: "high-priority"
