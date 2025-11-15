@@ -69,7 +69,7 @@ open http://localhost:9001
 
 ## Configuration Variants
 
-This chart includes three pre-configured values files for different use cases:
+This chart includes four pre-configured values files for different use cases:
 
 ### 1. Default Configuration (`values.yaml`)
 
@@ -86,7 +86,34 @@ helm install rustfs ./charts/rustfs --namespace rustfs --create-namespace
 - ClusterIP service
 - No ingress
 
-### 2. Home Server / NAS Configuration (`values-homeserver.yaml`)
+### 2. Production Configuration (`values-example.yaml`)
+
+Production-ready configuration with HA and tiered storage for medium-scale deployments (100-1000 users).
+
+```bash
+helm install rustfs ./charts/rustfs \
+  -f ./charts/rustfs/values-example.yaml \
+  --namespace rustfs \
+  --create-namespace \
+  --set rustfs.rootPassword="your-secure-password"
+```
+
+**Key Features:**
+- ✅ High availability (3-node cluster)
+- ✅ Tiered storage (SSD + HDD)
+- ✅ Autoscaling enabled (3-8 replicas)
+- ✅ Prometheus metrics integration
+- ✅ Network policies for security
+- ✅ Pod disruption budget
+- ✅ Anti-affinity rules for multi-zone deployment
+
+**Best For:**
+- Production workloads
+- Multi-zone Kubernetes clusters
+- Medium-scale object storage needs
+- Cost-optimized tiered storage
+
+### 3. Home Server / NAS Configuration (`values-homeserver.yaml`)
 
 Optimized for home servers, Raspberry Pi, Intel NUC, Synology NAS, etc.
 
@@ -113,7 +140,7 @@ helm install rustfs ./charts/rustfs \
 - Development environments
 - Single-node Kubernetes (k3s, MicroK8s)
 
-### 3. Startup / Production Configuration (`values-startup.yaml`)
+### 4. Startup / Enterprise Configuration (`values-startup.yaml`)
 
 Enterprise-grade configuration for 10K+ users.
 
@@ -261,34 +288,34 @@ This chart includes a comprehensive Makefile for day-2 operations:
 
 ```bash
 # Get credentials
-make -f Makefile.rustfs.mk rustfs-get-credentials
+make -f make/ops/rustfs.mk rustfs-get-credentials
 
 # Port forward services
-make -f Makefile.rustfs.mk rustfs-port-forward-api      # S3 API on localhost:9000
-make -f Makefile.rustfs.mk rustfs-port-forward-console  # Console on localhost:9001
+make -f make/ops/rustfs.mk rustfs-port-forward-api      # S3 API on localhost:9000
+make -f make/ops/rustfs.mk rustfs-port-forward-console  # Console on localhost:9001
 
 # Test S3 API (requires MinIO Client 'mc')
-make -f Makefile.rustfs.mk rustfs-test-s3
+make -f make/ops/rustfs.mk rustfs-test-s3
 
 # View logs and shell
-make -f Makefile.rustfs.mk rustfs-logs
-make -f Makefile.rustfs.mk rustfs-shell
+make -f make/ops/rustfs.mk rustfs-logs
+make -f make/ops/rustfs.mk rustfs-shell
 
 # Health and metrics
-make -f Makefile.rustfs.mk rustfs-health
-make -f Makefile.rustfs.mk rustfs-metrics
+make -f make/ops/rustfs.mk rustfs-health
+make -f make/ops/rustfs.mk rustfs-metrics
 
 # Scale cluster
-make -f Makefile.rustfs.mk rustfs-scale REPLICAS=6
+make -f make/ops/rustfs.mk rustfs-scale REPLICAS=6
 
 # Backup (requires VolumeSnapshot CRD)
-make -f Makefile.rustfs.mk rustfs-backup
+make -f make/ops/rustfs.mk rustfs-backup
 
 # View all resources
-make -f Makefile.rustfs.mk rustfs-all
+make -f make/ops/rustfs.mk rustfs-all
 
 # Full help
-make -f Makefile.rustfs.mk help
+make -f make/ops/rustfs.mk help
 ```
 
 ## S3 API Usage
@@ -498,7 +525,7 @@ kubectl describe ingress -n rustfs rustfs-api
 
 ```bash
 # Backup data first!
-make -f Makefile.rustfs.mk rustfs-backup
+make -f make/ops/rustfs.mk rustfs-backup
 
 # Upgrade chart
 helm upgrade rustfs ./charts/rustfs \
