@@ -1,0 +1,379 @@
+# Redis values for Production - Sentinel High Availability
+# 1 master + 2 replicas + 3 Sentinel nodes for automatic failover
+# Use: helm install redis ./charts/redis -f charts/redis/values-prod-sentinel.yaml
+#
+# NOTE: This values file demonstrates Sentinel configuration structure.
+# Full Sentinel support requires additional templates (sentinel.yaml, sentinel-service.yaml).
+# Current chart focuses on master-replica setup. For production Sentinel:
+# 1. Use this as configuration reference
+# 2. Consider Bitnami Redis chart with full Sentinel support
+# 3. Or extend this chart with Sentinel templates
+
+# Redis configuration
+redis:
+  # Redis password - REQUIRED for production
+  password: ""  # MUST set via --set or use existingSecret
+  existingSecret: ""
+  secretKeyName: redis-password
+
+  # Redis configuration file - production with Sentinel support
+  config: |
+    # Redis 7.x configuration - Production with Sentinel
+    # Network
+    bind 0.0.0.0
+    protected-mode no
+    port 6379
+    tcp-backlog 511
+    timeout 0
+    tcp-keepalive 300
+
+    # General
+    daemonize no
+    supervised no
+    loglevel notice
+
+    # Snapshotting (production persistence)
+    save 900 1
+    save 300 10
+    save 60 10000
+    stop-writes-on-bgsave-error yes
+    rdbcompression yes
+    rdbchecksum yes
+    dbfilename dump.rdb
+    dir /data
+
+    # Replication
+    replica-serve-stale-data yes
+    replica-read-only yes
+    repl-diskless-sync no
+    repl-diskless-sync-delay 5
+    repl-disable-tcp-nodelay no
+    replica-priority 100
+    min-replicas-to-write 1
+    min-replicas-max-lag 10
+
+    # Security
+    # requirepass your-password-here
+    # masterauth your-password-here
+
+    # Limits - Production settings
+    maxmemory 768mb
+    maxmemory-policy allkeys-lru
+    maxclients 10000
+
+    # Append Only File (enabled for durability)
+    appendonly yes
+    appendfilename "appendonly.aof"
+    appendfsync everysec
+    no-appendfsync-on-rewrite no
+    auto-aof-rewrite-percentage 100
+    auto-aof-rewrite-min-size 64mb
+
+    # Slow log
+    slowlog-log-slower-than 10000
+    slowlog-max-len 128
+
+    # Latency monitoring
+    latency-monitor-threshold 100
+
+  existingConfigMap: ""
+  args: []
+
+# Sentinel configuration (for reference - requires additional templates)
+sentinel:
+  enabled: false  # Set to true when Sentinel templates are implemented
+  quorum: 2  # Minimum Sentinels to agree on failover
+  downAfterMilliseconds: 5000  # Consider master down after 5 seconds
+  failoverTimeout: 60000  # Failover timeout (60 seconds)
+  parallelSyncs: 1  # Number of replicas to sync in parallel during failover
+
+  config: |
+    # Sentinel configuration
+    port 26379
+    dir /data
+    sentinel monitor mymaster redis-0.redis-headless 6379 2
+    sentinel down-after-milliseconds mymaster 5000
+    sentinel parallel-syncs mymaster 1
+    sentinel failover-timeout mymaster 60000
+    # sentinel auth-pass mymaster your-password-here
+
+  image:
+    repository: redis
+    tag: "7.4.1-alpine"
+
+  resources:
+    limits:
+      cpu: 200m
+      memory: 256Mi
+    requests:
+      cpu: 100m
+      memory: 128Mi
+
+# Master-Slave Replication - ENABLED with 2 replicas
+replication:
+  enabled: true
+  replicas: 2
+  # With Sentinel, services route to current master automatically:
+  # - redis-sentinel.{namespace}.svc.cluster.local:26379 → Sentinel service
+  # Applications query Sentinel to discover current master
+
+# Persistence - Production-grade storage
+persistence:
+  enabled: true
+  storageClass: ""  # Use fast SSD storage class in production
+  accessMode: ReadWriteOnce
+  size: 10Gi
+  existingClaim: ""
+
+# Replica count - IGNORED when replication.enabled=true
+replicaCount: 1
+
+# Container image configuration
+image:
+  repository: redis
+  pullPolicy: IfNotPresent
+  tag: "7.4.1-alpine"
+
+imagePullSecrets: []
+nameOverride: ""
+fullnameOverride: ""
+
+# Service account configuration
+serviceAccount:
+  create: true
+  automount: true
+  annotations: {}
+  name: ""
+
+podAnnotations:
+  prometheus.io/scrape: "true"
+  prometheus.io/port: "9121"
+
+podLabels:
+  environment: "production"
+  tier: "cache"
+  ha-mode: "sentinel"
+
+# Pod security context
+podSecurityContext:
+  fsGroup: 999
+
+# Container security context
+securityContext:
+  runAsUser: 999
+  runAsGroup: 999
+  runAsNonRoot: true
+  readOnlyRootFilesystem: false
+  capabilities:
+    drop:
+      - ALL
+
+# Service configuration
+service:
+  type: ClusterIP
+  port: 6379
+  targetPort: 6379
+  annotations:
+    service.alpha.kubernetes.io/tolerate-unready-endpoints: "true"
+
+# Resource limits - PRODUCTION settings
+resources:
+  limits:
+    cpu: 1000m
+    memory: 1Gi
+  requests:
+    cpu: 500m
+    memory: 512Mi
+
+# Liveness probe
+livenessProbe:
+  tcpSocket:
+    port: redis
+  initialDelaySeconds: 30
+  periodSeconds: 10
+  timeoutSeconds: 5
+  failureThreshold: 6
+  successThreshold: 1
+
+# Readiness probe - checks replication status
+readinessProbe:
+  exec:
+    command:
+      - sh
+      - -c
+      - |
+        redis-cli ping | grep -q PONG
+  initialDelaySeconds: 10
+  periodSeconds: 10
+  timeoutSeconds: 5
+  failureThreshold: 3
+  successThreshold: 1
+
+# Startup probe
+startupProbe:
+  tcpSocket:
+    port: redis
+  initialDelaySeconds: 10
+  periodSeconds: 10
+  timeoutSeconds: 5
+  failureThreshold: 30
+  successThreshold: 1
+
+# Autoscaling - DISABLED for StatefulSet with Sentinel
+autoscaling:
+  enabled: false
+
+# Monitoring - ENABLED for production
+monitoring:
+  enabled: true
+  serviceMonitor:
+    enabled: true
+    interval: 30s
+    labels:
+      prometheus: kube-prometheus
+    path: /metrics
+
+# Redis Exporter - ENABLED for production metrics
+metrics:
+  enabled: true
+  image:
+    repository: oliver006/redis_exporter
+    tag: v1.55.0-alpine
+    pullPolicy: IfNotPresent
+  resources:
+    limits:
+      cpu: 100m
+      memory: 128Mi
+    requests:
+      cpu: 50m
+      memory: 64Mi
+  port: 9121
+
+# Pod Disruption Budget - ENABLED for HA
+podDisruptionBudget:
+  enabled: true
+  minAvailable: 2  # At least 2 Redis pods must be available
+
+# Network Policy - ENABLED for production security
+networkPolicy:
+  enabled: true
+  ingress:
+    # Allow from application pods
+    - from:
+      - podSelector:
+          matchLabels:
+            app.kubernetes.io/name: myapp
+      ports:
+        - protocol: TCP
+          port: 6379
+    # Allow Sentinel communication between Redis pods
+    - from:
+      - podSelector:
+          matchLabels:
+            app.kubernetes.io/name: redis
+      ports:
+        - protocol: TCP
+          port: 26379
+    # Allow from monitoring
+    - from:
+      - namespaceSelector:
+          matchLabels:
+            name: monitoring
+      ports:
+        - protocol: TCP
+          port: 9121
+  egress:
+    # Allow DNS resolution
+    - to:
+      - namespaceSelector: {}
+      ports:
+        - protocol: UDP
+          port: 53
+    # Allow Redis replication between pods
+    - to:
+      - podSelector:
+          matchLabels:
+            app.kubernetes.io/name: redis
+      ports:
+        - protocol: TCP
+          port: 6379
+        - protocol: TCP
+          port: 26379
+
+# Node selector - production nodes
+nodeSelector:
+  # Example: Use dedicated database nodes with high IOPS
+  # node.kubernetes.io/instance-type: "n1-highmem-4"
+  # workload: "database"
+  {}
+
+# Tolerations - for dedicated nodes
+tolerations: []
+  # - key: "workload"
+  #   operator: "Equal"
+  #   value: "database"
+  #   effect: "NoSchedule"
+
+# Affinity - STRICT for HA (spread across zones and nodes)
+affinity:
+  podAntiAffinity:
+    # REQUIRE replicas on different nodes (prevent single node failure)
+    requiredDuringSchedulingIgnoredDuringExecution:
+      - labelSelector:
+          matchExpressions:
+            - key: app.kubernetes.io/name
+              operator: In
+              values:
+                - redis
+        topologyKey: kubernetes.io/hostname
+    # PREFER replicas on different availability zones
+    preferredDuringSchedulingIgnoredDuringExecution:
+      - weight: 100
+        podAffinityTerm:
+          labelSelector:
+            matchExpressions:
+              - key: app.kubernetes.io/name
+                operator: In
+                values:
+                  - redis
+          topologyKey: topology.kubernetes.io/zone
+
+# Additional environment variables
+extraEnv: []
+
+extraEnvFrom: []
+
+# Additional volumes
+extraVolumes: []
+
+# Additional volume mounts
+extraVolumeMounts: []
+
+# Init containers - system tuning for production
+initContainers:
+  - name: system-tuning
+    image: busybox
+    command:
+      - sh
+      - -c
+      - |
+        # Disable THP (Transparent Huge Pages)
+        echo never > /sys/kernel/mm/transparent_hugepage/enabled || true
+        echo never > /sys/kernel/mm/transparent_hugepage/defrag || true
+        # Increase somaxconn for better connection handling
+        sysctl -w net.core.somaxconn=65535 || true
+        # Enable memory overcommit
+        sysctl -w vm.overcommit_memory=1 || true
+    securityContext:
+      privileged: true
+
+# Lifecycle hooks - graceful shutdown
+lifecycle:
+  preStop:
+    exec:
+      command:
+        - /bin/sh
+        - -c
+        - |
+          # Save data before shutdown
+          redis-cli shutdown save || true

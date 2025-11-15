@@ -1,0 +1,212 @@
+# Redis values for Home Server - Single Instance
+# Minimal resources optimized for home lab/personal use
+# Use: helm install redis ./charts/redis -f charts/redis/values-home-single.yaml
+
+# Redis configuration
+redis:
+  # Redis password (recommended even for home use)
+  password: ""
+  existingSecret: ""
+  secretKeyName: redis-password
+
+  # Redis configuration file - minimal settings for home use
+  config: |
+    # Redis 7.x configuration - Home Server Optimized
+    # Network
+    bind 0.0.0.0
+    protected-mode no
+    port 6379
+    tcp-backlog 128
+    timeout 300
+    tcp-keepalive 60
+
+    # General
+    daemonize no
+    supervised no
+    loglevel notice
+
+    # Snapshotting (less aggressive for home use)
+    save 900 1
+    save 300 10
+    save 60 1000
+    stop-writes-on-bgsave-error yes
+    rdbcompression yes
+    rdbchecksum yes
+    dbfilename dump.rdb
+    dir /data
+
+    # Security
+    # requirepass your-password-here
+
+    # Limits - Conservative for home server
+    maxmemory 128mb
+    maxmemory-policy allkeys-lru
+    maxclients 100
+
+    # Append Only File (disabled for performance)
+    appendonly no
+
+    # Slow log
+    slowlog-log-slower-than 10000
+    slowlog-max-len 64
+
+  existingConfigMap: ""
+  args: []
+
+# Master-Slave Replication - DISABLED for single instance
+replication:
+  enabled: false
+  replicas: 0
+
+# Persistence - Smaller volume for home use
+persistence:
+  enabled: true
+  storageClass: ""
+  accessMode: ReadWriteOnce
+  size: 2Gi  # Smaller size for home lab
+  existingClaim: ""
+
+# Single instance
+replicaCount: 1
+
+# Container image configuration
+image:
+  repository: redis
+  pullPolicy: IfNotPresent
+  tag: "7.4.1-alpine"
+
+imagePullSecrets: []
+nameOverride: ""
+fullnameOverride: ""
+
+# Service account configuration
+serviceAccount:
+  create: true
+  automount: true
+  annotations: {}
+  name: ""
+
+podAnnotations: {}
+podLabels: {}
+
+# Pod security context
+podSecurityContext:
+  fsGroup: 999
+
+# Container security context
+securityContext:
+  runAsUser: 999
+  runAsGroup: 999
+  runAsNonRoot: true
+  readOnlyRootFilesystem: false
+  capabilities:
+    drop:
+      - ALL
+
+# Service configuration
+service:
+  type: ClusterIP
+  port: 6379
+  targetPort: 6379
+  annotations: {}
+
+# Resource limits - MINIMAL for home server
+resources:
+  limits:
+    cpu: 250m      # Reduced for home use
+    memory: 256Mi  # Minimal memory
+  requests:
+    cpu: 50m       # Very low baseline
+    memory: 64Mi   # Minimal request
+
+# Liveness probe
+livenessProbe:
+  tcpSocket:
+    port: redis
+  initialDelaySeconds: 30
+  periodSeconds: 10
+  timeoutSeconds: 5
+  failureThreshold: 6
+  successThreshold: 1
+
+# Readiness probe
+readinessProbe:
+  exec:
+    command:
+      - redis-cli
+      - ping
+  initialDelaySeconds: 10
+  periodSeconds: 10
+  timeoutSeconds: 5
+  failureThreshold: 3
+  successThreshold: 1
+
+# Startup probe
+startupProbe:
+  tcpSocket:
+    port: redis
+  initialDelaySeconds: 10
+  periodSeconds: 10
+  timeoutSeconds: 5
+  failureThreshold: 15  # Reduced for faster startup
+  successThreshold: 1
+
+# Autoscaling - DISABLED for single instance
+autoscaling:
+  enabled: false
+
+# Monitoring - DISABLED for home use (can enable if needed)
+monitoring:
+  enabled: false
+  serviceMonitor:
+    enabled: false
+    interval: 60s
+    labels: {}
+    path: /metrics
+
+# Redis Exporter - DISABLED for home use
+metrics:
+  enabled: false
+  image:
+    repository: oliver006/redis_exporter
+    tag: v1.55.0-alpine
+    pullPolicy: IfNotPresent
+  resources:
+    limits:
+      cpu: 50m
+      memory: 64Mi
+    requests:
+      cpu: 25m
+      memory: 32Mi
+  port: 9121
+
+# Pod Disruption Budget - DISABLED for single instance
+podDisruptionBudget:
+  enabled: false
+
+# Network Policy - DISABLED for home use
+networkPolicy:
+  enabled: false
+
+# Node selector - empty for home use
+nodeSelector: {}
+
+# Tolerations - empty
+tolerations: []
+
+# Affinity - empty for single instance
+affinity: {}
+
+# Additional environment variables
+extraEnv: []
+extraEnvFrom: []
+
+# Additional volumes
+extraVolumes: []
+extraVolumeMounts: []
+
+# Init containers - empty for home use
+initContainers: []
+
+# Lifecycle hooks
+lifecycle: {}

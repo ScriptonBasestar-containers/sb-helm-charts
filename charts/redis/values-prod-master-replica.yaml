@@ -1,0 +1,330 @@
+# Redis values for Production - Master-Replica Setup
+# 1 master + 2 read replicas for high availability and read scaling
+# Use: helm install redis ./charts/redis -f charts/redis/values-prod-master-replica.yaml
+
+# Redis configuration
+redis:
+  # Redis password - REQUIRED for production
+  password: ""  # MUST set via --set or use existingSecret
+  existingSecret: ""
+  secretKeyName: redis-password
+
+  # Redis configuration file - production settings with replication
+  config: |
+    # Redis 7.x configuration - Production Master-Replica
+    # Network
+    bind 0.0.0.0
+    protected-mode no
+    port 6379
+    tcp-backlog 511
+    timeout 0
+    tcp-keepalive 300
+
+    # General
+    daemonize no
+    supervised no
+    loglevel notice
+
+    # Snapshotting (production persistence)
+    save 900 1
+    save 300 10
+    save 60 10000
+    stop-writes-on-bgsave-error yes
+    rdbcompression yes
+    rdbchecksum yes
+    dbfilename dump.rdb
+    dir /data
+
+    # Replication
+    replica-serve-stale-data yes
+    replica-read-only yes
+    repl-diskless-sync no
+    repl-diskless-sync-delay 5
+    repl-disable-tcp-nodelay no
+    replica-priority 100
+
+    # Security
+    # requirepass your-password-here
+
+    # Limits - Production settings
+    maxmemory 768mb
+    maxmemory-policy allkeys-lru
+    maxclients 10000
+
+    # Append Only File (enabled for durability)
+    appendonly yes
+    appendfilename "appendonly.aof"
+    appendfsync everysec
+    no-appendfsync-on-rewrite no
+    auto-aof-rewrite-percentage 100
+    auto-aof-rewrite-min-size 64mb
+
+    # Slow log
+    slowlog-log-slower-than 10000
+    slowlog-max-len 128
+
+    # Latency monitoring
+    latency-monitor-threshold 100
+
+  existingConfigMap: ""
+  args: []
+
+# Master-Slave Replication - ENABLED with 2 replicas
+replication:
+  enabled: true
+  replicas: 2
+  # Services created:
+  # - redis.{namespace}.svc.cluster.local → master (read/write)
+  # - redis-master.{namespace}.svc.cluster.local → master explicitly
+  # - redis-1.redis-headless.{namespace}.svc.cluster.local → replica 1
+  # - redis-2.redis-headless.{namespace}.svc.cluster.local → replica 2
+
+# Persistence - Production-grade storage
+persistence:
+  enabled: true
+  storageClass: ""  # Use fast SSD storage class in production
+  accessMode: ReadWriteOnce
+  size: 10Gi  # Adjust based on data size
+  existingClaim: ""
+
+# Replica count - IGNORED when replication.enabled=true
+replicaCount: 1
+
+# Container image configuration
+image:
+  repository: redis
+  pullPolicy: IfNotPresent
+  tag: "7.4.1-alpine"
+
+imagePullSecrets: []
+nameOverride: ""
+fullnameOverride: ""
+
+# Service account configuration
+serviceAccount:
+  create: true
+  automount: true
+  annotations: {}
+  name: ""
+
+podAnnotations:
+  prometheus.io/scrape: "true"
+  prometheus.io/port: "9121"
+
+podLabels:
+  environment: "production"
+  tier: "cache"
+
+# Pod security context
+podSecurityContext:
+  fsGroup: 999
+
+# Container security context
+securityContext:
+  runAsUser: 999
+  runAsGroup: 999
+  runAsNonRoot: true
+  readOnlyRootFilesystem: false
+  capabilities:
+    drop:
+      - ALL
+
+# Service configuration
+service:
+  type: ClusterIP
+  port: 6379
+  targetPort: 6379
+  annotations:
+    service.alpha.kubernetes.io/tolerate-unready-endpoints: "true"
+
+# Resource limits - PRODUCTION settings
+resources:
+  limits:
+    cpu: 1000m     # 1 CPU for production
+    memory: 1Gi    # 1GB memory
+  requests:
+    cpu: 500m      # Guaranteed 0.5 CPU
+    memory: 512Mi  # Guaranteed 512Mi
+
+# Liveness probe
+livenessProbe:
+  tcpSocket:
+    port: redis
+  initialDelaySeconds: 30
+  periodSeconds: 10
+  timeoutSeconds: 5
+  failureThreshold: 6
+  successThreshold: 1
+
+# Readiness probe
+readinessProbe:
+  exec:
+    command:
+      - redis-cli
+      - ping
+  initialDelaySeconds: 10
+  periodSeconds: 10
+  timeoutSeconds: 5
+  failureThreshold: 3
+  successThreshold: 1
+
+# Startup probe
+startupProbe:
+  tcpSocket:
+    port: redis
+  initialDelaySeconds: 10
+  periodSeconds: 10
+  timeoutSeconds: 5
+  failureThreshold: 30
+  successThreshold: 1
+
+# Autoscaling - DISABLED for StatefulSet replication
+autoscaling:
+  enabled: false
+
+# Monitoring - ENABLED for production
+monitoring:
+  enabled: true
+  serviceMonitor:
+    enabled: false  # Requires Prometheus Operator CRD - enable in prod with monitoring
+    interval: 30s
+    labels:
+      prometheus: kube-prometheus
+    path: /metrics
+
+# Redis Exporter - ENABLED for production metrics
+metrics:
+  enabled: true
+  image:
+    repository: oliver006/redis_exporter
+    tag: v1.55.0-alpine
+    pullPolicy: IfNotPresent
+  resources:
+    limits:
+      cpu: 100m
+      memory: 128Mi
+    requests:
+      cpu: 50m
+      memory: 64Mi
+  port: 9121
+
+# Pod Disruption Budget - ENABLED for HA
+podDisruptionBudget:
+  enabled: true
+  minAvailable: 2  # At least 2 pods (1 master + 1 replica) must be available
+  # Use minAvailable for master-replica to ensure master stays up
+
+# Network Policy - ENABLED for production security
+networkPolicy:
+  enabled: true
+  ingress:
+    # Allow from application pods
+    - from:
+      - podSelector:
+          matchLabels:
+            app.kubernetes.io/name: myapp
+      ports:
+        - protocol: TCP
+          port: 6379
+    # Allow from monitoring
+    - from:
+      - namespaceSelector:
+          matchLabels:
+            name: monitoring
+      ports:
+        - protocol: TCP
+          port: 9121
+  egress:
+    # Allow DNS resolution
+    - to:
+      - namespaceSelector: {}
+      ports:
+        - protocol: UDP
+          port: 53
+
+# Node selector - production nodes
+nodeSelector:
+  # Example: Use dedicated database nodes
+  # node.kubernetes.io/instance-type: "n1-highmem-4"
+  # workload: "database"
+  {}
+
+# Tolerations - for dedicated nodes
+tolerations: []
+  # - key: "workload"
+  #   operator: "Equal"
+  #   value: "database"
+  #   effect: "NoSchedule"
+
+# Affinity - ENABLED for HA (spread across nodes)
+affinity:
+  podAntiAffinity:
+    # Prefer to schedule replicas on different nodes
+    preferredDuringSchedulingIgnoredDuringExecution:
+      - weight: 100
+        podAffinityTerm:
+          labelSelector:
+            matchExpressions:
+              - key: app.kubernetes.io/name
+                operator: In
+                values:
+                  - redis
+          topologyKey: kubernetes.io/hostname
+    # Require master and replicas on different availability zones
+    requiredDuringSchedulingIgnoredDuringExecution:
+      - labelSelector:
+          matchExpressions:
+            - key: app.kubernetes.io/name
+              operator: In
+              values:
+                - redis
+            - key: app.kubernetes.io/component
+              operator: In
+              values:
+                - master
+        topologyKey: topology.kubernetes.io/zone
+
+# Additional environment variables
+extraEnv: []
+
+extraEnvFrom: []
+
+# Additional volumes - example for TLS certificates
+extraVolumes: []
+  # - name: tls-certs
+  #   secret:
+  #     secretName: redis-tls
+  #     defaultMode: 0400
+
+# Additional volume mounts
+extraVolumeMounts: []
+  # - name: tls-certs
+  #   mountPath: /etc/redis/tls
+  #   readOnly: true
+
+# Init containers - system tuning for production
+initContainers:
+  - name: system-tuning
+    image: busybox
+    command:
+      - sh
+      - -c
+      - |
+        # Disable THP (Transparent Huge Pages)
+        echo never > /sys/kernel/mm/transparent_hugepage/enabled || true
+        echo never > /sys/kernel/mm/transparent_hugepage/defrag || true
+        # Increase somaxconn for better connection handling
+        sysctl -w net.core.somaxconn=65535 || true
+        # Enable memory overcommit
+        sysctl -w vm.overcommit_memory=1 || true
+    securityContext:
+      privileged: true
+
+# Lifecycle hooks - graceful shutdown
+lifecycle:
+  preStop:
+    exec:
+      command:
+        - /bin/sh
+        - -c
+        - redis-cli shutdown save

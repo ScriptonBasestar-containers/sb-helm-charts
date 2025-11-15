@@ -1,0 +1,271 @@
+# Redis values for Startup - Single Instance with Medium Resources
+# Optimized for startup environments with node selector examples
+# Use: helm install redis ./charts/redis -f charts/redis/values-startup-single.yaml
+
+# Redis configuration
+redis:
+  # Redis password - REQUIRED for startup use
+  password: ""  # Set via --set redis.password=xxx or use existingSecret
+  existingSecret: ""
+  secretKeyName: redis-password
+
+  # Redis configuration file - balanced settings for startup
+  config: |
+    # Redis 7.x configuration - Startup Optimized
+    # Network
+    bind 0.0.0.0
+    protected-mode no
+    port 6379
+    tcp-backlog 256
+    timeout 300
+    tcp-keepalive 60
+
+    # General
+    daemonize no
+    supervised no
+    loglevel notice
+
+    # Snapshotting (moderate persistence)
+    save 900 1
+    save 300 10
+    save 60 5000
+    stop-writes-on-bgsave-error yes
+    rdbcompression yes
+    rdbchecksum yes
+    dbfilename dump.rdb
+    dir /data
+
+    # Security
+    # requirepass your-password-here
+
+    # Limits - Medium for startup workloads
+    maxmemory 384mb
+    maxmemory-policy allkeys-lru
+    maxclients 1000
+
+    # Append Only File (enabled for data safety)
+    appendonly yes
+    appendfilename "appendonly.aof"
+    appendfsync everysec
+    no-appendfsync-on-rewrite no
+    auto-aof-rewrite-percentage 100
+    auto-aof-rewrite-min-size 64mb
+
+    # Slow log
+    slowlog-log-slower-than 10000
+    slowlog-max-len 128
+
+  existingConfigMap: ""
+  args: []
+
+# Master-Slave Replication - DISABLED for single instance
+replication:
+  enabled: false
+  replicas: 0
+
+# Persistence - Medium volume for startup
+persistence:
+  enabled: true
+  storageClass: ""
+  accessMode: ReadWriteOnce
+  size: 5Gi  # Medium size for startup
+  existingClaim: ""
+
+# Single instance
+replicaCount: 1
+
+# Container image configuration
+image:
+  repository: redis
+  pullPolicy: IfNotPresent
+  tag: "7.4.1-alpine"
+
+imagePullSecrets: []
+nameOverride: ""
+fullnameOverride: ""
+
+# Service account configuration
+serviceAccount:
+  create: true
+  automount: true
+  annotations: {}
+  name: ""
+
+podAnnotations:
+  # Example: Add monitoring annotation
+  prometheus.io/scrape: "false"
+
+podLabels:
+  # Example: Environment label
+  environment: "startup"
+
+# Pod security context
+podSecurityContext:
+  fsGroup: 999
+
+# Container security context
+securityContext:
+  runAsUser: 999
+  runAsGroup: 999
+  runAsNonRoot: true
+  readOnlyRootFilesystem: false
+  capabilities:
+    drop:
+      - ALL
+
+# Service configuration
+service:
+  type: ClusterIP
+  port: 6379
+  targetPort: 6379
+  annotations: {}
+
+# Resource limits - MEDIUM for startup
+resources:
+  limits:
+    cpu: 500m      # Medium CPU for startup workloads
+    memory: 512Mi  # Medium memory
+  requests:
+    cpu: 250m      # Moderate baseline
+    memory: 256Mi  # Guaranteed memory
+
+# Liveness probe
+livenessProbe:
+  tcpSocket:
+    port: redis
+  initialDelaySeconds: 30
+  periodSeconds: 10
+  timeoutSeconds: 5
+  failureThreshold: 6
+  successThreshold: 1
+
+# Readiness probe
+readinessProbe:
+  exec:
+    command:
+      - redis-cli
+      - ping
+  initialDelaySeconds: 10
+  periodSeconds: 10
+  timeoutSeconds: 5
+  failureThreshold: 3
+  successThreshold: 1
+
+# Startup probe
+startupProbe:
+  tcpSocket:
+    port: redis
+  initialDelaySeconds: 10
+  periodSeconds: 10
+  timeoutSeconds: 5
+  failureThreshold: 30
+  successThreshold: 1
+
+# Autoscaling - DISABLED for single instance
+autoscaling:
+  enabled: false
+
+# Monitoring - OPTIONAL (enable if using Prometheus)
+monitoring:
+  enabled: false
+  serviceMonitor:
+    enabled: false
+    interval: 30s
+    labels:
+      team: platform
+    path: /metrics
+
+# Redis Exporter - OPTIONAL for startup
+metrics:
+  enabled: false
+  image:
+    repository: oliver006/redis_exporter
+    tag: v1.55.0-alpine
+    pullPolicy: IfNotPresent
+  resources:
+    limits:
+      cpu: 100m
+      memory: 128Mi
+    requests:
+      cpu: 50m
+      memory: 64Mi
+  port: 9121
+
+# Pod Disruption Budget - DISABLED for single instance
+podDisruptionBudget:
+  enabled: false
+
+# Network Policy - OPTIONAL for startup
+networkPolicy:
+  enabled: false
+  ingress:
+    - from:
+      - podSelector:
+          matchLabels:
+            app.kubernetes.io/name: myapp
+      ports:
+        - protocol: TCP
+          port: 6379
+
+# Node selector - EXAMPLE for dedicated database nodes
+nodeSelector:
+  # Example: Schedule on nodes with SSD storage
+  # node.kubernetes.io/instance-type: "n1-standard-2"
+  # disktype: "ssd"
+  {}
+
+# Tolerations - EXAMPLE for tainted nodes
+tolerations: []
+  # Example: Tolerate database-specific taints
+  # - key: "workload"
+  #   operator: "Equal"
+  #   value: "database"
+  #   effect: "NoSchedule"
+
+# Affinity - EXAMPLE for node affinity
+affinity: {}
+  # Example: Prefer nodes in specific zones
+  # nodeAffinity:
+  #   preferredDuringSchedulingIgnoredDuringExecution:
+  #     - weight: 100
+  #       preference:
+  #         matchExpressions:
+  #           - key: topology.kubernetes.io/zone
+  #             operator: In
+  #             values:
+  #               - us-west-2a
+  #               - us-west-2b
+
+# Additional environment variables
+extraEnv: []
+  # Example: Custom Redis flags
+  # - name: REDIS_ARGS
+  #   value: "--maxmemory-policy allkeys-lfu"
+
+extraEnvFrom: []
+
+# Additional volumes
+extraVolumes: []
+
+# Additional volume mounts
+extraVolumeMounts: []
+
+# Init containers - EXAMPLE for system tuning
+initContainers: []
+  # Example: Disable THP (Transparent Huge Pages)
+  # - name: disable-thp
+  #   image: busybox
+  #   command:
+  #     - sh
+  #     - -c
+  #     - |
+  #       echo never > /sys/kernel/mm/transparent_hugepage/enabled
+  #   securityContext:
+  #     privileged: true
+
+# Lifecycle hooks - EXAMPLE for graceful shutdown
+lifecycle: {}
+  # Example: Save data before shutdown
+  # preStop:
+  #   exec:
+  #     command: ["/bin/sh", "-c", "redis-cli shutdown save"]
