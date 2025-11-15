@@ -1,0 +1,101 @@
+# WireGuard values for Production - Master-Replica
+# Note: WireGuard doesn't support replication - use multiple independent instances
+# This configuration is optimized for production single-instance deployment
+# Use: helm install wireguard ./charts/wireguard -f charts/wireguard/values-prod-master-replica.yaml
+
+wireguard:
+  mode: "auto"
+  auto:
+    serverUrl: ""  # REQUIRED - production domain or IP
+    serverPort: 51820
+    peers: 50  # Production peer capacity
+    internalSubnet: "10.13.13.0"
+    peerDns: "1.1.1.1"
+    allowedIPs: "0.0.0.0/0, ::/0"
+    persistentKeepalive: 25
+  dns:
+    enabled: false
+
+sysctlMethod: "init"
+replicaCount: 1  # WireGuard doesn't support horizontal scaling
+
+image:
+  repository: lscr.io/linuxserver/wireguard
+  pullPolicy: IfNotPresent
+  tag: "1.0.20210914"
+
+serviceAccount:
+  create: true
+
+podAnnotations:
+  prometheus.io/scrape: "false"  # WireGuard doesn't expose metrics
+
+podLabels:
+  environment: "production"
+  tier: "vpn"
+
+podSecurityContext:
+  fsGroup: 1000
+
+securityContext:
+  runAsUser: 1000
+  runAsNonRoot: true
+  allowPrivilegeEscalation: false
+  capabilities:
+    add:
+      - NET_ADMIN
+    drop:
+      - ALL
+
+service:
+  type: LoadBalancer
+  port: 51820
+  protocol: UDP
+  annotations:
+    service.beta.kubernetes.io/aws-load-balancer-type: "nlb"  # Example for AWS
+
+resources:
+  limits:
+    cpu: 1000m
+    memory: 1Gi
+  requests:
+    cpu: 200m
+    memory: 512Mi
+
+livenessProbe:
+  enabled: true
+  exec:
+    command: ["/bin/sh", "-c", "wg show wg0"]
+  initialDelaySeconds: 30
+  periodSeconds: 30
+  failureThreshold: 3
+
+readinessProbe:
+  enabled: true
+  exec:
+    command: ["/bin/sh", "-c", "wg show wg0"]
+  initialDelaySeconds: 10
+  periodSeconds: 10
+  failureThreshold: 3
+
+persistence:
+  enabled: true
+  storageClass: ""
+  size: 5Gi
+
+autoscaling:
+  enabled: false  # Not applicable for WireGuard
+
+podDisruptionBudget:
+  enabled: true
+  minAvailable: 1
+
+networkPolicy:
+  enabled: false  # NetworkPolicy requires proper configuration per environment
+
+monitoring:
+  enabled: false  # WireGuard doesn't expose metrics natively
+
+nodeSelector: {}
+tolerations: []
+affinity: {}

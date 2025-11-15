@@ -1,0 +1,115 @@
+# WireGuard values for Home Server - Single Node
+# VPN configuration for personal/home lab use
+# Use: helm install wireguard ./charts/wireguard -f charts/wireguard/values-home-single.yaml
+
+# WireGuard configuration - Auto mode for simplicity
+wireguard:
+  mode: "auto"  # Use LinuxServer.io auto-generation
+
+  # Auto mode configuration
+  auto:
+    serverUrl: ""  # REQUIRED - set your public IP or domain
+    serverPort: 51820
+    peers: 3  # Reduced for home use
+    internalSubnet: "10.13.13.0"
+    peerDns: "1.1.1.1"  # Cloudflare DNS
+    allowedIPs: "0.0.0.0/0, ::/0"  # Full tunnel
+    persistentKeepalive: 25
+
+  dns:
+    enabled: false
+
+# Sysctl configuration method
+sysctlMethod: "init"  # Use privileged initContainer
+
+# Single replica
+replicaCount: 1
+
+# Container image
+image:
+  repository: lscr.io/linuxserver/wireguard
+  pullPolicy: IfNotPresent
+  tag: "1.0.20210914"
+
+serviceAccount:
+  create: true
+  automount: true
+
+podLabels:
+  environment: "home"
+  tier: "vpn"
+
+podSecurityContext:
+  fsGroup: 1000
+
+securityContext:
+  runAsUser: 1000
+  runAsNonRoot: true
+  allowPrivilegeEscalation: false
+  capabilities:
+    add:
+      - NET_ADMIN
+    drop:
+      - ALL
+
+# Service - UDP for WireGuard
+service:
+  type: NodePort
+  port: 51820
+  protocol: UDP
+  nodePort: 31820  # Fixed NodePort for home server
+
+# Resource limits - minimal for home
+resources:
+  limits:
+    cpu: 200m
+    memory: 256Mi
+  requests:
+    cpu: 50m
+    memory: 128Mi
+
+livenessProbe:
+  enabled: true
+  exec:
+    command:
+      - /bin/sh
+      - -c
+      - wg show wg0
+  initialDelaySeconds: 30
+  periodSeconds: 30
+  failureThreshold: 3
+
+readinessProbe:
+  enabled: true
+  exec:
+    command:
+      - /bin/sh
+      - -c
+      - wg show wg0
+  initialDelaySeconds: 10
+  periodSeconds: 10
+  failureThreshold: 3
+
+persistence:
+  enabled: true
+  storageClass: ""
+  accessMode: ReadWriteOnce
+  size: 1Gi  # Minimal for config storage
+
+autoscaling:
+  enabled: false
+
+podDisruptionBudget:
+  enabled: false
+
+networkPolicy:
+  enabled: false
+
+monitoring:
+  enabled: false
+
+nodeSelector: {}
+tolerations: []
+affinity: {}
+
+initContainers: []
