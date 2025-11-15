@@ -225,43 +225,42 @@ Create public status pages:
 
 ## Operational Commands
 
-### View Logs
+This chart includes a comprehensive Makefile for day-2 operations:
 
 ```bash
-kubectl logs -f deployment/uptime-kuma
-```
+# View logs and access shell
+make -f make/ops/uptime-kuma.mk uk-logs
+make -f make/ops/uptime-kuma.mk uk-shell
 
-### Access Shell
+# Port forward to localhost:3001
+make -f make/ops/uptime-kuma.mk uk-port-forward
 
-```bash
-kubectl exec -it deployment/uptime-kuma -- /bin/sh
-```
+# Health checks
+make -f make/ops/uptime-kuma.mk uk-check-db
+make -f make/ops/uptime-kuma.mk uk-check-storage
 
-### Database Backup (SQLite)
+# Database management (SQLite)
+make -f make/ops/uptime-kuma.mk uk-backup-sqlite
+make -f make/ops/uptime-kuma.mk uk-restore-sqlite FILE=path/to/kuma.db
 
-```bash
-# Copy database file to local
-kubectl cp uptime-kuma-0:/app/data/kuma.db ./kuma-backup-$(date +%Y%m%d).db
-```
+# User management
+make -f make/ops/uptime-kuma.mk uk-reset-password
 
-### Database Restore (SQLite)
+# System information
+make -f make/ops/uptime-kuma.mk uk-version
+make -f make/ops/uptime-kuma.mk uk-node-info
+make -f make/ops/uptime-kuma.mk uk-get-settings
 
-```bash
-# Scale down deployment
-kubectl scale deployment uptime-kuma --replicas=0
+# Monitoring (API-based)
+make -f make/ops/uptime-kuma.mk uk-list-monitors
+make -f make/ops/uptime-kuma.mk uk-status-pages
 
-# Restore database
-kubectl cp ./kuma-backup.db uptime-kuma-0:/app/data/kuma.db
+# Operations
+make -f make/ops/uptime-kuma.mk uk-restart
+make -f make/ops/uptime-kuma.mk uk-scale REPLICAS=2
 
-# Scale up deployment
-kubectl scale deployment uptime-kuma --replicas=1
-```
-
-### Reset Admin Password
-
-```bash
-kubectl exec -it deployment/uptime-kuma -- npm run reset-password
-# Follow interactive prompts
+# Full help
+make -f make/ops/uptime-kuma.mk help
 ```
 
 ## Troubleshooting
