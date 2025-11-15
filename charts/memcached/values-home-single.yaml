@@ -1,0 +1,167 @@
+# Memcached values for Home Server - Single Node
+# Minimal resource configuration for personal/home lab use
+# Use: helm install memcached ./charts/memcached -f charts/memcached/values-home-single.yaml
+
+# Memcached configuration
+memcached:
+  # Maximum memory (in MB) - minimal for home use
+  maxMemory: 128
+
+  # Maximum connections - reduced for home server
+  maxConnections: 256
+
+  # Chunk size growth factor
+  chunkSizeGrowthFactor: 1.25
+
+  # Minimum item size
+  minItemSize: 48
+
+  # Enable CAS operations
+  enableCas: true
+
+  # Verbosity (0=off, 1=normal, 2=verbose)
+  verbosity: 0
+
+  # Additional arguments
+  extraArgs: []
+
+# Persistence - N/A for Memcached (in-memory only)
+persistence:
+  enabled: false
+
+# Single replica for home server
+replicaCount: 1
+
+# Container image
+image:
+  repository: memcached
+  pullPolicy: IfNotPresent
+  tag: "1.6.39-alpine3.22"
+
+imagePullSecrets: []
+nameOverride: ""
+fullnameOverride: ""
+
+# Deployment strategy
+strategy:
+  type: RollingUpdate
+  rollingUpdate:
+    maxUnavailable: 0
+    maxSurge: 1
+
+# Service account
+serviceAccount:
+  create: true
+  automount: true
+  annotations: {}
+  name: ""
+
+podAnnotations: {}
+
+podLabels:
+  environment: "home"
+  tier: "cache"
+
+# Security context
+podSecurityContext:
+  fsGroup: 11211
+  runAsUser: 11211
+  runAsGroup: 11211
+  runAsNonRoot: true
+
+securityContext:
+  runAsUser: 11211
+  runAsGroup: 11211
+  runAsNonRoot: true
+  readOnlyRootFilesystem: true
+  allowPrivilegeEscalation: false
+  capabilities:
+    drop:
+      - ALL
+
+# Service configuration
+service:
+  type: ClusterIP
+  port: 11211
+  annotations: {}
+
+# Ingress - N/A for binary protocol
+ingress:
+  enabled: false
+
+# Resource limits - minimal for home server
+resources:
+  limits:
+    cpu: 250m       # Reduced from 500m
+    memory: 256Mi   # Reduced from 512Mi (matches maxMemory + overhead)
+  requests:
+    cpu: 50m        # Reduced from 100m
+    memory: 128Mi   # Minimal guaranteed
+
+# Health probes
+livenessProbe:
+  enabled: true
+  tcpSocket:
+    port: 11211
+  initialDelaySeconds: 15
+  periodSeconds: 10
+  timeoutSeconds: 5
+  failureThreshold: 3
+  successThreshold: 1
+
+readinessProbe:
+  enabled: true
+  tcpSocket:
+    port: 11211
+  initialDelaySeconds: 5
+  periodSeconds: 10
+  timeoutSeconds: 3
+  failureThreshold: 3
+  successThreshold: 1
+
+startupProbe:
+  enabled: true
+  tcpSocket:
+    port: memcached
+  initialDelaySeconds: 5
+  periodSeconds: 5
+  timeoutSeconds: 3
+  failureThreshold: 10
+  successThreshold: 1
+
+# Autoscaling - disabled for home server
+autoscaling:
+  enabled: false
+
+# Pod Disruption Budget - disabled for single node
+podDisruptionBudget:
+  enabled: false
+
+# Network Policy - disabled for home server simplicity
+networkPolicy:
+  enabled: false
+
+# Monitoring - disabled for home server
+monitoring:
+  enabled: false
+  serviceMonitor:
+    enabled: false
+
+# Metrics exporter - disabled for home server
+metrics:
+  enabled: false
+
+# Scheduling - no special requirements for home server
+nodeSelector: {}
+
+tolerations: []
+
+affinity: {}
+
+# Extensibility
+extraEnv: []
+extraEnvFrom: []
+extraVolumes: []
+extraVolumeMounts: []
+initContainers: []
+lifecycle: {}

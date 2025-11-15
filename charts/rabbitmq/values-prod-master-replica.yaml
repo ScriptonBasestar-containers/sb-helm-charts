@@ -1,0 +1,166 @@
+# RabbitMQ values for Production - Master-Replica Setup
+# Note: This chart supports single-node only. For production clustering, use RabbitMQ Cluster Operator
+# See: https://github.com/rabbitmq/cluster-operator
+# Use: helm install rabbitmq ./charts/rabbitmq -f charts/rabbitmq/values-prod-master-replica.yaml \
+#        --set rabbitmq.admin.password='your-strong-password'
+
+# ⚠️ IMPORTANT: Password is REQUIRED
+rabbitmq:
+  admin:
+    username: "admin"
+    password: ""  # REQUIRED - set via --set or existingSecret
+    existingSecret:
+      enabled: false
+
+  conf: |
+    listeners.tcp.default = 5672
+    management.tcp.port = 15672
+    management.tcp.ip = 0.0.0.0
+    vm_memory_high_watermark.relative = 0.7
+    disk_free_limit.absolute = 5GB
+    default_vhost = /
+    log.console = true
+    log.console.level = info
+    heartbeat = 60
+    consumer_timeout = 3600000
+    queue_master_locator = min-masters
+    cluster_partition_handling = autoheal
+
+  plugins: |
+    [rabbitmq_management,rabbitmq_management_agent,rabbitmq_prometheus,rabbitmq_shovel,rabbitmq_federation].
+
+erlangCookie: ""
+postgresql:
+  enabled: false
+mysql:
+  enabled: false
+redis:
+  enabled: false
+
+persistence:
+  enabled: true
+  storageClass: ""
+  accessMode: ReadWriteOnce
+  size: 50Gi
+
+replicaCount: 1  # Single-node (use Operator for clustering)
+
+image:
+  repository: rabbitmq
+  pullPolicy: IfNotPresent
+  tag: "3.13.1-management"
+
+serviceAccount:
+  create: true
+  automount: true
+
+podAnnotations:
+  prometheus.io/scrape: "true"
+  prometheus.io/port: "15692"
+
+podLabels:
+  environment: "production"
+  tier: "messaging"
+
+podSecurityContext:
+  fsGroup: 999
+  runAsUser: 999
+  runAsNonRoot: true
+
+securityContext:
+  runAsUser: 999
+  runAsNonRoot: true
+  allowPrivilegeEscalation: false
+  capabilities:
+    drop:
+      - ALL
+
+service:
+  type: ClusterIP
+  amqpPort: 5672
+  managementPort: 15672
+  metricsPort: 15692
+  annotations:
+    service.alpha.kubernetes.io/tolerate-unready-endpoints: "true"
+
+resources:
+  limits:
+    cpu: 2000m
+    memory: 2Gi
+  requests:
+    cpu: 500m
+    memory: 1Gi
+
+livenessProbe:
+  enabled: true
+  tcpSocket:
+    port: amqp
+  initialDelaySeconds: 120
+  periodSeconds: 30
+  failureThreshold: 6
+
+readinessProbe:
+  enabled: true
+  exec:
+    command: ["rabbitmq-diagnostics", "ping"]
+  initialDelaySeconds: 30
+  periodSeconds: 10
+  failureThreshold: 3
+
+startupProbe:
+  enabled: true
+  tcpSocket:
+    port: amqp
+  initialDelaySeconds: 10
+  periodSeconds: 10
+  failureThreshold: 60
+
+autoscaling:
+  enabled: false  # Not recommended for RabbitMQ
+
+podDisruptionBudget:
+  enabled: true
+  minAvailable: 1
+
+networkPolicy:
+  enabled: true
+  ingress:
+    - from:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: myapp
+      ports:
+        - protocol: TCP
+          port: 5672
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              name: monitoring
+      ports:
+        - protocol: TCP
+          port: 15692
+  egress:
+    - to:
+        - namespaceSelector: {}
+      ports:
+        - protocol: UDP
+          port: 53
+
+monitoring:
+  serviceMonitor:
+    enabled: false  # Requires Prometheus Operator CRD
+    interval: 30s
+    labels:
+      prometheus: kube-prometheus
+
+nodeSelector: {}
+tolerations: []
+affinity: {}
+
+lifecycle:
+  preStop:
+    exec:
+      command:
+        - /bin/sh
+        - -c
+        - rabbitmqctl stop_app

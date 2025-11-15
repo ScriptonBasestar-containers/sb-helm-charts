@@ -1,0 +1,199 @@
+# RabbitMQ values for Home Server - Single Node
+# Minimal resource configuration for personal/home lab use
+# Use: helm install rabbitmq ./charts/rabbitmq -f charts/rabbitmq/values-home-single.yaml \
+#        --set rabbitmq.admin.password='your-strong-password'
+
+# ⚠️ IMPORTANT: Password is REQUIRED for template validation and installation
+# Either set it via --set or create an existing secret
+
+# RabbitMQ configuration
+rabbitmq:
+  admin:
+    username: "admin"
+    password: ""  # REQUIRED - set via --set rabbitmq.admin.password='...' or existingSecret
+    existingSecret:
+      enabled: false
+      secretName: ""
+      usernameKey: "username"
+      passwordKey: "password"
+
+  # RabbitMQ configuration - minimal for home server
+  conf: |
+    ## Network
+    listeners.tcp.default = 5672
+
+    ## Management UI
+    management.tcp.port = 15672
+    management.tcp.ip = 0.0.0.0
+
+    ## Memory - reduced for home server
+    vm_memory_high_watermark.relative = 0.6
+
+    ## Disk space - minimal
+    disk_free_limit.absolute = 1GB
+
+    ## Default vhost
+    default_vhost = /
+
+    ## Logging
+    log.console = true
+    log.console.level = info
+
+    ## Heartbeat
+    heartbeat = 60
+
+  # Enabled plugins
+  plugins: |
+    [rabbitmq_management,rabbitmq_management_agent,rabbitmq_prometheus].
+
+  existingConfigMap: ""
+
+# Erlang cookie
+erlangCookie: ""
+
+# External dependencies - none required
+postgresql:
+  enabled: false
+mysql:
+  enabled: false
+redis:
+  enabled: false
+
+# Persistence
+persistence:
+  enabled: true
+  existingClaim: ""
+  storageClass: ""
+  accessMode: ReadWriteOnce
+  size: 5Gi  # Reduced from 10Gi for home server
+
+# Single replica for home server
+replicaCount: 1
+
+# Container image
+image:
+  repository: rabbitmq
+  pullPolicy: IfNotPresent
+  tag: "3.13.1-management"
+
+imagePullSecrets: []
+nameOverride: ""
+fullnameOverride: ""
+
+# Deployment strategy
+strategy:
+  type: RollingUpdate
+  rollingUpdate:
+    maxUnavailable: 0
+    maxSurge: 1
+
+# Service account
+serviceAccount:
+  create: true
+  automount: true
+  annotations: {}
+  name: ""
+
+podAnnotations: {}
+
+podLabels:
+  environment: "home"
+  tier: "messaging"
+
+# Security context
+podSecurityContext:
+  fsGroup: 999
+  runAsUser: 999
+  runAsGroup: 999
+  runAsNonRoot: true
+
+securityContext:
+  runAsUser: 999
+  runAsGroup: 999
+  runAsNonRoot: true
+  allowPrivilegeEscalation: false
+  capabilities:
+    drop:
+      - ALL
+
+# Service configuration
+service:
+  type: ClusterIP
+  amqpPort: 5672
+  managementPort: 15672
+  metricsPort: 15692
+  annotations: {}
+
+# Ingress - optional for home server
+ingress:
+  enabled: false
+
+# Resource limits - minimal for home server
+resources:
+  limits:
+    cpu: 500m       # Reduced from 1000m
+    memory: 512Mi   # Reduced from 1Gi
+  requests:
+    cpu: 100m       # Reduced from 200m
+    memory: 256Mi   # Reduced from 512Mi
+
+# Health probes
+livenessProbe:
+  enabled: true
+  tcpSocket:
+    port: amqp
+  initialDelaySeconds: 60
+  periodSeconds: 30
+  timeoutSeconds: 5
+  failureThreshold: 6
+  successThreshold: 1
+
+readinessProbe:
+  enabled: true
+  exec:
+    command: ["rabbitmq-diagnostics", "ping"]
+  initialDelaySeconds: 20
+  periodSeconds: 10
+  timeoutSeconds: 5
+  failureThreshold: 3
+  successThreshold: 1
+
+startupProbe:
+  enabled: true
+  tcpSocket:
+    port: amqp
+  initialDelaySeconds: 10
+  periodSeconds: 10
+  timeoutSeconds: 5
+  failureThreshold: 30
+  successThreshold: 1
+
+# Autoscaling - disabled for home server
+autoscaling:
+  enabled: false
+
+# Pod Disruption Budget - disabled for single node
+podDisruptionBudget:
+  enabled: false
+
+# Network Policy - disabled for home server
+networkPolicy:
+  enabled: false
+
+# Monitoring - disabled for home server
+monitoring:
+  serviceMonitor:
+    enabled: false
+
+# Scheduling
+nodeSelector: {}
+tolerations: []
+affinity: {}
+
+# Extensibility
+extraEnv: []
+extraEnvFrom: []
+extraVolumes: []
+extraVolumeMounts: []
+initContainers: []
+lifecycle: {}

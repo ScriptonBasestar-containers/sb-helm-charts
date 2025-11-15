@@ -1,0 +1,260 @@
+# Memcached values for Production - Master-Replica (Distributed Cache)
+# High availability configuration with multiple replicas
+# Note: Memcached doesn't have master-replica replication - this uses multiple independent nodes
+# Use: helm install memcached ./charts/memcached -f charts/memcached/values-prod-master-replica.yaml
+
+# Memcached configuration
+memcached:
+  # Maximum memory (in MB) - production setting
+  maxMemory: 512
+
+  # Maximum connections - production setting
+  maxConnections: 2048
+
+  # Chunk size growth factor
+  chunkSizeGrowthFactor: 1.25
+
+  # Minimum item size
+  minItemSize: 48
+
+  # Enable CAS operations
+  enableCas: true
+
+  # Verbosity (0=off, 1=normal, 2=verbose)
+  verbosity: 0
+
+  # Additional arguments for production performance
+  extraArgs:
+    - "-o"
+    - "modern"  # Modern memory allocator
+    - "-o"
+    - "hashpower=20"  # Larger hash table (2^20 buckets)
+
+# Persistence - N/A for Memcached (in-memory only)
+persistence:
+  enabled: false
+
+# Multiple replicas for production HA
+# Note: These are independent cache nodes, not replicas
+# Clients should implement consistent hashing to distribute keys
+replicaCount: 3
+
+# Container image
+image:
+  repository: memcached
+  pullPolicy: IfNotPresent
+  tag: "1.6.39-alpine3.22"
+
+imagePullSecrets: []
+nameOverride: ""
+fullnameOverride: ""
+
+# Deployment strategy
+strategy:
+  type: RollingUpdate
+  rollingUpdate:
+    maxUnavailable: 1  # Allow 1 pod down during updates
+    maxSurge: 1
+
+# Service account
+serviceAccount:
+  create: true
+  automount: true
+  annotations: {}
+  name: ""
+
+podAnnotations:
+  prometheus.io/scrape: "true"
+  prometheus.io/port: "9150"
+
+podLabels:
+  environment: "production"
+  tier: "cache"
+
+# Security context
+podSecurityContext:
+  fsGroup: 11211
+  runAsUser: 11211
+  runAsGroup: 11211
+  runAsNonRoot: true
+
+securityContext:
+  runAsUser: 11211
+  runAsGroup: 11211
+  runAsNonRoot: true
+  readOnlyRootFilesystem: true
+  allowPrivilegeEscalation: false
+  capabilities:
+    drop:
+      - ALL
+
+# Service configuration
+service:
+  type: ClusterIP
+  port: 11211
+  annotations:
+    service.alpha.kubernetes.io/tolerate-unready-endpoints: "true"
+
+# Ingress - N/A for binary protocol
+ingress:
+  enabled: false
+
+# Resource limits - production setting
+resources:
+  limits:
+    cpu: 1000m      # 1 CPU for production
+    memory: 768Mi   # maxMemory + overhead
+  requests:
+    cpu: 200m       # Guaranteed CPU
+    memory: 512Mi   # Guaranteed memory
+
+# Health probes
+livenessProbe:
+  enabled: true
+  tcpSocket:
+    port: 11211
+  initialDelaySeconds: 30
+  periodSeconds: 10
+  timeoutSeconds: 5
+  failureThreshold: 6
+  successThreshold: 1
+
+readinessProbe:
+  enabled: true
+  tcpSocket:
+    port: 11211
+  initialDelaySeconds: 5
+  periodSeconds: 10
+  timeoutSeconds: 3
+  failureThreshold: 3
+  successThreshold: 1
+
+startupProbe:
+  enabled: true
+  tcpSocket:
+    port: memcached
+  initialDelaySeconds: 5
+  periodSeconds: 5
+  timeoutSeconds: 3
+  failureThreshold: 10
+  successThreshold: 1
+
+# Autoscaling - optional for production
+autoscaling:
+  enabled: false
+  minReplicas: 3
+  maxReplicas: 10
+  targetCPUUtilizationPercentage: 70
+  targetMemoryUtilizationPercentage: 75
+
+# Pod Disruption Budget - enabled for HA
+podDisruptionBudget:
+  enabled: true
+  minAvailable: 2  # At least 2 pods must be available during disruptions
+
+# Network Policy - enabled for production security
+networkPolicy:
+  enabled: true
+  ingress:
+    # Allow from application pods
+    - from:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: myapp
+      ports:
+        - protocol: TCP
+          port: 11211
+    # Allow from monitoring
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              name: monitoring
+      ports:
+        - protocol: TCP
+          port: 9150
+  egress:
+    # Allow DNS resolution
+    - to:
+        - namespaceSelector: {}
+      ports:
+        - protocol: UDP
+          port: 53
+
+# Monitoring - enabled for production
+monitoring:
+  enabled: true
+  serviceMonitor:
+    enabled: false  # Requires Prometheus Operator CRD
+    namespace: ""
+    interval: 30s
+    scrapeTimeout: 10s
+    labels:
+      prometheus: kube-prometheus
+
+# Metrics exporter - enabled for production
+metrics:
+  enabled: true
+  image:
+    repository: prom/memcached-exporter
+    tag: v0.14.4
+    pullPolicy: IfNotPresent
+  resources:
+    limits:
+      cpu: 100m
+      memory: 128Mi
+    requests:
+      cpu: 50m
+      memory: 64Mi
+  port: 9150
+
+# Scheduling - production nodes
+nodeSelector: {}
+  # Example: Use dedicated cache nodes
+  # node.kubernetes.io/instance-type: "c5.large"
+  # workload: "cache"
+
+tolerations: []
+  # - key: "workload"
+  #   operator: "Equal"
+  #   value: "cache"
+  #   effect: "NoSchedule"
+
+# Affinity - enabled for HA (spread across nodes)
+affinity:
+  podAntiAffinity:
+    # Prefer to schedule pods on different nodes
+    preferredDuringSchedulingIgnoredDuringExecution:
+      - weight: 100
+        podAffinityTerm:
+          labelSelector:
+            matchExpressions:
+              - key: app.kubernetes.io/name
+                operator: In
+                values:
+                  - memcached
+          topologyKey: kubernetes.io/hostname
+    # Require pods on different availability zones
+    requiredDuringSchedulingIgnoredDuringExecution:
+      - labelSelector:
+          matchExpressions:
+            - key: app.kubernetes.io/name
+              operator: In
+              values:
+                - memcached
+        topologyKey: topology.kubernetes.io/zone
+
+# Extensibility
+extraEnv: []
+extraEnvFrom: []
+extraVolumes: []
+extraVolumeMounts: []
+initContainers: []
+
+# Lifecycle hooks - graceful shutdown
+lifecycle:
+  preStop:
+    exec:
+      command:
+        - /bin/sh
+        - -c
+        - sleep 5  # Allow existing connections to complete

@@ -1,0 +1,191 @@
+# Memcached values for Startup - Single Node
+# Balanced configuration for development and small production workloads
+# Use: helm install memcached ./charts/memcached -f charts/memcached/values-startup-single.yaml
+
+# Memcached configuration
+memcached:
+  # Maximum memory (in MB) - moderate for startup
+  maxMemory: 256
+
+  # Maximum connections - standard for small workloads
+  maxConnections: 512
+
+  # Chunk size growth factor
+  chunkSizeGrowthFactor: 1.25
+
+  # Minimum item size
+  minItemSize: 48
+
+  # Enable CAS operations
+  enableCas: true
+
+  # Verbosity (0=off, 1=normal, 2=verbose)
+  verbosity: 0
+
+  # Additional arguments for better performance
+  extraArgs:
+    - "-o"
+    - "modern"  # Modern memory allocator
+
+# Persistence - N/A for Memcached (in-memory only)
+persistence:
+  enabled: false
+
+# Single replica for startup
+replicaCount: 1
+
+# Container image
+image:
+  repository: memcached
+  pullPolicy: IfNotPresent
+  tag: "1.6.39-alpine3.22"
+
+imagePullSecrets: []
+nameOverride: ""
+fullnameOverride: ""
+
+# Deployment strategy
+strategy:
+  type: RollingUpdate
+  rollingUpdate:
+    maxUnavailable: 0
+    maxSurge: 1
+
+# Service account
+serviceAccount:
+  create: true
+  automount: true
+  annotations: {}
+  name: ""
+
+podAnnotations: {}
+
+podLabels:
+  environment: "startup"
+  tier: "cache"
+
+# Security context
+podSecurityContext:
+  fsGroup: 11211
+  runAsUser: 11211
+  runAsGroup: 11211
+  runAsNonRoot: true
+
+securityContext:
+  runAsUser: 11211
+  runAsGroup: 11211
+  runAsNonRoot: true
+  readOnlyRootFilesystem: true
+  allowPrivilegeEscalation: false
+  capabilities:
+    drop:
+      - ALL
+
+# Service configuration
+service:
+  type: ClusterIP
+  port: 11211
+  annotations: {}
+
+# Ingress - N/A for binary protocol
+ingress:
+  enabled: false
+
+# Resource limits - balanced for startup
+resources:
+  limits:
+    cpu: 500m       # Standard CPU limit
+    memory: 512Mi   # Matches maxMemory + overhead
+  requests:
+    cpu: 100m       # Guaranteed CPU
+    memory: 256Mi   # Guaranteed memory
+
+# Health probes
+livenessProbe:
+  enabled: true
+  tcpSocket:
+    port: 11211
+  initialDelaySeconds: 30
+  periodSeconds: 10
+  timeoutSeconds: 5
+  failureThreshold: 6
+  successThreshold: 1
+
+readinessProbe:
+  enabled: true
+  tcpSocket:
+    port: 11211
+  initialDelaySeconds: 5
+  periodSeconds: 10
+  timeoutSeconds: 3
+  failureThreshold: 3
+  successThreshold: 1
+
+startupProbe:
+  enabled: true
+  tcpSocket:
+    port: memcached
+  initialDelaySeconds: 5
+  periodSeconds: 5
+  timeoutSeconds: 3
+  failureThreshold: 10
+  successThreshold: 1
+
+# Autoscaling - disabled for single node
+autoscaling:
+  enabled: false
+
+# Pod Disruption Budget - disabled for single node
+podDisruptionBudget:
+  enabled: false
+
+# Network Policy - optional for startup
+networkPolicy:
+  enabled: false
+  # Example: Uncomment to restrict access
+  # ingress:
+  #   - from:
+  #       - podSelector:
+  #           matchLabels:
+  #             app: myapp
+  #     ports:
+  #       - protocol: TCP
+  #         port: 11211
+
+# Monitoring - optional for startup
+monitoring:
+  enabled: false
+  serviceMonitor:
+    enabled: false
+
+# Metrics exporter - optional for startup
+metrics:
+  enabled: false
+  # Enable if you need Prometheus metrics
+  # image:
+  #   repository: prom/memcached-exporter
+  #   tag: v0.14.4
+  #   pullPolicy: IfNotPresent
+  # resources:
+  #   limits:
+  #     cpu: 100m
+  #     memory: 128Mi
+  #   requests:
+  #     cpu: 50m
+  #     memory: 64Mi
+  # port: 9150
+
+# Scheduling
+nodeSelector: {}
+
+tolerations: []
+
+affinity: {}
+
+# Extensibility
+extraEnv: []
+extraEnvFrom: []
+extraVolumes: []
+extraVolumeMounts: []
+initContainers: []
+lifecycle: {}
