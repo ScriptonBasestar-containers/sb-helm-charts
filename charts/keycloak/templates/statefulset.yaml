@@ -241,6 +241,15 @@ spec:
                   name: {{ include "keycloak.fullname" . }}
                   key: redis-password
             {{- end }}
+            {{- /* Redis SSL/TLS configuration */}}
+            {{- if .Values.redis.external.ssl.enabled }}
+            - name: KC_CACHE_REMOTE_TLS_ENABLED
+              value: "true"
+            {{- if .Values.redis.external.ssl.certificateSecret }}
+            - name: KC_CACHE_REMOTE_TLS_TRUST_STORE_FILE
+              value: "/opt/keycloak/certs/redis/{{ .Values.redis.external.ssl.caCertKey }}"
+            {{- end }}
+            {{- end }}
             {{- end }}
 
             {{- /* Additional environment variables */}}
@@ -312,6 +321,11 @@ spec:
               mountPath: /opt/keycloak/conf/db-ssl
               readOnly: true
             {{- end }}
+            {{- if and .Values.redis.enabled .Values.redis.external.enabled .Values.redis.external.ssl.enabled .Values.redis.external.ssl.certificateSecret }}
+            - name: redis-ssl-certificates
+              mountPath: /opt/keycloak/certs/redis
+              readOnly: true
+            {{- end }}
             {{- with .Values.extraVolumeMounts }}
             {{- toYaml . | nindent 12 }}
             {{- end }}
@@ -342,6 +356,12 @@ spec:
         - name: db-ssl-certificates
           secret:
             secretName: {{ .Values.postgresql.external.ssl.certificateSecret }}
+            defaultMode: 0400
+        {{- end }}
+        {{- if and .Values.redis.enabled .Values.redis.external.enabled .Values.redis.external.ssl.enabled .Values.redis.external.ssl.certificateSecret }}
+        - name: redis-ssl-certificates
+          secret:
+            secretName: {{ .Values.redis.external.ssl.certificateSecret }}
             defaultMode: 0400
         {{- end }}
         {{- with .Values.extraVolumes }}

@@ -142,12 +142,17 @@ redis:
       enabled: false
       secretName: ""
       passwordKey: "password"
-    # TODO: SSL/TLS connection support for Redis is not yet implemented
-    # If you need Redis SSL, please open an issue or submit a PR
-    # ssl:
-    #   enabled: false
-    #   certificateSecret: ""
-    #   caCertKey: "ca.crt"
+    # SSL/TLS connection settings
+    ssl:
+      enabled: false
+      # Certificate secret containing CA certificate
+      # Required when ssl.enabled=true
+      certificateSecret: ""
+      caCertKey: "ca.crt"
+      # Client certificate for mutual TLS (optional)
+      # Leave empty unless Redis requires client certificate authentication
+      clientCertKey: ""  # Optional: Client certificate file name (e.g., "tls.crt")
+      clientKeyKey: ""   # Optional: Client private key file name (e.g., "tls.key")
 
 # Clustering configuration
 clustering:
