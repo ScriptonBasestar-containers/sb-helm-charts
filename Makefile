@@ -38,6 +38,18 @@ kind-delete:
 	@echo "Deleting kind cluster: $(KIND_CLUSTER_NAME)"
 	@$(KIND) delete cluster --name $(KIND_CLUSTER_NAME)
 
+# gh-pages 원격 추적 브랜치 숨기기
+.PHONY: git-hide-gh-pages
+git-hide-gh-pages:
+	@echo "Hiding gh-pages remote tracking branch from local git log"
+	@git branch -r -D origin/gh-pages 2>/dev/null || echo "origin/gh-pages already hidden"
+
+# gh-pages 원격 추적 브랜치 다시 가져오기
+.PHONY: git-show-gh-pages
+git-show-gh-pages:
+	@echo "Fetching gh-pages remote tracking branch"
+	@git fetch origin gh-pages:refs/remotes/origin/gh-pages
+
 # 모든 차트 린트
 .PHONY: lint
 lint:
@@ -117,6 +129,8 @@ help:
 	@echo "  dependency-build  - Build dependencies for all charts"
 	@echo "  kind-create      - Create kind cluster"
 	@echo "  kind-delete      - Delete kind cluster"
+	@echo "  git-hide-gh-pages - Hide gh-pages from local git log"
+	@echo "  git-show-gh-pages - Show gh-pages in local git log"
 	@echo ""
 	@echo "Individual chart targets:"
 	@for chart in $(CHART_NAMES); do \
