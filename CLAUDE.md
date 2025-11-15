@@ -12,9 +12,10 @@ ScriptonBasestar Helm Charts - Personal server Helm charts focused on simplicity
 - Use simple Docker images where available; create custom images when needed
 - Configuration files should be used as-is, not translated through complex Helm abstractions
 
-**Development Guide:**
-- See [docs/CHART_DEVELOPMENT_GUIDE.md](docs/CHART_DEVELOPMENT_GUIDE.md) for comprehensive chart development patterns and standards
-- All new charts MUST follow the standard structure and patterns defined in the guide
+**Development Guides:**
+- [Chart Development Guide](docs/CHART_DEVELOPMENT_GUIDE.md) - Comprehensive chart development patterns and standards
+- [Chart Version Policy](docs/CHART_VERSION_POLICY.md) - Semantic versioning and release process
+- All new charts MUST follow the standard structure and patterns defined in the guides
 - Existing charts should be updated to align with these patterns over time
 
 ## Chart Structure
@@ -602,14 +603,44 @@ Modern charts (WordPress, Nextcloud, Keycloak) include production-ready features
 
 ## Chart Versioning
 
-All charts use:
+All charts follow [Semantic Versioning 2.0.0](https://semver.org/). See [docs/CHART_VERSION_POLICY.md](docs/CHART_VERSION_POLICY.md) for complete versioning rules.
 
-- **Chart version**: `0.1.0` (initial development version)
-- **License**: `BSD-3-Clause` (documented in `Chart.yaml`)
-- **appVersion**: Matches the upstream Docker image version
+### Version Components
+
+- **Chart version**: Semantic version of the Helm chart (e.g., `0.2.0`)
+  - MAJOR: Breaking changes requiring user action
+  - MINOR: New features, backward-compatible
+  - PATCH: Bug fixes, documentation updates
+- **appVersion**: Upstream application version (e.g., `26.0.7` for Keycloak)
+- **License**: `BSD-3-Clause` (chart license, documented in `Chart.yaml`)
 - **sources**: Include both chart repository and upstream application repository
 
 Application licenses differ from chart license (e.g., Keycloak: Apache 2.0) and are documented in README.md.
+
+### Current Chart Versions
+
+- **Stable (0.2.x - 0.3.x)**: keycloak, redis, wireguard, memcached, rabbitmq, browserless-chrome, devpi, rsshub
+- **Development (0.1.0)**: rustfs, wordpress, nextcloud, uptime-kuma, paperless-ngx, immich, jellyfin, vaultwarden
+
+### Version Increment Guidelines
+
+**MAJOR (X.0.0)** - Breaking changes:
+- Renaming/removing values.yaml parameters
+- Changing resource names or label selectors
+- Restructuring configuration hierarchy
+- Must provide migration guide
+
+**MINOR (0.X.0)** - New features:
+- Adding optional configuration parameters
+- New features (disabled by default)
+- New Makefile commands
+- Backward-compatible template additions
+
+**PATCH (0.0.X)** - Bug fixes:
+- Template rendering errors
+- Documentation updates
+- Non-functional improvements
+- Security fixes
 
 ## Template Patterns
 
