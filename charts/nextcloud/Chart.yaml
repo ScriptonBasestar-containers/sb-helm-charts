@@ -1,6 +1,35 @@
 apiVersion: v2
 name: nextcloud
-description: Easy nextcloud - config
+description: Self-hosted productivity platform with file sync, calendar, contacts, and collaboration tools
 type: application
+
+# Artifact Hub metadata
+annotations:
+  artifacthub.io/license: BSD-3-Clause
+
+# Project URLs
+home: https://nextcloud.com/
+icon: https://raw.githubusercontent.com/nextcloud/server/master/core/img/logo/logo.svg
+sources:
+  - https://github.com/scriptonbasestar-container/sb-helm-charts
+  - https://github.com/nextcloud/server
+  - https://hub.docker.com/r/linuxserver/nextcloud
+
+# Keywords for discoverability
+keywords:
+  - nextcloud
+  - cloud-storage
+  - file-sync
+  - collaboration
+  - productivity
+  - self-hosted
+  - calendar
+  - contacts
+
+# Maintainers
+maintainers:
+  - name: archmagece
+    email: archmagece@users.noreply.github.com
+
 version: 0.1.0
 appVersion: "31.0.10"

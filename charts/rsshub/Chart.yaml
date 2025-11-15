@@ -1,16 +1,34 @@
 apiVersion: v2
 name: rsshub
-description: A Helm chart for Kubernetes
-
-# A chart can be either an 'application' or a 'library' chart.
-#
-# Application charts are a collection of templates that can be packaged into versioned archives
-# to be deployed.
-#
-# Library charts provide useful utilities or functions for the chart developer. They're included as
-# a dependency of application charts to inject those utilities and functions into the rendering
-# pipeline. Library charts do not define any templates and therefore cannot be deployed.
+description: Open-source RSS feed generator for everything - social media, news, blogs, and more
 type: application
+
+# Artifact Hub metadata
+annotations:
+  artifacthub.io/license: BSD-3-Clause
+
+# Project URLs
+home: https://docs.rsshub.app/
+icon: https://docs.rsshub.app/logo.png
+sources:
+  - https://github.com/scriptonbasestar-container/sb-helm-charts
+  - https://github.com/DIYgod/RSSHub
+  - https://hub.docker.com/r/diygod/rsshub
+
+# Keywords for discoverability
+keywords:
+  - rsshub
+  - rss
+  - feed
+  - aggregator
+  - social-media
+  - news
+  - content-aggregation
+
+# Maintainers
+maintainers:
+  - name: archmagece
+    email: archmagece@users.noreply.github.com
 
 # This is the chart version. This version number should be incremented each time you make changes
 # to the chart and its templates, including the app version.

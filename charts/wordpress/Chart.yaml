@@ -1,20 +1,34 @@
 apiVersion: v2
 name: wordpress
-version: 0.1.0
-appVersion: 6.4.3
+description: The world's most popular CMS - WordPress with MySQL/MariaDB
 type: application
-description: A Helm chart for Kubernetes
+
+# Artifact Hub metadata
+annotations:
+  artifacthub.io/license: BSD-3-Clause
+
+# Project URLs
+home: https://wordpress.org/
+icon: https://raw.githubusercontent.com/scriptonbasestar-container/sb-helm-charts/master/charts/wordpress/icon.png
+sources:
+  - https://github.com/scriptonbasestar-container/sb-helm-charts
+  - https://github.com/wordpress/wordpress
+  - https://hub.docker.com/_/wordpress
+
+# Keywords for discoverability
 keywords:
   - wordpress
   - blog
   - cms
   - php
-home: https://wordpress.org/
-icon: https://raw.githubusercontent.com/ScriptonBasestar-docker/sb-helm-charts/master/helms/wordpress/icon.png
-sources:
-  - https://scriptonbasestar-docker.github.io/sb-helm-charts/
-  - https://github.com/wordpress/wordpress
-  - https://hub.docker.com/_/wordpress
+  - content-management
+  - website
+  - publishing
+
+# Maintainers
 maintainers:
   - name: archmagece
     email: archmagece@users.noreply.github.com
+
+version: 0.1.0
+appVersion: 6.4.3

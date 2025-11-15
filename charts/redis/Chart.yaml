@@ -1,23 +1,34 @@
 apiVersion: v2
 name: redis
-version: 0.2.0
-appVersion: 7.4.1
+description: In-memory data structure store - cache, database, and message broker
 type: application
-description: A Helm chart for Redis with master-slave replication support - in-memory data structure store
+
+# Artifact Hub metadata
+annotations:
+  artifacthub.io/license: BSD-3-Clause
+
+# Project URLs
+home: https://redis.io/
+icon: https://raw.githubusercontent.com/scriptonbasestar-container/sb-helm-charts/master/charts/redis/icon.png
+sources:
+  - https://github.com/scriptonbasestar-container/sb-helm-charts
+  - https://github.com/redis/redis
+  - https://hub.docker.com/_/redis
+
+# Keywords for discoverability
 keywords:
   - redis
   - cache
   - database
   - nosql
   - key-value
-  - replication
-  - master-slave
-home: https://redis.io/
-icon: https://raw.githubusercontent.com/ScriptonBasestar-containers/sb-helm-charts/master/charts/redis/icon.png
-sources:
-  - https://github.com/ScriptonBasestar-containers/sb-helm-charts
-  - https://github.com/redis/redis
-  - https://hub.docker.com/_/redis
+  - in-memory
+  - data-structure
+
+# Maintainers
 maintainers:
   - name: archmagece
     email: archmagece@users.noreply.github.com
+
+version: 0.2.0
+appVersion: 7.4.1

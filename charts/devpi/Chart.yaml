@@ -1,7 +1,33 @@
 apiVersion: v2
 name: devpi
-description: A Helm chart for devpi - Python Package Index Server
-
+description: Self-hosted Python Package Index (PyPI) mirror and private package server
 type: application
+
+# Artifact Hub metadata
+annotations:
+  artifacthub.io/license: BSD-3-Clause
+
+# Project URLs
+home: https://devpi.net/
+icon: https://raw.githubusercontent.com/scriptonbasestar-container/sb-helm-charts/master/charts/devpi/icon.png
+sources:
+  - https://github.com/scriptonbasestar-container/sb-helm-charts
+  - https://github.com/devpi/devpi
+  - https://hub.docker.com/r/jonasal/devpi-server
+
+# Keywords for discoverability
+keywords:
+  - devpi
+  - python
+  - pypi
+  - package-index
+  - private-registry
+  - package-mirror
+
+# Maintainers
+maintainers:
+  - name: archmagece
+    email: archmagece@users.noreply.github.com
+
 version: 0.2.0
 appVersion: "6.17.0"
