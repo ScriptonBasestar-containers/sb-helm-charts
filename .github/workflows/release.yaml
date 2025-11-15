@@ -32,6 +32,60 @@ jobs:
           git config user.name "$GITHUB_ACTOR"
           git config user.email "$GITHUB_ACTOR@users.noreply.github.com"
 
+      - name: Generate CHANGELOG
+        id: changelog
+        run: |
+          # Generate CHANGELOG from recent commits
+          echo "# Changelog" > CHANGELOG.md
+          echo "" >> CHANGELOG.md
+          echo "All notable changes to this project will be documented in this file." >> CHANGELOG.md
+          echo "" >> CHANGELOG.md
+          echo "## Recent Changes" >> CHANGELOG.md
+          echo "" >> CHANGELOG.md
+
+          # Features
+          FEATURES=$(git log --oneline --grep="^feat" --pretty=format:"- %s" HEAD~20..HEAD 2>/dev/null || echo "")
+          if [ -n "$FEATURES" ]; then
+            echo "### ✨ Features" >> CHANGELOG.md
+            echo "$FEATURES" >> CHANGELOG.md
+            echo "" >> CHANGELOG.md
+          fi
+
+          # Fixes
+          FIXES=$(git log --oneline --grep="^fix" --pretty=format:"- %s" HEAD~20..HEAD 2>/dev/null || echo "")
+          if [ -n "$FIXES" ]; then
+            echo "### 🐛 Bug Fixes" >> CHANGELOG.md
+            echo "$FIXES" >> CHANGELOG.md
+            echo "" >> CHANGELOG.md
+          fi
+
+          # Documentation
+          DOCS=$(git log --oneline --grep="^docs" --pretty=format:"- %s" HEAD~20..HEAD 2>/dev/null || echo "")
+          if [ -n "$DOCS" ]; then
+            echo "### 📚 Documentation" >> CHANGELOG.md
+            echo "$DOCS" >> CHANGELOG.md
+            echo "" >> CHANGELOG.md
+          fi
+
+          # CI/CD
+          CI=$(git log --oneline --grep="^ci" --pretty=format:"- %s" HEAD~20..HEAD 2>/dev/null || echo "")
+          if [ -n "$CI" ]; then
+            echo "### 🔧 CI/CD" >> CHANGELOG.md
+            echo "$CI" >> CHANGELOG.md
+            echo "" >> CHANGELOG.md
+          fi
+
+          # Chores
+          CHORES=$(git log --oneline --grep="^chore" --pretty=format:"- %s" HEAD~20..HEAD 2>/dev/null || echo "")
+          if [ -n "$CHORES" ]; then
+            echo "### 🧹 Chores" >> CHANGELOG.md
+            echo "$CHORES" >> CHANGELOG.md
+            echo "" >> CHANGELOG.md
+          fi
+
+          echo "changelog-generated=true" >> "$GITHUB_OUTPUT"
+          cat CHANGELOG.md >> $GITHUB_STEP_SUMMARY
+
       # See https://github.com/helm/chart-releaser-action/issues/6
       - name: Set up Helm
         uses: azure/setup-helm@v4
