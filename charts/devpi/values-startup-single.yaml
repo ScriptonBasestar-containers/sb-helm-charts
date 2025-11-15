@@ -1,0 +1,204 @@
+# Devpi values for Startup - Single Node
+# Balanced resource configuration for small business use
+# Use: helm install devpi ./charts/devpi -f charts/devpi/values-startup-single.yaml
+
+# Devpi configuration
+devpi:
+  # Root password - required
+  rootPassword: ""
+
+  existingSecret: ""
+  secretKeyName: "devpi-root-password"
+
+  # Server URL - set to your domain
+  serverUrl: ""
+
+  # Port to bind
+  port: 3141
+
+  # PyPI mirror configuration
+  mirror:
+    enabled: true
+    indexUrl: "https://pypi.org/simple"
+    cacheExpiry: 3600
+
+  # Initial users for team
+  initialUsers: []
+  # Example:
+  # initialUsers:
+  #   - "dev1:password1"
+  #   - "dev2:password2"
+
+  # Initial indexes for different environments
+  initialIndexes: []
+  # Example:
+  # initialIndexes:
+  #   - "dev/testing"
+  #   - "staging/stable"
+
+# External Dependencies - use SQLite for startup
+postgresql:
+  enabled: false
+  external:
+    enabled: false
+
+mysql:
+  enabled: false
+
+redis:
+  enabled: false
+
+# Persistence - balanced for startup
+persistence:
+  enabled: true
+  storageClass: ""
+  size: 10Gi       # Balanced
+  accessMode: ReadWriteOnce
+  reclaimPolicy: Retain
+  mountPath: /devpi/server
+
+# Single replica for startup
+replicaCount: 1
+
+# Container image
+image:
+  repository: jonasal/devpi-server
+  tag: "6.17.0-alpine"
+  pullPolicy: IfNotPresent
+
+imagePullSecrets: []
+nameOverride: ""
+fullnameOverride: ""
+
+# Deployment strategy
+strategy:
+  type: RollingUpdate
+  rollingUpdate:
+    maxSurge: 1
+    maxUnavailable: 0
+
+# Service account
+serviceAccount:
+  create: true
+  automount: true
+  annotations: {}
+  name: ""
+
+podAnnotations: {}
+
+podLabels:
+  environment: "startup"
+  tier: "package-index"
+
+# Security context
+podSecurityContext:
+  fsGroup: 1000
+  runAsUser: 1000
+  runAsGroup: 1000
+  runAsNonRoot: true
+
+securityContext:
+  capabilities:
+    drop:
+      - ALL
+  readOnlyRootFilesystem: false
+  runAsNonRoot: true
+  runAsUser: 1000
+  runAsGroup: 1000
+  allowPrivilegeEscalation: false
+
+# Service configuration
+service:
+  type: ClusterIP
+  port: 3141
+  targetPort: 3141
+  protocol: TCP
+  annotations: {}
+
+# Ingress - optional
+ingress:
+  enabled: false
+  className: ""
+  annotations: {}
+  hosts:
+    - host: devpi.startup.local
+      paths:
+        - path: /
+          pathType: Prefix
+  tls: []
+
+# Resource limits - balanced for startup
+resources:
+  limits:
+    cpu: 500m       # Balanced
+    memory: 512Mi   # Balanced (minimum for PyPI indexing)
+  requests:
+    cpu: 100m       # Minimal guaranteed
+    memory: 256Mi   # Minimal guaranteed
+
+# Health probes
+livenessProbe:
+  enabled: true
+  httpGet:
+    path: /
+    port: http
+  initialDelaySeconds: 30
+  periodSeconds: 10
+  timeoutSeconds: 5
+  failureThreshold: 6
+  successThreshold: 1
+
+readinessProbe:
+  enabled: true
+  httpGet:
+    path: /
+    port: http
+  initialDelaySeconds: 10
+  periodSeconds: 10
+  timeoutSeconds: 5
+  failureThreshold: 3
+  successThreshold: 1
+
+startupProbe:
+  enabled: true
+  httpGet:
+    path: /
+    port: http
+  initialDelaySeconds: 10
+  periodSeconds: 10
+  timeoutSeconds: 5
+  failureThreshold: 30
+  successThreshold: 1
+
+# Autoscaling - disabled for single node
+autoscaling:
+  enabled: false
+
+# Pod Disruption Budget - disabled for single node
+podDisruptionBudget:
+  enabled: false
+
+# Network Policy - optional
+networkPolicy:
+  enabled: false
+
+# Monitoring - optional
+monitoring:
+  enabled: false
+  serviceMonitor:
+    enabled: false
+
+# Scheduling
+nodeSelector: {}
+
+tolerations: []
+
+affinity: {}
+
+# Extensibility
+extraEnv: []
+extraEnvFrom: []
+extraVolumes: []
+extraVolumeMounts: []
+initContainers: []
+lifecycle: {}
