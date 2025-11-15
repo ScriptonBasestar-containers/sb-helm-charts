@@ -63,8 +63,10 @@ strategy:
     maxUnavailable: 0
 
 image:
-  repository: ghcr.io/browserless/chrome
-  tag: "1.61.1-puppeteer-21.4.1"
+  # Note: browserless v2+ uses ghcr.io/browserless/chromium (not chrome)
+  # The /chrome endpoint is still available for Chromium-based browser
+  repository: ghcr.io/browserless/chromium
+  tag: "v2.32.1"
   pullPolicy: IfNotPresent
 
 imagePullSecrets: []
@@ -93,9 +95,9 @@ securityContext:
     drop:
       - ALL
   readOnlyRootFilesystem: false  # Chrome needs to write temp files
-  runAsNonRoot: true
-  runAsUser: 1000
-  runAsGroup: 1000
+  runAsNonRoot: false  # v2+ image runs as root by default
+  runAsUser: 0
+  runAsGroup: 0
   allowPrivilegeEscalation: false
 
 # 7. Service Configuration
@@ -137,7 +139,7 @@ resources:
 livenessProbe:
   enabled: true
   httpGet:
-    path: /
+    path: /active  # v2+ health check endpoint
     port: http
   initialDelaySeconds: 30
   periodSeconds: 10
@@ -148,7 +150,7 @@ livenessProbe:
 readinessProbe:
   enabled: true
   httpGet:
-    path: /
+    path: /active  # v2+ health check endpoint
     port: http
   initialDelaySeconds: 10
   periodSeconds: 10
@@ -159,7 +161,7 @@ readinessProbe:
 startupProbe:
   enabled: true
   httpGet:
-    path: /
+    path: /active  # v2+ health check endpoint
     port: http
   initialDelaySeconds: 10
   periodSeconds: 5
