@@ -149,13 +149,22 @@ serviceAccount:
 podAnnotations: {}
 podLabels: {}
 
+# Sysctl configuration method
+# - "init": Use privileged initContainer (RECOMMENDED - works on standard K8s/minikube)
+# - "native": Use pod sysctls (requires cluster admin to allowlist unsafe sysctls)
+sysctlMethod: "init"
+
 podSecurityContext:
+  # Native sysctl configuration (only used if sysctlMethod: "native")
   # Required sysctls for IP forwarding and routing
-  sysctls:
-    - name: net.ipv4.ip_forward
-      value: "1"
-    - name: net.ipv4.conf.all.src_valid_mark
-      value: "1"
+  # NOTE: These must be allowlisted by cluster admin:
+  #   minikube start --extra-config=kubelet.allowed-unsafe-sysctls=net.ipv4.ip_forward,net.ipv4.conf.all.src_valid_mark
+  # sysctls:
+  #   - name: net.ipv4.ip_forward
+  #     value: "1"
+  #   - name: net.ipv4.conf.all.src_valid_mark
+  #     value: "1"
+
   fsGroup: 1000
   runAsUser: 0
   runAsGroup: 0
