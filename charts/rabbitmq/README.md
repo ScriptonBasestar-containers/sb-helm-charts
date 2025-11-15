@@ -37,6 +37,26 @@ RabbitMQ is a widely-used open-source message broker that implements the Advance
 - Helm 3.0+
 - PersistentVolume provisioner (if persistence is enabled)
 
+## ⚠️ Important: Password Requirement
+
+**The RabbitMQ admin password is mandatory** for both installation and template validation:
+
+```bash
+# ❌ This will FAIL (no password provided)
+helm template my-rabbitmq ./charts/rabbitmq
+
+# ✅ This will SUCCEED
+helm template my-rabbitmq ./charts/rabbitmq \
+  --set rabbitmq.admin.password='test-password'
+
+# ✅ Or use existing secret
+helm template my-rabbitmq ./charts/rabbitmq \
+  --set rabbitmq.admin.existingSecret.enabled=true \
+  --set rabbitmq.admin.existingSecret.secretName='my-secret'
+```
+
+This is a **security feature by design** - the chart refuses to generate templates without proper credentials configuration.
+
 ## Installation
 
 ### Add Repository
