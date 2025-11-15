@@ -212,36 +212,35 @@ networkPolicy:
 
 ## Operational Commands
 
-### View Logs
+This chart includes a comprehensive Makefile for day-2 operations:
 
 ```bash
-kubectl logs -f deployment/paperless-paperless-ngx
-```
+# View logs and access shell
+make -f make/ops/paperless-ngx.mk paperless-logs
+make -f make/ops/paperless-ngx.mk paperless-shell
 
-### Access Shell
+# Port forward to localhost:8000
+make -f make/ops/paperless-ngx.mk paperless-port-forward
 
-```bash
-kubectl exec -it deployment/paperless-paperless-ngx -- /bin/bash
-```
+# Health checks
+make -f make/ops/paperless-ngx.mk paperless-check-db
+make -f make/ops/paperless-ngx.mk paperless-check-redis
+make -f make/ops/paperless-ngx.mk paperless-check-storage
 
-### Database Management
+# Database management
+make -f make/ops/paperless-ngx.mk paperless-migrate
+make -f make/ops/paperless-ngx.mk paperless-create-superuser
 
-```bash
-# Run migrations
-kubectl exec -it deployment/paperless-paperless-ngx -- python manage.py migrate
+# Document operations
+make -f make/ops/paperless-ngx.mk paperless-document-exporter
+make -f make/ops/paperless-ngx.mk paperless-consume-list
+make -f make/ops/paperless-ngx.mk paperless-process-status
 
-# Create superuser
-kubectl exec -it deployment/paperless-paperless-ngx -- python manage.py createsuperuser
-```
+# Restart deployment
+make -f make/ops/paperless-ngx.mk paperless-restart
 
-### Backup Documents
-
-```bash
-# Export all documents
-kubectl exec deployment/paperless-paperless-ngx -- python manage.py document_exporter /usr/src/paperless/export/
-
-# Copy to local
-kubectl cp paperless-paperless-ngx-0:/usr/src/paperless/export/ ./paperless-backup/
+# Full help
+make -f make/ops/paperless-ngx.mk help
 ```
 
 ## Troubleshooting
