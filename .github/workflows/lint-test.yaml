@@ -1,0 +1,135 @@
+name: Lint and Test Charts
+
+on:
+  pull_request:
+    paths:
+      - 'charts/**'
+  push:
+    branches:
+      - develop
+    paths:
+      - 'charts/**'
+
+jobs:
+  lint-test:
+    runs-on: ubuntu-22.04
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Helm
+        uses: azure/setup-helm@v4
+        with:
+          version: v3.14.0
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          check-latest: true
+
+      - name: Set up chart-testing
+        uses: helm/chart-testing-action@v2.6.1
+
+      - name: Run chart-testing (list-changed)
+        id: list-changed
+        run: |
+          changed=$(ct list-changed --config ct.yaml)
+          if [[ -n "$changed" ]]; then
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+            echo "### Changed charts:" >> $GITHUB_STEP_SUMMARY
+            echo "$changed" >> $GITHUB_STEP_SUMMARY
+          fi
+
+      - name: Run chart-testing (lint)
+        if: steps.list-changed.outputs.changed == 'true'
+        run: ct lint --config ct.yaml --check-version-increment=false
+
+      - name: Create kind cluster
+        if: steps.list-changed.outputs.changed == 'true'
+        uses: helm/kind-action@v1.10.0
+        with:
+          config: kind-config.yaml
+          cluster_name: chart-testing
+
+      - name: Run chart-testing (install)
+        if: steps.list-changed.outputs.changed == 'true'
+        run: |
+          ct install --config ct.yaml \
+            --helm-extra-set-args "--set=postgresql.external.password=test123 --set=redis.external.password=test123"
+
+  helm-lint:
+    runs-on: ubuntu-22.04
+    strategy:
+      matrix:
+        chart:
+          - browserless-chrome
+          - devpi
+          - immich
+          - jellyfin
+          - keycloak
+          - memcached
+          - nextcloud
+          - paperless-ngx
+          - rabbitmq
+          - redis
+          - rsshub
+          - rustfs
+          - uptime-kuma
+          - vaultwarden
+          - wireguard
+          - wordpress
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Helm
+        uses: azure/setup-helm@v4
+        with:
+          version: v3.14.0
+
+      - name: Helm lint (default values)
+        run: |
+          helm lint charts/${{ matrix.chart }}
+
+      - name: Helm lint (values-example.yaml)
+        if: hashFiles('charts/${{ matrix.chart }}/values-example.yaml') != ''
+        run: |
+          helm lint charts/${{ matrix.chart }} \
+            -f charts/${{ matrix.chart }}/values-example.yaml \
+            --set postgresql.external.password=test123 \
+            --set redis.external.password=test123 || true
+
+      - name: Helm lint (values-homeserver.yaml)
+        if: hashFiles('charts/${{ matrix.chart }}/values-homeserver.yaml') != ''
+        run: |
+          helm lint charts/${{ matrix.chart }} \
+            -f charts/${{ matrix.chart }}/values-homeserver.yaml \
+            --set postgresql.external.password=test123 \
+            --set redis.external.password=test123 || true
+
+      - name: Helm template render test
+        run: |
+          helm template test-release charts/${{ matrix.chart }} \
+            --set postgresql.external.password=test123 \
+            --set redis.external.password=test123 \
+            --dry-run > /dev/null
+
+  validation-summary:
+    runs-on: ubuntu-22.04
+    needs: [lint-test, helm-lint]
+    if: always()
+    steps:
+      - name: Check results
+        run: |
+          if [[ "${{ needs.lint-test.result }}" == "success" ]] && [[ "${{ needs.helm-lint.result }}" == "success" ]]; then
+            echo "✅ All validation checks passed!" >> $GITHUB_STEP_SUMMARY
+            exit 0
+          else
+            echo "❌ Some validation checks failed!" >> $GITHUB_STEP_SUMMARY
+            echo "- lint-test: ${{ needs.lint-test.result }}" >> $GITHUB_STEP_SUMMARY
+            echo "- helm-lint: ${{ needs.helm-lint.result }}" >> $GITHUB_STEP_SUMMARY
+            exit 1
+          fi

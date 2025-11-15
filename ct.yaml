@@ -1,5 +1,25 @@
-helm-extra-args: --timeout 600s
+# Chart Testing Configuration
+# https://github.com/helm/chart-testing
+
+# Chart directories
 chart-dirs:
   - charts
+
+# Chart repositories
 chart-repos:
   - scripton-charts=https://scriptonbasestar-container.github.io/sb-helm-charts
+
+# Helm extra arguments
+helm-extra-args: --timeout 600s
+
+# Excluded charts (charts that require external dependencies not available in CI)
+excluded-charts: []
+
+# Target branch for PRs
+target-branch: develop
+
+# Validate maintainers field
+validate-maintainers: true
+
+# Check version increment (disabled for develop, enabled via workflow for master)
+check-version-increment: false
