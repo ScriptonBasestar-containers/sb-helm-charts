@@ -1,0 +1,245 @@
+# Browserless-Chrome values for Production - Master-Replica Setup
+# Note: This chart supports single-node. For distributed browser sessions, consider external load balancing
+# Use: helm install browserless-chrome ./charts/browserless-chrome -f charts/browserless-chrome/values-prod-master-replica.yaml \
+#        --set browserless.token='your-strong-token'
+
+# ⚠️ IMPORTANT: Token is REQUIRED
+browserless:
+  # Maximum concurrent sessions for production
+  concurrent: 10
+
+  # API token - REQUIRED (generate with: openssl rand -hex 16)
+  token: ""  # REQUIRED - set via --set or existingSecret
+
+  existingSecret: ""
+  secretKeyName: "browserless-token"
+
+  # Connection timeout (milliseconds)
+  connectionTimeout: 60000
+
+  # Maximum queue length
+  maxQueueLength: 10
+
+  # Chrome launch arguments - production optimized
+  chromeArgs:
+    - "--disable-dev-shm-usage"
+    - "--no-sandbox"
+    - "--disable-background-timer-throttling"
+    - "--disable-renderer-backgrounding"
+
+  debug: false
+  demoMode: false
+
+# External Dependencies - N/A
+postgresql:
+  enabled: false
+
+mysql:
+  enabled: false
+
+redis:
+  enabled: false
+
+# Persistence - enabled for production
+persistence:
+  enabled: true
+  storageClass: ""
+  size: 10Gi
+  accessMode: ReadWriteOnce
+
+# Single replica (horizontal scaling via load balancer)
+replicaCount: 1
+
+# Container image
+image:
+  repository: ghcr.io/browserless/chromium
+  tag: "v2.32.1"
+  pullPolicy: IfNotPresent
+
+imagePullSecrets: []
+nameOverride: ""
+fullnameOverride: ""
+
+# Deployment strategy
+strategy:
+  type: RollingUpdate
+  rollingUpdate:
+    maxSurge: 1
+    maxUnavailable: 0
+
+# Service account
+serviceAccount:
+  create: true
+  automount: true
+  annotations: {}
+  name: ""
+
+podAnnotations:
+  prometheus.io/scrape: "true"
+  prometheus.io/port: "3000"
+
+podLabels:
+  environment: "production"
+  tier: "browser"
+
+# Security context
+podSecurityContext:
+  fsGroup: 1000
+  runAsUser: 1000
+  runAsGroup: 1000
+  runAsNonRoot: true
+
+securityContext:
+  capabilities:
+    drop:
+      - ALL
+  readOnlyRootFilesystem: false
+  runAsNonRoot: false
+  runAsUser: 0
+  runAsGroup: 0
+  allowPrivilegeEscalation: false
+
+# Service configuration
+service:
+  type: ClusterIP
+  port: 3000
+  targetPort: 3000
+  protocol: TCP
+  annotations:
+    service.alpha.kubernetes.io/tolerate-unready-endpoints: "true"
+
+# Ingress - production ready
+ingress:
+  enabled: false
+  className: "nginx"
+  annotations:
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "600"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "600"
+    nginx.ingress.kubernetes.io/proxy-connect-timeout: "600"
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
+  hosts:
+    - host: browserless.production.example.com
+      paths:
+        - path: /
+          pathType: Prefix
+  tls:
+    - secretName: browserless-tls
+      hosts:
+        - browserless.production.example.com
+
+# Resource limits - production level
+resources:
+  limits:
+    cpu: 1000m      # Production level
+    memory: 1Gi     # Production level
+  requests:
+    cpu: 250m       # Guaranteed
+    memory: 512Mi   # Guaranteed
+
+# Health probes - production tuned
+livenessProbe:
+  enabled: true
+  httpGet:
+    path: /active
+    port: http
+  initialDelaySeconds: 30
+  periodSeconds: 10
+  timeoutSeconds: 5
+  failureThreshold: 6
+  successThreshold: 1
+
+readinessProbe:
+  enabled: true
+  httpGet:
+    path: /active
+    port: http
+  initialDelaySeconds: 10
+  periodSeconds: 10
+  timeoutSeconds: 5
+  failureThreshold: 3
+  successThreshold: 1
+
+startupProbe:
+  enabled: true
+  httpGet:
+    path: /active
+    port: http
+  initialDelaySeconds: 10
+  periodSeconds: 5
+  timeoutSeconds: 5
+  failureThreshold: 60
+  successThreshold: 1
+
+# Autoscaling - disabled (stateful browser sessions)
+autoscaling:
+  enabled: false
+
+# Pod Disruption Budget - production safety
+podDisruptionBudget:
+  enabled: true
+  minAvailable: 1
+
+# Network Policy - production security
+networkPolicy:
+  enabled: true
+  ingress:
+    - from:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: myapp
+      ports:
+        - protocol: TCP
+          port: 3000
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              name: monitoring
+      ports:
+        - protocol: TCP
+          port: 3000
+  egress:
+    # Allow DNS resolution
+    - to:
+        - namespaceSelector: {}
+      ports:
+        - protocol: UDP
+          port: 53
+    # Allow HTTPS for Chrome downloads and web scraping
+    - to:
+        - namespaceSelector: {}
+      ports:
+        - protocol: TCP
+          port: 443
+
+# Monitoring
+monitoring:
+  enabled: false  # Requires Prometheus Operator CRD
+  serviceMonitor:
+    enabled: false
+    interval: 30s
+    scrapeTimeout: 10s
+    labels:
+      prometheus: kube-prometheus
+
+# Scheduling
+nodeSelector: {}
+
+tolerations: []
+
+affinity: {}
+
+# Graceful shutdown
+lifecycle:
+  preStop:
+    exec:
+      command:
+        - /bin/sh
+        - -c
+        - sleep 15
+
+# Extensibility
+extraEnv: []
+extraEnvFrom: []
+extraVolumes: []
+extraVolumeMounts: []
+initContainers: []

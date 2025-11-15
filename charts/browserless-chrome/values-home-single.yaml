@@ -1,0 +1,180 @@
+# Browserless-Chrome values for Home Server - Single Node
+# Minimal resource configuration for personal/home lab use
+# Use: helm install browserless-chrome ./charts/browserless-chrome -f charts/browserless-chrome/values-home-single.yaml
+
+# Browserless configuration
+browserless:
+  # Reduced concurrent sessions for home use
+  concurrent: 3
+
+  # API token - generate with: openssl rand -hex 16
+  token: ""
+
+  existingSecret: ""
+  secretKeyName: "browserless-token"
+
+  # Connection timeout (milliseconds)
+  connectionTimeout: 60000
+
+  # Reduced queue length
+  maxQueueLength: 3
+
+  # Chrome launch arguments
+  chromeArgs:
+    - "--disable-dev-shm-usage"
+    - "--no-sandbox"
+
+  debug: false
+  demoMode: false
+
+# External Dependencies - N/A
+postgresql:
+  enabled: false
+
+mysql:
+  enabled: false
+
+redis:
+  enabled: false
+
+# Persistence - optional for home use
+persistence:
+  enabled: false
+
+# Single replica for home server
+replicaCount: 1
+
+# Container image
+image:
+  repository: ghcr.io/browserless/chromium
+  tag: "v2.32.1"
+  pullPolicy: IfNotPresent
+
+imagePullSecrets: []
+nameOverride: ""
+fullnameOverride: ""
+
+# Deployment strategy
+strategy:
+  type: RollingUpdate
+  rollingUpdate:
+    maxSurge: 1
+    maxUnavailable: 0
+
+# Service account
+serviceAccount:
+  create: true
+  automount: true
+  annotations: {}
+  name: ""
+
+podAnnotations: {}
+
+podLabels:
+  environment: "home"
+  tier: "browser"
+
+# Security context
+podSecurityContext:
+  fsGroup: 1000
+  runAsUser: 1000
+  runAsGroup: 1000
+  runAsNonRoot: true
+
+securityContext:
+  capabilities:
+    drop:
+      - ALL
+  readOnlyRootFilesystem: false
+  runAsNonRoot: false
+  runAsUser: 0
+  runAsGroup: 0
+  allowPrivilegeEscalation: false
+
+# Service configuration
+service:
+  type: ClusterIP
+  port: 3000
+  targetPort: 3000
+  protocol: TCP
+  annotations: {}
+
+# Ingress - disabled for home server
+ingress:
+  enabled: false
+
+# Resource limits - minimal for home server
+resources:
+  limits:
+    cpu: 250m       # Reduced from 2000m
+    memory: 256Mi   # Reduced from 2Gi
+  requests:
+    cpu: 50m        # Reduced from 500m
+    memory: 128Mi   # Reduced from 512Mi
+
+# Health probes
+livenessProbe:
+  enabled: true
+  httpGet:
+    path: /active
+    port: http
+  initialDelaySeconds: 30
+  periodSeconds: 10
+  timeoutSeconds: 5
+  failureThreshold: 6
+  successThreshold: 1
+
+readinessProbe:
+  enabled: true
+  httpGet:
+    path: /active
+    port: http
+  initialDelaySeconds: 10
+  periodSeconds: 10
+  timeoutSeconds: 5
+  failureThreshold: 3
+  successThreshold: 1
+
+startupProbe:
+  enabled: true
+  httpGet:
+    path: /active
+    port: http
+  initialDelaySeconds: 10
+  periodSeconds: 5
+  timeoutSeconds: 5
+  failureThreshold: 30
+  successThreshold: 1
+
+# Autoscaling - disabled for home server
+autoscaling:
+  enabled: false
+
+# Pod Disruption Budget - disabled for single node
+podDisruptionBudget:
+  enabled: false
+
+# Network Policy - disabled for home server simplicity
+networkPolicy:
+  enabled: false
+
+# Monitoring - disabled for home server
+monitoring:
+  enabled: false
+  serviceMonitor:
+    enabled: false
+
+# Scheduling - no special requirements
+nodeSelector: {}
+
+tolerations: []
+
+affinity: {}
+
+# Extensibility
+extraEnv: []
+extraEnvFrom: []
+extraVolumes: []
+extraVolumeMounts: []
+initContainers: []
+lifecycle: {}
