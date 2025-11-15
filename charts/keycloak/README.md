@@ -111,6 +111,26 @@ See [values.yaml](./values.yaml) for all available options.
 | `postgresql.external.username` | Database username | `keycloak` |
 | `postgresql.external.password` | Database password (required) | `""` |
 
+### Redis Configuration (Optional)
+
+For distributed caching with Infinispan remote cache store:
+
+| Parameter | Description | Default |
+|-----------|-------------|---------|
+| `redis.enabled` | Enable Redis integration | `false` |
+| `redis.external.enabled` | Use external Redis | `false` |
+| `redis.external.host` | Redis hostname | `""` |
+| `redis.external.port` | Redis port | `6379` |
+| `redis.external.password` | Redis password | `""` |
+| `redis.external.database` | Redis database number | `0` |
+| `redis.external.ssl.enabled` | Enable SSL/TLS connection | `false` |
+| `redis.external.ssl.certificateSecret` | Secret containing certificates | `""` |
+| `redis.external.ssl.caCertKey` | CA certificate key in secret | `ca.crt` |
+| `redis.external.ssl.clientCertKey` | Client cert key (mTLS) | `""` |
+| `redis.external.ssl.clientKeyKey` | Client key (mTLS) | `""` |
+
+See [Redis SSL Connection](#redis-ssl-connection) section for detailed configuration examples.
+
 ### Hostname Configuration (v2)
 
 **Important**: Keycloak 26.x uses hostname v2 configuration. The old v1 format is no longer supported.
@@ -400,14 +420,43 @@ For distributed caching with SSL-enabled Redis:
 
 ```yaml
 redis:
+  enabled: true
   external:
     enabled: true
     host: "redis.example.com"
+    port: 6379
+    password: "secure-password"
+    database: 0
     ssl:
       enabled: true
       certificateSecret: "redis-ssl-certs"
       caCertKey: "ca.crt"
+      # Optional: for mutual TLS (mTLS)
+      clientCertKey: "client.crt"
+      clientKeyKey: "client.key"
 ```
+
+Create the certificate secret:
+
+```bash
+# CA certificate only
+kubectl create secret generic redis-ssl-certs \
+  --from-file=ca.crt=./redis-ca.crt
+
+# With client certificates (mTLS)
+kubectl create secret generic redis-ssl-certs \
+  --from-file=ca.crt=./redis-ca.crt \
+  --from-file=client.crt=./redis-client.crt \
+  --from-file=client.key=./redis-client.key
+```
+
+**Environment Variables Generated:**
+- `KC_CACHE_REMOTE_TLS_ENABLED=true`
+- `KC_CACHE_REMOTE_TLS_TRUST_STORE_FILE=/opt/keycloak/certs/redis/ca.crt`
+
+**Certificate Mount:**
+- Certificates are mounted at `/opt/keycloak/certs/redis/`
+- Keycloak Infinispan uses these certificates for remote cache SSL connection
 
 #### Keycloak HTTPS (Direct TLS Termination)
 
