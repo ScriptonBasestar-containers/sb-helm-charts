@@ -1,0 +1,312 @@
+# Uptime Kuma Helm Chart - Home Server Configuration
+#
+# Optimized for:
+# - Raspberry Pi 4 (2GB+)
+# - Intel NUC / Mini PC
+# - Small home servers
+# - Personal/home lab monitoring (10-50 monitors)
+#
+# Features:
+# - Very lightweight (already efficient by default)
+# - SQLite database (no external DB required)
+# - Minimal storage (2Gi vs 4Gi default)
+# - Reduced resource limits for low-power servers
+# - Single replica deployment
+# - Suitable for monitoring home services, websites, and IoT devices
+#
+# Usage:
+#   helm install uptime-kuma ./charts/uptime-kuma \
+#     -f charts/uptime-kuma/values-homeserver.yaml
+
+# ========================================
+# Uptime Kuma Configuration
+# ========================================
+uptimeKuma:
+  # Port configuration
+  port: 3001
+  host: "::"  # :: for IPv4+IPv6 support
+
+  # Data directory
+  dataDir: "/app/data"
+
+  # Database - SQLite for home servers (embedded, no maintenance)
+  database:
+    type: "sqlite"  # Best for home use, no external DB needed
+    # For larger deployments (100+ monitors), consider MariaDB
+
+  # SSL/TLS - disabled (use ingress for HTTPS)
+  ssl:
+    enabled: false
+
+  # Security settings
+  security:
+    # WebSocket origin check for local network
+    wsOriginCheck: "bypass"  # Required for local network access
+    disableFrameSameOrigin: false
+
+  # Logging - minimal for home servers
+  logging:
+    hideLog: ""
+    sqlLog: false  # Disable SQL logging to reduce overhead
+    responseBodyMonitorId: ""
+
+# ========================================
+# Persistence
+# ========================================
+
+# Persistent storage for SQLite database and data
+persistence:
+  enabled: true
+  storageClass: ""  # Use default or "local-path" for k3s
+  accessMode: ReadWriteOnce
+  size: 2Gi         # 2GB (vs 4Gi default) - sufficient for 50+ monitors
+  mountPath: /app/data
+  annotations: {}
+
+# ========================================
+# External MySQL/MariaDB
+# ========================================
+
+# Disabled for home servers (SQLite is sufficient)
+mysql:
+  enabled: false
+  external:
+    enabled: false
+
+# ========================================
+# Deployment Configuration
+# ========================================
+
+# Single replica for home servers
+replicaCount: 1
+
+image:
+  repository: louislam/uptime-kuma
+  pullPolicy: IfNotPresent
+  tag: ""  # Uses chart appVersion
+
+imagePullSecrets: []
+nameOverride: ""
+fullnameOverride: ""
+
+# Service account
+serviceAccount:
+  create: true
+  automount: true
+  annotations: {}
+  name: ""
+
+podAnnotations: {}
+podLabels: {}
+
+# Security context
+podSecurityContext:
+  fsGroup: 1000
+  runAsNonRoot: true
+  runAsUser: 1000
+
+securityContext:
+  allowPrivilegeEscalation: false
+  capabilities:
+    drop:
+      - ALL
+  readOnlyRootFilesystem: false
+
+# ========================================
+# Service & Networking
+# ========================================
+
+# Service - ClusterIP for local network
+service:
+  type: ClusterIP
+  port: 3001
+  targetPort: 3001
+  annotations: {}
+
+# Ingress - optional for domain-based access
+ingress:
+  enabled: false
+  className: "nginx"
+  annotations:
+    nginx.ingress.kubernetes.io/proxy-body-size: "5m"
+    # For WebSocket support
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "3600"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "3600"
+  hosts:
+    - host: uptime-kuma.local
+      paths:
+        - path: /
+          pathType: Prefix
+  tls: []
+
+# ========================================
+# Resource Limits
+# ========================================
+
+# Very lightweight resources for home servers
+resources:
+  limits:
+    cpu: 300m       # 0.3 CPU (vs 500m default)
+    memory: 256Mi   # 256MB RAM (vs 512Mi default)
+  requests:
+    cpu: 50m        # 0.05 CPU
+    memory: 64Mi    # 64MB RAM
+
+# ========================================
+# Health Checks
+# ========================================
+
+livenessProbe:
+  enabled: true
+  httpGet:
+    path: /
+    port: http
+  initialDelaySeconds: 30
+  periodSeconds: 20      # Check every 20s (vs 10s default)
+  timeoutSeconds: 5
+  successThreshold: 1
+  failureThreshold: 3
+
+readinessProbe:
+  enabled: true
+  httpGet:
+    path: /
+    port: http
+  initialDelaySeconds: 10
+  periodSeconds: 15      # Check every 15s (vs 10s default)
+  timeoutSeconds: 5
+  successThreshold: 1
+  failureThreshold: 3
+
+startupProbe:
+  enabled: true
+  httpGet:
+    path: /
+    port: http
+  initialDelaySeconds: 10
+  periodSeconds: 5
+  timeoutSeconds: 3
+  successThreshold: 1
+  failureThreshold: 30   # Allow up to 2.5 minutes for startup
+
+# ========================================
+# High Availability
+# ========================================
+
+# Disabled for home servers
+autoscaling:
+  enabled: false
+
+podDisruptionBudget:
+  enabled: false
+
+networkPolicy:
+  enabled: false
+
+# ========================================
+# Node Selection
+# ========================================
+
+nodeSelector: {}
+# Example for Raspberry Pi:
+# nodeSelector:
+#   kubernetes.io/arch: arm64
+
+tolerations: []
+
+affinity: {}
+
+# ========================================
+# Monitoring
+# ========================================
+
+# Prometheus monitoring disabled by default
+monitoring:
+  enabled: false
+  serviceMonitor:
+    enabled: false
+
+# ========================================
+# Notes for Home Server Users
+# ========================================
+
+# Post-installation checklist:
+#
+# 1. Access Uptime Kuma:
+#    kubectl port-forward svc/uptime-kuma 3001:3001
+#    Open http://localhost:3001
+#
+# 2. Initial Setup:
+#    - Create admin account on first access
+#    - Set a strong password
+#    - Enable 2FA (recommended)
+#
+# 3. Monitor Configuration Ideas:
+#    - Home network devices (router, NAS, printer)
+#    - Self-hosted services (Nextcloud, Immich, etc.)
+#    - External websites and APIs
+#    - IoT devices (Home Assistant, smart home hubs)
+#    - Port availability checks
+#    - SSL certificate expiration
+#
+# 4. Notification Channels:
+#    Uptime Kuma supports 90+ notification services:
+#    - Email (SMTP)
+#    - Discord
+#    - Slack
+#    - Telegram
+#    - Pushover
+#    - Gotify (self-hosted)
+#    - Home Assistant
+#    - And many more!
+#
+# 5. Status Page Setup:
+#    - Create public/private status pages
+#    - Share with family or team
+#    - Embed in website or intranet
+#    - Custom domain support via ingress
+#
+# 6. Monitor Types:
+#    - HTTP(s) - Web services
+#    - TCP Port - Raw port checks
+#    - Ping (ICMP) - Network devices
+#    - DNS - DNS server checks
+#    - Docker Container - Monitor containers
+#    - Keyword - Check for specific text in response
+#    - JSON Query - API endpoint validation
+#
+# 7. Performance Tips:
+#    - Keep SQLite for 50 monitors or less
+#    - Use MariaDB for 100+ monitors
+#    - Adjust check intervals based on importance
+#    - Group related monitors for better organization
+#
+# 8. Backup Strategy:
+#    - SQLite database is in /app/data/kuma.db
+#    - Backup regularly: kubectl cp uptime-kuma-0:/app/data/kuma.db ./kuma-backup.db
+#    - Or use the built-in backup feature in Settings
+#
+# 9. Mobile Access:
+#    - Use ingress with HTTPS for external access
+#    - Or VPN into home network
+#    - Mobile-optimized web interface
+#    - Real-time notifications on phone
+#
+# 10. Integration Examples:
+#     - Home Assistant automation triggers
+#     - Grafana dashboard embedding
+#     - Slack/Discord bot notifications
+#     - Email alerts for critical services
+#
+# 11. Resource Usage:
+#     - 10 monitors: ~50-100MB RAM
+#     - 50 monitors: ~100-200MB RAM
+#     - 100 monitors: ~200-300MB RAM
+#     - Scales very efficiently
+#
+# 12. Security Best Practices:
+#     - Use strong admin password
+#     - Enable 2FA
+#     - Don't expose directly to internet without HTTPS
+#     - Use VPN or Cloudflare Tunnel for remote access
+#     - Regular updates (update chart and image)
