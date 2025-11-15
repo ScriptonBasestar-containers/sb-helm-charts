@@ -1,0 +1,269 @@
+# values-example.yaml
+# Production-ready RustFS configuration
+#
+# This configuration is optimized for:
+# - Production S3-compatible object storage
+# - High availability with clustering
+# - Enterprise-grade monitoring and security
+# - Balanced performance and cost
+#
+# Target use case:
+# - Medium-sized production workload (100-1000 users)
+# - Multi-zone deployment for HA
+# - Tiered storage (SSD + HDD)
+# - Prometheus metrics enabled
+#
+# Usage:
+#   helm install rustfs ./charts/rustfs -f charts/rustfs/values-example.yaml \
+#     --set rustfs.rootPassword=YOUR_SECURE_PASSWORD
+
+# RustFS configuration
+rustfs:
+  # IMPORTANT: Set a strong root password for production
+  rootUser: "admin"
+  rootPassword: ""  # Required - set via --set or separate secret
+
+  region: "production"
+  consolePort: 9001
+  apiPort: 9000
+
+  # Multi-drive configuration (4 data directories per pod)
+  dataDirs: 4
+
+  extraEnv:
+    # Optimize for production workload
+    - name: RUSTFS_API_REQUESTS_MAX
+      value: "5000"
+    - name: RUSTFS_API_REQUESTS_DEADLINE
+      value: "10s"
+
+  args: []
+
+# Persistence - Tiered storage for cost optimization
+persistence:
+  enabled: true
+  storageClass: "fast-ssd"  # Adjust to your storage provider
+  accessMode: ReadWriteOnce
+  size: 100Gi
+  reclaimPolicy: Retain  # Prevent accidental data loss
+  existingClaim: ""
+  annotations: {}
+
+# Tiered storage configuration
+# Hot tier: Frequently accessed data (SSD)
+# Cold tier: Archive/backup data (HDD)
+storageTiers:
+  enabled: true
+
+  hot:
+    storageClass: "fast-ssd"    # AWS: gp3, GCP: pd-ssd, Azure: Premium_LRS
+    size: 100Gi
+    dataDirs: 2                 # 2 hot tier dirs per pod
+
+  cold:
+    storageClass: "standard-hdd" # AWS: st1, GCP: pd-standard, Azure: Standard_LRS
+    size: 500Gi
+    dataDirs: 2                 # 2 cold tier dirs per pod
+
+# High availability - 3 node cluster recommended
+replicaCount: 3
+
+# Container image
+image:
+  repository: rustfs/rustfs
+  pullPolicy: IfNotPresent
+  tag: "1.0.0-alpha.66"
+
+imagePullSecrets: []
+
+nameOverride: ""
+fullnameOverride: ""
+
+# Service account
+serviceAccount:
+  create: true
+  automount: true
+  annotations: {}
+  name: ""
+
+# Pod annotations for Prometheus
+podAnnotations:
+  prometheus.io/scrape: "true"
+  prometheus.io/port: "9000"
+  prometheus.io/path: "/metrics"
+
+podLabels: {}
+
+# Pod security context
+podSecurityContext:
+  fsGroup: 1000
+  runAsUser: 1000
+  runAsGroup: 1000
+
+# Container security context
+securityContext:
+  runAsNonRoot: true
+  runAsUser: 1000
+  capabilities:
+    drop:
+      - ALL
+  readOnlyRootFilesystem: false
+  allowPrivilegeEscalation: false
+
+# Service configuration
+service:
+  type: ClusterIP
+  # S3 API port
+  apiPort: 9000
+  # Console UI port
+  consolePort: 9001
+  annotations: {}
+
+# Ingress for external access
+ingress:
+  enabled: false
+  className: "nginx"
+  annotations:
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
+    nginx.ingress.kubernetes.io/proxy-body-size: "0"  # Unlimited upload size
+  hosts:
+    - host: s3.example.com
+      paths:
+        - path: /
+          pathType: Prefix
+          port: 9000
+    - host: console.s3.example.com
+      paths:
+        - path: /
+          pathType: Prefix
+          port: 9001
+  tls:
+    - secretName: rustfs-tls
+      hosts:
+        - s3.example.com
+        - console.s3.example.com
+
+# Resource limits and requests
+resources:
+  limits:
+    cpu: 2000m
+    memory: 4Gi
+  requests:
+    cpu: 1000m
+    memory: 2Gi
+
+# Health probes
+livenessProbe:
+  httpGet:
+    path: /rustfs/health/live
+    port: api
+  initialDelaySeconds: 120
+  periodSeconds: 30
+  timeoutSeconds: 10
+  failureThreshold: 3
+  successThreshold: 1
+
+readinessProbe:
+  httpGet:
+    path: /rustfs/health/ready
+    port: api
+  initialDelaySeconds: 30
+  periodSeconds: 15
+  timeoutSeconds: 10
+  failureThreshold: 3
+  successThreshold: 1
+
+startupProbe:
+  httpGet:
+    path: /rustfs/health/live
+    port: api
+  initialDelaySeconds: 30
+  periodSeconds: 10
+  timeoutSeconds: 5
+  failureThreshold: 30
+  successThreshold: 1
+
+# Autoscaling
+autoscaling:
+  enabled: true
+  minReplicas: 3
+  maxReplicas: 8
+  targetCPUUtilizationPercentage: 70
+  targetMemoryUtilizationPercentage: 80
+
+# Pod Disruption Budget for high availability
+podDisruptionBudget:
+  enabled: true
+  minAvailable: 2  # Ensure at least 2 pods during maintenance
+
+# Network Policy for security
+networkPolicy:
+  enabled: true
+  ingress:
+    - from:
+      - namespaceSelector:
+          matchLabels:
+            name: production
+      - podSelector:
+          matchLabels:
+            app: backend
+      ports:
+        - protocol: TCP
+          port: 9000  # API
+        - protocol: TCP
+          port: 9001  # Console
+  egress: []
+
+# Node selector
+nodeSelector: {}
+# Example: Run on SSD-equipped nodes
+# nodeSelector:
+#   disk-type: ssd
+
+# Tolerations
+tolerations: []
+
+# Affinity rules for HA
+affinity:
+  podAntiAffinity:
+    preferredDuringSchedulingIgnoredDuringExecution:
+      - weight: 100
+        podAffinityTerm:
+          labelSelector:
+            matchExpressions:
+              - key: app.kubernetes.io/name
+                operator: In
+                values:
+                  - rustfs
+          topologyKey: kubernetes.io/hostname
+      - weight: 50
+        podAffinityTerm:
+          labelSelector:
+            matchExpressions:
+              - key: app.kubernetes.io/name
+                operator: In
+                values:
+                  - rustfs
+          topologyKey: topology.kubernetes.io/zone
+
+# Volume snapshot for backup
+volumeSnapshots:
+  enabled: false
+  storageClassName: ""
+  schedule: "0 2 * * *"  # Daily at 2 AM
+
+# Monitoring
+monitoring:
+  enabled: true
+  serviceMonitor:
+    enabled: true
+    interval: 30s
+    labels:
+      prometheus: kube-prometheus
+    path: /metrics
+
+# Lifecycle hooks
+lifecycle:
+  preStop:
+    exec:
+      command: ["/bin/sh", "-c", "sleep 15"]  # Graceful shutdown
