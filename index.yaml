@@ -42,6 +42,74 @@ entries:
     urls:
     - https://github.com/ScriptonBasestar-containers/sb-helm-charts/releases/download/devpi-0.1.0/devpi-0.1.0.tgz
     version: 0.1.0
+  immich:
+  - annotations:
+      artifacthub.io/changes: |
+        - kind: added
+          description: Initial Immich chart with microservices architecture
+      artifacthub.io/license: BSD-3-Clause
+      artifacthub.io/prerelease: "true"
+      artifacthub.io/recommendations: |
+        - url: https://artifacthub.io/packages/helm/bitnami/postgresql
+        - url: https://artifacthub.io/packages/helm/bitnami/redis
+      category: Media
+    apiVersion: v2
+    appVersion: v1.122.3
+    created: "2025-11-15T14:03:23.948158501Z"
+    description: High-performance self-hosted photo and video management solution
+      with AI-powered features
+    digest: 895605e395db68dc8a1f86fa9139c1e050dd963e33b404117b9880057eb16ec9
+    home: https://immich.app
+    icon: https://immich.app/img/immich-logo.svg
+    keywords:
+    - immich
+    - photos
+    - media
+    - gallery
+    - ai
+    - machine-learning
+    maintainers:
+    - email: archmagece@users.noreply.github.com
+      name: archmagece
+    name: immich
+    sources:
+    - https://github.com/scriptonbasestar-container/sb-helm-charts/tree/master/charts/immich
+    - https://github.com/immich-app/immich
+    type: application
+    urls:
+    - https://github.com/ScriptonBasestar-containers/sb-helm-charts/releases/download/immich-0.1.0/immich-0.1.0.tgz
+    version: 0.1.0
+  jellyfin:
+  - annotations:
+      artifacthub.io/license: BSD-3-Clause
+      category: Media
+    apiVersion: v2
+    appVersion: 10.10.3
+    created: "2025-11-15T14:03:24.163319727Z"
+    description: Jellyfin - The Free Software Media System (Plex Alternative)
+    digest: 48fcc872f2fe5be6d55a316502304191413c1702c17f468d3cf5087370211dc6
+    home: https://github.com/scriptonbasestar-container/sb-helm-charts
+    icon: https://raw.githubusercontent.com/jellyfin/jellyfin-ux/master/branding/SVG/icon-transparent.svg
+    keywords:
+    - jellyfin
+    - media-server
+    - streaming
+    - plex-alternative
+    - transcoding
+    - gpu-acceleration
+    maintainers:
+    - email: archmagece@users.noreply.github.com
+      name: archmagece
+    name: jellyfin
+    sources:
+    - https://github.com/scriptonbasestar-container/sb-helm-charts
+    - https://scriptonbasestar-container.github.io/sb-helm-charts
+    - https://github.com/jellyfin/jellyfin
+    - https://hub.docker.com/r/jellyfin/jellyfin
+    type: application
+    urls:
+    - https://github.com/ScriptonBasestar-containers/sb-helm-charts/releases/download/jellyfin-0.1.0/jellyfin-0.1.0.tgz
+    version: 0.1.0
   keycloak:
   - annotations:
       artifacthub.io/license: BSD-3-Clause
@@ -132,7 +200,67 @@ entries:
     urls:
     - https://github.com/ScriptonBasestar-containers/sb-helm-charts/releases/download/nextcloud-0.1.0/nextcloud-0.1.0.tgz
     version: 0.1.0
+  paperless-ngx:
+  - annotations:
+      artifacthub.io/license: BSD-3-Clause
+      artifacthub.io/links: |
+        - name: Documentation
+          url: https://docs.paperless-ngx.com/
+        - name: Source Code
+          url: https://github.com/paperless-ngx/paperless-ngx
+    apiVersion: v2
+    appVersion: 2.14.7
+    created: "2025-11-15T14:03:24.909407585Z"
+    description: A powerful open-source document management system with OCR, full-text
+      search, and modern web UI
+    digest: 38c7d2fa55a6d048ef9aa0a354f533636c1b50702ff48b058cfab5ffbd8721e5
+    home: https://docs.paperless-ngx.com/
+    icon: https://raw.githubusercontent.com/paperless-ngx/paperless-ngx/main/resources/logo/web/png/Black%20logo%20-%20no%20background.png
+    keywords:
+    - paperless
+    - document-management
+    - ocr
+    - dms
+    maintainers:
+    - name: ScriptonBasestar
+    name: paperless-ngx
+    sources:
+    - https://github.com/scriptonbasestar-container/sb-helm-charts
+    - https://github.com/paperless-ngx/paperless-ngx
+    type: application
+    urls:
+    - https://github.com/ScriptonBasestar-containers/sb-helm-charts/releases/download/paperless-ngx-0.1.0/paperless-ngx-0.1.0.tgz
+    version: 0.1.0
   rabbitmq:
+  - annotations:
+      artifacthub.io/license: BSD-3-Clause
+    apiVersion: v2
+    appVersion: 3.13.1
+    created: "2025-11-15T14:03:25.101603846Z"
+    description: A Helm chart for RabbitMQ message broker with management UI and Prometheus
+      metrics
+    digest: d24cb7c66fcb758a72e44ce47825d83fc02c6ef037243ce5e3e799c22548a26c
+    home: https://www.rabbitmq.com/
+    icon: https://www.rabbitmq.com/img/rabbitmq-logo.svg
+    keywords:
+    - rabbitmq
+    - message-queue
+    - amqp
+    - messaging
+    - broker
+    - message-broker
+    maintainers:
+    - email: archmagece@users.noreply.github.com
+      name: archmagece
+    name: rabbitmq
+    sources:
+    - https://github.com/ScriptonBasestar-containers/sb-helm-charts
+    - https://github.com/rabbitmq/rabbitmq-server
+    - https://hub.docker.com/_/rabbitmq
+    type: application
+    urls:
+    - https://github.com/ScriptonBasestar-containers/sb-helm-charts/releases/download/rabbitmq-0.2.0/rabbitmq-0.2.0.tgz
+    version: 0.2.0
   - annotations:
       artifacthub.io/license: BSD-3-Clause
     apiVersion: v2
@@ -163,6 +291,35 @@ entries:
     - https://github.com/ScriptonBasestar-containers/sb-helm-charts/releases/download/rabbitmq-0.1.0/rabbitmq-0.1.0.tgz
     version: 0.1.0
   redis:
+  - annotations:
+      artifacthub.io/license: BSD-3-Clause
+    apiVersion: v2
+    appVersion: 7.4.1
+    created: "2025-11-15T14:03:25.273516007Z"
+    description: In-memory data structure store - cache, database, and message broker
+    digest: 1f01ca4b553522bb09aa1b5557832214dfe5c77e95d07de3d752167a5af0db62
+    home: https://redis.io/
+    icon: https://raw.githubusercontent.com/scriptonbasestar-container/sb-helm-charts/master/charts/redis/icon.png
+    keywords:
+    - redis
+    - cache
+    - database
+    - nosql
+    - key-value
+    - in-memory
+    - data-structure
+    maintainers:
+    - email: archmagece@users.noreply.github.com
+      name: archmagece
+    name: redis
+    sources:
+    - https://github.com/scriptonbasestar-container/sb-helm-charts
+    - https://github.com/redis/redis
+    - https://hub.docker.com/_/redis
+    type: application
+    urls:
+    - https://github.com/ScriptonBasestar-containers/sb-helm-charts/releases/download/redis-0.2.0/redis-0.2.0.tgz
+    version: 0.2.0
   - apiVersion: v2
     appVersion: 7.4.1
     created: "2025-11-10T07:50:02.796911023Z"
@@ -209,7 +366,126 @@ entries:
     urls:
     - https://github.com/ScriptonBasestar/sb-helm-charts/releases/download/rsshub-0.1.0/rsshub-0.1.0.tgz
     version: 0.1.0
+  rustfs:
+  - annotations:
+      licenses: BSD-3-Clause
+    apiVersion: v2
+    appVersion: 1.0.0-alpha.66
+    created: "2025-11-15T14:03:25.636422911Z"
+    description: High-performance S3-compatible object storage built with Rust, supporting
+      migration and coexistence with MinIO/Ceph
+    digest: 9686b2505ba703713590562382de9847867eadad3a12492481203ac117fe3ae8
+    home: https://rustfs.com/
+    icon: https://rustfs.com/logo.png
+    keywords:
+    - rustfs
+    - object-storage
+    - s3
+    - minio-alternative
+    - rust
+    maintainers:
+    - email: github@scriptonsol.com
+      name: ScriptonBasestar
+    name: rustfs
+    sources:
+    - https://github.com/scriptonbasestar-container/sb-helm-charts
+    - https://github.com/rustfs/rustfs
+    type: application
+    urls:
+    - https://github.com/ScriptonBasestar-containers/sb-helm-charts/releases/download/rustfs-0.1.0/rustfs-0.1.0.tgz
+    version: 0.1.0
+  uptime-kuma:
+  - annotations:
+      artifacthub.io/license: BSD-3-Clause
+    apiVersion: v2
+    appVersion: 2.0.2
+    created: "2025-11-15T14:03:25.81416359Z"
+    description: Self-hosted monitoring tool with beautiful UI and 90+ notification
+      services
+    digest: c51a5978f388ce2dde95ed5ab6dd65a4c79045add1b75ff7f6e8a680e0270b43
+    home: https://uptime.kuma.pet
+    icon: https://uptime.kuma.pet/img/icon.svg
+    keywords:
+    - uptime-kuma
+    - monitoring
+    - uptime
+    - status-page
+    - alerting
+    - self-hosted
+    - notifications
+    - health-check
+    maintainers:
+    - email: archmagece@users.noreply.github.com
+      name: archmagece
+    name: uptime-kuma
+    sources:
+    - https://github.com/scriptonbasestar-container/sb-helm-charts
+    - https://github.com/louislam/uptime-kuma
+    - https://hub.docker.com/r/louislam/uptime-kuma
+    type: application
+    urls:
+    - https://github.com/ScriptonBasestar-containers/sb-helm-charts/releases/download/uptime-kuma-0.1.0/uptime-kuma-0.1.0.tgz
+    version: 0.1.0
+  vaultwarden:
+  - annotations:
+      artifacthub.io/changes: |
+        - kind: added
+          description: Initial Vaultwarden chart with SQLite/PostgreSQL support
+      artifacthub.io/license: BSD-3-Clause
+      category: Security
+    apiVersion: v2
+    appVersion: 1.34.3
+    created: "2025-11-15T14:03:26.002419703Z"
+    description: Unofficial Bitwarden-compatible password manager written in Rust
+    digest: eb179d85df71d12ff55f144514e927e7c02f51ab250269cd9027aadb357c693f
+    home: https://github.com/dani-garcia/vaultwarden
+    icon: https://raw.githubusercontent.com/dani-garcia/vaultwarden/main/resources/vaultwarden-icon.svg
+    keywords:
+    - vaultwarden
+    - bitwarden
+    - password-manager
+    - secrets
+    - security
+    maintainers:
+    - email: archmagece@users.noreply.github.com
+      name: archmagece
+    name: vaultwarden
+    sources:
+    - https://github.com/scriptonbasestar-container/sb-helm-charts/tree/master/charts/vaultwarden
+    - https://github.com/dani-garcia/vaultwarden
+    type: application
+    urls:
+    - https://github.com/ScriptonBasestar-containers/sb-helm-charts/releases/download/vaultwarden-0.1.0/vaultwarden-0.1.0.tgz
+    version: 0.1.0
   wireguard:
+  - annotations:
+      artifacthub.io/license: BSD-3-Clause
+    apiVersion: v2
+    appVersion: 1.0.20250521
+    created: "2025-11-15T14:03:26.194458154Z"
+    description: A Helm chart for WireGuard VPN - Fast, modern, secure VPN tunnel
+    digest: d23906a75f6d038b52ca07580f174ef91361a05ac11549a6cafb5170ec72f3d9
+    home: https://www.wireguard.com/
+    icon: https://www.wireguard.com/img/wireguard.svg
+    keywords:
+    - wireguard
+    - vpn
+    - network
+    - security
+    - tunnel
+    maintainers:
+    - email: archmagece@users.noreply.github.com
+      name: archmagece
+    name: wireguard
+    sources:
+    - https://scriptonbasestar-docker.github.io/sb-helm-charts/
+    - https://github.com/scriptonbasestar-docker/sb-helm-charts
+    - https://www.wireguard.com/
+    - https://github.com/linuxserver/docker-wireguard
+    type: application
+    urls:
+    - https://github.com/ScriptonBasestar-containers/sb-helm-charts/releases/download/wireguard-0.2.0/wireguard-0.2.0.tgz
+    version: 0.2.0
   - annotations:
       artifacthub.io/license: BSD-3-Clause
     apiVersion: v2
@@ -263,4 +539,4 @@ entries:
     urls:
     - https://github.com/ScriptonBasestar-containers/sb-helm-charts/releases/download/wordpress-0.1.0/wordpress-0.1.0.tgz
     version: 0.1.0
-generated: "2025-11-14T01:11:59.386027566Z"
+generated: "2025-11-15T14:03:26.368593172Z"
