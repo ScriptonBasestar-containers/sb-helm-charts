@@ -1,115 +1,119 @@
-# WireGuard values for Home Server - Single Node
-# VPN configuration for personal/home lab use
-# Use: helm install wireguard ./charts/wireguard -f charts/wireguard/values-home-single.yaml
+# Home Server scenario for wireguard
+# Minimal resources for personal VPN use
+# Auto mode with few peers
 
-# WireGuard configuration - Auto mode for simplicity
+# 1. Application-specific Configuration
+
 wireguard:
-  mode: "auto"  # Use LinuxServer.io auto-generation
+  # Use auto mode for simplicity
+  mode: "auto"
 
-  # Auto mode configuration
   auto:
-    serverUrl: ""  # REQUIRED - set your public IP or domain
+    # REQUIRED: Set via --set wireguard.auto.serverUrl=your.domain.com
+    serverUrl: ""
     serverPort: 51820
-    peers: 3  # Reduced for home use
+    # Minimal peers for home use
+    peers: 3
     internalSubnet: "10.13.13.0"
-    peerDns: "1.1.1.1"  # Cloudflare DNS
-    allowedIPs: "0.0.0.0/0, ::/0"  # Full tunnel
+    peerDns: "1.1.1.1"
+    allowedIPs: "0.0.0.0/0, ::/0"
     persistentKeepalive: 25
 
   dns:
     enabled: false
 
-# Sysctl configuration method
-sysctlMethod: "init"  # Use privileged initContainer
+# 3. Persistence Configuration
 
-# Single replica
+persistence:
+  enabled: true
+  storageClass: ""
+  size: 512Mi
+  accessMode: ReadWriteOnce
+  reclaimPolicy: Retain
+
+# 4. Kubernetes Resources
+
 replicaCount: 1
 
-# Container image
 image:
   repository: lscr.io/linuxserver/wireguard
-  pullPolicy: IfNotPresent
   tag: "1.0.20210914"
+  pullPolicy: IfNotPresent
+
+strategy:
+  type: Recreate
+
+# 5. Service Account
 
 serviceAccount:
   create: true
   automount: true
 
-podLabels:
-  environment: "home"
-  tier: "vpn"
+# 6. Pod Configuration
 
 podSecurityContext:
-  fsGroup: 1000
+  sysctls:
+    - name: net.ipv4.conf.all.src_valid_mark
+      value: "1"
+    - name: net.ipv4.ip_forward
+      value: "1"
 
 securityContext:
-  runAsUser: 1000
-  runAsNonRoot: true
-  allowPrivilegeEscalation: false
   capabilities:
     add:
       - NET_ADMIN
-    drop:
-      - ALL
+      - SYS_MODULE
+  privileged: false
+  runAsUser: 0
+  runAsGroup: 0
 
-# Service - UDP for WireGuard
+# 7. Service Configuration
+
 service:
   type: NodePort
   port: 51820
   protocol: UDP
-  nodePort: 31820  # Fixed NodePort for home server
 
-# Resource limits - minimal for home
+# 9. Resources - Minimal for home server
+
 resources:
   limits:
-    cpu: 200m
-    memory: 256Mi
+    cpu: 100m
+    memory: 128Mi
   requests:
     cpu: 50m
-    memory: 128Mi
+    memory: 64Mi
+
+# 10. Health Probes
 
 livenessProbe:
   enabled: true
-  exec:
-    command:
-      - /bin/sh
-      - -c
-      - wg show wg0
-  initialDelaySeconds: 30
-  periodSeconds: 30
-  failureThreshold: 3
 
 readinessProbe:
   enabled: true
-  exec:
-    command:
-      - /bin/sh
-      - -c
-      - wg show wg0
-  initialDelaySeconds: 10
-  periodSeconds: 10
-  failureThreshold: 3
 
-persistence:
-  enabled: true
-  storageClass: ""
-  accessMode: ReadWriteOnce
-  size: 1Gi  # Minimal for config storage
+# 11. Autoscaling - Disabled
 
 autoscaling:
   enabled: false
 
+# 12. Pod Disruption Budget - Disabled
+
 podDisruptionBudget:
   enabled: false
+
+# 13. Network Policy - Disabled
 
 networkPolicy:
   enabled: false
 
+# 14. Monitoring - Disabled
+
 monitoring:
   enabled: false
+
+# 15. Scheduling
 
 nodeSelector: {}
 tolerations: []
 affinity: {}
-
-initContainers: []

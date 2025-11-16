@@ -1,85 +1,120 @@
-# WireGuard values for Startup - Single Node
-# VPN configuration for team/development use
-# Use: helm install wireguard ./charts/wireguard -f charts/wireguard/values-startup-single.yaml
+# Startup scenario for wireguard
+# Balanced configuration for small team VPN
+# Auto mode with more peers
+
+# 1. Application-specific Configuration
 
 wireguard:
+  # Use auto mode for convenience
   mode: "auto"
+
   auto:
-    serverUrl: ""  # REQUIRED
+    # REQUIRED: Set via --set wireguard.auto.serverUrl=your.domain.com
+    serverUrl: ""
     serverPort: 51820
+    # More peers for team use
     peers: 10
     internalSubnet: "10.13.13.0"
     peerDns: "1.1.1.1"
     allowedIPs: "0.0.0.0/0, ::/0"
     persistentKeepalive: 25
+
   dns:
     enabled: false
 
-sysctlMethod: "init"
-replicaCount: 1
-
-image:
-  repository: lscr.io/linuxserver/wireguard
-  pullPolicy: IfNotPresent
-  tag: "1.0.20210914"
-
-serviceAccount:
-  create: true
-
-podLabels:
-  environment: "startup"
-  tier: "vpn"
-
-podSecurityContext:
-  fsGroup: 1000
-
-securityContext:
-  runAsUser: 1000
-  runAsNonRoot: true
-  allowPrivilegeEscalation: false
-  capabilities:
-    add:
-      - NET_ADMIN
-    drop:
-      - ALL
-
-service:
-  type: LoadBalancer
-  port: 51820
-  protocol: UDP
-
-resources:
-  limits:
-    cpu: 500m
-    memory: 512Mi
-  requests:
-    cpu: 100m
-    memory: 256Mi
-
-livenessProbe:
-  enabled: true
-  exec:
-    command: ["/bin/sh", "-c", "wg show wg0"]
-  initialDelaySeconds: 30
-  periodSeconds: 30
-
-readinessProbe:
-  enabled: true
-  exec:
-    command: ["/bin/sh", "-c", "wg show wg0"]
-  initialDelaySeconds: 10
-  periodSeconds: 10
+# 3. Persistence Configuration
 
 persistence:
   enabled: true
   storageClass: ""
-  size: 2Gi
+  size: 1Gi
+  accessMode: ReadWriteOnce
+  reclaimPolicy: Retain
+
+# 4. Kubernetes Resources
+
+replicaCount: 1
+
+image:
+  repository: lscr.io/linuxserver/wireguard
+  tag: "1.0.20210914"
+  pullPolicy: IfNotPresent
+
+strategy:
+  type: Recreate
+
+# 5. Service Account
+
+serviceAccount:
+  create: true
+  automount: true
+
+# 6. Pod Configuration
+
+podSecurityContext:
+  sysctls:
+    - name: net.ipv4.conf.all.src_valid_mark
+      value: "1"
+    - name: net.ipv4.ip_forward
+      value: "1"
+
+securityContext:
+  capabilities:
+    add:
+      - NET_ADMIN
+      - SYS_MODULE
+  privileged: false
+  runAsUser: 0
+  runAsGroup: 0
+
+# 7. Service Configuration
+
+service:
+  # Consider LoadBalancer for easier external access
+  type: LoadBalancer
+  port: 51820
+  protocol: UDP
+
+# 9. Resources - Balanced for startup
+
+resources:
+  limits:
+    cpu: 200m
+    memory: 256Mi
+  requests:
+    cpu: 100m
+    memory: 128Mi
+
+# 10. Health Probes
+
+livenessProbe:
+  enabled: true
+
+readinessProbe:
+  enabled: true
+
+# 11. Autoscaling - Disabled
 
 autoscaling:
   enabled: false
+
+# 12. Pod Disruption Budget - Optional
+
 podDisruptionBudget:
   enabled: false
+
+# 13. Network Policy - Optional
+
 networkPolicy:
   enabled: false
+
+# 14. Monitoring - Optional
+
 monitoring:
   enabled: false
+
+# 15. Scheduling
+
+nodeSelector: {}
+tolerations: []
+affinity: {}

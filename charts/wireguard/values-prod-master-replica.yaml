@@ -1,100 +1,126 @@
-# WireGuard values for Production - Master-Replica
-# Note: WireGuard doesn't support replication - use multiple independent instances
-# This configuration is optimized for production single-instance deployment
-# Use: helm install wireguard ./charts/wireguard -f charts/wireguard/values-prod-master-replica.yaml
+# Production scenario for wireguard
+# Manual mode with full configuration control
+# LoadBalancer service with monitoring
+
+# 1. Application-specific Configuration
 
 wireguard:
-  mode: "auto"
-  auto:
-    serverUrl: ""  # REQUIRED - production domain or IP
-    serverPort: 51820
-    peers: 50  # Production peer capacity
-    internalSubnet: "10.13.13.0"
-    peerDns: "1.1.1.1"
-    allowedIPs: "0.0.0.0/0, ::/0"
-    persistentKeepalive: 25
+  # Use manual mode for production control
+  mode: "manual"
+
+  # REQUIRED: Provide complete wg0.conf via --set-file wireguard.serverConfig=wg0.conf
+  # or via --set wireguard.serverConfig="..."
+  serverConfig: ""
+
+  # REQUIRED: Server private key (stored in Secret)
+  privateKey: ""
+
   dns:
     enabled: false
 
-sysctlMethod: "init"
-replicaCount: 1  # WireGuard doesn't support horizontal scaling
-
-image:
-  repository: lscr.io/linuxserver/wireguard
-  pullPolicy: IfNotPresent
-  tag: "1.0.20210914"
-
-serviceAccount:
-  create: true
-
-podAnnotations:
-  prometheus.io/scrape: "false"  # WireGuard doesn't expose metrics
-
-podLabels:
-  environment: "production"
-  tier: "vpn"
-
-podSecurityContext:
-  fsGroup: 1000
-
-securityContext:
-  runAsUser: 1000
-  runAsNonRoot: true
-  allowPrivilegeEscalation: false
-  capabilities:
-    add:
-      - NET_ADMIN
-    drop:
-      - ALL
-
-service:
-  type: LoadBalancer
-  port: 51820
-  protocol: UDP
-  annotations:
-    service.beta.kubernetes.io/aws-load-balancer-type: "nlb"  # Example for AWS
-
-resources:
-  limits:
-    cpu: 1000m
-    memory: 1Gi
-  requests:
-    cpu: 200m
-    memory: 512Mi
-
-livenessProbe:
-  enabled: true
-  exec:
-    command: ["/bin/sh", "-c", "wg show wg0"]
-  initialDelaySeconds: 30
-  periodSeconds: 30
-  failureThreshold: 3
-
-readinessProbe:
-  enabled: true
-  exec:
-    command: ["/bin/sh", "-c", "wg show wg0"]
-  initialDelaySeconds: 10
-  periodSeconds: 10
-  failureThreshold: 3
+# 3. Persistence Configuration
 
 persistence:
   enabled: true
   storageClass: ""
-  size: 5Gi
+  size: 2Gi
+  accessMode: ReadWriteOnce
+  reclaimPolicy: Retain
+
+# 4. Kubernetes Resources
+
+replicaCount: 1
+
+image:
+  repository: lscr.io/linuxserver/wireguard
+  tag: "1.0.20210914"
+  pullPolicy: IfNotPresent
+
+strategy:
+  type: Recreate
+
+# 5. Service Account
+
+serviceAccount:
+  create: true
+  automount: true
+
+# 6. Pod Configuration
+
+podAnnotations: {}
+
+podSecurityContext:
+  sysctls:
+    - name: net.ipv4.conf.all.src_valid_mark
+      value: "1"
+    - name: net.ipv4.ip_forward
+      value: "1"
+
+securityContext:
+  capabilities:
+    add:
+      - NET_ADMIN
+      - SYS_MODULE
+  privileged: false
+  runAsUser: 0
+  runAsGroup: 0
+
+# 7. Service Configuration
+
+service:
+  # LoadBalancer for production external access
+  type: LoadBalancer
+  port: 51820
+  protocol: UDP
+  # Optional: Set specific LoadBalancer IP
+  # loadBalancerIP: ""
+
+# 9. Resources - Production grade
+
+resources:
+  limits:
+    cpu: 500m
+    memory: 512Mi
+  requests:
+    cpu: 200m
+    memory: 256Mi
+
+# 10. Health Probes
+
+livenessProbe:
+  enabled: true
+
+readinessProbe:
+  enabled: true
+
+# 11. Autoscaling - Disabled (single instance required)
 
 autoscaling:
-  enabled: false  # Not applicable for WireGuard
+  enabled: false
+
+# 12. Pod Disruption Budget - Enabled
 
 podDisruptionBudget:
   enabled: true
   minAvailable: 1
 
+# 13. Network Policy - Disabled by default
+# WireGuard needs to accept connections from anywhere, which makes network policies complex
+
 networkPolicy:
-  enabled: false  # NetworkPolicy requires proper configuration per environment
+  enabled: false
+
+# 14. Monitoring - Production monitoring
 
 monitoring:
-  enabled: false  # WireGuard doesn't expose metrics natively
+  enabled: true
+  serviceMonitor:
+    # Enable if Prometheus Operator is installed
+    enabled: false
+    interval: 30s
+    scrapeTimeout: 10s
+
+# 15. Scheduling
 
 nodeSelector: {}
 tolerations: []
