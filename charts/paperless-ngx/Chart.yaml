@@ -18,8 +18,19 @@ maintainers:
   - name: ScriptonBasestar
 annotations:
   artifacthub.io/license: BSD-3-Clause
+  artifacthub.io/changes: |
+    - kind: added
+      description: Deployment scenario values files (home-single, startup-single, prod-master-replica)
+    - kind: added
+      description: Comprehensive README with deployment scenarios section
+  artifacthub.io/prerelease: "false"
+  artifacthub.io/recommendations: |
+    - url: https://github.com/scriptonbasestar-container/sb-helm-charts/blob/master/docs/SCENARIO_VALUES_GUIDE.md
+      description: Scenario Values Deployment Guide
+    - url: https://github.com/scriptonbasestar-container/sb-helm-charts/blob/master/docs/CHART_DEVELOPMENT_GUIDE.md
+      description: Chart Development Guide
   artifacthub.io/links: |
-    - name: Documentation
+    - name: Chart Source
+      url: https://github.com/scriptonbasestar-container/sb-helm-charts/tree/master/charts/paperless-ngx
+    - name: Paperless-ngx Documentation
       url: https://docs.paperless-ngx.com/
-    - name: Source Code
-      url: https://github.com/paperless-ngx/paperless-ngx
