@@ -37,6 +37,50 @@ RabbitMQ is a widely-used open-source message broker that implements the Advance
 - Helm 3.0+
 - PersistentVolume provisioner (if persistence is enabled)
 
+## Deployment Scenarios
+
+This chart includes three pre-configured deployment scenarios optimized for different use cases:
+
+### Home Server (`values-home-single.yaml`)
+
+Minimal resources for personal servers, home labs, Raspberry Pi, or Intel NUC:
+
+```bash
+helm install rabbitmq-home charts/rabbitmq \
+  -f charts/rabbitmq/values-home-single.yaml \
+  --set rabbitmq.admin.password=your-secure-password
+```
+
+**Resource allocation:** 100-500m CPU, 256-512Mi RAM, 5Gi storage
+
+### Startup Environment (`values-startup-single.yaml`)
+
+Balanced configuration for small teams, startups, and development environments:
+
+```bash
+helm install rabbitmq-startup charts/rabbitmq \
+  -f charts/rabbitmq/values-startup-single.yaml \
+  --set rabbitmq.admin.password=your-secure-password
+```
+
+**Resource allocation:** 250m-1000m CPU, 512Mi-1Gi RAM, 10Gi storage
+
+### Production HA (`values-prod-master-replica.yaml`)
+
+High availability deployment with multiple replicas and monitoring:
+
+```bash
+helm install rabbitmq-prod charts/rabbitmq \
+  -f charts/rabbitmq/values-prod-master-replica.yaml \
+  --set rabbitmq.admin.password=your-secure-password
+```
+
+**Features:** 3 replicas, pod anti-affinity, HPA, PodDisruptionBudget, NetworkPolicy, ServiceMonitor
+
+**Resource allocation:** 500m-2000m CPU, 1-2Gi RAM, 20Gi storage per pod
+
+For detailed comparison and configuration examples, see the [Scenario Values Guide](../../docs/SCENARIO_VALUES_GUIDE.md#rabbitmq).
+
 ## ⚠️ Important: Password Requirement
 
 **The RabbitMQ admin password is mandatory** for both installation and template validation:

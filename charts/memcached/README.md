@@ -35,6 +35,47 @@
 - Kubernetes 1.19+
 - Helm 3.2.0+
 
+## Deployment Scenarios
+
+This chart includes three pre-configured deployment scenarios optimized for different use cases:
+
+### Home Server (`values-home-single.yaml`)
+
+Minimal resources for personal servers, home labs, Raspberry Pi, or Intel NUC:
+
+```bash
+helm install memcached-home charts/memcached \
+  -f charts/memcached/values-home-single.yaml
+```
+
+**Resource allocation:** 50-250m CPU, 128-256Mi RAM, 128MB cache
+
+### Startup Environment (`values-startup-single.yaml`)
+
+Balanced configuration for small teams, startups, and development environments:
+
+```bash
+helm install memcached-startup charts/memcached \
+  -f charts/memcached/values-startup-single.yaml
+```
+
+**Resource allocation:** 100-500m CPU, 256-512Mi RAM, 256MB cache
+
+### Production HA (`values-prod-master-replica.yaml`)
+
+High availability deployment with multiple replicas and auto-scaling:
+
+```bash
+helm install memcached-prod charts/memcached \
+  -f charts/memcached/values-prod-master-replica.yaml
+```
+
+**Features:** 3 replicas, pod anti-affinity, HPA (3-10 pods), PodDisruptionBudget
+
+**Resource allocation:** 250m-1000m CPU, 512Mi-1Gi RAM, 512MB cache per pod
+
+For detailed comparison and configuration examples, see the [Scenario Values Guide](../../docs/SCENARIO_VALUES_GUIDE.md#memcached).
+
 ## Installation
 
 ### 1. Basic Installation

@@ -40,6 +40,50 @@ See [Redis Operator Migration Guide](../../docs/03-redis-operator-migration.md) 
 - Helm 3.2.0+
 - PersistentVolume provisioner support in the underlying infrastructure
 
+## Deployment Scenarios
+
+This chart includes three pre-configured deployment scenarios optimized for different use cases:
+
+### Home Server (`values-home-single.yaml`)
+
+Minimal resources for personal servers, home labs, Raspberry Pi, or Intel NUC:
+
+```bash
+helm install redis-home charts/redis \
+  -f charts/redis/values-home-single.yaml \
+  --set redis.password=your-secure-password
+```
+
+**Resource allocation:** 50-250m CPU, 128-512Mi RAM, 5Gi storage
+
+### Startup Environment (`values-startup-single.yaml`)
+
+Balanced configuration for small teams, startups, and development environments:
+
+```bash
+helm install redis-startup charts/redis \
+  -f charts/redis/values-startup-single.yaml \
+  --set redis.password=your-secure-password
+```
+
+**Resource allocation:** 100-500m CPU, 256Mi-1Gi RAM, 10Gi storage
+
+### Production HA (`values-prod-master-replica.yaml`)
+
+High availability deployment with master-replica replication and monitoring:
+
+```bash
+helm install redis-prod charts/redis \
+  -f charts/redis/values-prod-master-replica.yaml \
+  --set redis.password=your-secure-password
+```
+
+**Features:** 3 replicas (1 master + 2 read replicas), pod anti-affinity, PodDisruptionBudget, ServiceMonitor
+
+**Resource allocation:** 250m-2000m CPU, 512Mi-2Gi RAM, 20Gi storage per pod
+
+For detailed comparison and configuration examples, see the [Scenario Values Guide](../../docs/SCENARIO_VALUES_GUIDE.md#redis).
+
 ## Installation
 
 ### 1. Basic Installation

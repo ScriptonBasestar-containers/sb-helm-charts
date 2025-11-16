@@ -23,6 +23,49 @@
 - PersistentVolume support (for config persistence)
 - LoadBalancer or NodePort for external access
 
+## Deployment Scenarios
+
+This chart includes three pre-configured deployment scenarios optimized for different use cases:
+
+### Home Server (`values-home-single.yaml`)
+
+Minimal resources for personal VPN servers, home labs:
+
+```bash
+helm install wireguard-home charts/wireguard \
+  -f charts/wireguard/values-home-single.yaml
+```
+
+**Resource allocation:** 100-250m CPU, 128-256Mi RAM, 1Gi config storage
+
+### Startup Environment (`values-startup-single.yaml`)
+
+Balanced configuration for small teams and remote access:
+
+```bash
+helm install wireguard-startup charts/wireguard \
+  -f charts/wireguard/values-startup-single.yaml
+```
+
+**Resource allocation:** 100-500m CPU, 256-512Mi RAM, 2Gi config storage
+
+### Production HA (`values-prod-master-replica.yaml`)
+
+High availability VPN deployment (Note: WireGuard is inherently single-instance):
+
+```bash
+helm install wireguard-prod charts/wireguard \
+  -f charts/wireguard/values-prod-master-replica.yaml
+```
+
+**Features:** Enhanced resource limits, monitoring enabled
+
+**Resource allocation:** 250m-1000m CPU, 512Mi-1Gi RAM, 5Gi config storage
+
+**Note:** WireGuard doesn't support true HA clustering. The "prod" scenario provides increased resources and monitoring for reliability.
+
+For detailed comparison and configuration examples, see the [Scenario Values Guide](../../docs/SCENARIO_VALUES_GUIDE.md#wireguard).
+
 ## Quick Start
 
 ### 1. Check WireGuard Kernel Module
