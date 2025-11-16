@@ -26,6 +26,54 @@ This chart bootstraps an Immich deployment on a Kubernetes cluster using microse
 
 ## Prerequisites
 
+## Deployment Scenarios
+
+This chart includes three pre-configured deployment scenarios optimized for different use cases:
+
+### Home Server (`values-home-single.yaml`)
+
+Minimal resources for personal servers, home labs, Raspberry Pi, or Intel NUC:
+
+```bash
+helm install immich-home charts/immich \
+  -f charts/immich/values-home-single.yaml \
+  --set postgresql.external.password=your-db-password \
+  --set postgresql.external.host=postgres.default.svc.cluster.local
+```
+
+**Resource allocation:** 100-500m CPU, 256-512Mi RAM, 20Gi storage
+
+### Startup Environment (`values-startup-single.yaml`)
+
+Balanced configuration for small teams, startups, and development environments:
+
+```bash
+helm install immich-startup charts/immich \
+  -f charts/immich/values-startup-single.yaml \
+  --set postgresql.external.password=your-db-password \
+  --set postgresql.external.host=postgres.default.svc.cluster.local
+```
+
+**Resource allocation:** 250m-1000m CPU, 512Mi-1Gi RAM, 50Gi storage
+
+### Production HA (`values-prod-master-replica.yaml`)
+
+High availability deployment with machine learning and enhanced storage:
+
+```bash
+helm install immich-prod charts/immich \
+  -f charts/immich/values-prod-master-replica.yaml \
+  --set postgresql.external.password=your-db-password \
+  --set postgresql.external.host=postgres.default.svc.cluster.local
+```
+
+**Features:** ML-powered photo recognition, PodDisruptionBudget, NetworkPolicy, ServiceMonitor
+
+**Resource allocation:** 500m-2000m CPU, 1-2Gi RAM, 100Gi storage
+
+For detailed comparison and configuration examples, see the [Scenario Values Guide](../../docs/SCENARIO_VALUES_GUIDE.md#immich).
+
+
 - Kubernetes 1.19+
 - Helm 3.0+
 - **External PostgreSQL 14+** with [pgvecto.rs](https://github.com/tensorchord/pgvecto.rs) extension
