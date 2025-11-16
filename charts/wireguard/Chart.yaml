@@ -22,3 +22,21 @@ maintainers:
     email: archmagece@users.noreply.github.com
 annotations:
   artifacthub.io/license: BSD-3-Clause
+  artifacthub.io/changes: |
+    - kind: added
+      description: Deployment scenario values files (home-single, startup-single, prod-master-replica)
+    - kind: added
+      description: Comprehensive README with deployment scenarios section
+    - kind: changed
+      description: Chart version bumped to 0.3.0 for scenario values feature
+  artifacthub.io/prerelease: "false"
+  artifacthub.io/recommendations: |
+    - url: https://github.com/scriptonbasestar-container/sb-helm-charts/blob/master/docs/SCENARIO_VALUES_GUIDE.md
+      description: Scenario Values Deployment Guide
+    - url: https://github.com/scriptonbasestar-container/sb-helm-charts/blob/master/docs/CHART_DEVELOPMENT_GUIDE.md
+      description: Chart Development Guide
+  artifacthub.io/links: |
+    - name: Chart Source
+      url: https://github.com/scriptonbasestar-container/sb-helm-charts/tree/master/charts/wireguard
+    - name: wireguard Documentation
+      url: https://www.wireguard.com/
