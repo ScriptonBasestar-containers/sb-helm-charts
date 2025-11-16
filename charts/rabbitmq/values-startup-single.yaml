@@ -1,123 +1,181 @@
-# RabbitMQ values for Startup - Single Node
-# Balanced configuration for development and small production workloads
-# Use: helm install rabbitmq ./charts/rabbitmq -f charts/rabbitmq/values-startup-single.yaml \
-#        --set rabbitmq.admin.password='your-strong-password'
+# Startup scenario for rabbitmq
+# Balanced configuration for small team/startup use
+# Single replica with monitoring enabled
 
-# ⚠️ IMPORTANT: Password is REQUIRED
+# 1. Application-specific Configuration
+
 rabbitmq:
   admin:
     username: "admin"
-    password: ""  # REQUIRED - set via --set or existingSecret
-    existingSecret:
-      enabled: false
+    # REQUIRED: Set admin password via --set rabbitmq.admin.password=xxx
+    password: ""
 
   conf: |
+    ## Network configuration
     listeners.tcp.default = 5672
+
+    ## Management plugin
     management.tcp.port = 15672
     management.tcp.ip = 0.0.0.0
+
+    ## Memory threshold
     vm_memory_high_watermark.relative = 0.6
+
+    ## Disk free space limit
     disk_free_limit.absolute = 2GB
+
+    ## Default vhost
     default_vhost = /
+
+    ## Logging
     log.console = true
     log.console.level = info
+    log.file = false
+
+    ## Queue master locator
+    queue_master_locator = min-masters
+
+    ## Heartbeat
     heartbeat = 60
-    consumer_timeout = 1800000
+
+    ## Cluster partition handling
+    cluster_partition_handling = autoheal
 
   plugins: |
     [rabbitmq_management,rabbitmq_management_agent,rabbitmq_prometheus].
 
-erlangCookie: ""
-postgresql:
-  enabled: false
-mysql:
-  enabled: false
-redis:
-  enabled: false
+# 3. Persistence Configuration
 
 persistence:
   enabled: true
   storageClass: ""
   accessMode: ReadWriteOnce
   size: 10Gi
+  reclaimPolicy: Retain
+
+# 4. Kubernetes Resources
 
 replicaCount: 1
 
 image:
   repository: rabbitmq
-  pullPolicy: IfNotPresent
   tag: "3.13.1-management"
+  pullPolicy: IfNotPresent
+
+strategy:
+  type: RollingUpdate
+  rollingUpdate:
+    maxUnavailable: 1
+
+# 5. Service Account
 
 serviceAccount:
   create: true
   automount: true
 
-podLabels:
-  environment: "startup"
-  tier: "messaging"
+# 6. Pod Configuration
 
 podSecurityContext:
   fsGroup: 999
   runAsUser: 999
+  runAsGroup: 999
   runAsNonRoot: true
 
 securityContext:
-  runAsUser: 999
-  runAsNonRoot: true
-  allowPrivilegeEscalation: false
   capabilities:
     drop:
       - ALL
+  readOnlyRootFilesystem: false
+  runAsNonRoot: true
+  runAsUser: 999
+  runAsGroup: 999
+  allowPrivilegeEscalation: false
+
+# 7. Service Configuration
 
 service:
   type: ClusterIP
-  amqpPort: 5672
-  managementPort: 15672
-  metricsPort: 15692
+  amqp:
+    port: 5672
+  management:
+    port: 15672
+  metrics:
+    port: 15692
+
+# 9. Resources - Balanced for startup
 
 resources:
   limits:
-    cpu: 1000m
-    memory: 1Gi
-  requests:
-    cpu: 200m
+    cpu: 500m
     memory: 512Mi
+  requests:
+    cpu: 100m
+    memory: 256Mi
+
+# 10. Health Probes
 
 livenessProbe:
   enabled: true
-  tcpSocket:
-    port: amqp
-  initialDelaySeconds: 60
-  periodSeconds: 30
+  exec:
+    command:
+      - rabbitmq-diagnostics
+      - ping
+  initialDelaySeconds: 30
+  periodSeconds: 10
+  timeoutSeconds: 5
   failureThreshold: 6
+  successThreshold: 1
 
 readinessProbe:
   enabled: true
   exec:
-    command: ["rabbitmq-diagnostics", "ping"]
-  initialDelaySeconds: 20
+    command:
+      - rabbitmq-diagnostics
+      - check_running
+  initialDelaySeconds: 10
   periodSeconds: 10
+  timeoutSeconds: 5
   failureThreshold: 3
+  successThreshold: 1
 
 startupProbe:
   enabled: true
-  tcpSocket:
-    port: amqp
+  exec:
+    command:
+      - rabbitmq-diagnostics
+      - ping
   initialDelaySeconds: 10
-  periodSeconds: 10
+  periodSeconds: 5
+  timeoutSeconds: 5
   failureThreshold: 30
+  successThreshold: 1
+
+# 11. Autoscaling - Disabled (manual scaling)
 
 autoscaling:
   enabled: false
 
+# 12. Pod Disruption Budget - Optional
+
 podDisruptionBudget:
   enabled: false
+
+# 13. Network Policy - Optional
 
 networkPolicy:
   enabled: false
 
+# 14. Monitoring - Enabled
+
 monitoring:
+  enabled: true
   serviceMonitor:
+    # Enable if Prometheus Operator is installed
     enabled: false
+    interval: 30s
+    scrapeTimeout: 10s
+
+# 15. Scheduling
 
 nodeSelector: {}
 tolerations: []

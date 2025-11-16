@@ -1,35 +1,28 @@
-# RabbitMQ values for Home Server - Single Node
-# Minimal resource configuration for personal/home lab use
-# Use: helm install rabbitmq ./charts/rabbitmq -f charts/rabbitmq/values-home-single.yaml \
-#        --set rabbitmq.admin.password='your-strong-password'
+# Home Server scenario for rabbitmq
+# Minimal resources for personal/home lab use
+# Single replica, basic configuration
 
-# ⚠️ IMPORTANT: Password is REQUIRED for template validation and installation
-# Either set it via --set or create an existing secret
+# 1. Application-specific Configuration
 
-# RabbitMQ configuration
 rabbitmq:
   admin:
-    username: "admin"
-    password: ""  # REQUIRED - set via --set rabbitmq.admin.password='...' or existingSecret
-    existingSecret:
-      enabled: false
-      secretName: ""
-      usernameKey: "username"
-      passwordKey: "password"
+    username: "guest"
+    # REQUIRED: Set admin password via --set rabbitmq.admin.password=xxx
+    password: ""
 
-  # RabbitMQ configuration - minimal for home server
+  # Minimal RabbitMQ configuration
   conf: |
-    ## Network
+    ## Network configuration
     listeners.tcp.default = 5672
 
-    ## Management UI
+    ## Management plugin
     management.tcp.port = 15672
     management.tcp.ip = 0.0.0.0
 
-    ## Memory - reduced for home server
+    ## Memory threshold (60% for home server)
     vm_memory_high_watermark.relative = 0.6
 
-    ## Disk space - minimal
+    ## Disk free space limit
     disk_free_limit.absolute = 1GB
 
     ## Default vhost
@@ -38,69 +31,45 @@ rabbitmq:
     ## Logging
     log.console = true
     log.console.level = info
+    log.file = false
 
     ## Heartbeat
     heartbeat = 60
 
-  # Enabled plugins
   plugins: |
-    [rabbitmq_management,rabbitmq_management_agent,rabbitmq_prometheus].
+    [rabbitmq_management,rabbitmq_management_agent].
 
-  existingConfigMap: ""
+# 3. Persistence Configuration
 
-# Erlang cookie
-erlangCookie: ""
-
-# External dependencies - none required
-postgresql:
-  enabled: false
-mysql:
-  enabled: false
-redis:
-  enabled: false
-
-# Persistence
 persistence:
   enabled: true
-  existingClaim: ""
   storageClass: ""
   accessMode: ReadWriteOnce
-  size: 5Gi  # Reduced from 10Gi for home server
+  size: 5Gi
+  reclaimPolicy: Retain
 
-# Single replica for home server
+# 4. Kubernetes Resources
+
 replicaCount: 1
 
-# Container image
 image:
   repository: rabbitmq
-  pullPolicy: IfNotPresent
   tag: "3.13.1-management"
+  pullPolicy: IfNotPresent
 
-imagePullSecrets: []
-nameOverride: ""
-fullnameOverride: ""
-
-# Deployment strategy
 strategy:
   type: RollingUpdate
   rollingUpdate:
-    maxUnavailable: 0
-    maxSurge: 1
+    maxUnavailable: 1
 
-# Service account
+# 5. Service Account
+
 serviceAccount:
   create: true
   automount: true
-  annotations: {}
-  name: ""
 
-podAnnotations: {}
+# 6. Pod Configuration
 
-podLabels:
-  environment: "home"
-  tier: "messaging"
-
-# Security context
 podSecurityContext:
   fsGroup: 999
   runAsUser: 999
@@ -108,42 +77,44 @@ podSecurityContext:
   runAsNonRoot: true
 
 securityContext:
-  runAsUser: 999
-  runAsGroup: 999
-  runAsNonRoot: true
-  allowPrivilegeEscalation: false
   capabilities:
     drop:
       - ALL
+  readOnlyRootFilesystem: false
+  runAsNonRoot: true
+  runAsUser: 999
+  runAsGroup: 999
+  allowPrivilegeEscalation: false
 
-# Service configuration
+# 7. Service Configuration
+
 service:
   type: ClusterIP
-  amqpPort: 5672
-  managementPort: 15672
-  metricsPort: 15692
-  annotations: {}
+  amqp:
+    port: 5672
+  management:
+    port: 15672
 
-# Ingress - optional for home server
-ingress:
-  enabled: false
+# 9. Resources - Minimal for home server
 
-# Resource limits - minimal for home server
 resources:
   limits:
-    cpu: 500m       # Reduced from 1000m
-    memory: 512Mi   # Reduced from 1Gi
+    cpu: 250m
+    memory: 256Mi
   requests:
-    cpu: 100m       # Reduced from 200m
-    memory: 256Mi   # Reduced from 512Mi
+    cpu: 50m
+    memory: 128Mi
 
-# Health probes
+# 10. Health Probes
+
 livenessProbe:
   enabled: true
-  tcpSocket:
-    port: amqp
-  initialDelaySeconds: 60
-  periodSeconds: 30
+  exec:
+    command:
+      - rabbitmq-diagnostics
+      - ping
+  initialDelaySeconds: 30
+  periodSeconds: 10
   timeoutSeconds: 5
   failureThreshold: 6
   successThreshold: 1
@@ -151,8 +122,10 @@ livenessProbe:
 readinessProbe:
   enabled: true
   exec:
-    command: ["rabbitmq-diagnostics", "ping"]
-  initialDelaySeconds: 20
+    command:
+      - rabbitmq-diagnostics
+      - check_running
+  initialDelaySeconds: 10
   periodSeconds: 10
   timeoutSeconds: 5
   failureThreshold: 3
@@ -160,40 +133,38 @@ readinessProbe:
 
 startupProbe:
   enabled: true
-  tcpSocket:
-    port: amqp
+  exec:
+    command:
+      - rabbitmq-diagnostics
+      - ping
   initialDelaySeconds: 10
-  periodSeconds: 10
+  periodSeconds: 5
   timeoutSeconds: 5
   failureThreshold: 30
   successThreshold: 1
 
-# Autoscaling - disabled for home server
+# 11. Autoscaling - Disabled
+
 autoscaling:
   enabled: false
 
-# Pod Disruption Budget - disabled for single node
+# 12. Pod Disruption Budget - Disabled
+
 podDisruptionBudget:
   enabled: false
 
-# Network Policy - disabled for home server
+# 13. Network Policy - Disabled
+
 networkPolicy:
   enabled: false
 
-# Monitoring - disabled for home server
-monitoring:
-  serviceMonitor:
-    enabled: false
+# 14. Monitoring - Disabled
 
-# Scheduling
+monitoring:
+  enabled: false
+
+# 15. Scheduling
+
 nodeSelector: {}
 tolerations: []
 affinity: {}
-
-# Extensibility
-extraEnv: []
-extraEnvFrom: []
-extraVolumes: []
-extraVolumeMounts: []
-initContainers: []
-lifecycle: {}
