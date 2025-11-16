@@ -67,6 +67,22 @@ helm install nextcloud ./charts/nextcloud \
 
 For detailed scenario documentation, see [Scenario Values Guide](docs/SCENARIO_VALUES_GUIDE.md).
 
+## Recent Changes
+
+**Latest Release: v0.3.0** (2025-11-16)
+
+### What's New
+- **Deployment Scenarios**: Pre-configured values files for Home Server, Startup, and Production environments
+- **Documentation**: Comprehensive [Scenario Values Guide](docs/SCENARIO_VALUES_GUIDE.md) with deployment examples
+- **CI/CD**: Automated scenario file validation in GitHub Actions
+- **Makefile**: New targets for scenario-based deployments (`install-home`, `install-startup`, `install-prod`)
+
+### Chart Updates (v0.3.0)
+9 charts bumped from 0.2.0 → 0.3.0: keycloak, redis, memcached, rabbitmq, wireguard, browserless-chrome, devpi, rsshub, rustfs
+
+### Full Changelog
+See [CHANGELOG.md](CHANGELOG.md) for complete release notes and version history.
+
 ## 프로젝트 목표 (NO_AI_SECTION)
 
 개인 서버 및 간단한 서버 운영을 위한 차트
