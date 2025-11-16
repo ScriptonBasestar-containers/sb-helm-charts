@@ -12,6 +12,48 @@ Production-ready Browserless Chrome deployment on Kubernetes for headless browse
 
 ## Prerequisites
 
+## Deployment Scenarios
+
+This chart includes three pre-configured deployment scenarios optimized for different use cases:
+
+### Home Server (`values-home-single.yaml`)
+
+Minimal resources for personal servers, home labs, Raspberry Pi, or Intel NUC:
+
+```bash
+helm install browserless-home charts/browserless-chrome \
+  -f charts/browserless-chrome/values-home-single.yaml
+```
+
+**Resource allocation:** 100-500m CPU, 256-512Mi RAM, no persistence
+
+### Startup Environment (`values-startup-single.yaml`)
+
+Balanced configuration for small teams, startups, and development environments:
+
+```bash
+helm install browserless-startup charts/browserless-chrome \
+  -f charts/browserless-chrome/values-startup-single.yaml
+```
+
+**Resource allocation:** 250m-1000m CPU, 512Mi-1Gi RAM, no persistence
+
+### Production HA (`values-prod-master-replica.yaml`)
+
+High availability deployment with auto-scaling and enhanced reliability:
+
+```bash
+helm install browserless-prod charts/browserless-chrome \
+  -f charts/browserless-chrome/values-prod-master-replica.yaml
+```
+
+**Features:** 3 replicas, HPA (3-10 pods), PodDisruptionBudget, NetworkPolicy
+
+**Resource allocation:** 500m-2000m CPU, 1-2Gi RAM per pod, no persistence
+
+For detailed comparison and configuration examples, see the [Scenario Values Guide](../../docs/SCENARIO_VALUES_GUIDE.md#browserless-chrome).
+
+
 - Kubernetes 1.19+
 - Helm 3.0+
 

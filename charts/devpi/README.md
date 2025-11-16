@@ -12,6 +12,50 @@ Production-ready Devpi PyPI server deployment on Kubernetes for Python package m
 
 ## Prerequisites
 
+## Deployment Scenarios
+
+This chart includes three pre-configured deployment scenarios optimized for different use cases:
+
+### Home Server (`values-home-single.yaml`)
+
+Minimal resources for personal servers, home labs, Raspberry Pi, or Intel NUC:
+
+```bash
+helm install devpi-home charts/devpi \
+  -f charts/devpi/values-home-single.yaml
+```
+
+**Resource allocation:** 50-250m CPU, 128-256Mi RAM, 5Gi storage
+
+### Startup Environment (`values-startup-single.yaml`)
+
+Balanced configuration for small teams, startups, and development environments:
+
+```bash
+helm install devpi-startup charts/devpi \
+  -f charts/devpi/values-startup-single.yaml
+```
+
+**Resource allocation:** 100-500m CPU, 256-512Mi RAM, 10Gi storage
+
+### Production HA (`values-prod-master-replica.yaml`)
+
+High availability deployment with PostgreSQL and monitoring:
+
+```bash
+helm install devpi-prod charts/devpi \
+  -f charts/devpi/values-prod-master-replica.yaml \
+  --set postgresql.external.password=your-db-password \
+  --set postgresql.external.host=postgres.default.svc.cluster.local
+```
+
+**Features:** PostgreSQL backend, PodDisruptionBudget, NetworkPolicy, ServiceMonitor
+
+**Resource allocation:** 250m-1000m CPU, 512Mi-1Gi RAM, 20Gi storage
+
+For detailed comparison and configuration examples, see the [Scenario Values Guide](../../docs/SCENARIO_VALUES_GUIDE.md#devpi).
+
+
 - Kubernetes 1.19+
 - Helm 3.0+
 - PersistentVolume support (for package persistence)

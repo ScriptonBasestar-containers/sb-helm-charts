@@ -34,6 +34,48 @@ See [Chart Comparison Guide](../../docs/04-rsshub-chart-comparison.md) for detai
 
 ## Prerequisites
 
+## Deployment Scenarios
+
+This chart includes three pre-configured deployment scenarios optimized for different use cases:
+
+### Home Server (`values-home-single.yaml`)
+
+Minimal resources for personal servers, home labs, Raspberry Pi, or Intel NUC:
+
+```bash
+helm install rsshub-home charts/rsshub \
+  -f charts/rsshub/values-home-single.yaml
+```
+
+**Resource allocation:** 50-250m CPU, 128-256Mi RAM, no persistence
+
+### Startup Environment (`values-startup-single.yaml`)
+
+Balanced configuration for small teams, startups, and development environments:
+
+```bash
+helm install rsshub-startup charts/rsshub \
+  -f charts/rsshub/values-startup-single.yaml
+```
+
+**Resource allocation:** 100-500m CPU, 256-512Mi RAM, no persistence
+
+### Production HA (`values-prod-master-replica.yaml`)
+
+High availability deployment with auto-scaling and Redis cache:
+
+```bash
+helm install rsshub-prod charts/rsshub \
+  -f charts/rsshub/values-prod-master-replica.yaml
+```
+
+**Features:** 3 replicas, HPA (3-10 pods), Redis cache, PodDisruptionBudget, NetworkPolicy
+
+**Resource allocation:** 250m-1000m CPU, 512Mi-1Gi RAM per pod, no persistence
+
+For detailed comparison and configuration examples, see the [Scenario Values Guide](../../docs/SCENARIO_VALUES_GUIDE.md#rsshub).
+
+
 - Kubernetes 1.19+
 - Helm 3.0+
 

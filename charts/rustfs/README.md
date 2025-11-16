@@ -19,6 +19,48 @@ High-performance S3-compatible object storage built with Rust. This Helm chart d
 
 ## Prerequisites
 
+## Deployment Scenarios
+
+This chart includes three pre-configured deployment scenarios optimized for different use cases:
+
+### Home Server (`values-home-single.yaml`)
+
+Minimal resources for personal servers, home labs, Raspberry Pi, or Intel NUC:
+
+```bash
+helm install rustfs-home charts/rustfs \
+  -f charts/rustfs/values-home-single.yaml
+```
+
+**Resource allocation:** 100-500m CPU, 256-512Mi RAM, 10Gi storage
+
+### Startup Environment (`values-startup-single.yaml`)
+
+Balanced configuration for small teams, startups, and development environments:
+
+```bash
+helm install rustfs-startup charts/rustfs \
+  -f charts/rustfs/values-startup-single.yaml
+```
+
+**Resource allocation:** 250m-1000m CPU, 512Mi-1Gi RAM, 50Gi storage
+
+### Production HA (`values-prod-master-replica.yaml`)
+
+High availability S3-compatible object storage with clustering:
+
+```bash
+helm install rustfs-prod charts/rustfs \
+  -f charts/rustfs/values-prod-master-replica.yaml
+```
+
+**Features:** 4 replicas, StatefulSet clustering, pod anti-affinity, PodDisruptionBudget, ServiceMonitor
+
+**Resource allocation:** 500m-2000m CPU, 1-2Gi RAM, 100Gi storage per pod
+
+For detailed comparison and configuration examples, see the [Scenario Values Guide](../../docs/SCENARIO_VALUES_GUIDE.md#rustfs).
+
+
 - Kubernetes 1.23+
 - Helm 3.8+
 - PersistentVolume provisioner (for persistent storage)
