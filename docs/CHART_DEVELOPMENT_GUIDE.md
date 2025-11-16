@@ -2058,3 +2058,298 @@ rustfs-test-s3:
 4. Scaling & Updates
 5. Backup & Restore
 6. Application-specific operations
+
+## Scenario-Based Testing
+
+All charts MUST include three scenario-based configuration files for different deployment environments:
+
+### Required Scenario Files
+
+1. **values-home-single.yaml** - Minimal resources for home/lab environments
+2. **values-startup-single.yaml** - Balanced configuration for small teams
+3. **values-prod-master-replica.yaml** - High availability for production
+
+### Testing Scenarios
+
+#### Using Makefile Targets
+
+The root Makefile provides convenient targets for scenario-based deployments:
+
+```bash
+# Install with specific scenario
+make install-home CHART=memcached
+make install-startup CHART=rabbitmq
+make install-prod CHART=redis
+
+# List all available scenarios
+make list-scenarios
+
+# Validate all scenario files
+make validate-scenarios
+```
+
+#### Manual Testing
+
+Test each scenario file manually:
+
+```bash
+# Lint with scenario file
+helm lint charts/memcached -f charts/memcached/values-home-single.yaml
+
+# Template validation
+helm template test-release charts/memcached \
+  -f charts/memcached/values-home-single.yaml \
+  --validate
+
+# Install with scenario
+helm install memcached-home charts/memcached \
+  -f charts/memcached/values-home-single.yaml
+```
+
+#### CI/CD Integration
+
+The GitHub Actions workflow automatically validates all scenario files:
+
+```yaml
+# .github/workflows/lint-test.yaml includes:
+- name: Helm lint (scenario files)
+  run: |
+    for scenario in home-single startup-single prod-master-replica; do
+      values_file="charts/${{ matrix.chart }}/values-$scenario.yaml"
+      if [ -f "$values_file" ]; then
+        helm lint charts/${{ matrix.chart }} -f "$values_file"
+        helm template test-release charts/${{ matrix.chart }} \
+          -f "$values_file" --validate
+      fi
+    done
+```
+
+### Scenario File Guidelines
+
+#### Home Server Scenario (values-home-single.yaml)
+
+**Target:** Personal servers, home labs, Raspberry Pi, Intel NUC
+
+**Resource Constraints:**
+- CPU: 50-250m limits
+- Memory: 128-512Mi limits
+- Replicas: 1 (single instance)
+- Storage: Minimal (5-10Gi)
+
+**Features:**
+- Basic functionality only
+- Minimal monitoring
+- No clustering
+- ReadWriteOnce storage
+
+**Example:**
+```yaml
+replicaCount: 1
+
+resources:
+  limits:
+    cpu: 250m
+    memory: 256Mi
+  requests:
+    cpu: 50m
+    memory: 128Mi
+
+persistence:
+  enabled: true
+  size: 5Gi
+  accessMode: ReadWriteOnce
+```
+
+#### Startup Scenario (values-startup-single.yaml)
+
+**Target:** Small teams, startups, development environments
+
+**Resource Constraints:**
+- CPU: 100-500m limits
+- Memory: 256Mi-1Gi limits
+- Replicas: 1-2
+- Storage: Moderate (10-20Gi)
+
+**Features:**
+- Full functionality
+- Basic monitoring enabled
+- Optional basic auth
+- ReadWriteOnce storage
+
+**Example:**
+```yaml
+replicaCount: 1
+
+resources:
+  limits:
+    cpu: 500m
+    memory: 1Gi
+  requests:
+    cpu: 100m
+    memory: 256Mi
+
+persistence:
+  enabled: true
+  size: 10Gi
+  accessMode: ReadWriteOnce
+
+monitoring:
+  enabled: true
+  serviceMonitor:
+    enabled: false  # Set to true if Prometheus Operator is installed
+```
+
+#### Production Scenario (values-prod-master-replica.yaml)
+
+**Target:** Production environments, high availability required
+
+**Resource Constraints:**
+- CPU: 250m-2000m limits
+- Memory: 512Mi-2Gi+ limits
+- Replicas: 2-3+ (HA)
+- Storage: Large (20-100Gi+), may require ReadWriteMany
+
+**Features:**
+- Full HA configuration
+- Pod anti-affinity for node distribution
+- NetworkPolicy enabled
+- Comprehensive monitoring
+- HorizontalPodAutoscaler (HPA)
+- PodDisruptionBudget (PDB)
+- Clustering (if supported)
+
+**Example:**
+```yaml
+replicaCount: 3
+
+resources:
+  limits:
+    cpu: 2000m
+    memory: 2Gi
+  requests:
+    cpu: 250m
+    memory: 512Mi
+
+persistence:
+  enabled: true
+  size: 50Gi
+  accessMode: ReadWriteMany  # For multi-replica deployments
+  storageClass: "fast-ssd"
+
+affinity:
+  podAntiAffinity:
+    preferredDuringSchedulingIgnoredDuringExecution:
+      - weight: 100
+        podAffinityTerm:
+          labelSelector:
+            matchExpressions:
+              - key: app.kubernetes.io/name
+                operator: In
+                values:
+                  - memcached
+          topologyKey: kubernetes.io/hostname
+
+podDisruptionBudget:
+  enabled: true
+  minAvailable: 2
+
+autoscaling:
+  enabled: true
+  minReplicas: 3
+  maxReplicas: 10
+  targetCPUUtilizationPercentage: 70
+  targetMemoryUtilizationPercentage: 80
+
+monitoring:
+  enabled: true
+  serviceMonitor:
+    enabled: true
+
+networkPolicy:
+  enabled: true
+```
+
+### Scenario Testing Checklist
+
+When creating or modifying scenario files:
+
+- [ ] All three scenario files created (home, startup, prod)
+- [ ] Resource limits appropriate for each scenario
+- [ ] helm lint passes for all scenarios
+- [ ] helm template --validate succeeds for all scenarios
+- [ ] Documented in docs/SCENARIO_VALUES_GUIDE.md
+- [ ] CI/CD validates scenario files automatically
+- [ ] README.md updated with scenario usage examples
+- [ ] Chart version incremented (MINOR for new scenarios)
+
+### Common Scenario Issues
+
+#### 1. ServiceMonitor CRD Not Found
+
+**Problem:** Prometheus Operator CRD not installed in test cluster
+
+**Solution:**
+```yaml
+# In prod scenario, keep monitoring enabled but ServiceMonitor disabled by default
+monitoring:
+  enabled: true
+  serviceMonitor:
+    enabled: false  # User must explicitly enable after installing Prometheus Operator
+```
+
+#### 2. NetworkPolicy Blocking Required Traffic
+
+**Problem:** Too restrictive policies for services that need broad access (e.g., VPN, message brokers)
+
+**Solution:**
+```yaml
+# For WireGuard and similar services
+networkPolicy:
+  enabled: false  # Service needs unrestricted UDP access
+
+# Or configure appropriate ingress rules
+networkPolicy:
+  enabled: true
+  ingress:
+    - from: []  # Allow from anywhere
+      ports:
+        - protocol: UDP
+          port: 51820
+```
+
+#### 3. ReadWriteMany Storage Not Available
+
+**Problem:** Production scenario requires RWX but cluster doesn't support it
+
+**Solution:**
+```yaml
+# Document storage requirements clearly in README.md
+# For charts that don't require shared storage, use RWO even in prod
+persistence:
+  accessMode: ReadWriteOnce  # Even for replicas if data is not shared
+
+# Alternative: Use StatefulSet with volumeClaimTemplates
+# Each pod gets its own PVC with RWO
+```
+
+### Scenario File Location
+
+All scenario files MUST be placed directly in the chart directory:
+
+```
+charts/
+└── memcached/
+    ├── Chart.yaml
+    ├── values.yaml
+    ├── values-home-single.yaml
+    ├── values-startup-single.yaml
+    ├── values-prod-master-replica.yaml
+    ├── values-example.yaml (optional, for complex production setups)
+    └── templates/
+```
+
+### Related Documentation
+
+- [Scenario Values Guide](SCENARIO_VALUES_GUIDE.md) - Comprehensive guide with examples for all charts
+- [Chart Version Policy](CHART_VERSION_POLICY.md) - Version increment rules for scenario file changes
+- Main [README.md](../README.md) - User-facing deployment scenario documentation
