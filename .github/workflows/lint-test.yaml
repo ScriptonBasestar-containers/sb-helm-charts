@@ -110,6 +110,36 @@ jobs:
             --set postgresql.external.password=test123 \
             --set redis.external.password=test123 || true
 
+      - name: Helm lint (scenario files)
+        run: |
+          echo "### Scenario File Validation for ${{ matrix.chart }}" >> $GITHUB_STEP_SUMMARY
+          for scenario in home-single startup-single prod-master-replica; do
+            values_file="charts/${{ matrix.chart }}/values-$scenario.yaml"
+            if [ -f "$values_file" ]; then
+              echo "Testing $scenario scenario..." >> $GITHUB_STEP_SUMMARY
+              if helm lint charts/${{ matrix.chart }} -f "$values_file" \
+                --set postgresql.external.password=test123 \
+                --set redis.external.password=test123 \
+                --set rabbitmq.admin.password=test123; then
+                echo "  ✅ $scenario lint passed" >> $GITHUB_STEP_SUMMARY
+              else
+                echo "  ⚠️ $scenario lint failed (non-blocking)" >> $GITHUB_STEP_SUMMARY
+              fi
+
+              if helm template test-release charts/${{ matrix.chart }} -f "$values_file" \
+                --set postgresql.external.password=test123 \
+                --set redis.external.password=test123 \
+                --set rabbitmq.admin.password=test123 \
+                --validate > /dev/null; then
+                echo "  ✅ $scenario template validation passed" >> $GITHUB_STEP_SUMMARY
+              else
+                echo "  ⚠️ $scenario template validation failed (non-blocking)" >> $GITHUB_STEP_SUMMARY
+              fi
+            else
+              echo "  ℹ️ $scenario scenario file not found (skipped)" >> $GITHUB_STEP_SUMMARY
+            fi
+          done
+
       - name: Helm template render test
         run: |
           helm template test-release charts/${{ matrix.chart }} \
