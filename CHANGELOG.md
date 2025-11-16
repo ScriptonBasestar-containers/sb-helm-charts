@@ -1,0 +1,132 @@
+# Changelog
+
+All notable changes to this project will be documented in this file.
+
+The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
+and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+
+## [Unreleased]
+
+### Added
+- Deployment Scenarios sections to all 16 chart READMEs
+  - Home Server scenario (minimal resources)
+  - Startup Environment scenario (balanced configuration)
+  - Production HA scenario (high availability with monitoring)
+
+## [0.3.0] - 2025-11-16
+
+### Added
+- **Scenario Values Files**: Pre-configured deployment scenarios for all charts
+  - `values-home-single.yaml` - Minimal resources for personal servers (Raspberry Pi, NUC, home labs)
+  - `values-startup-single.yaml` - Balanced configuration for small teams and startups
+  - `values-prod-master-replica.yaml` - High availability with clustering, monitoring, and auto-scaling
+- **Documentation**:
+  - Comprehensive [Scenario Values Guide](docs/SCENARIO_VALUES_GUIDE.md) with deployment examples
+  - [Chart Development Guide](docs/CHART_DEVELOPMENT_GUIDE.md) scenario testing section
+  - Deployment Scenarios section in main README.md
+- **CI/CD**:
+  - Scenario file validation in GitHub Actions workflow
+  - Automated linting for all scenario values files
+- **Makefile Targets**:
+  - `install-home`, `install-startup`, `install-prod` for scenario-based deployments
+  - `validate-scenarios` and `list-scenarios` for scenario management
+
+### Changed
+- **Chart Versions** (MINOR bump for new features):
+  - keycloak: 0.2.0 → 0.3.0
+  - redis: 0.2.0 → 0.3.0
+  - memcached: 0.2.0 → 0.3.0
+  - rabbitmq: 0.2.0 → 0.3.0
+  - wireguard: 0.2.0 → 0.3.0
+  - browserless-chrome: 0.2.0 → 0.3.0
+  - devpi: 0.2.0 → 0.3.0
+  - rsshub: 0.2.0 → 0.3.0
+  - rustfs: 0.2.0 → 0.3.0
+
+### Details
+
+**Charts with Scenario Files (Total: 18 scenario files across 16 charts)**:
+
+| Chart | home-single | startup-single | prod-master-replica |
+|-------|-------------|----------------|---------------------|
+| browserless-chrome | ✅ | ✅ | ✅ |
+| devpi | ✅ | ✅ | ✅ |
+| immich | ✅ | ✅ | ✅ |
+| jellyfin | ✅ | ✅ | ✅ |
+| keycloak | ✅ | ✅ | ✅ |
+| memcached | ✅ | ✅ | ✅ |
+| nextcloud | ✅ | ✅ | ✅ |
+| paperless-ngx | ✅ | ✅ | ✅ |
+| rabbitmq | ✅ | ✅ | ✅ |
+| redis | ✅ | ✅ | ✅ |
+| rsshub | ✅ | ✅ | ✅ |
+| rustfs | ✅ | ✅ | ✅ |
+| uptime-kuma | ✅ | ✅ | ✅ |
+| vaultwarden | ✅ | ✅ | ✅ |
+| wireguard | ✅ | ✅ | ✅ |
+| wordpress | ✅ | ✅ | ✅ |
+
+**Resource Allocation Philosophy**:
+- **Home Server**: 50-500m CPU, 128Mi-512Mi RAM - Optimized for edge devices
+- **Startup Environment**: 100m-1000m CPU, 256Mi-1Gi RAM - Balanced for teams
+- **Production HA**: 250m-2000m CPU, 512Mi-2Gi RAM - Enterprise-ready with scaling
+
+## [0.2.0] - 2025-11-16
+
+### Added
+- Version bumps for charts transitioning from development (0.1.0) to beta (0.2.0)
+  - nextcloud: 0.1.0 → 0.2.0
+  - paperless-ngx: 0.1.0 → 0.2.0
+  - uptime-kuma: 0.1.0 → 0.2.0
+  - wordpress: 0.1.0 → 0.2.0
+
+### Changed
+- Aligned chart versions to reflect feature completeness and scenario values support
+
+## [0.1.0] - Initial Releases
+
+### Charts in Development (0.1.0)
+- immich
+- jellyfin
+- vaultwarden
+
+### Stable Charts (0.2.0+)
+- keycloak: 0.3.0 (Keycloak 26.0.6, PostgreSQL 13+, Redis support, clustering)
+- redis: 0.3.0 (Redis 7.4.1, master-replica replication, Prometheus metrics)
+- wireguard: 0.3.0 (WireGuard VPN, no external dependencies)
+- memcached: 0.3.0 (Memcached 1.6.32, HPA support)
+- rabbitmq: 0.3.0 (RabbitMQ 4.0.4, management UI, Prometheus metrics)
+- browserless-chrome: 0.3.0 (Headless Chrome for automation)
+- devpi: 0.3.0 (Python package index, SQLite/PostgreSQL support)
+- rsshub: 0.3.0 (RSS aggregator)
+- rustfs: 0.3.0 (S3-compatible object storage, clustering)
+- nextcloud: 0.2.0 (Nextcloud 31.0.10, PostgreSQL 16, Redis 8)
+- paperless-ngx: 0.2.0 (Document management with OCR, 4 PVC architecture)
+- uptime-kuma: 0.2.0 (Uptime monitoring, SQLite database)
+- wordpress: 0.2.0 (WordPress 6.4.3, MySQL/MariaDB support)
+
+---
+
+## Version Policy
+
+This project follows [Semantic Versioning](https://semver.org/):
+
+- **MAJOR** (X.0.0): Breaking changes requiring user action
+- **MINOR** (0.X.0): New features, backward-compatible
+- **PATCH** (0.0.X): Bug fixes, documentation updates
+
+See [Chart Version Policy](docs/CHART_VERSION_POLICY.md) for detailed versioning rules.
+
+---
+
+## Links
+
+- **Repository**: https://github.com/scriptonbasestar-container/sb-helm-charts
+- **Helm Repository**: https://scriptonbasestar-container.github.io/sb-helm-charts
+- **Documentation**: https://github.com/scriptonbasestar-container/sb-helm-charts/tree/master/docs
+- **Issues**: https://github.com/scriptonbasestar-container/sb-helm-charts/issues
+
+[Unreleased]: https://github.com/scriptonbasestar-container/sb-helm-charts/compare/v0.3.0...HEAD
+[0.3.0]: https://github.com/scriptonbasestar-container/sb-helm-charts/compare/v0.2.0...v0.3.0
+[0.2.0]: https://github.com/scriptonbasestar-container/sb-helm-charts/compare/v0.1.0...v0.2.0
+[0.1.0]: https://github.com/scriptonbasestar-container/sb-helm-charts/releases/tag/v0.1.0
