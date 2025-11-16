@@ -1,0 +1,313 @@
+# Nextcloud values for Home Server - Single Node
+# Minimal resource configuration for personal/home lab use
+# Use: helm install nextcloud ./charts/nextcloud -f charts/nextcloud/values-home-single.yaml \
+#        --set postgresql.external.host='postgres.default.svc.cluster.local' \
+#        --set postgresql.external.password='your-db-password' \
+#        --set redis.external.host='redis.default.svc.cluster.local' \
+#        --set nextcloud.adminPassword='your-admin-password'
+
+# ⚠️ IMPORTANT: adminPassword and database password are REQUIRED for installation
+
+# ========================================
+# Nextcloud Configuration
+# ========================================
+nextcloud:
+  adminUser: admin
+  adminPassword: ""  # REQUIRED - set via --set or existing secret
+
+  version: "31.0.10"
+
+  # Trusted domains for local network access
+  trustedDomains:
+    - nextcloud.local
+    - 192.168.1.*  # Adjust to your local network
+  # Add your local hostname or IP:
+  # - home-server.local
+  # - 192.168.1.100
+
+  # SMTP disabled by default for home use
+  smtp:
+    enabled: false
+
+# ========================================
+# External Services
+# ========================================
+
+# External PostgreSQL 16 - REQUIRED
+postgresql:
+  enabled: false
+  external:
+    enabled: true
+    host: ""  # REQUIRED - e.g., postgres.default.svc.cluster.local
+    port: 5432
+    database: "nextcloud"
+    username: "nextcloud"
+    password: ""  # REQUIRED
+    existingSecret:
+      enabled: false
+
+# External Redis 8 - REQUIRED for performance
+redis:
+  enabled: false
+  external:
+    enabled: true
+    host: ""  # REQUIRED - e.g., redis.default.svc.cluster.local
+    port: 6379
+    password: ""  # Optional - set if Redis has password
+    database: 0
+    existingSecret:
+      enabled: false
+
+# ========================================
+# Storage Configuration
+# ========================================
+
+# Persistent storage - reduced sizes for home use
+persistence:
+  enabled: true
+
+  # User data storage (photos, files, documents)
+  data:
+    enabled: true
+    storageClass: ""  # Use default or "local-path" for k3s
+    accessMode: ReadWriteOnce
+    size: 20Gi  # Adjust based on your needs
+    existingClaim: ""
+
+  # Nextcloud configuration files
+  config:
+    enabled: true
+    storageClass: ""
+    accessMode: ReadWriteOnce
+    size: 1Gi
+    existingClaim: ""
+
+  # Custom apps storage
+  apps:
+    enabled: true
+    storageClass: ""
+    accessMode: ReadWriteOnce
+    size: 1Gi
+    existingClaim: ""
+
+# ========================================
+# Deployment Configuration
+# ========================================
+
+# Single replica for home servers
+replicaCount: 1
+
+# Container image
+image:
+  repository: nextcloud
+  pullPolicy: IfNotPresent
+  tag: "31.0.10-apache"
+
+imagePullSecrets: []
+nameOverride: ""
+fullnameOverride: ""
+
+# Service account
+serviceAccount:
+  create: true
+  automount: true
+  annotations: {}
+  name: ""
+
+podAnnotations: {}
+
+podLabels:
+  environment: "home"
+  tier: "application"
+
+# Security context
+podSecurityContext:
+  fsGroup: 33  # www-data
+
+securityContext:
+  runAsUser: 33
+  runAsGroup: 33
+  runAsNonRoot: true
+  readOnlyRootFilesystem: false
+
+# ========================================
+# Service & Networking
+# ========================================
+
+# Service - ClusterIP for local network
+service:
+  type: ClusterIP
+  port: 80
+  targetPort: 80
+
+# Ingress - disabled by default for home use
+# Enable if you want to access Nextcloud via domain name
+ingress:
+  enabled: false
+  className: "nginx"
+  annotations:
+    nginx.ingress.kubernetes.io/proxy-body-size: "5G"  # Reduced for home use
+    nginx.ingress.kubernetes.io/proxy-buffering: "off"
+    nginx.ingress.kubernetes.io/server-snippet: |
+      client_max_body_size 5G;
+      location = /.well-known/carddav {
+        return 301 $scheme://$host/remote.php/dav;
+      }
+      location = /.well-known/caldav {
+        return 301 $scheme://$host/remote.php/dav;
+      }
+  hosts:
+    - host: nextcloud.local
+      paths:
+        - path: /
+          pathType: Prefix
+  tls: []
+
+# ========================================
+# Resource Limits
+# ========================================
+
+# Minimal resources for home servers (Raspberry Pi 4, Intel NUC)
+resources:
+  limits:
+    cpu: 500m       # 0.5 CPU core
+    memory: 512Mi   # 512MB RAM
+  requests:
+    cpu: 100m       # Guaranteed 0.1 CPU
+    memory: 256Mi   # Guaranteed 256MB RAM
+
+# ========================================
+# Health Checks
+# ========================================
+
+livenessProbe:
+  httpGet:
+    path: /status.php
+    port: http
+    httpHeaders:
+      - name: Host
+        value: "localhost"
+  initialDelaySeconds: 60
+  periodSeconds: 30
+  timeoutSeconds: 10
+  failureThreshold: 5
+  successThreshold: 1
+
+readinessProbe:
+  httpGet:
+    path: /status.php
+    port: http
+    httpHeaders:
+      - name: Host
+        value: "localhost"
+  initialDelaySeconds: 30
+  periodSeconds: 15
+  timeoutSeconds: 5
+  failureThreshold: 3
+  successThreshold: 1
+
+startupProbe:
+  httpGet:
+    path: /status.php
+    port: http
+    httpHeaders:
+      - name: Host
+        value: "localhost"
+  initialDelaySeconds: 30
+  periodSeconds: 10
+  timeoutSeconds: 5
+  failureThreshold: 30
+  successThreshold: 1
+
+# ========================================
+# Autoscaling & High Availability
+# ========================================
+
+# Disabled for home servers
+autoscaling:
+  enabled: false
+
+# No PodDisruptionBudget needed for single replica
+podDisruptionBudget:
+  enabled: false
+
+# No NetworkPolicy for home networks
+networkPolicy:
+  enabled: false
+
+# ========================================
+# Monitoring
+# ========================================
+
+# Monitoring disabled by default for home servers
+monitoring:
+  serviceMonitor:
+    enabled: false
+
+# ========================================
+# Node Selection
+# ========================================
+
+nodeSelector: {}
+# Example for Raspberry Pi:
+# nodeSelector:
+#   kubernetes.io/arch: arm64
+
+tolerations: []
+
+affinity: {}
+
+# ========================================
+# Additional Configuration
+# ========================================
+
+# Extra environment variables for home server optimization
+extraEnv:
+  - name: PHP_MEMORY_LIMIT
+    value: "512M"  # Moderate for home use
+  - name: PHP_UPLOAD_LIMIT
+    value: "2G"    # Reduced upload limit
+
+extraVolumes: []
+extraVolumeMounts: []
+
+# ========================================
+# Cron Job Configuration
+# ========================================
+
+# Background jobs for maintenance (every 15 minutes)
+cronjob:
+  enabled: true
+  schedule: "*/15 * * * *"
+  resources:
+    limits:
+      cpu: 100m
+      memory: 256Mi
+    requests:
+      cpu: 50m
+      memory: 128Mi
+
+# ========================================
+# Notes for Home Server Users
+# ========================================
+
+# Post-installation steps:
+#
+# 1. Access Nextcloud:
+#    kubectl port-forward svc/nextcloud 8080:80
+#    Open http://localhost:8080
+#
+# 2. Configure background jobs:
+#    System Settings > Basic settings > Background jobs > Cron
+#
+# 3. Install recommended apps:
+#    - Calendar, Contacts, Tasks, Notes
+#
+# 4. Performance optimization:
+#    - APCu caching is automatically configured
+#    - Redis caching is automatically configured
+#
+# 5. Security recommendations:
+#    - Enable two-factor authentication
+#    - Configure brute-force protection
+#    - Set up regular backups

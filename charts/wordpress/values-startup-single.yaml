@@ -1,0 +1,250 @@
+# WordPress values for Startup - Single Instance
+# Balanced resources for small business/startup use
+# Use: helm install wordpress ./charts/wordpress -f charts/wordpress/values-startup-single.yaml
+#
+# Requirements:
+# - External MySQL/MariaDB (required)
+# - Set passwords: --set wordpress.admin.password=xxx --set mysql.external.password=xxx
+
+# WordPress configuration
+wordpress:
+  # Site configuration
+  title: "My Business Site"
+  siteUrl: "https://example.com"
+  homeUrl: "https://example.com"
+
+  # Admin credentials
+  admin:
+    username: "admin"
+    password: ""  # REQUIRED: Set via --set wordpress.admin.password=xxx
+    email: "admin@example.com"
+
+  # Disable debug mode in production
+  debug: "false"
+
+  # WordPress table prefix
+  tablePrefix: "wp_"
+
+  # WordPress salts and keys (auto-generated if empty)
+  # RECOMMENDED: Generate at https://api.wordpress.org/secret-key/1.1/salt/
+  salts:
+    authKey: ""
+    secureAuthKey: ""
+    loggedInKey: ""
+    nonceKey: ""
+    authSalt: ""
+    secureAuthSalt: ""
+    loggedInSalt: ""
+    nonceSalt: ""
+
+  # WordPress plugins (example for business site)
+  plugins:
+    install:
+      - contact-form-7
+      - wordfence
+    activate:
+      - contact-form-7
+
+  # WordPress themes
+  themes:
+    install:
+      - twentytwentyfour
+    activate: "twentytwentyfour"
+
+# External MySQL/MariaDB (required)
+mysql:
+  enabled: false  # NEVER auto-install
+  external:
+    enabled: true
+    host: ""  # REQUIRED: e.g., mysql.database.svc.cluster.local
+    port: 3306
+    database: "wordpress"
+    username: "wordpress"
+    password: ""  # REQUIRED: Set via --set mysql.external.password=xxx
+    existingSecret:
+      enabled: false
+
+# Persistent storage
+persistence:
+  enabled: true
+  content:
+    enabled: true
+    storageClass: ""  # Use default or specify: "fast-ssd", "standard"
+    accessMode: ReadWriteOnce
+    size: 50Gi
+    existingClaim: ""
+
+# Single instance
+replicaCount: 1
+
+# Container image
+image:
+  repository: wordpress
+  pullPolicy: IfNotPresent
+  tag: "6.4.3-apache"
+
+imagePullSecrets: []
+nameOverride: ""
+fullnameOverride: ""
+
+# Service account
+serviceAccount:
+  create: true
+  automount: true
+  annotations: {}
+  name: ""
+
+podAnnotations: {}
+
+podLabels:
+  environment: "startup"
+
+# Pod security context
+podSecurityContext:
+  fsGroup: 33  # www-data group for WordPress
+
+# Container security context
+securityContext:
+  runAsUser: 33  # www-data user for WordPress
+  runAsGroup: 33
+  runAsNonRoot: true
+  readOnlyRootFilesystem: false
+
+# Service
+service:
+  type: ClusterIP
+  port: 80
+  targetPort: 80
+
+# Ingress
+ingress:
+  enabled: true
+  className: "nginx"
+  annotations:
+    nginx.ingress.kubernetes.io/proxy-body-size: "100m"
+    nginx.ingress.kubernetes.io/proxy-buffering: "off"
+    # Optional: Enable cert-manager for TLS
+    # cert-manager.io/cluster-issuer: "letsencrypt-prod"
+  hosts:
+    - host: example.com
+      paths:
+        - path: /
+          pathType: Prefix
+  tls: []
+  # Example TLS configuration:
+  # tls:
+  #   - secretName: wordpress-tls
+  #     hosts:
+  #       - example.com
+
+# Resource limits - BALANCED for startup
+resources:
+  limits:
+    cpu: 1000m     # 1 CPU
+    memory: 1Gi    # 1GB memory
+  requests:
+    cpu: 200m      # Guaranteed 200m
+    memory: 512Mi  # Guaranteed 512Mi
+
+# Health checks
+livenessProbe:
+  httpGet:
+    path: /wp-admin/install.php
+    port: http
+    httpHeaders:
+      - name: Host
+        value: "localhost"
+  initialDelaySeconds: 120
+  periodSeconds: 10
+  timeoutSeconds: 5
+  failureThreshold: 6
+  successThreshold: 1
+
+readinessProbe:
+  httpGet:
+    path: /wp-login.php
+    port: http
+    httpHeaders:
+      - name: Host
+        value: "localhost"
+  initialDelaySeconds: 30
+  periodSeconds: 10
+  timeoutSeconds: 5
+  failureThreshold: 3
+  successThreshold: 1
+
+startupProbe:
+  httpGet:
+    path: /wp-login.php
+    port: http
+    httpHeaders:
+      - name: Host
+        value: "localhost"
+  initialDelaySeconds: 30
+  periodSeconds: 10
+  timeoutSeconds: 5
+  failureThreshold: 30
+  successThreshold: 1
+
+# Autoscaling - DISABLED for single instance
+autoscaling:
+  enabled: false
+
+# Pod Disruption Budget - DISABLED for single instance
+podDisruptionBudget:
+  enabled: false
+
+# Network Policy - OPTIONAL (disabled by default)
+networkPolicy:
+  enabled: false
+  # To enable, uncomment and configure ingress/egress rules
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              name: ingress-nginx
+      ports:
+        - protocol: TCP
+          port: 80
+  egress: []
+
+# Monitoring - DISABLED (can enable if monitoring stack is available)
+monitoring:
+  serviceMonitor:
+    enabled: false
+
+# Node selector
+nodeSelector: {}
+
+# Tolerations
+tolerations: []
+
+# Affinity - empty for single instance
+affinity: {}
+
+# Additional environment variables for startup environment
+extraEnv:
+  - name: WORDPRESS_CONFIG_EXTRA
+    value: |
+      /* Startup Environment Optimizations */
+      define('WP_MEMORY_LIMIT', '512M');
+      define('WP_MAX_MEMORY_LIMIT', '1G');
+
+      /* Moderate revisions */
+      define('WP_POST_REVISIONS', 10);
+      define('AUTOSAVE_INTERVAL', 180);  /* 3 minutes */
+
+      /* Force SSL for admin (enable after TLS setup) */
+      # define('FORCE_SSL_ADMIN', true);
+
+      /* Disable file editing in admin (security) */
+      define('DISALLOW_FILE_EDIT', true);
+
+      /* Cron settings */
+      define('DISABLE_WP_CRON', false);
+
+# Additional volumes
+extraVolumes: []
+
+# Additional volume mounts
+extraVolumeMounts: []

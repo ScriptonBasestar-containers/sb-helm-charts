@@ -1,0 +1,261 @@
+# Paperless-ngx values for Home Server - Single Instance
+# Minimal resources optimized for home lab/personal use
+# Use: helm install paperless-ngx ./charts/paperless-ngx -f charts/paperless-ngx/values-home-single.yaml
+#
+# Requirements:
+# - External PostgreSQL (required)
+# - External Redis (required)
+# - Set passwords: --set paperless.adminPassword=xxx --set paperless.secretKey=xxx --set postgresql.external.password=xxx
+
+# Application configuration
+paperless:
+  adminUser: "admin"
+  adminPassword: ""  # REQUIRED: Set via --set paperless.adminPassword=xxx
+  adminEmail: "admin@localhost"
+  secretKey: ""  # REQUIRED: Generate with: openssl rand -base64 32
+
+  url: "http://localhost:8000"
+  timezone: "UTC"
+
+  # OCR settings - English only for home use
+  ocr:
+    language: "eng"  # English only
+    mode: "skip"  # Skip documents with existing text
+
+  # Document processing
+  consumer:
+    polling: 0  # Use inotify (recommended)
+    deleteSourceDocuments: true
+    recursive: false
+    subdirectoriesAsTags: false
+
+  # Email settings (disabled for home use)
+  email:
+    enabled: false
+
+# External PostgreSQL (required)
+postgresql:
+  enabled: false  # NEVER auto-install
+  external:
+    enabled: true
+    host: ""  # REQUIRED: e.g., postgres-service.default.svc.cluster.local
+    port: 5432
+    database: "paperless"
+    username: "paperless"
+    password: ""  # REQUIRED: Set via --set postgresql.external.password=xxx
+    sslMode: "prefer"
+
+# External Redis (required)
+redis:
+  enabled: false  # NEVER auto-install
+  external:
+    enabled: true
+    host: ""  # REQUIRED: e.g., redis-service.default.svc.cluster.local
+    port: 6379
+    password: ""  # Optional
+    database: 0
+
+# Persistence - minimal storage for home use
+persistence:
+  enabled: true
+
+  # Consume directory (incoming documents) - minimal for home use
+  consume:
+    enabled: true
+    storageClass: ""
+    size: 2Gi
+    accessMode: ReadWriteOnce
+    existingClaim: ""
+    mountPath: /usr/src/paperless/consume
+
+  # Data directory (application data and index)
+  data:
+    enabled: true
+    storageClass: ""
+    size: 5Gi
+    accessMode: ReadWriteOnce
+    existingClaim: ""
+    mountPath: /usr/src/paperless/data
+
+  # Media directory (processed documents) - main storage
+  media:
+    enabled: true
+    storageClass: ""
+    size: 20Gi
+    accessMode: ReadWriteOnce
+    existingClaim: ""
+    mountPath: /usr/src/paperless/media
+
+  # Export directory (document exports)
+  export:
+    enabled: true
+    storageClass: ""
+    size: 5Gi
+    accessMode: ReadWriteOnce
+    existingClaim: ""
+    mountPath: /usr/src/paperless/export
+
+# Single instance
+replicaCount: 1
+
+strategy:
+  type: Recreate
+
+# Container image
+image:
+  repository: ghcr.io/paperless-ngx/paperless-ngx
+  tag: "2.14.7"
+  pullPolicy: IfNotPresent
+
+imagePullSecrets: []
+nameOverride: ""
+fullnameOverride: ""
+
+# Service account
+serviceAccount:
+  create: true
+  automount: true
+  annotations: {}
+  name: ""
+
+podAnnotations: {}
+podLabels: {}
+
+# Pod security context
+podSecurityContext:
+  fsGroup: 1000
+  runAsUser: 1000
+  runAsGroup: 1000
+  runAsNonRoot: true
+
+# Container security context
+securityContext:
+  capabilities:
+    drop:
+      - ALL
+  readOnlyRootFilesystem: false
+  runAsNonRoot: true
+  runAsUser: 1000
+  runAsGroup: 1000
+  allowPrivilegeEscalation: false
+
+# Service
+service:
+  type: ClusterIP
+  port: 8000
+  targetPort: 8000
+  protocol: TCP
+  annotations: {}
+
+# Ingress (disabled by default)
+ingress:
+  enabled: false
+  className: ""
+  annotations: {}
+  hosts:
+    - host: paperless.local
+      paths:
+        - path: /
+          pathType: Prefix
+  tls: []
+
+# Resource limits - MINIMAL for home server
+resources:
+  limits:
+    cpu: 500m      # Reduced for home use
+    memory: 512Mi  # Minimal memory
+  requests:
+    cpu: 100m      # Low baseline
+    memory: 256Mi  # Minimal request
+
+# Health probes
+livenessProbe:
+  enabled: true
+  httpGet:
+    path: /
+    port: http
+  initialDelaySeconds: 60
+  periodSeconds: 10
+  timeoutSeconds: 5
+  failureThreshold: 6
+  successThreshold: 1
+
+readinessProbe:
+  enabled: true
+  httpGet:
+    path: /
+    port: http
+  initialDelaySeconds: 30
+  periodSeconds: 10
+  timeoutSeconds: 5
+  failureThreshold: 3
+  successThreshold: 1
+
+startupProbe:
+  enabled: true
+  httpGet:
+    path: /
+    port: http
+  initialDelaySeconds: 20
+  periodSeconds: 5
+  timeoutSeconds: 5
+  failureThreshold: 30
+  successThreshold: 1
+
+# Autoscaling - DISABLED (Paperless-ngx doesn't support horizontal scaling)
+autoscaling:
+  enabled: false
+
+# Pod Disruption Budget - DISABLED for single instance
+podDisruptionBudget:
+  enabled: false
+
+# Network Policy - DISABLED for home use
+networkPolicy:
+  enabled: false
+
+# Monitoring - DISABLED for home use
+monitoring:
+  enabled: false
+  serviceMonitor:
+    enabled: false
+
+# Node selector - empty for home use
+nodeSelector: {}
+
+# Tolerations - empty
+tolerations: []
+
+# Affinity - empty for single instance
+affinity: {}
+
+priorityClassName: ""
+topologySpreadConstraints: []
+
+# Additional environment variables
+extraEnv:
+  # Consumer and worker threads - minimal for home use
+  - name: PAPERLESS_TASK_WORKERS
+    value: "1"
+  - name: PAPERLESS_THREADS_PER_WORKER
+    value: "1"
+  # Disable features not needed for home use
+  - name: PAPERLESS_ENABLE_HTTP_REMOTE_USER
+    value: "false"
+
+extraEnvFrom: []
+
+# Additional volumes
+extraVolumes: []
+extraVolumeMounts: []
+
+# Init containers - empty (configure separately if needed)
+initContainers: []
+# Example: Database health check
+# initContainers:
+#   - name: wait-for-db
+#     image: postgres:17-alpine
+#     command: ["sh", "-c", "until pg_isready -h postgres.default.svc.cluster.local -p 5432; do sleep 2; done"]
+
+# Lifecycle hooks
+lifecycle: {}

@@ -1,0 +1,377 @@
+# WordPress values for Production - Master-Replica Setup
+# 3 replicas with ReadWriteMany storage for high availability
+# Use: helm install wordpress ./charts/wordpress -f charts/wordpress/values-prod-master-replica.yaml
+#
+# Requirements:
+# - External MySQL/MariaDB with SSL (required)
+# - ReadWriteMany (RWX) storage for multi-replica setup
+# - Redis for object caching (strongly recommended, documented below)
+# - Set passwords: --set wordpress.admin.password=xxx --set mysql.external.password=xxx
+
+# WordPress configuration
+wordpress:
+  # Site configuration
+  title: "Production Site"
+  siteUrl: "https://example.com"
+  homeUrl: "https://example.com"
+
+  # Admin credentials
+  admin:
+    username: "admin"
+    password: ""  # REQUIRED: Set via --set wordpress.admin.password=xxx
+    email: "admin@example.com"
+
+  # Disable debug mode in production
+  debug: "false"
+
+  # WordPress table prefix
+  tablePrefix: "wp_"
+
+  # WordPress salts and keys (REQUIRED for production)
+  # Generate at: https://api.wordpress.org/secret-key/1.1/salt/
+  salts:
+    authKey: ""
+    secureAuthKey: ""
+    loggedInKey: ""
+    nonceKey: ""
+    authSalt: ""
+    secureAuthSalt: ""
+    loggedInSalt: ""
+    nonceSalt: ""
+
+  # WordPress plugins (production recommended)
+  plugins:
+    install:
+      - wordfence
+      - w3-total-cache
+      - updraftplus
+    activate:
+      - wordfence
+
+  # WordPress themes
+  themes:
+    install:
+      - twentytwentyfour
+    activate: "twentytwentyfour"
+
+# External MySQL/MariaDB (required)
+mysql:
+  enabled: false  # NEVER auto-install
+  external:
+    enabled: true
+    host: ""  # REQUIRED: e.g., mysql.database.svc.cluster.local
+    port: 3306
+    database: "wordpress"
+    username: "wordpress"
+    password: ""  # REQUIRED: Set via --set mysql.external.password=xxx
+    existingSecret:
+      enabled: false
+
+# Persistent storage - REQUIRES ReadWriteMany for multi-replica
+persistence:
+  enabled: true
+  content:
+    enabled: true
+    storageClass: ""  # REQUIRED: Must support ReadWriteMany (e.g., NFS, CephFS)
+    accessMode: ReadWriteMany  # Required for 3 replicas
+    size: 200Gi
+    existingClaim: ""
+
+# High availability setup
+replicaCount: 3
+
+# Container image
+image:
+  repository: wordpress
+  pullPolicy: IfNotPresent
+  tag: "6.4.3-apache"
+
+imagePullSecrets: []
+nameOverride: ""
+fullnameOverride: ""
+
+# Service account
+serviceAccount:
+  create: true
+  automount: true
+  annotations: {}
+  name: ""
+
+podAnnotations:
+  prometheus.io/scrape: "true"
+  prometheus.io/port: "80"
+  prometheus.io/path: "/"
+
+podLabels:
+  environment: "production"
+  tier: "frontend"
+
+# Pod security context
+podSecurityContext:
+  fsGroup: 33  # www-data group for WordPress
+
+# Container security context
+securityContext:
+  runAsUser: 33  # www-data user for WordPress
+  runAsGroup: 33
+  runAsNonRoot: true
+  readOnlyRootFilesystem: false
+
+# Service
+service:
+  type: ClusterIP
+  port: 80
+  targetPort: 80
+
+# Ingress
+ingress:
+  enabled: true
+  className: "nginx"
+  annotations:
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
+    nginx.ingress.kubernetes.io/proxy-body-size: "100m"
+    nginx.ingress.kubernetes.io/proxy-buffering: "off"
+    nginx.ingress.kubernetes.io/affinity: "cookie"
+    nginx.ingress.kubernetes.io/session-cookie-name: "wordpress-route"
+    nginx.ingress.kubernetes.io/session-cookie-hash: "sha1"
+    # Force HTTPS redirect
+    nginx.ingress.kubernetes.io/force-ssl-redirect: "true"
+  hosts:
+    - host: example.com
+      paths:
+        - path: /
+          pathType: Prefix
+  tls:
+    - secretName: wordpress-tls
+      hosts:
+        - example.com
+
+# Resources for production
+resources:
+  limits:
+    cpu: 2000m     # 2 CPU
+    memory: 2Gi    # 2GB memory
+  requests:
+    cpu: 500m      # Guaranteed 0.5 CPU
+    memory: 1Gi    # Guaranteed 1GB
+
+# Health checks
+livenessProbe:
+  httpGet:
+    path: /wp-admin/install.php
+    port: http
+    httpHeaders:
+      - name: Host
+        value: "localhost"
+  initialDelaySeconds: 120
+  periodSeconds: 10
+  timeoutSeconds: 5
+  failureThreshold: 6
+  successThreshold: 1
+
+readinessProbe:
+  httpGet:
+    path: /wp-login.php
+    port: http
+    httpHeaders:
+      - name: Host
+        value: "localhost"
+  initialDelaySeconds: 30
+  periodSeconds: 10
+  timeoutSeconds: 5
+  failureThreshold: 3
+  successThreshold: 1
+
+startupProbe:
+  httpGet:
+    path: /wp-login.php
+    port: http
+    httpHeaders:
+      - name: Host
+        value: "localhost"
+  initialDelaySeconds: 30
+  periodSeconds: 10
+  timeoutSeconds: 5
+  failureThreshold: 30
+  successThreshold: 1
+
+# Autoscaling - DISABLED (manual scaling for production control)
+autoscaling:
+  enabled: false
+
+# Pod Disruption Budget (required for HA)
+podDisruptionBudget:
+  enabled: true
+  minAvailable: 2  # At least 2 pods must be available during disruptions
+
+# Network Policy (enabled for production security)
+networkPolicy:
+  enabled: true
+  ingress:
+    # Allow traffic from ingress controller
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              name: ingress-nginx
+      ports:
+        - protocol: TCP
+          port: 80
+    # Allow traffic from other WordPress pods
+    - from:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: wordpress
+      ports:
+        - protocol: TCP
+          port: 80
+  egress:
+    # Allow DNS resolution
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              name: kube-system
+      ports:
+        - protocol: UDP
+          port: 53
+    # Allow MySQL database access
+    - to:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: mysql
+      ports:
+        - protocol: TCP
+          port: 3306
+    # Allow external HTTP/HTTPS (for plugin/theme updates, external APIs)
+    - to:
+        - namespaceSelector: {}
+      ports:
+        - protocol: TCP
+          port: 80
+        - protocol: TCP
+          port: 443
+
+# Monitoring - DISABLED (ServiceMonitor CRD not guaranteed)
+monitoring:
+  serviceMonitor:
+    enabled: false
+    path: /
+    interval: 30s
+    scrapeTimeout: 10s
+    additionalLabels:
+      prometheus: kube-prometheus
+
+# Node selector - production nodes
+nodeSelector: {}
+  # Example: Use dedicated web nodes
+  # node.kubernetes.io/instance-type: "n1-standard-4"
+  # workload: "web"
+
+# Tolerations - for dedicated nodes
+tolerations: []
+  # - key: "workload"
+  #   operator: "Equal"
+  #   value: "web"
+  #   effect: "NoSchedule"
+
+# High availability anti-affinity
+affinity:
+  podAntiAffinity:
+    # Prefer to schedule replicas on different nodes
+    preferredDuringSchedulingIgnoredDuringExecution:
+      - weight: 100
+        podAffinityTerm:
+          labelSelector:
+            matchExpressions:
+              - key: app.kubernetes.io/name
+                operator: In
+                values:
+                  - wordpress
+          topologyKey: kubernetes.io/hostname
+      # Prefer to schedule across availability zones
+      - weight: 50
+        podAffinityTerm:
+          labelSelector:
+            matchExpressions:
+              - key: app.kubernetes.io/name
+                operator: In
+                values:
+                  - wordpress
+          topologyKey: topology.kubernetes.io/zone
+
+# Additional environment variables for production
+extraEnv:
+  - name: WORDPRESS_CONFIG_EXTRA
+    value: |
+      /* Production Environment Optimizations */
+      define('WP_MEMORY_LIMIT', '1G');
+      define('WP_MAX_MEMORY_LIMIT', '2G');
+
+      /* Production revisions */
+      define('WP_POST_REVISIONS', 50);
+      define('AUTOSAVE_INTERVAL', 120);  /* 2 minutes */
+
+      /* Force SSL for admin */
+      define('FORCE_SSL_ADMIN', true);
+
+      /* Disable file editing in admin (security) */
+      define('DISALLOW_FILE_EDIT', true);
+
+      /* Cron settings - disable WP-Cron for production (use system cron) */
+      define('DISABLE_WP_CRON', true);
+
+      /* Redis Object Cache (requires Redis Helm chart and plugin) */
+      /* Uncomment after installing Redis and WordPress Redis Object Cache plugin:
+      define('WP_REDIS_HOST', 'redis-service.default.svc.cluster.local');
+      define('WP_REDIS_PORT', 6379);
+      define('WP_REDIS_PASSWORD', '');
+      define('WP_REDIS_DATABASE', 0);
+      define('WP_CACHE_KEY_SALT', 'wordpress_');
+      */
+
+      /* Security headers */
+      # header('X-Frame-Options: SAMEORIGIN');
+      # header('X-Content-Type-Options: nosniff');
+
+# Additional volumes
+extraVolumes: []
+
+# Additional volume mounts
+extraVolumeMounts: []
+
+# Production Notes:
+# ==================
+# 1. Redis Caching (Strongly Recommended):
+#    - Install Redis: helm install redis ./charts/redis
+#    - Install plugin: wp plugin install redis-cache --activate
+#    - Uncomment Redis config in extraEnv above
+#    - Enable cache: wp redis enable
+#
+# 2. System Cron (Recommended for production):
+#    - Create CronJob to run: wp cron event run --due-now
+#    - Schedule: */5 * * * * (every 5 minutes)
+#
+# 3. Backup Strategy:
+#    - Database: Use MySQL backups (mysqldump or backup plugin)
+#    - Files: PVC snapshots or UpdraftPlus plugin
+#    - Test restore procedure regularly
+#
+# 4. Performance Monitoring:
+#    - Enable ServiceMonitor if Prometheus is available
+#    - Monitor PHP-FPM metrics
+#    - Track database query performance
+#
+# 5. Security Hardening:
+#    - Use strong passwords for admin and MySQL
+#    - Enable 2FA for admin login (Wordfence or Google Authenticator plugin)
+#    - Regular security scans (Wordfence)
+#    - Keep plugins/themes updated
+#    - Disable XML-RPC if not needed
+#
+# 6. CDN Integration:
+#    - Consider CloudFlare, AWS CloudFront, or similar
+#    - Configure W3 Total Cache for CDN integration
+#
+# 7. Database Optimization:
+#    - Use dedicated MySQL/MariaDB with master-replica setup
+#    - Enable SSL/TLS for MySQL connections
+#    - Regular database optimization (WP-Optimize plugin)

@@ -1,0 +1,274 @@
+# Uptime Kuma values for Home Server - Single Instance
+# Minimal resources optimized for home lab/personal use
+# Use: helm install uptime-kuma ./charts/uptime-kuma -f charts/uptime-kuma/values-home-single.yaml
+#
+# Features:
+# - SQLite database (no external DB needed)
+# - Single replica only (Uptime Kuma doesn't support HA)
+# - Minimal resources for Raspberry Pi / Intel NUC
+# - Port-forward access (no ingress)
+# - Monitoring interval: 60s (default)
+
+# ========================================
+# Uptime Kuma Configuration
+# ========================================
+uptimeKuma:
+  # Port configuration
+  port: 3001
+  host: "::"  # IPv4+IPv6 support
+
+  # Data directory (inside container)
+  dataDir: "/app/data"
+
+  # Database configuration
+  database:
+    type: "sqlite"  # SQLite only for home use
+
+  # SSL/TLS - disabled for home use
+  ssl:
+    enabled: false
+
+  # Security settings
+  security:
+    wsOriginCheck: "cors-like"
+    disableFrameSameOrigin: false
+
+  # Logging - minimal for home use
+  logging:
+    hideLog: ""
+    sqlLog: false
+    responseBodyMonitorId: ""
+
+# ========================================
+# Storage Configuration
+# ========================================
+
+# Persistence - minimal storage for home use
+persistence:
+  enabled: true
+  storageClass: ""  # Use default
+  accessMode: ReadWriteOnce
+  size: 2Gi  # Minimal for home use
+  mountPath: /app/data
+  annotations: {}
+
+# ========================================
+# Deployment Configuration
+# ========================================
+
+# Single instance (Uptime Kuma doesn't support HA)
+replicaCount: 1
+
+strategy:
+  type: Recreate  # Required for RWO volume
+
+# Container image
+image:
+  repository: louislam/uptime-kuma
+  pullPolicy: IfNotPresent
+  tag: ""  # Defaults to Chart.appVersion
+
+imagePullSecrets: []
+nameOverride: ""
+fullnameOverride: ""
+
+# Service account
+serviceAccount:
+  create: true
+  automount: true
+  annotations: {}
+  name: ""
+
+podAnnotations: {}
+
+podLabels:
+  environment: "home"
+
+# Security context
+podSecurityContext:
+  fsGroup: 1000
+  runAsNonRoot: true
+  runAsUser: 1000
+
+securityContext:
+  allowPrivilegeEscalation: false
+  capabilities:
+    drop:
+      - ALL
+  readOnlyRootFilesystem: false  # Uptime Kuma needs write access
+
+# ========================================
+# Service & Networking
+# ========================================
+
+# Service
+service:
+  type: ClusterIP
+  port: 3001
+  targetPort: 3001
+  annotations: {}
+
+# Ingress - DISABLED for home use (use port-forward)
+ingress:
+  enabled: false
+  className: ""
+  annotations: {}
+  hosts:
+    - host: uptime-kuma.local
+      paths:
+        - path: /
+          pathType: Prefix
+  tls: []
+
+# ========================================
+# Resource Limits
+# ========================================
+
+# Resource limits - MINIMAL for home server
+resources:
+  limits:
+    cpu: 250m      # Minimal for Raspberry Pi
+    memory: 256Mi  # Low memory footprint
+  requests:
+    cpu: 50m       # Very low baseline
+    memory: 128Mi  # Minimal request
+
+# ========================================
+# Health Checks
+# ========================================
+
+livenessProbe:
+  enabled: true
+  httpGet:
+    path: /
+    port: http
+  initialDelaySeconds: 30
+  periodSeconds: 10
+  timeoutSeconds: 5
+  successThreshold: 1
+  failureThreshold: 3
+
+readinessProbe:
+  enabled: true
+  httpGet:
+    path: /
+    port: http
+  initialDelaySeconds: 10
+  periodSeconds: 10
+  timeoutSeconds: 5
+  successThreshold: 1
+  failureThreshold: 3
+
+startupProbe:
+  enabled: true
+  httpGet:
+    path: /
+    port: http
+  initialDelaySeconds: 0
+  periodSeconds: 5
+  timeoutSeconds: 3
+  successThreshold: 1
+  failureThreshold: 30
+
+# ========================================
+# High Availability (Not Supported)
+# ========================================
+
+# Autoscaling - DISABLED (Uptime Kuma doesn't support horizontal scaling)
+autoscaling:
+  enabled: false
+
+# Pod Disruption Budget - DISABLED for single instance
+podDisruptionBudget:
+  enabled: false
+
+# ========================================
+# Security
+# ========================================
+
+# Network Policy - DISABLED for home use
+networkPolicy:
+  enabled: false
+
+# ========================================
+# Monitoring
+# ========================================
+
+# Monitoring - DISABLED for home use
+monitoring:
+  enabled: false
+  serviceMonitor:
+    enabled: false
+
+# ========================================
+# Node Selection
+# ========================================
+
+nodeSelector: {}
+
+tolerations: []
+
+affinity: {}
+
+topologySpreadConstraints: []
+
+priorityClassName: ""
+
+# ========================================
+# Additional Configuration
+# ========================================
+
+# Extra environment variables
+extraEnv:
+  - name: TZ
+    value: "UTC"
+
+extraEnvFrom: []
+
+# Additional volumes
+extraVolumes: []
+
+# Additional volume mounts
+extraVolumeMounts: []
+
+# Init containers
+initContainers: []
+
+# Lifecycle hooks
+lifecycle: {}
+
+# ========================================
+# Home Server Deployment Notes
+# ========================================
+
+# Access the application:
+#
+# 1. Port-forward to localhost:
+#    kubectl port-forward svc/uptime-kuma 3001:3001
+#
+# 2. Access via browser:
+#    http://localhost:3001
+#
+# 3. First-time setup:
+#    - Create admin account
+#    - Configure monitoring targets
+#    - Set up notification channels (90+ integrations)
+#
+# Backup recommendations:
+#
+# 1. SQLite database backup:
+#    kubectl exec -it uptime-kuma-xxx -- cp /app/data/kuma.db /app/data/kuma.db.backup
+#
+# 2. Download backup:
+#    kubectl cp uptime-kuma-xxx:/app/data/kuma.db ./kuma-backup-$(date +%Y%m%d).db
+#
+# 3. Automated backup (using CronJob or external tool):
+#    - Schedule regular SQLite backups
+#    - Store in external storage (NAS, cloud)
+#
+# Resource usage notes:
+#
+# - Very lightweight for <50 monitors
+# - CPU usage spikes during monitoring intervals
+# - Memory usage grows with number of status pages
+# - Increase resources if monitoring 100+ targets

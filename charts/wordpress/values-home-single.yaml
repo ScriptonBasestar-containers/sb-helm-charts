@@ -1,0 +1,225 @@
+# WordPress values for Home Server - Single Instance
+# Minimal resources optimized for home lab/personal use
+# Use: helm install wordpress ./charts/wordpress -f charts/wordpress/values-home-single.yaml
+#
+# Requirements:
+# - External MySQL/MariaDB (required)
+# - Set passwords: --set wordpress.admin.password=xxx --set mysql.external.password=xxx
+
+# WordPress configuration
+wordpress:
+  # Site configuration
+  title: "My Personal Blog"
+  siteUrl: "https://blog.home.local"
+  homeUrl: "https://blog.home.local"
+
+  # Admin credentials
+  admin:
+    username: "admin"
+    password: ""  # REQUIRED: Set via --set wordpress.admin.password=xxx
+    email: "admin@home.local"
+
+  # Disable debug mode in production
+  debug: "false"
+
+  # WordPress table prefix
+  tablePrefix: "wp_"
+
+  # WordPress salts and keys (auto-generated if empty)
+  # Generate at: https://api.wordpress.org/secret-key/1.1/salt/
+  salts:
+    authKey: ""
+    secureAuthKey: ""
+    loggedInKey: ""
+    nonceKey: ""
+    authSalt: ""
+    secureAuthSalt: ""
+    loggedInSalt: ""
+    nonceSalt: ""
+
+  # WordPress plugins (empty for minimal home setup)
+  plugins:
+    install: []
+    activate: []
+
+  # WordPress themes (empty for minimal home setup)
+  themes:
+    install: []
+    activate: ""
+
+# External MySQL/MariaDB (required)
+mysql:
+  enabled: false  # NEVER auto-install
+  external:
+    enabled: true
+    host: ""  # REQUIRED: e.g., mysql-service.default.svc.cluster.local
+    port: 3306
+    database: "wordpress"
+    username: "wordpress"
+    password: ""  # REQUIRED: Set via --set mysql.external.password=xxx
+    existingSecret:
+      enabled: false
+
+# Persistent storage - reduced size for home use
+persistence:
+  enabled: true
+  content:
+    enabled: true
+    storageClass: ""  # Use default storage class
+    accessMode: ReadWriteOnce
+    size: 10Gi
+    existingClaim: ""
+
+# Single instance
+replicaCount: 1
+
+# Container image
+image:
+  repository: wordpress
+  pullPolicy: IfNotPresent
+  tag: "6.4.3-apache"
+
+imagePullSecrets: []
+nameOverride: ""
+fullnameOverride: ""
+
+# Service account
+serviceAccount:
+  create: true
+  automount: true
+  annotations: {}
+  name: ""
+
+podAnnotations: {}
+podLabels: {}
+
+# Pod security context
+podSecurityContext:
+  fsGroup: 33  # www-data group for WordPress
+
+# Container security context
+securityContext:
+  runAsUser: 33  # www-data user for WordPress
+  runAsGroup: 33
+  runAsNonRoot: true
+  readOnlyRootFilesystem: false
+
+# Service
+service:
+  type: ClusterIP
+  port: 80
+  targetPort: 80
+
+# Ingress (disabled by default)
+ingress:
+  enabled: false
+  className: "nginx"
+  annotations:
+    nginx.ingress.kubernetes.io/proxy-body-size: "50m"
+    nginx.ingress.kubernetes.io/proxy-buffering: "off"
+  hosts:
+    - host: blog.home.local
+      paths:
+        - path: /
+          pathType: Prefix
+  tls: []
+
+# Resource limits - MINIMAL for home server
+resources:
+  limits:
+    cpu: 500m      # Reduced for home use
+    memory: 512Mi  # Minimal memory
+  requests:
+    cpu: 100m      # Low baseline
+    memory: 256Mi  # Minimal request
+
+# Health checks
+livenessProbe:
+  httpGet:
+    path: /wp-admin/install.php
+    port: http
+    httpHeaders:
+      - name: Host
+        value: "localhost"
+  initialDelaySeconds: 120
+  periodSeconds: 10
+  timeoutSeconds: 5
+  failureThreshold: 6
+  successThreshold: 1
+
+readinessProbe:
+  httpGet:
+    path: /wp-login.php
+    port: http
+    httpHeaders:
+      - name: Host
+        value: "localhost"
+  initialDelaySeconds: 30
+  periodSeconds: 10
+  timeoutSeconds: 5
+  failureThreshold: 3
+  successThreshold: 1
+
+startupProbe:
+  httpGet:
+    path: /wp-login.php
+    port: http
+    httpHeaders:
+      - name: Host
+        value: "localhost"
+  initialDelaySeconds: 30
+  periodSeconds: 10
+  timeoutSeconds: 5
+  failureThreshold: 30
+  successThreshold: 1
+
+# Autoscaling - DISABLED for single instance
+autoscaling:
+  enabled: false
+
+# Pod Disruption Budget - DISABLED for single instance
+podDisruptionBudget:
+  enabled: false
+
+# Network Policy - DISABLED for home use
+networkPolicy:
+  enabled: false
+
+# Monitoring - DISABLED for home use
+monitoring:
+  serviceMonitor:
+    enabled: false
+
+# Node selector - empty for home use
+nodeSelector: {}
+
+# Tolerations - empty
+tolerations: []
+
+# Affinity - empty for single instance
+affinity: {}
+
+# Additional environment variables for home server optimization
+extraEnv:
+  - name: WORDPRESS_CONFIG_EXTRA
+    value: |
+      /* Home Server Optimizations */
+      define('WP_MEMORY_LIMIT', '256M');
+      define('WP_MAX_MEMORY_LIMIT', '512M');
+
+      /* Disable auto-updates (manage manually) */
+      define('AUTOMATIC_UPDATER_DISABLED', true);
+      define('WP_AUTO_UPDATE_CORE', false);
+
+      /* Reduce revisions to save space */
+      define('WP_POST_REVISIONS', 5);
+      define('AUTOSAVE_INTERVAL', 300);  /* 5 minutes */
+
+      /* Disable file editing in admin (security) */
+      define('DISALLOW_FILE_EDIT', true);
+
+# Additional volumes
+extraVolumes: []
+
+# Additional volume mounts
+extraVolumeMounts: []

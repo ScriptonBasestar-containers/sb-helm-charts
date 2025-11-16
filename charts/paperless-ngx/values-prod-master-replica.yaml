@@ -1,0 +1,357 @@
+# Paperless-ngx values for Production - Single Instance (Master)
+# Paperless-ngx does not support horizontal scaling
+# Production-grade single instance with high availability features
+# Use: helm install paperless-ngx ./charts/paperless-ngx -f charts/paperless-ngx/values-prod-master-replica.yaml
+#
+# Requirements:
+# - External PostgreSQL with SSL (required)
+# - External Redis with SSL (required)
+# - Set passwords: --set paperless.adminPassword=xxx --set paperless.secretKey=xxx --set postgresql.external.password=xxx --set redis.external.password=xxx
+
+# Application configuration
+paperless:
+  adminUser: "admin"
+  adminPassword: ""  # REQUIRED: Set via --set paperless.adminPassword=xxx
+  adminEmail: "admin@example.com"
+  secretKey: ""  # REQUIRED: Generate with: openssl rand -base64 32
+
+  url: "https://paperless.example.com"
+  timezone: "America/New_York"
+
+  # OCR settings - Multi-language support
+  ocr:
+    language: "eng+kor+jpn+chi_sim"  # English, Korean, Japanese, Simplified Chinese
+    mode: "skip"  # Skip documents with existing text
+
+  # Document processing
+  consumer:
+    polling: 0  # Use inotify (recommended)
+    deleteSourceDocuments: true
+    recursive: true  # Watch subdirectories
+    subdirectoriesAsTags: true  # Use subdirectories as tags
+
+  # Email settings (enabled for notifications)
+  email:
+    enabled: true
+    host: "smtp.gmail.com"
+    port: 587
+    username: ""  # REQUIRED: Set SMTP username
+    password: ""  # REQUIRED: Set SMTP password
+    from: "paperless@example.com"
+    useTLS: true
+    useSSL: false
+
+# External PostgreSQL (required)
+postgresql:
+  enabled: false  # NEVER auto-install
+  external:
+    enabled: true
+    host: ""  # REQUIRED: e.g., postgres.database.svc.cluster.local
+    port: 5432
+    database: "paperless"
+    username: "paperless"
+    password: ""  # REQUIRED: Set via --set postgresql.external.password=xxx
+    sslMode: "require"  # SSL required for production
+
+# External Redis (required)
+redis:
+  enabled: false  # NEVER auto-install
+  external:
+    enabled: true
+    host: ""  # REQUIRED: e.g., redis-service.default.svc.cluster.local
+    port: 6379
+    password: ""  # REQUIRED: Set via --set redis.external.password=xxx
+    database: 0
+
+# Persistence - production-grade storage
+persistence:
+  enabled: true
+
+  # Consume directory (incoming documents)
+  consume:
+    enabled: true
+    storageClass: ""  # Use fast SSD storage class in production
+    size: 20Gi
+    accessMode: ReadWriteOnce
+    existingClaim: ""
+    mountPath: /usr/src/paperless/consume
+
+  # Data directory (application data and index)
+  data:
+    enabled: true
+    storageClass: ""  # Use fast SSD storage class in production
+    size: 50Gi
+    accessMode: ReadWriteOnce
+    existingClaim: ""
+    mountPath: /usr/src/paperless/data
+
+  # Media directory (processed documents) - main storage
+  media:
+    enabled: true
+    storageClass: ""  # Can use standard storage for media
+    size: 500Gi
+    accessMode: ReadWriteOnce
+    existingClaim: ""
+    mountPath: /usr/src/paperless/media
+
+  # Export directory (document exports)
+  export:
+    enabled: true
+    storageClass: ""
+    size: 50Gi
+    accessMode: ReadWriteOnce
+    existingClaim: ""
+    mountPath: /usr/src/paperless/export
+
+# Single instance (Paperless-ngx doesn't support horizontal scaling)
+replicaCount: 1
+
+strategy:
+  type: Recreate
+
+# Container image
+image:
+  repository: ghcr.io/paperless-ngx/paperless-ngx
+  tag: "2.14.7"
+  pullPolicy: IfNotPresent
+
+imagePullSecrets: []
+nameOverride: ""
+fullnameOverride: ""
+
+# Service account
+serviceAccount:
+  create: true
+  automount: true
+  annotations: {}
+  name: ""
+
+podAnnotations:
+  prometheus.io/scrape: "true"
+  prometheus.io/port: "8000"
+  prometheus.io/path: "/api/metrics/"
+
+podLabels:
+  environment: "production"
+  tier: "document-management"
+
+# Pod security context
+podSecurityContext:
+  fsGroup: 1000
+  runAsUser: 1000
+  runAsGroup: 1000
+  runAsNonRoot: true
+
+# Container security context
+securityContext:
+  capabilities:
+    drop:
+      - ALL
+  readOnlyRootFilesystem: false
+  runAsNonRoot: true
+  runAsUser: 1000
+  runAsGroup: 1000
+  allowPrivilegeEscalation: false
+
+# Service
+service:
+  type: ClusterIP
+  port: 8000
+  targetPort: 8000
+  protocol: TCP
+  annotations: {}
+
+# Ingress (enabled with TLS)
+ingress:
+  enabled: true
+  className: "nginx"
+  annotations:
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
+    nginx.ingress.kubernetes.io/proxy-body-size: "200m"
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "600"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "600"
+    nginx.ingress.kubernetes.io/proxy-buffering: "off"
+  hosts:
+    - host: paperless.example.com
+      paths:
+        - path: /
+          pathType: Prefix
+  tls:
+    - secretName: paperless-tls
+      hosts:
+        - paperless.example.com
+
+# Resources for production
+resources:
+  limits:
+    cpu: 2000m     # 2 CPU
+    memory: 4Gi    # 4GB memory
+  requests:
+    cpu: 500m      # Guaranteed 0.5 CPU
+    memory: 2Gi    # Guaranteed 2GB
+
+# Health probes
+livenessProbe:
+  enabled: true
+  httpGet:
+    path: /
+    port: http
+  initialDelaySeconds: 60
+  periodSeconds: 10
+  timeoutSeconds: 5
+  failureThreshold: 6
+  successThreshold: 1
+
+readinessProbe:
+  enabled: true
+  httpGet:
+    path: /
+    port: http
+  initialDelaySeconds: 30
+  periodSeconds: 10
+  timeoutSeconds: 5
+  failureThreshold: 3
+  successThreshold: 1
+
+startupProbe:
+  enabled: true
+  httpGet:
+    path: /
+    port: http
+  initialDelaySeconds: 20
+  periodSeconds: 5
+  timeoutSeconds: 5
+  failureThreshold: 30
+  successThreshold: 1
+
+# Autoscaling - DISABLED (Paperless-ngx doesn't support horizontal scaling)
+autoscaling:
+  enabled: false
+
+# Pod Disruption Budget - ENABLED for production
+podDisruptionBudget:
+  enabled: true
+  minAvailable: 1  # Ensure pod remains available during disruptions
+
+# Network Policy - ENABLED for production security
+networkPolicy:
+  enabled: true
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              name: ingress-nginx
+      ports:
+        - protocol: TCP
+          port: 8000
+  egress:
+    # Allow DNS
+    - to:
+        - namespaceSelector: {}
+      ports:
+        - protocol: UDP
+          port: 53
+    # Allow PostgreSQL
+    - to:
+        - namespaceSelector: {}
+      ports:
+        - protocol: TCP
+          port: 5432
+    # Allow Redis
+    - to:
+        - namespaceSelector: {}
+      ports:
+        - protocol: TCP
+          port: 6379
+    # Allow HTTP/HTTPS (for email, OCR services, updates)
+    - to:
+        - namespaceSelector: {}
+      ports:
+        - protocol: TCP
+          port: 80
+        - protocol: TCP
+          port: 443
+        - protocol: TCP
+          port: 587  # SMTP
+
+# Monitoring - ENABLED for production
+monitoring:
+  enabled: true
+  serviceMonitor:
+    enabled: true
+    interval: 30s
+    scrapeTimeout: 10s
+    labels:
+      prometheus: kube-prometheus
+    path: /api/metrics/
+
+# Node selector - production nodes
+nodeSelector: {}
+  # Example: Use dedicated document processing nodes
+  # node.kubernetes.io/instance-type: "n1-standard-4"
+  # workload: "document-processing"
+
+# Tolerations - for dedicated nodes
+tolerations: []
+  # - key: "workload"
+  #   operator: "Equal"
+  #   value: "document-processing"
+  #   effect: "NoSchedule"
+
+# Affinity - empty for single instance
+affinity: {}
+
+priorityClassName: ""
+topologySpreadConstraints: []
+
+# Additional environment variables
+extraEnv:
+  # Consumer and worker threads - production settings
+  - name: PAPERLESS_TASK_WORKERS
+    value: "4"
+  - name: PAPERLESS_THREADS_PER_WORKER
+    value: "4"
+  # Enable production features
+  - name: PAPERLESS_ENABLE_HTTP_REMOTE_USER
+    value: "false"
+  # Tika and Gotenberg for advanced document processing
+  - name: PAPERLESS_TIKA_ENABLED
+    value: "true"
+  - name: PAPERLESS_TIKA_ENDPOINT
+    value: "http://localhost:9998"
+  - name: PAPERLESS_TIKA_GOTENBERG_ENDPOINT
+    value: "http://localhost:3000"
+  # Optimization settings
+  - name: PAPERLESS_FILENAME_FORMAT
+    value: "{created_year}/{correspondent}/{title}"
+  - name: PAPERLESS_WEBSERVER_WORKERS
+    value: "4"
+  # Security settings
+  - name: PAPERLESS_COOKIE_PREFIX
+    value: "paperless_"
+  - name: PAPERLESS_ENABLE_COMPRESSION
+    value: "true"
+
+extraEnvFrom: []
+
+# Additional volumes for OCR language data
+extraVolumes: []
+extraVolumeMounts: []
+
+# Init containers - empty for production (configure separately if needed)
+initContainers: []
+# Example: Database and Redis health checks
+# Note: Configure via Helm values with proper environment variable injection
+# initContainers:
+#   - name: wait-for-db
+#     image: postgres:17-alpine
+#     command: ["sh", "-c", "until pg_isready -h postgres.default.svc.cluster.local -p 5432; do sleep 2; done"]
+#   - name: wait-for-redis
+#     image: redis:8-alpine
+#     command: ["sh", "-c", "until redis-cli -h redis.default.svc.cluster.local ping; do sleep 2; done"]
+
+# Lifecycle hooks - graceful shutdown
+lifecycle:
+  preStop:
+    exec:
+      command: ["/bin/sh", "-c", "sleep 30"]

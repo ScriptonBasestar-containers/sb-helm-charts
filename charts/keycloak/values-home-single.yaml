@@ -1,0 +1,239 @@
+# Keycloak values for Home Server - Single Instance
+# Minimal resources optimized for home lab/personal use
+# Use: helm install keycloak ./charts/keycloak -f charts/keycloak/values-home-single.yaml
+#
+# Requirements:
+# - External PostgreSQL 13+ (required)
+# - Set passwords: --set keycloak.admin.password=xxx --set postgresql.external.password=xxx
+
+# Keycloak configuration
+keycloak:
+  admin:
+    username: "admin"
+    password: ""  # REQUIRED: Set via --set keycloak.admin.password=xxx
+    existingSecret:
+      enabled: false
+
+  args:
+    - "start"
+    - "--optimized"
+
+  realmImport:
+    enabled: false
+
+  extensions:
+    enabled: false
+
+  proxy:
+    mode: "edge"
+
+  hostname:
+    hostname: ""  # Set to your domain (e.g., keycloak.local)
+    hostnameAdmin: ""
+    hostnameStrict: false
+    hostnameBackchannelDynamic: true
+
+  http:
+    enabled: true
+    port: 8080
+  https:
+    enabled: false
+
+# External PostgreSQL (required)
+postgresql:
+  enabled: false  # NEVER auto-install
+  external:
+    enabled: true
+    host: ""  # REQUIRED: e.g., postgres-service.default.svc.cluster.local
+    port: 5432
+    database: "keycloak"
+    username: "keycloak"
+    password: ""  # REQUIRED: Set via --set postgresql.external.password=xxx
+    existingSecret:
+      enabled: false
+    pool:
+      initialSize: 10
+      minSize: 10
+      maxSize: 20
+    ssl:
+      enabled: false
+
+# External Redis (disabled for home single instance)
+redis:
+  enabled: false
+  external:
+    enabled: false
+
+# Clustering (disabled for single instance)
+clustering:
+  enabled: false
+
+# Persistence - smaller volume for home use
+persistence:
+  enabled: true
+  data:
+    enabled: true
+    storageClass: ""
+    accessMode: ReadWriteOnce
+    size: 5Gi
+    existingClaim: ""
+
+# Single instance
+replicaCount: 1
+
+# Container image
+image:
+  repository: quay.io/keycloak/keycloak
+  pullPolicy: IfNotPresent
+  tag: "26.0.6"
+
+imagePullSecrets: []
+nameOverride: ""
+fullnameOverride: ""
+
+# Service account
+serviceAccount:
+  create: true
+  automount: true
+  annotations: {}
+  name: ""
+
+podAnnotations: {}
+podLabels: {}
+
+# Pod security context
+podSecurityContext:
+  fsGroup: 1000
+
+# Container security context
+securityContext:
+  runAsUser: 1000
+  runAsNonRoot: true
+  readOnlyRootFilesystem: false
+  capabilities:
+    drop:
+      - ALL
+
+# Service
+service:
+  type: ClusterIP
+  port: 8080
+  targetPort: http
+  annotations: {}
+
+# Admin service (disabled for home use)
+adminService:
+  enabled: false
+
+# Ingress (disabled by default)
+ingress:
+  enabled: false
+  className: "nginx"
+  annotations:
+    nginx.ingress.kubernetes.io/proxy-buffer-size: "128k"
+  hosts:
+    - host: keycloak.local
+      paths:
+        - path: /
+          pathType: Prefix
+  tls: []
+
+# Admin ingress (disabled)
+adminIngress:
+  enabled: false
+
+# Resource limits - MINIMAL for home server
+resources:
+  limits:
+    cpu: 500m      # Reduced for home use
+    memory: 512Mi  # Minimal memory
+  requests:
+    cpu: 100m      # Low baseline
+    memory: 256Mi  # Minimal request
+
+# Health checks (Keycloak 26.x uses port 9000 for health endpoints)
+livenessProbe:
+  httpGet:
+    path: /health/live
+    port: management
+    scheme: HTTP
+  initialDelaySeconds: 120
+  periodSeconds: 10
+  timeoutSeconds: 5
+  failureThreshold: 6
+  successThreshold: 1
+
+readinessProbe:
+  httpGet:
+    path: /health/ready
+    port: management
+    scheme: HTTP
+  initialDelaySeconds: 60
+  periodSeconds: 10
+  timeoutSeconds: 5
+  failureThreshold: 3
+  successThreshold: 1
+
+startupProbe:
+  httpGet:
+    path: /health/started
+    port: management
+    scheme: HTTP
+  initialDelaySeconds: 30
+  periodSeconds: 10
+  timeoutSeconds: 5
+  failureThreshold: 60
+  successThreshold: 1
+
+# Autoscaling - DISABLED for single instance
+autoscaling:
+  enabled: false
+
+# Pod Disruption Budget - DISABLED for single instance
+podDisruptionBudget:
+  enabled: false
+
+# Database health check
+dbHealthCheck:
+  enabled: true
+  image: postgres:16-alpine
+  imagePullPolicy: IfNotPresent
+
+# Network Policy - DISABLED for home use
+networkPolicy:
+  enabled: false
+
+# Monitoring - DISABLED for home use
+monitoring:
+  enabled: false
+  serviceMonitor:
+    enabled: false
+
+# Node selector - empty for home use
+nodeSelector: {}
+
+# Tolerations - empty
+tolerations: []
+
+# Affinity - empty for single instance
+affinity: {}
+
+# Additional environment variables
+extraEnv:
+  - name: KC_LOG_LEVEL
+    value: "INFO"
+  # JVM heap settings for home server
+  - name: JAVA_OPTS_APPEND
+    value: "-Xms256m -Xmx512m"
+
+extraEnvFrom: []
+
+# Additional volumes
+extraVolumes: []
+extraVolumeMounts: []
+
+# Init containers - empty for home use
+initContainers: []
+
+# Lifecycle hooks
+lifecycle: {}

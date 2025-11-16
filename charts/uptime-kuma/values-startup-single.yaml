@@ -1,0 +1,351 @@
+# Uptime Kuma values for Startup - Single Instance
+# Balanced resources for small business/startup use
+# Use: helm install uptime-kuma ./charts/uptime-kuma -f charts/uptime-kuma/values-startup-single.yaml
+#
+# Features:
+# - SQLite database (no external DB needed)
+# - Single replica only (Uptime Kuma doesn't support HA)
+# - Balanced resources for 100+ monitors
+# - Ingress enabled for public access
+# - Monitoring interval: 30s (faster than default)
+
+# ========================================
+# Uptime Kuma Configuration
+# ========================================
+uptimeKuma:
+  # Port configuration
+  port: 3001
+  host: "::"  # IPv4+IPv6 support
+
+  # Data directory (inside container)
+  dataDir: "/app/data"
+
+  # Database configuration
+  database:
+    type: "sqlite"  # SQLite for startup use
+
+  # SSL/TLS - disabled (handled by ingress)
+  ssl:
+    enabled: false
+
+  # Security settings
+  security:
+    wsOriginCheck: "cors-like"
+    disableFrameSameOrigin: false
+
+  # Logging - moderate for startup use
+  logging:
+    hideLog: ""
+    sqlLog: false
+    responseBodyMonitorId: ""
+
+# ========================================
+# Storage Configuration
+# ========================================
+
+# Persistence - moderate storage for startup use
+persistence:
+  enabled: true
+  storageClass: ""  # Use default or specify: "fast-ssd", "standard"
+  accessMode: ReadWriteOnce
+  size: 5Gi  # Moderate size for growing monitoring needs
+  mountPath: /app/data
+  annotations: {}
+
+# ========================================
+# Deployment Configuration
+# ========================================
+
+# Single instance (Uptime Kuma doesn't support HA)
+replicaCount: 1
+
+strategy:
+  type: Recreate  # Required for RWO volume
+
+# Container image
+image:
+  repository: louislam/uptime-kuma
+  pullPolicy: IfNotPresent
+  tag: ""  # Defaults to Chart.appVersion
+
+imagePullSecrets: []
+nameOverride: ""
+fullnameOverride: ""
+
+# Service account
+serviceAccount:
+  create: true
+  automount: true
+  annotations: {}
+  name: ""
+
+podAnnotations: {}
+
+podLabels:
+  environment: "startup"
+  tier: "monitoring"
+
+# Security context
+podSecurityContext:
+  fsGroup: 1000
+  runAsNonRoot: true
+  runAsUser: 1000
+
+securityContext:
+  allowPrivilegeEscalation: false
+  capabilities:
+    drop:
+      - ALL
+  readOnlyRootFilesystem: false  # Uptime Kuma needs write access
+
+# ========================================
+# Service & Networking
+# ========================================
+
+# Service
+service:
+  type: ClusterIP
+  port: 3001
+  targetPort: 3001
+  annotations: {}
+
+# Ingress - ENABLED for startup use
+ingress:
+  enabled: true
+  className: "nginx"
+  annotations:
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "3600"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "3600"
+    nginx.ingress.kubernetes.io/websocket-services: "uptime-kuma"
+    # Optional: Enable cert-manager for TLS
+    # cert-manager.io/cluster-issuer: "letsencrypt-prod"
+  hosts:
+    - host: status.example.com
+      paths:
+        - path: /
+          pathType: Prefix
+  tls: []
+  # Example TLS configuration:
+  # tls:
+  #   - secretName: uptime-kuma-tls
+  #     hosts:
+  #       - status.example.com
+
+# ========================================
+# Resource Limits
+# ========================================
+
+# Resource limits - BALANCED for startup
+resources:
+  limits:
+    cpu: 500m      # 0.5 CPU
+    memory: 512Mi  # 512MB memory
+  requests:
+    cpu: 100m      # Guaranteed 100m
+    memory: 256Mi  # Guaranteed 256Mi
+
+# ========================================
+# Health Checks
+# ========================================
+
+livenessProbe:
+  enabled: true
+  httpGet:
+    path: /
+    port: http
+  initialDelaySeconds: 30
+  periodSeconds: 10
+  timeoutSeconds: 5
+  successThreshold: 1
+  failureThreshold: 3
+
+readinessProbe:
+  enabled: true
+  httpGet:
+    path: /
+    port: http
+  initialDelaySeconds: 10
+  periodSeconds: 10
+  timeoutSeconds: 5
+  successThreshold: 1
+  failureThreshold: 3
+
+startupProbe:
+  enabled: true
+  httpGet:
+    path: /
+    port: http
+  initialDelaySeconds: 0
+  periodSeconds: 5
+  timeoutSeconds: 3
+  successThreshold: 1
+  failureThreshold: 30
+
+# ========================================
+# High Availability (Not Supported)
+# ========================================
+
+# Autoscaling - DISABLED (Uptime Kuma doesn't support horizontal scaling)
+autoscaling:
+  enabled: false
+
+# Pod Disruption Budget - DISABLED for single instance
+podDisruptionBudget:
+  enabled: false
+
+# ========================================
+# Security
+# ========================================
+
+# Network Policy - OPTIONAL (disabled by default)
+networkPolicy:
+  enabled: false
+  # To enable, configure ingress/egress rules
+  policyTypes:
+    - Ingress
+    - Egress
+  ingress:
+    # Allow from ingress controller
+    - from:
+      - namespaceSelector:
+          matchLabels:
+            name: ingress-nginx
+      ports:
+        - protocol: TCP
+          port: 3001
+  egress:
+    # Allow DNS resolution
+    - to:
+      - namespaceSelector: {}
+      ports:
+        - protocol: UDP
+          port: 53
+    # Allow HTTPS for monitoring external services
+    - to:
+      - namespaceSelector: {}
+      ports:
+        - protocol: TCP
+          port: 443
+    # Allow HTTP for monitoring
+    - to:
+      - namespaceSelector: {}
+      ports:
+        - protocol: TCP
+          port: 80
+
+# ========================================
+# Monitoring
+# ========================================
+
+# Monitoring - DISABLED (can enable if monitoring stack is available)
+monitoring:
+  enabled: false
+  serviceMonitor:
+    enabled: false
+
+# ========================================
+# Node Selection
+# ========================================
+
+nodeSelector: {}
+
+tolerations: []
+
+affinity: {}
+
+topologySpreadConstraints: []
+
+priorityClassName: ""
+
+# ========================================
+# Additional Configuration
+# ========================================
+
+# Extra environment variables
+extraEnv:
+  - name: TZ
+    value: "UTC"
+  # Customize monitoring interval (default: 60s)
+  # Note: This is set per-monitor in the UI, not globally
+
+extraEnvFrom: []
+
+# Additional volumes
+extraVolumes: []
+
+# Additional volume mounts
+extraVolumeMounts: []
+
+# Init containers
+initContainers: []
+
+# Lifecycle hooks
+lifecycle: {}
+
+# ========================================
+# Startup Deployment Notes
+# ========================================
+
+# Pre-deployment checklist:
+#
+# 1. DNS configuration:
+#    - Configure A/CNAME records for your domain
+#    - Point to ingress controller IP
+#
+# 2. TLS certificate:
+#    - Install cert-manager if using Let's Encrypt
+#    - Or manually create TLS secret
+#
+# 3. Storage:
+#    - Verify default StorageClass is available
+#    - Or specify fast-ssd for better performance
+#
+# Post-deployment tasks:
+#
+# 1. Access the application:
+#    https://status.example.com
+#
+# 2. First-time setup:
+#    - Create admin account
+#    - Configure monitoring targets (APIs, websites, ports)
+#    - Set up notification channels:
+#      * Email (SMTP)
+#      * Slack, Discord, Telegram
+#      * PagerDuty, OpsGenie
+#      * Webhook (90+ integrations)
+#
+# 3. Create status pages:
+#    - Public status page for customers
+#    - Internal status page for team
+#    - Custom branding and domain
+#
+# 4. Configure monitoring:
+#    - Set monitoring interval: 30s for critical services
+#    - Set retry count: 2-3 retries
+#    - Configure upside-down mode for expected failures
+#
+# 5. Set up notifications:
+#    - Configure escalation rules
+#    - Test notification delivery
+#    - Set quiet hours if needed
+#
+# Backup recommendations:
+#
+# 1. Regular SQLite backups (daily):
+#    kubectl exec -it uptime-kuma-xxx -- cp /app/data/kuma.db /app/data/kuma.db.backup
+#
+# 2. Automated backup script:
+#    - Schedule daily backups
+#    - Store in cloud storage (S3, GCS)
+#    - Keep 30 days of backups
+#
+# 3. Monitor backup size:
+#    - SQLite database grows with history
+#    - Plan for ~100MB per 1000 monitors/month
+#
+# Scaling considerations:
+#
+# - Supports 100+ monitors with current resources
+# - CPU usage correlates with number of monitors
+# - Memory usage grows with status page views
+# - Consider upgrading to 1000m CPU / 1Gi RAM for 500+ monitors

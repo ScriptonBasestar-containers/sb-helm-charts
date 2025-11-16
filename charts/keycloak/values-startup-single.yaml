@@ -1,0 +1,273 @@
+# Keycloak values for Startup - Single Instance
+# Balanced resources for small business/startup use
+# Use: helm install keycloak ./charts/keycloak -f charts/keycloak/values-startup-single.yaml
+#
+# Requirements:
+# - External PostgreSQL 13+ (required)
+# - Set passwords: --set keycloak.admin.password=xxx --set postgresql.external.password=xxx
+# - Optional: Redis for session caching
+
+# Keycloak configuration
+keycloak:
+  admin:
+    username: "admin"
+    password: ""  # REQUIRED: Set via --set keycloak.admin.password=xxx
+    existingSecret:
+      enabled: false
+
+  args:
+    - "start"
+    - "--optimized"
+
+  realmImport:
+    enabled: false
+    configMapName: ""
+
+  extensions:
+    enabled: false
+
+  proxy:
+    mode: "edge"
+
+  hostname:
+    hostname: ""  # REQUIRED: Set to your domain (e.g., keycloak.example.com)
+    hostnameAdmin: ""
+    hostnameStrict: true
+    hostnameBackchannelDynamic: false
+
+  http:
+    enabled: true
+    port: 8080
+  https:
+    enabled: false
+
+# External PostgreSQL (required)
+postgresql:
+  enabled: false  # NEVER auto-install
+  external:
+    enabled: true
+    host: ""  # REQUIRED: e.g., postgres.database.svc.cluster.local
+    port: 5432
+    database: "keycloak"
+    username: "keycloak"
+    password: ""  # REQUIRED: Set via --set postgresql.external.password=xxx
+    existingSecret:
+      enabled: false
+    pool:
+      initialSize: 20
+      minSize: 20
+      maxSize: 50
+    # SSL recommended for production
+    ssl:
+      enabled: false
+      mode: "require"
+      certificateSecret: ""
+      rootCertKey: "ca.crt"
+
+# External Redis (optional, documented but disabled by default)
+redis:
+  enabled: false
+  external:
+    enabled: false
+    # To enable Redis caching, uncomment and configure:
+    # enabled: true
+    # host: "redis-service.default.svc.cluster.local"
+    # port: 6379
+    # password: ""
+    # database: 0
+    ssl:
+      enabled: false
+
+# Clustering (disabled for single instance)
+clustering:
+  enabled: false
+
+# Persistence
+persistence:
+  enabled: true
+  data:
+    enabled: true
+    storageClass: ""
+    accessMode: ReadWriteOnce
+    size: 10Gi
+    existingClaim: ""
+
+# Single instance
+replicaCount: 1
+
+# Container image
+image:
+  repository: quay.io/keycloak/keycloak
+  pullPolicy: IfNotPresent
+  tag: "26.0.6"
+
+imagePullSecrets: []
+nameOverride: ""
+fullnameOverride: ""
+
+# Service account
+serviceAccount:
+  create: true
+  automount: true
+  annotations: {}
+  name: ""
+
+podAnnotations: {}
+
+podLabels:
+  environment: "startup"
+
+# Pod security context
+podSecurityContext:
+  fsGroup: 1000
+
+# Container security context
+securityContext:
+  runAsUser: 1000
+  runAsNonRoot: true
+  readOnlyRootFilesystem: false
+  capabilities:
+    drop:
+      - ALL
+
+# Service
+service:
+  type: ClusterIP
+  port: 8080
+  targetPort: http
+  annotations: {}
+
+# Admin service (optional, can enable for separate admin access)
+adminService:
+  enabled: false
+
+# Ingress
+ingress:
+  enabled: true
+  className: "nginx"
+  annotations:
+    nginx.ingress.kubernetes.io/proxy-buffer-size: "128k"
+    nginx.ingress.kubernetes.io/proxy-buffers-number: "4"
+    # Optional: Enable cert-manager for TLS
+    # cert-manager.io/cluster-issuer: "letsencrypt-prod"
+  hosts:
+    - host: keycloak.example.com
+      paths:
+        - path: /
+          pathType: Prefix
+  tls: []
+  # Example TLS configuration:
+  # tls:
+  #   - secretName: keycloak-tls
+  #     hosts:
+  #       - keycloak.example.com
+
+# Admin ingress (disabled by default)
+adminIngress:
+  enabled: false
+
+# Resource limits - BALANCED for startup
+resources:
+  limits:
+    cpu: 1000m     # 1 CPU
+    memory: 1Gi    # 1GB memory
+  requests:
+    cpu: 200m      # Guaranteed 200m
+    memory: 512Mi  # Guaranteed 512Mi
+
+# Health checks (Keycloak 26.x uses port 9000 for health endpoints)
+livenessProbe:
+  httpGet:
+    path: /health/live
+    port: management
+    scheme: HTTP
+  initialDelaySeconds: 120
+  periodSeconds: 10
+  timeoutSeconds: 5
+  failureThreshold: 6
+  successThreshold: 1
+
+readinessProbe:
+  httpGet:
+    path: /health/ready
+    port: management
+    scheme: HTTP
+  initialDelaySeconds: 60
+  periodSeconds: 10
+  timeoutSeconds: 5
+  failureThreshold: 3
+  successThreshold: 1
+
+startupProbe:
+  httpGet:
+    path: /health/started
+    port: management
+    scheme: HTTP
+  initialDelaySeconds: 30
+  periodSeconds: 10
+  timeoutSeconds: 5
+  failureThreshold: 60
+  successThreshold: 1
+
+# Autoscaling - DISABLED for single instance
+autoscaling:
+  enabled: false
+
+# Pod Disruption Budget - DISABLED for single instance
+podDisruptionBudget:
+  enabled: false
+
+# Database health check
+dbHealthCheck:
+  enabled: true
+  image: postgres:16-alpine
+  imagePullPolicy: IfNotPresent
+
+# Network Policy - OPTIONAL (disabled by default)
+networkPolicy:
+  enabled: false
+  # To enable, uncomment and configure ingress/egress rules
+  # ingress:
+  #   namespaceSelector:
+  #     matchLabels:
+  #       name: ingress-nginx
+  # egress:
+  #   postgresql:
+  #     podSelector:
+  #       matchLabels:
+  #         app: postgresql
+
+# Monitoring - DISABLED (can enable if monitoring stack is available)
+monitoring:
+  enabled: false
+  serviceMonitor:
+    enabled: false
+
+# Node selector
+nodeSelector: {}
+
+# Tolerations
+tolerations: []
+
+# Affinity - empty for single instance
+affinity: {}
+
+# Additional environment variables
+extraEnv:
+  - name: KC_LOG_LEVEL
+    value: "INFO"
+  # JVM heap settings for startup environment
+  - name: JAVA_OPTS_APPEND
+    value: "-Xms512m -Xmx1g -Djava.net.preferIPv4Stack=true"
+
+extraEnvFrom: []
+
+# Additional volumes
+extraVolumes: []
+extraVolumeMounts: []
+
+# Init containers
+initContainers: []
+
+# Lifecycle hooks
+lifecycle: {}

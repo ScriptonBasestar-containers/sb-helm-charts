@@ -1,0 +1,450 @@
+# Nextcloud values for Production - Master-Replica Setup
+# High-availability configuration for production workloads
+# Use: helm install nextcloud ./charts/nextcloud -f charts/nextcloud/values-prod-master-replica.yaml \
+#        --set postgresql.external.host='postgres.default.svc.cluster.local' \
+#        --set postgresql.external.password='your-db-password' \
+#        --set redis.external.host='redis.default.svc.cluster.local' \
+#        --set redis.external.password='your-redis-password' \
+#        --set nextcloud.adminPassword='your-admin-password'
+
+# ⚠️ IMPORTANT: adminPassword and database password are REQUIRED
+# ⚠️ NOTE: For multi-replica setup, use ReadWriteMany (NFS/CephFS) for data volume
+
+# ========================================
+# Nextcloud Configuration
+# ========================================
+nextcloud:
+  adminUser: admin
+  adminPassword: ""  # REQUIRED - use existingSecret for production
+
+  version: "31.0.10"
+
+  # Trusted domains for production
+  trustedDomains:
+    - nextcloud.example.com
+    - nextcloud-internal.default.svc.cluster.local
+  # Add all domains/IPs that will access Nextcloud
+
+  # SMTP configuration for notifications
+  smtp:
+    enabled: true
+    host: "smtp.example.com"
+    port: 587
+    secure: "tls"
+    authType: "LOGIN"
+    from: "nextcloud@example.com"
+    username: ""  # Set via --set or existingSecret
+    password: ""  # Set via --set or existingSecret
+
+# ========================================
+# External Services
+# ========================================
+
+# External PostgreSQL 16 - REQUIRED with SSL for production
+postgresql:
+  enabled: false
+  external:
+    enabled: true
+    host: ""  # REQUIRED - e.g., postgres-primary.default.svc.cluster.local
+    port: 5432
+    database: "nextcloud"
+    username: "nextcloud"
+    password: ""  # REQUIRED - use existingSecret
+    existingSecret:
+      enabled: false
+      secretName: ""
+      usernameKey: "username"
+      passwordKey: "password"
+
+# External Redis 8 - REQUIRED with password for production
+redis:
+  enabled: false
+  external:
+    enabled: true
+    host: ""  # REQUIRED - e.g., redis-master.default.svc.cluster.local
+    port: 6379
+    password: ""  # REQUIRED for production
+    database: 0
+    existingSecret:
+      enabled: false
+      secretName: ""
+      passwordKey: "password"
+
+# ========================================
+# Storage Configuration
+# ========================================
+
+# Persistent storage - production-grade with shared storage
+persistence:
+  enabled: true
+
+  # User data storage (MUST be ReadWriteMany for multi-replica)
+  data:
+    enabled: true
+    storageClass: ""  # Use NFS, CephFS, or cloud-specific RWX storage
+    accessMode: ReadWriteMany  # REQUIRED for multiple replicas
+    size: 500Gi  # Adjust based on user count
+    existingClaim: ""
+
+  # Nextcloud configuration (per-replica)
+  config:
+    enabled: true
+    storageClass: ""
+    accessMode: ReadWriteOnce  # Each replica has its own config
+    size: 5Gi
+    existingClaim: ""
+
+  # Custom apps storage (shared across replicas)
+  apps:
+    enabled: true
+    storageClass: ""
+    accessMode: ReadWriteMany  # Shared apps
+    size: 5Gi
+    existingClaim: ""
+
+# ========================================
+# Deployment Configuration
+# ========================================
+
+# Multiple replicas for high availability
+replicaCount: 3
+
+# Container image
+image:
+  repository: nextcloud
+  pullPolicy: IfNotPresent
+  tag: "31.0.10-apache"
+
+imagePullSecrets: []
+nameOverride: ""
+fullnameOverride: ""
+
+# Service account
+serviceAccount:
+  create: true
+  automount: true
+  annotations: {}
+  name: ""
+
+podAnnotations:
+  prometheus.io/scrape: "true"
+  prometheus.io/port: "80"
+  prometheus.io/path: "/ocs/v2.php/apps/serverinfo/api/v1/info?format=json"
+
+podLabels:
+  environment: "production"
+  tier: "application"
+
+# Security context
+podSecurityContext:
+  fsGroup: 33  # www-data
+
+securityContext:
+  runAsUser: 33
+  runAsGroup: 33
+  runAsNonRoot: true
+  readOnlyRootFilesystem: false
+
+# ========================================
+# Service & Networking
+# ========================================
+
+# Service - ClusterIP with session affinity
+service:
+  type: ClusterIP
+  port: 80
+  targetPort: 80
+
+# Ingress - enabled with TLS for production
+ingress:
+  enabled: true
+  className: "nginx"
+  annotations:
+    nginx.ingress.kubernetes.io/proxy-body-size: "20G"  # Increased for production
+    nginx.ingress.kubernetes.io/proxy-buffering: "off"
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "3600"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "3600"
+    nginx.ingress.kubernetes.io/server-snippet: |
+      client_max_body_size 20G;
+      location = /.well-known/carddav {
+        return 301 $scheme://$host/remote.php/dav;
+      }
+      location = /.well-known/caldav {
+        return 301 $scheme://$host/remote.php/dav;
+      }
+    # Production annotations:
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/force-ssl-redirect: "true"
+    # Rate limiting:
+    nginx.ingress.kubernetes.io/limit-rps: "10"
+  hosts:
+    - host: nextcloud.example.com
+      paths:
+        - path: /
+          pathType: Prefix
+  tls:
+    - secretName: nextcloud-tls
+      hosts:
+        - nextcloud.example.com
+
+# ========================================
+# Resource Limits
+# ========================================
+
+# Production-grade resources
+resources:
+  limits:
+    cpu: 2000m      # 2 CPU cores
+    memory: 2Gi     # 2GB RAM
+  requests:
+    cpu: 500m       # Guaranteed 0.5 CPU
+    memory: 1Gi     # Guaranteed 1GB RAM
+
+# ========================================
+# Health Checks
+# ========================================
+
+livenessProbe:
+  httpGet:
+    path: /status.php
+    port: http
+    httpHeaders:
+      - name: Host
+        value: "localhost"
+  initialDelaySeconds: 120
+  periodSeconds: 20
+  timeoutSeconds: 5
+  failureThreshold: 6
+  successThreshold: 1
+
+readinessProbe:
+  httpGet:
+    path: /status.php
+    port: http
+    httpHeaders:
+      - name: Host
+        value: "localhost"
+  initialDelaySeconds: 30
+  periodSeconds: 10
+  timeoutSeconds: 5
+  failureThreshold: 3
+  successThreshold: 1
+
+startupProbe:
+  httpGet:
+    path: /status.php
+    port: http
+    httpHeaders:
+      - name: Host
+        value: "localhost"
+  initialDelaySeconds: 30
+  periodSeconds: 10
+  timeoutSeconds: 5
+  failureThreshold: 60  # Increased for production startup
+  successThreshold: 1
+
+# ========================================
+# Autoscaling & High Availability
+# ========================================
+
+# Autoscaling - optional for production
+autoscaling:
+  enabled: false  # Enable if needed
+  minReplicas: 3
+  maxReplicas: 10
+  targetCPUUtilizationPercentage: 70
+  targetMemoryUtilizationPercentage: 80
+
+# PodDisruptionBudget - ENABLED for HA
+podDisruptionBudget:
+  enabled: true
+  minAvailable: 2  # At least 2 out of 3 pods must be available
+
+# NetworkPolicy - ENABLED for production security
+networkPolicy:
+  enabled: true
+  ingress:
+    # Allow from ingress controller
+    - from:
+      - namespaceSelector:
+          matchLabels:
+            name: ingress-nginx
+      ports:
+        - protocol: TCP
+          port: 80
+    # Allow from monitoring
+    - from:
+      - namespaceSelector:
+          matchLabels:
+            name: monitoring
+      ports:
+        - protocol: TCP
+          port: 80
+  egress:
+    # Allow DNS resolution
+    - to:
+      - namespaceSelector: {}
+      ports:
+        - protocol: UDP
+          port: 53
+    # Allow PostgreSQL
+    - to:
+      - podSelector:
+          matchLabels:
+            app.kubernetes.io/name: postgresql
+      ports:
+        - protocol: TCP
+          port: 5432
+    # Allow Redis
+    - to:
+      - podSelector:
+          matchLabels:
+            app.kubernetes.io/name: redis
+      ports:
+        - protocol: TCP
+          port: 6379
+    # Allow HTTPS for app updates
+    - to:
+      - namespaceSelector: {}
+      ports:
+        - protocol: TCP
+          port: 443
+
+# ========================================
+# Monitoring
+# ========================================
+
+# Monitoring - ENABLED for production
+monitoring:
+  serviceMonitor:
+    enabled: true
+    path: /ocs/v2.php/apps/serverinfo/api/v1/info?format=json
+    interval: 30s
+    scrapeTimeout: 10s
+    additionalLabels:
+      prometheus: kube-prometheus
+    relabelings: []
+    targetLabels: []
+
+# ========================================
+# Node Selection
+# ========================================
+
+# Node selector for production workloads
+nodeSelector: {}
+# Example:
+# nodeSelector:
+#   node.kubernetes.io/instance-type: "n1-standard-4"
+#   workload: "application"
+
+tolerations: []
+
+# Pod anti-affinity - REQUIRED for HA
+affinity:
+  podAntiAffinity:
+    # REQUIRE each pod on different node
+    requiredDuringSchedulingIgnoredDuringExecution:
+      - labelSelector:
+          matchExpressions:
+            - key: app.kubernetes.io/name
+              operator: In
+              values:
+                - nextcloud
+        topologyKey: kubernetes.io/hostname
+    # PREFER spread across availability zones
+    preferredDuringSchedulingIgnoredDuringExecution:
+      - weight: 100
+        podAffinityTerm:
+          labelSelector:
+            matchExpressions:
+              - key: app.kubernetes.io/name
+                operator: In
+                values:
+                  - nextcloud
+          topologyKey: topology.kubernetes.io/zone
+
+# ========================================
+# Additional Configuration
+# ========================================
+
+# Extra environment variables for production
+extraEnv:
+  - name: PHP_MEMORY_LIMIT
+    value: "2G"
+  - name: PHP_UPLOAD_LIMIT
+    value: "20G"
+  - name: PHP_MAX_EXECUTION_TIME
+    value: "3600"  # 1 hour for large uploads
+  - name: APACHE_BODY_LIMIT
+    value: "21474836480"  # 20GB in bytes
+
+extraVolumes: []
+extraVolumeMounts: []
+
+# ========================================
+# Cron Job Configuration
+# ========================================
+
+# Background jobs for maintenance (every 5 minutes for production)
+cronjob:
+  enabled: true
+  schedule: "*/5 * * * *"  # More frequent for production
+  resources:
+    limits:
+      cpu: 200m
+      memory: 512Mi
+    requests:
+      cpu: 100m
+      memory: 256Mi
+
+# ========================================
+# Production Deployment Notes
+# ========================================
+
+# Pre-deployment checklist:
+#
+# 1. Storage requirements:
+#    - Ensure ReadWriteMany storage class is available
+#    - Test NFS/CephFS mount performance
+#    - Verify storage IOPS and throughput
+#
+# 2. Database requirements:
+#    - PostgreSQL 16+ with connection pooling
+#    - SSL/TLS enabled for database connections
+#    - Regular automated backups configured
+#
+# 3. Redis requirements:
+#    - Redis 8+ with password authentication
+#    - Consider Redis Sentinel for HA
+#    - Memory eviction policy: allkeys-lru
+#
+# 4. Network requirements:
+#    - DNS configured for trusted domains
+#    - TLS certificates ready (Let's Encrypt)
+#    - Load balancer configuration
+#
+# 5. Security requirements:
+#    - Secrets stored in Kubernetes secrets
+#    - NetworkPolicy configured
+#    - Regular security updates
+#
+# Post-deployment tasks:
+#
+# 1. Verify pod distribution:
+#    kubectl get pods -l app.kubernetes.io/name=nextcloud -o wide
+#
+# 2. Test file upload/download across all replicas
+#
+# 3. Configure collaborative editing (Collabora/OnlyOffice)
+#
+# 4. Set up monitoring and alerting
+#
+# 5. Configure automated backups
+#
+# 6. Enable two-factor authentication for all users
+#
+# 7. Performance tuning:
+#    - Configure preview generation
+#    - Enable file locking
+#    - Optimize database indexes

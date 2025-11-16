@@ -1,0 +1,324 @@
+# Nextcloud values for Startup - Single Node
+# Balanced configuration for development and small production workloads
+# Use: helm install nextcloud ./charts/nextcloud -f charts/nextcloud/values-startup-single.yaml \
+#        --set postgresql.external.host='postgres.default.svc.cluster.local' \
+#        --set postgresql.external.password='your-db-password' \
+#        --set redis.external.host='redis.default.svc.cluster.local' \
+#        --set nextcloud.adminPassword='your-admin-password'
+
+# ⚠️ IMPORTANT: adminPassword and database password are REQUIRED
+
+# ========================================
+# Nextcloud Configuration
+# ========================================
+nextcloud:
+  adminUser: admin
+  adminPassword: ""  # REQUIRED - set via --set or existing secret
+
+  version: "31.0.10"
+
+  # Trusted domains for production access
+  trustedDomains:
+    - nextcloud.example.com
+  # Add your actual domain
+
+  # SMTP configuration for notifications
+  smtp:
+    enabled: false  # Enable when ready
+    host: ""
+    port: 587
+    secure: "tls"
+    authType: "LOGIN"
+    from: ""
+    username: ""
+    password: ""
+
+# ========================================
+# External Services
+# ========================================
+
+# External PostgreSQL 16 - REQUIRED
+postgresql:
+  enabled: false
+  external:
+    enabled: true
+    host: ""  # REQUIRED - e.g., postgres.default.svc.cluster.local
+    port: 5432
+    database: "nextcloud"
+    username: "nextcloud"
+    password: ""  # REQUIRED
+    existingSecret:
+      enabled: false
+
+# External Redis 8 - REQUIRED for performance
+redis:
+  enabled: false
+  external:
+    enabled: true
+    host: ""  # REQUIRED - e.g., redis.default.svc.cluster.local
+    port: 6379
+    password: ""  # Set if Redis has password
+    database: 0
+    existingSecret:
+      enabled: false
+
+# ========================================
+# Storage Configuration
+# ========================================
+
+# Persistent storage - balanced sizes for startup use
+persistence:
+  enabled: true
+
+  # User data storage (files, photos, documents)
+  data:
+    enabled: true
+    storageClass: ""  # Use default or specify SSD storage class
+    accessMode: ReadWriteOnce
+    size: 100Gi  # Suitable for small teams
+    existingClaim: ""
+
+  # Nextcloud configuration files
+  config:
+    enabled: true
+    storageClass: ""
+    accessMode: ReadWriteOnce
+    size: 2Gi
+    existingClaim: ""
+
+  # Custom apps storage
+  apps:
+    enabled: true
+    storageClass: ""
+    accessMode: ReadWriteOnce
+    size: 2Gi
+    existingClaim: ""
+
+# ========================================
+# Deployment Configuration
+# ========================================
+
+# Single replica for cost efficiency
+replicaCount: 1
+
+# Container image
+image:
+  repository: nextcloud
+  pullPolicy: IfNotPresent
+  tag: "31.0.10-apache"
+
+imagePullSecrets: []
+nameOverride: ""
+fullnameOverride: ""
+
+# Service account
+serviceAccount:
+  create: true
+  automount: true
+  annotations: {}
+  name: ""
+
+podAnnotations: {}
+
+podLabels:
+  environment: "startup"
+  tier: "application"
+
+# Security context
+podSecurityContext:
+  fsGroup: 33  # www-data
+
+securityContext:
+  runAsUser: 33
+  runAsGroup: 33
+  runAsNonRoot: true
+  readOnlyRootFilesystem: false
+
+# ========================================
+# Service & Networking
+# ========================================
+
+# Service - ClusterIP
+service:
+  type: ClusterIP
+  port: 80
+  targetPort: 80
+
+# Ingress - enabled for production access
+ingress:
+  enabled: true
+  className: "nginx"
+  annotations:
+    nginx.ingress.kubernetes.io/proxy-body-size: "10G"
+    nginx.ingress.kubernetes.io/proxy-buffering: "off"
+    nginx.ingress.kubernetes.io/server-snippet: |
+      client_max_body_size 10G;
+      location = /.well-known/carddav {
+        return 301 $scheme://$host/remote.php/dav;
+      }
+      location = /.well-known/caldav {
+        return 301 $scheme://$host/remote.php/dav;
+      }
+    # Uncomment for Let's Encrypt:
+    # cert-manager.io/cluster-issuer: "letsencrypt-prod"
+  hosts:
+    - host: nextcloud.example.com
+      paths:
+        - path: /
+          pathType: Prefix
+  tls: []
+  # Uncomment for TLS:
+  # tls:
+  #   - secretName: nextcloud-tls
+  #     hosts:
+  #       - nextcloud.example.com
+
+# ========================================
+# Resource Limits
+# ========================================
+
+# Balanced resources for startup environments
+resources:
+  limits:
+    cpu: 1000m      # 1 CPU core
+    memory: 1Gi     # 1GB RAM
+  requests:
+    cpu: 200m       # Guaranteed 0.2 CPU
+    memory: 512Mi   # Guaranteed 512MB RAM
+
+# ========================================
+# Health Checks
+# ========================================
+
+livenessProbe:
+  httpGet:
+    path: /status.php
+    port: http
+    httpHeaders:
+      - name: Host
+        value: "localhost"
+  initialDelaySeconds: 60
+  periodSeconds: 20
+  timeoutSeconds: 5
+  failureThreshold: 6
+  successThreshold: 1
+
+readinessProbe:
+  httpGet:
+    path: /status.php
+    port: http
+    httpHeaders:
+      - name: Host
+        value: "localhost"
+  initialDelaySeconds: 30
+  periodSeconds: 10
+  timeoutSeconds: 5
+  failureThreshold: 3
+  successThreshold: 1
+
+startupProbe:
+  httpGet:
+    path: /status.php
+    port: http
+    httpHeaders:
+      - name: Host
+        value: "localhost"
+  initialDelaySeconds: 30
+  periodSeconds: 10
+  timeoutSeconds: 5
+  failureThreshold: 30
+  successThreshold: 1
+
+# ========================================
+# Autoscaling & High Availability
+# ========================================
+
+# Disabled for single replica
+autoscaling:
+  enabled: false
+
+# No PodDisruptionBudget for single replica
+podDisruptionBudget:
+  enabled: false
+
+# NetworkPolicy optional - disabled by default
+networkPolicy:
+  enabled: false
+
+# ========================================
+# Monitoring
+# ========================================
+
+# Monitoring optional - disabled by default
+monitoring:
+  serviceMonitor:
+    enabled: false
+
+# ========================================
+# Node Selection
+# ========================================
+
+nodeSelector: {}
+
+tolerations: []
+
+affinity: {}
+
+# ========================================
+# Additional Configuration
+# ========================================
+
+# Extra environment variables
+extraEnv:
+  - name: PHP_MEMORY_LIMIT
+    value: "1G"
+  - name: PHP_UPLOAD_LIMIT
+    value: "10G"
+
+extraVolumes: []
+extraVolumeMounts: []
+
+# ========================================
+# Cron Job Configuration
+# ========================================
+
+# Background jobs for maintenance (every 15 minutes)
+cronjob:
+  enabled: true
+  schedule: "*/15 * * * *"
+  resources:
+    limits:
+      cpu: 100m
+      memory: 256Mi
+    requests:
+      cpu: 50m
+      memory: 128Mi
+
+# ========================================
+# Deployment Notes
+# ========================================
+
+# Post-installation steps:
+#
+# 1. Verify installation:
+#    kubectl get pods -l app.kubernetes.io/name=nextcloud
+#    kubectl logs -f deployment/nextcloud
+#
+# 2. Access Nextcloud:
+#    https://nextcloud.example.com
+#
+# 3. Configure SMTP for email notifications
+#
+# 4. Enable recommended apps:
+#    - Collaborative editing (Collabora/OnlyOffice)
+#    - Calendar, Contacts
+#    - Talk (for video calls)
+#
+# 5. Performance optimization:
+#    - APCu and Redis caching are pre-configured
+#    - Configure preview generation
+#
+# 6. Security:
+#    - Enable two-factor authentication
+#    - Set up regular backups
+#    - Configure brute-force protection
