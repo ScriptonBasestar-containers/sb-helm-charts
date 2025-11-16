@@ -124,3 +124,86 @@ helm의 가장 잘못된 설계는 config파일을 values에 대입하는 기능
     - 일반적으로 별도 설치하는 db 등은 분리
     - 디비는 각 사이트마다 자신들이 원하는 옵션이 있어서 차트로 포함 해 봐야 실 배포에서 한번도 쓴 적이 없다.
 - 심플한 도커이미지가 있는경우 사용하지만 없으면 도커부터 만들어 사용
+
+## Contributing
+
+We welcome contributions! Please see our [Contributing Guide](.github/CONTRIBUTING.md) for details on:
+
+- Code of Conduct
+- Development workflow
+- Pull request process
+- Coding standards
+- Testing requirements
+
+### Quick Start for Contributors
+
+1. **Fork and clone** the repository
+2. **Install pre-commit hooks** for code quality:
+   ```bash
+   pip install pre-commit
+   pre-commit install
+   ```
+3. **Create a feature branch** from `develop`
+4. **Make your changes** following our [Chart Development Guide](docs/CHART_DEVELOPMENT_GUIDE.md)
+5. **Test your charts**:
+   ```bash
+   helm lint charts/your-chart
+   helm install test-release charts/your-chart --dry-run --debug
+   ```
+6. **Commit with conventional commits**: `feat:`, `fix:`, `docs:`, etc.
+7. **Submit a pull request** to the `develop` branch
+
+### Pre-commit Hooks
+
+This project uses pre-commit hooks to maintain code quality:
+
+```bash
+# Install pre-commit (one-time setup)
+pip install pre-commit
+
+# Install hooks to your local repository
+pre-commit install
+
+# Run hooks manually on all files
+pre-commit run --all-files
+```
+
+The hooks will automatically check:
+- YAML syntax and formatting
+- Helm chart linting
+- Markdown formatting
+- Shell script linting
+- Trailing whitespace and EOF
+- Conventional commit messages
+
+## Development
+
+### Local Testing with Kind
+
+```bash
+# Create local Kubernetes cluster
+make kind-create
+
+# Test chart installation
+helm install my-test charts/my-chart
+
+# Delete cluster
+make kind-delete
+```
+
+### Chart Testing
+
+```bash
+# Lint specific chart
+helm lint charts/my-chart
+
+# Test all scenario values
+helm install test-home charts/my-chart -f charts/my-chart/values-home-single.yaml --dry-run
+helm install test-startup charts/my-chart -f charts/my-chart/values-startup-single.yaml --dry-run
+helm install test-prod charts/my-chart -f charts/my-chart/values-prod-master-replica.yaml --dry-run
+```
+
+For more details, see:
+- [Chart Development Guide](docs/CHART_DEVELOPMENT_GUIDE.md)
+- [Scenario Values Guide](docs/SCENARIO_VALUES_GUIDE.md)
+- [Chart Version Policy](docs/CHART_VERSION_POLICY.md)
