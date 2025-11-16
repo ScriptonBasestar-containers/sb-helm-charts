@@ -37,6 +37,36 @@ helm pull sb-charts/keycloak --version 0.3.0
 helm pull oci://ghcr.io/scriptonbasestar-containers/charts/keycloak --version 0.3.0
 ```
 
+### Deployment Scenarios
+
+All charts include pre-configured values files for three deployment scenarios:
+
+- **Home Server** (`values-home-single.yaml`): Minimal resources for personal/home lab use
+- **Startup** (`values-startup-single.yaml`): Balanced configuration for small teams
+- **Production** (`values-prod-master-replica.yaml`): High availability deployment with clustering
+
+**Usage Example:**
+```bash
+# Home Server deployment
+helm install nextcloud ./charts/nextcloud -f charts/nextcloud/values-home-single.yaml
+
+# Startup deployment
+helm install nextcloud ./charts/nextcloud -f charts/nextcloud/values-startup-single.yaml
+
+# Production deployment with HA
+helm install nextcloud ./charts/nextcloud -f charts/nextcloud/values-prod-master-replica.yaml
+```
+
+**Override specific values:**
+```bash
+helm install nextcloud ./charts/nextcloud \
+  -f charts/nextcloud/values-home-single.yaml \
+  --set postgresql.external.host=postgres.default.svc.cluster.local \
+  --set postgresql.external.password=secure-password
+```
+
+For detailed scenario documentation, see [Scenario Values Guide](docs/SCENARIO_VALUES_GUIDE.md).
+
 ## 프로젝트 목표 (NO_AI_SECTION)
 
 개인 서버 및 간단한 서버 운영을 위한 차트
