@@ -1,0 +1,141 @@
+# RustFS values for Home Server - Single Node
+# S3-compatible object storage for personal use
+# Use: helm install rustfs ./charts/rustfs -f charts/rustfs/values-home-single.yaml
+
+rustfs:
+  rootUser: "rustfsadmin"
+  rootPassword: ""  # REQUIRED - set a strong password
+  existingSecret: ""
+  region: "us-east-1"
+  consolePort: 9001
+  apiPort: 9000
+  dataDirs: 2  # Reduced for home use
+  extraEnv: []
+  args: []
+
+# Persistence
+persistence:
+  enabled: true
+  storageClass: ""
+  accessMode: ReadWriteOnce
+  size: 50Gi  # 50Gi per directory = 100Gi total
+  reclaimPolicy: Retain
+
+# Storage tiers disabled for home
+storageTiers:
+  enabled: false
+
+replicaCount: 1
+
+image:
+  repository: rustfs/rustfs
+  pullPolicy: IfNotPresent
+  tag: "1.0.0-alpha.66"
+
+serviceAccount:
+  create: true
+  automount: true
+
+podLabels:
+  environment: "home"
+  tier: "storage"
+
+podSecurityContext:
+  fsGroup: 1000
+  fsGroupChangePolicy: "OnRootMismatch"
+
+securityContext:
+  runAsUser: 1000
+  runAsGroup: 1000
+  runAsNonRoot: true
+  readOnlyRootFilesystem: false
+  capabilities:
+    drop:
+      - ALL
+
+service:
+  type: ClusterIP
+  api:
+    port: 9000
+    targetPort: 9000
+  console:
+    port: 9001
+    targetPort: 9001
+
+headlessService:
+  enabled: true
+
+ingress:
+  enabled: false
+  className: "nginx"
+  api:
+    enabled: false
+    hosts:
+      - host: s3.local
+        paths:
+          - path: /
+            pathType: Prefix
+  console:
+    enabled: false
+    hosts:
+      - host: console.s3.local
+        paths:
+          - path: /
+            pathType: Prefix
+
+resources:
+  limits:
+    cpu: 1000m
+    memory: 2Gi
+  requests:
+    cpu: 250m
+    memory: 512Mi
+
+livenessProbe:
+  httpGet:
+    path: /rustfs/health/live
+    port: api
+  initialDelaySeconds: 60
+  periodSeconds: 30
+  failureThreshold: 5
+
+readinessProbe:
+  httpGet:
+    path: /rustfs/health/ready
+    port: api
+  initialDelaySeconds: 30
+  periodSeconds: 15
+  failureThreshold: 3
+
+startupProbe:
+  httpGet:
+    path: /rustfs/health/live
+    port: api
+  initialDelaySeconds: 0
+  periodSeconds: 10
+  failureThreshold: 30
+
+autoscaling:
+  enabled: false
+
+podDisruptionBudget:
+  enabled: false
+
+networkPolicy:
+  enabled: false
+
+monitoring:
+  enabled: false
+  serviceMonitor:
+    enabled: false
+
+updateStrategy:
+  type: RollingUpdate
+  rollingUpdate:
+    partition: 0
+
+podManagementPolicy: Parallel
+
+nodeSelector: {}
+tolerations: []
+affinity: {}

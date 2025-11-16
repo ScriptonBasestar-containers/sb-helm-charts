@@ -1,0 +1,165 @@
+# Immich values for Home Server - Single Node
+# AI-powered photo and video management for personal/home lab use
+# Use: helm install immich ./charts/immich -f charts/immich/values-home-single.yaml
+
+# Immich services
+immich:
+  server:
+    enabled: true
+    replicaCount: 1
+    image:
+      repository: ghcr.io/immich-app/immich-server
+      pullPolicy: IfNotPresent
+      tag: ""
+
+    resources:
+      limits:
+        cpu: 500m
+        memory: 1Gi
+      requests:
+        cpu: 200m
+        memory: 512Mi
+
+  machineLearning:
+    enabled: true
+    replicaCount: 1
+    image:
+      repository: ghcr.io/immich-app/immich-machine-learning
+      pullPolicy: IfNotPresent
+      tag: ""
+
+    acceleration: "none"
+
+    resources:
+      limits:
+        cpu: 1000m
+        memory: 2Gi
+      requests:
+        cpu: 500m
+        memory: 1Gi
+
+    modelCache:
+      enabled: true
+      storageClass: ""
+      size: 5Gi
+      accessMode: ReadWriteOnce
+
+  env:
+    TZ: "UTC"
+    LOG_LEVEL: "log"
+    IMMICH_MEDIA_LOCATION: "/data"
+
+# External dependencies (REQUIRED)
+postgresql:
+  enabled: false
+  external:
+    enabled: true
+    host: ""  # REQUIRED - set your PostgreSQL host
+    port: 5432
+    database: "immich"
+    username: "immich"
+    password: ""  # REQUIRED
+    sslmode: "disable"
+
+redis:
+  enabled: false
+  external:
+    enabled: true
+    host: ""  # REQUIRED - set your Redis host
+    port: 6379
+    password: ""
+    database: 0
+
+# Persistence
+persistence:
+  enabled: true
+  library:
+    enabled: true
+    storageClass: ""
+    accessMode: ReadWriteOnce
+    size: 50Gi  # Reduced for home use
+    mountPath: /data
+    existingClaim: ""
+    reclaimPolicy: Retain
+
+# Service
+service:
+  type: ClusterIP
+  port: 2283
+  targetPort: 2283
+
+# Ingress
+ingress:
+  enabled: false
+  className: ""
+  hosts:
+    - host: immich.local
+      paths:
+        - path: /
+          pathType: Prefix
+
+serviceAccount:
+  create: true
+  automount: true
+
+podLabels:
+  environment: "home"
+  tier: "media"
+
+podSecurityContext:
+  fsGroup: 1000
+  runAsUser: 1000
+  runAsGroup: 1000
+  runAsNonRoot: true
+
+securityContext:
+  allowPrivilegeEscalation: false
+  capabilities:
+    drop:
+      - ALL
+  readOnlyRootFilesystem: false
+
+livenessProbe:
+  enabled: true
+  httpGet:
+    path: /api/server-info/ping
+    port: http
+  initialDelaySeconds: 60
+  periodSeconds: 30
+  failureThreshold: 6
+
+readinessProbe:
+  enabled: true
+  httpGet:
+    path: /api/server-info/ping
+    port: http
+  initialDelaySeconds: 30
+  periodSeconds: 10
+  failureThreshold: 3
+
+startupProbe:
+  enabled: true
+  httpGet:
+    path: /api/server-info/ping
+    port: http
+  initialDelaySeconds: 10
+  periodSeconds: 10
+  failureThreshold: 60
+
+autoscaling:
+  enabled: false
+
+podDisruptionBudget:
+  enabled: false
+
+networkPolicy:
+  enabled: false
+
+monitoring:
+  enabled: false
+  serviceMonitor:
+    enabled: false
+
+nodeSelector: {}
+tolerations: []
+affinity: {}

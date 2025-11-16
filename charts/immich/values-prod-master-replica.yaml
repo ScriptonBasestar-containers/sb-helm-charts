@@ -1,0 +1,224 @@
+# Immich values for Production - Master-Replica
+# Note: Immich supports horizontal scaling for server component
+# Machine Learning service runs on single instance
+# Use: helm install immich ./charts/immich -f charts/immich/values-prod-master-replica.yaml
+
+# Immich services
+immich:
+  server:
+    enabled: true
+    replicaCount: 2  # Can scale horizontally
+    image:
+      repository: ghcr.io/immich-app/immich-server
+      pullPolicy: IfNotPresent
+      tag: ""
+
+    resources:
+      limits:
+        cpu: 2000m
+        memory: 2Gi
+      requests:
+        cpu: 500m
+        memory: 1Gi
+
+  machineLearning:
+    enabled: true
+    replicaCount: 1  # Single instance recommended
+    image:
+      repository: ghcr.io/immich-app/immich-machine-learning
+      pullPolicy: IfNotPresent
+      tag: ""
+
+    acceleration: "none"  # Set to cuda/rocm/openvino if supported
+
+    resources:
+      limits:
+        cpu: 4000m
+        memory: 4Gi
+      requests:
+        cpu: 1000m
+        memory: 2Gi
+
+    modelCache:
+      enabled: true
+      storageClass: ""
+      size: 10Gi
+      accessMode: ReadWriteOnce
+
+  env:
+    TZ: "UTC"
+    LOG_LEVEL: "log"
+    IMMICH_MEDIA_LOCATION: "/data"
+
+# External dependencies (REQUIRED)
+postgresql:
+  enabled: false
+  external:
+    enabled: true
+    host: ""  # REQUIRED - production PostgreSQL host
+    port: 5432
+    database: "immich"
+    username: "immich"
+    password: ""  # REQUIRED
+    sslmode: "require"  # Use SSL in production
+
+redis:
+  enabled: false
+  external:
+    enabled: true
+    host: ""  # REQUIRED - production Redis host
+    port: 6379
+    password: ""  # Strongly recommended for production
+    database: 0
+
+# Persistence
+persistence:
+  enabled: true
+  library:
+    enabled: true
+    storageClass: ""
+    accessMode: ReadWriteMany  # Required for multi-replica server
+    size: 500Gi  # Production capacity
+    mountPath: /data
+    existingClaim: ""
+    reclaimPolicy: Retain
+
+# Service
+service:
+  type: ClusterIP
+  port: 2283
+  targetPort: 2283
+  annotations:
+    service.alpha.kubernetes.io/tolerate-unready-endpoints: "true"
+
+# Ingress
+ingress:
+  enabled: true
+  className: "nginx"
+  annotations:
+    nginx.ingress.kubernetes.io/proxy-body-size: "0"  # No upload size limit
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "600"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "600"
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
+  hosts:
+    - host: immich.example.com
+      paths:
+        - path: /
+          pathType: Prefix
+  tls:
+    - secretName: immich-tls
+      hosts:
+        - immich.example.com
+
+serviceAccount:
+  create: true
+  automount: true
+
+podAnnotations:
+  prometheus.io/scrape: "false"  # Immich doesn't expose metrics natively
+
+podLabels:
+  environment: "production"
+  tier: "media"
+
+podSecurityContext:
+  fsGroup: 1000
+  runAsUser: 1000
+  runAsGroup: 1000
+  runAsNonRoot: true
+
+securityContext:
+  allowPrivilegeEscalation: false
+  capabilities:
+    drop:
+      - ALL
+  readOnlyRootFilesystem: false
+
+livenessProbe:
+  enabled: true
+  httpGet:
+    path: /api/server-info/ping
+    port: http
+  initialDelaySeconds: 60
+  periodSeconds: 30
+  timeoutSeconds: 10
+  failureThreshold: 6
+
+readinessProbe:
+  enabled: true
+  httpGet:
+    path: /api/server-info/ping
+    port: http
+  initialDelaySeconds: 30
+  periodSeconds: 10
+  timeoutSeconds: 10
+  failureThreshold: 3
+
+startupProbe:
+  enabled: true
+  httpGet:
+    path: /api/server-info/ping
+    port: http
+  initialDelaySeconds: 10
+  periodSeconds: 10
+  timeoutSeconds: 10
+  failureThreshold: 60
+
+autoscaling:
+  enabled: true
+  minReplicas: 2
+  maxReplicas: 5
+  targetCPUUtilizationPercentage: 80
+  targetMemoryUtilizationPercentage: 80
+
+podDisruptionBudget:
+  enabled: true
+  minAvailable: 1
+
+networkPolicy:
+  enabled: true
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              name: ingress-nginx
+      ports:
+        - protocol: TCP
+          port: 2283
+    - from:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: immich
+      ports:
+        - protocol: TCP
+          port: 2283
+  egress:
+    - to:
+        - namespaceSelector: {}
+      ports:
+        - protocol: TCP
+          port: 5432  # PostgreSQL
+        - protocol: TCP
+          port: 6379  # Redis
+        - protocol: UDP
+          port: 53    # DNS
+
+monitoring:
+  enabled: false
+  serviceMonitor:
+    enabled: false
+
+# Pod anti-affinity for HA
+affinity:
+  podAntiAffinity:
+    preferredDuringSchedulingIgnoredDuringExecution:
+      - weight: 100
+        podAffinityTerm:
+          labelSelector:
+            matchLabels:
+              app.kubernetes.io/name: immich
+              app.kubernetes.io/component: server
+          topologyKey: kubernetes.io/hostname
+
+nodeSelector: {}
+tolerations: []

@@ -1,0 +1,178 @@
+# Vaultwarden values for Startup - Single Node
+# Bitwarden-compatible password manager for team use
+# Use: helm install vaultwarden ./charts/vaultwarden -f charts/vaultwarden/values-startup-single.yaml
+
+vaultwarden:
+  domain: ""  # REQUIRED - set your domain (https://vault.example.com)
+
+  admin:
+    enabled: true
+    token: ""  # Generate with `vaultwarden hash` or leave empty
+    disableAdminToken: false
+
+  smtp:
+    enabled: false  # Enable for email notifications
+    host: ""
+    port: 587
+    security: "starttls"
+    username: ""
+    password: ""
+    from: ""
+    fromName: "Vaultwarden"
+
+  signups:
+    allowed: true  # Consider disabling after initial setup
+    verifySignup: false  # Enable with SMTP
+    allowedDomains: ""
+    allowInvitations: true
+
+  security:
+    require2FA: false  # Consider enabling for team
+    showPasswordHint: true
+    websocketEnabled: true
+    iconService: "internal"
+    disableIconDownload: false
+
+  attachments:
+    maxSize: 10  # 10MB
+
+  sends:
+    enabled: true
+    hideEmail: true
+
+  workers: 0
+
+# SQLite mode (default for single instance)
+sqlite:
+  enabled: true
+
+# Alternative: PostgreSQL backend for better concurrency
+postgresql:
+  enabled: false
+  external:
+    enabled: false
+    host: ""
+    port: 5432
+    database: "vaultwarden"
+    username: "vaultwarden"
+    password: ""
+
+mysql:
+  enabled: false
+
+# Persistence
+persistence:
+  enabled: true
+  data:
+    enabled: true
+    storageClass: ""
+    accessMode: ReadWriteOnce
+    size: 5Gi  # Balanced for team
+    mountPath: /data
+    reclaimPolicy: Retain
+
+workloadType: "auto"
+replicaCount: 1
+
+image:
+  repository: vaultwarden/server
+  pullPolicy: IfNotPresent
+  tag: ""
+
+serviceAccount:
+  create: true
+  automount: true
+
+podLabels:
+  environment: "startup"
+  tier: "security"
+
+podSecurityContext:
+  fsGroup: 1000
+  runAsUser: 1000
+  runAsGroup: 1000
+  runAsNonRoot: true
+
+securityContext:
+  allowPrivilegeEscalation: false
+  capabilities:
+    drop:
+      - ALL
+  readOnlyRootFilesystem: false
+
+service:
+  type: ClusterIP
+  ports:
+    - name: http
+      port: 80
+      targetPort: 80
+      protocol: TCP
+    - name: websocket
+      port: 3012
+      targetPort: 3012
+      protocol: TCP
+
+ingress:
+  enabled: false
+  className: ""
+  hosts:
+    - host: vault.example.com
+      paths:
+        - path: /
+          pathType: Prefix
+
+resources:
+  limits:
+    cpu: 750m
+    memory: 384Mi
+  requests:
+    cpu: 100m
+    memory: 128Mi
+
+livenessProbe:
+  enabled: true
+  httpGet:
+    path: /alive
+    port: http
+  initialDelaySeconds: 30
+  periodSeconds: 10
+  failureThreshold: 3
+
+readinessProbe:
+  enabled: true
+  httpGet:
+    path: /alive
+    port: http
+  initialDelaySeconds: 10
+  periodSeconds: 10
+  failureThreshold: 3
+
+startupProbe:
+  enabled: true
+  httpGet:
+    path: /alive
+    port: http
+  initialDelaySeconds: 5
+  periodSeconds: 5
+  failureThreshold: 30
+
+autoscaling:
+  enabled: false
+
+podDisruptionBudget:
+  enabled: false
+
+networkPolicy:
+  enabled: false
+
+backup:
+  enabled: false  # Consider enabling for production
+
+monitoring:
+  enabled: false
+  serviceMonitor:
+    enabled: false
+
+nodeSelector: {}
+tolerations: []
+affinity: {}

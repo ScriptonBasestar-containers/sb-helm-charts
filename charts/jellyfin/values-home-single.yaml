@@ -1,0 +1,150 @@
+# Jellyfin values for Home Server - Single Node
+# Media server for personal/home lab use
+# Use: helm install jellyfin ./charts/jellyfin -f charts/jellyfin/values-home-single.yaml
+
+# Jellyfin configuration
+jellyfin:
+  # Media directories - configure based on your media library
+  mediaDirectories: []
+  # Example:
+  # - name: movies
+  #   mountPath: /media/movies
+  #   size: 50Gi
+  # - name: tvshows
+  #   mountPath: /media/tvshows
+  #   size: 100Gi
+
+  # Hardware acceleration (optional for home use)
+  hardwareAcceleration:
+    enabled: false
+    type: "none"  # Change to intel-qsv, nvidia-nvenc, or amd-vaapi if available
+
+  transcoding:
+    cacheSize: 5Gi  # Reduced for home use
+    threads: 0  # Auto-detect
+
+  network:
+    publishedServerUrl: ""
+    enableDlna: false
+
+# No external database needed (SQLite)
+postgresql:
+  enabled: false
+mysql:
+  enabled: false
+redis:
+  enabled: false
+
+# Persistence
+persistence:
+  enabled: true
+
+  config:
+    enabled: true
+    storageClass: ""
+    size: 2Gi  # Minimal for home
+    accessMode: ReadWriteOnce
+    mountPath: /config
+
+  cache:
+    enabled: true
+    storageClass: ""
+    size: 5Gi  # Reduced cache
+    accessMode: ReadWriteOnce
+    mountPath: /cache
+
+replicaCount: 1
+
+strategy:
+  type: Recreate
+
+image:
+  repository: jellyfin/jellyfin
+  tag: "10.10.3"
+  pullPolicy: IfNotPresent
+
+serviceAccount:
+  create: true
+  automount: true
+
+podLabels:
+  environment: "home"
+  tier: "media"
+
+podSecurityContext:
+  fsGroup: 1000
+  runAsUser: 1000
+  runAsGroup: 1000
+  runAsNonRoot: true
+
+securityContext:
+  capabilities:
+    drop:
+      - ALL
+  readOnlyRootFilesystem: false
+  allowPrivilegeEscalation: false
+
+service:
+  type: ClusterIP
+  ports:
+    - name: http
+      port: 8096
+      targetPort: 8096
+      protocol: TCP
+
+ingress:
+  enabled: false
+  className: ""
+  hosts:
+    - host: jellyfin.local
+      paths:
+        - path: /
+          pathType: Prefix
+
+resources:
+  limits:
+    cpu: 2000m
+    memory: 2Gi
+  requests:
+    cpu: 500m
+    memory: 1Gi
+
+livenessProbe:
+  enabled: true
+  httpGet:
+    path: /health
+    port: http
+  initialDelaySeconds: 60
+  periodSeconds: 10
+  failureThreshold: 6
+
+readinessProbe:
+  enabled: true
+  httpGet:
+    path: /health
+    port: http
+  initialDelaySeconds: 30
+  periodSeconds: 10
+  failureThreshold: 3
+
+startupProbe:
+  enabled: true
+  httpGet:
+    path: /health
+    port: http
+  initialDelaySeconds: 10
+  periodSeconds: 5
+  failureThreshold: 30
+
+autoscaling:
+  enabled: false
+
+podDisruptionBudget:
+  enabled: false
+
+networkPolicy:
+  enabled: false
+
+nodeSelector: {}
+tolerations: []
+affinity: {}

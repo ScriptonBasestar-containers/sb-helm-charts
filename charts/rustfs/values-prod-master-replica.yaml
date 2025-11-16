@@ -1,0 +1,218 @@
+# RustFS values for Production - Master-Replica (Distributed Cluster)
+# S3-compatible object storage with HA clustering
+# Note: Requires 4+ replicas for production HA
+# Use: helm install rustfs ./charts/rustfs -f charts/rustfs/values-prod-master-replica.yaml
+
+rustfs:
+  rootUser: "rustfsadmin"
+  rootPassword: ""  # REQUIRED - set a strong password
+  existingSecret: ""  # Recommended: use existing secret
+  region: "us-east-1"
+  consolePort: 9001
+  apiPort: 9000
+  dataDirs: 4  # 4 directories per pod (standard erasure coding)
+  extraEnv: []
+  args: []
+
+# Persistence (per pod per directory)
+persistence:
+  enabled: true
+  storageClass: ""  # Set to SSD storage class for production
+  accessMode: ReadWriteOnce
+  size: 200Gi  # 200Gi per directory = 800Gi per pod, 3.2Ti total (4 pods)
+  reclaimPolicy: Retain
+
+# Optional: Storage tiers for cost optimization
+storageTiers:
+  enabled: false
+  hot:
+    storageClass: "ssd-storage"
+    size: 100Gi
+    dataDirs: 2
+  cold:
+    storageClass: "hdd-storage"
+    size: 300Gi
+    dataDirs: 2
+
+replicaCount: 4  # Minimum 4 for HA clustering
+
+image:
+  repository: rustfs/rustfs
+  pullPolicy: IfNotPresent
+  tag: "1.0.0-alpha.66"
+
+serviceAccount:
+  create: true
+  automount: true
+
+podAnnotations:
+  prometheus.io/scrape: "true"
+  prometheus.io/port: "9000"
+  prometheus.io/path: "/metrics"
+
+podLabels:
+  environment: "production"
+  tier: "storage"
+
+podSecurityContext:
+  fsGroup: 1000
+  fsGroupChangePolicy: "OnRootMismatch"
+
+securityContext:
+  runAsUser: 1000
+  runAsGroup: 1000
+  runAsNonRoot: true
+  readOnlyRootFilesystem: false
+  capabilities:
+    drop:
+      - ALL
+
+service:
+  type: ClusterIP
+  api:
+    port: 9000
+    targetPort: 9000
+  console:
+    port: 9001
+    targetPort: 9001
+  annotations:
+    service.alpha.kubernetes.io/tolerate-unready-endpoints: "true"
+
+headlessService:
+  enabled: true  # Required for clustering
+
+ingress:
+  enabled: true
+  className: "nginx"
+  annotations:
+    nginx.ingress.kubernetes.io/affinity: "cookie"
+    nginx.ingress.kubernetes.io/session-cookie-name: "rustfs-route"
+    nginx.ingress.kubernetes.io/proxy-body-size: "0"
+    nginx.ingress.kubernetes.io/proxy-request-buffering: "off"
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
+  api:
+    enabled: true
+    hosts:
+      - host: s3.example.com
+        paths:
+          - path: /
+            pathType: Prefix
+    tls:
+      - secretName: s3-tls
+        hosts:
+          - s3.example.com
+  console:
+    enabled: true
+    hosts:
+      - host: console.s3.example.com
+        paths:
+          - path: /
+            pathType: Prefix
+    tls:
+      - secretName: console-s3-tls
+        hosts:
+          - console.s3.example.com
+
+resources:
+  limits:
+    cpu: 2000m
+    memory: 4Gi
+  requests:
+    cpu: 500m
+    memory: 1Gi
+
+livenessProbe:
+  httpGet:
+    path: /rustfs/health/live
+    port: api
+  initialDelaySeconds: 60
+  periodSeconds: 30
+  timeoutSeconds: 10
+  failureThreshold: 5
+
+readinessProbe:
+  httpGet:
+    path: /rustfs/health/ready
+    port: api
+  initialDelaySeconds: 30
+  periodSeconds: 15
+  timeoutSeconds: 10
+  failureThreshold: 3
+
+startupProbe:
+  httpGet:
+    path: /rustfs/health/live
+    port: api
+  initialDelaySeconds: 0
+  periodSeconds: 10
+  timeoutSeconds: 10
+  failureThreshold: 30
+
+autoscaling:
+  enabled: false  # StatefulSet autoscaling requires K8s 1.27+
+
+podDisruptionBudget:
+  enabled: true
+  minAvailable: 2  # Keep at least 2 pods available
+
+networkPolicy:
+  enabled: true
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              name: ingress-nginx
+      ports:
+        - protocol: TCP
+          port: 9000
+        - protocol: TCP
+          port: 9001
+    - from:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: rustfs
+      ports:
+        - protocol: TCP
+          port: 9000
+        - protocol: TCP
+          port: 9001
+  egress:
+    - to:
+        - namespaceSelector: {}
+      ports:
+        - protocol: UDP
+          port: 53  # DNS
+
+monitoring:
+  enabled: true
+  serviceMonitor:
+    enabled: false  # Set to true if Prometheus Operator is available
+    interval: 30s
+    labels: {}
+    path: /metrics
+    port: api
+
+updateStrategy:
+  type: RollingUpdate
+  rollingUpdate:
+    partition: 0
+
+podManagementPolicy: Parallel
+
+# Pod anti-affinity for HA
+affinity:
+  podAntiAffinity:
+    preferredDuringSchedulingIgnoredDuringExecution:
+      - weight: 100
+        podAffinityTerm:
+          labelSelector:
+            matchLabels:
+              app.kubernetes.io/name: rustfs
+          topologyKey: kubernetes.io/hostname
+
+# Optional: Select nodes with fast storage
+nodeSelector: {}
+# nodeSelector:
+#   storage-type: ssd
+
+tolerations: []

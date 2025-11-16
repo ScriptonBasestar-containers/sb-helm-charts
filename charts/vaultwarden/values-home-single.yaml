@@ -1,0 +1,163 @@
+# Vaultwarden values for Home Server - Single Node
+# Bitwarden-compatible password manager for personal use
+# Use: helm install vaultwarden ./charts/vaultwarden -f charts/vaultwarden/values-home-single.yaml
+
+vaultwarden:
+  domain: ""  # Set to http://localhost:8080 or https://vault.local
+
+  admin:
+    enabled: true
+    token: ""  # Leave empty to auto-generate
+    disableAdminToken: false
+
+  smtp:
+    enabled: false  # Optional for home use
+
+  signups:
+    allowed: true  # Enable for initial setup, disable after creating accounts
+    verifySignup: false
+    allowedDomains: ""
+    allowInvitations: true
+
+  security:
+    require2FA: false
+    showPasswordHint: true
+    websocketEnabled: true
+    iconService: "internal"
+    disableIconDownload: false
+
+  attachments:
+    maxSize: 5  # 5MB for home use
+
+  sends:
+    enabled: true
+    hideEmail: true
+
+  workers: 0
+
+# SQLite mode (default for single instance)
+sqlite:
+  enabled: true
+
+postgresql:
+  enabled: false
+
+mysql:
+  enabled: false
+
+# Persistence
+persistence:
+  enabled: true
+  data:
+    enabled: true
+    storageClass: ""
+    accessMode: ReadWriteOnce
+    size: 1Gi  # Minimal for home
+    mountPath: /data
+    reclaimPolicy: Retain
+
+workloadType: "auto"  # Uses StatefulSet with SQLite
+replicaCount: 1
+
+image:
+  repository: vaultwarden/server
+  pullPolicy: IfNotPresent
+  tag: ""
+
+serviceAccount:
+  create: true
+  automount: true
+
+podLabels:
+  environment: "home"
+  tier: "security"
+
+podSecurityContext:
+  fsGroup: 1000
+  runAsUser: 1000
+  runAsGroup: 1000
+  runAsNonRoot: true
+
+securityContext:
+  allowPrivilegeEscalation: false
+  capabilities:
+    drop:
+      - ALL
+  readOnlyRootFilesystem: false
+
+service:
+  type: ClusterIP
+  ports:
+    - name: http
+      port: 80
+      targetPort: 80
+      protocol: TCP
+    - name: websocket
+      port: 3012
+      targetPort: 3012
+      protocol: TCP
+
+ingress:
+  enabled: false
+  className: ""
+  hosts:
+    - host: vault.local
+      paths:
+        - path: /
+          pathType: Prefix
+
+resources:
+  limits:
+    cpu: 500m
+    memory: 256Mi
+  requests:
+    cpu: 50m
+    memory: 64Mi
+
+livenessProbe:
+  enabled: true
+  httpGet:
+    path: /alive
+    port: http
+  initialDelaySeconds: 30
+  periodSeconds: 10
+  failureThreshold: 3
+
+readinessProbe:
+  enabled: true
+  httpGet:
+    path: /alive
+    port: http
+  initialDelaySeconds: 10
+  periodSeconds: 10
+  failureThreshold: 3
+
+startupProbe:
+  enabled: true
+  httpGet:
+    path: /alive
+    port: http
+  initialDelaySeconds: 5
+  periodSeconds: 5
+  failureThreshold: 30
+
+autoscaling:
+  enabled: false
+
+podDisruptionBudget:
+  enabled: false
+
+networkPolicy:
+  enabled: false
+
+backup:
+  enabled: false
+
+monitoring:
+  enabled: false
+  serviceMonitor:
+    enabled: false
+
+nodeSelector: {}
+tolerations: []
+affinity: {}
