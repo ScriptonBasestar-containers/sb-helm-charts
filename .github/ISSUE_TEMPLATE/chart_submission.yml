@@ -1,0 +1,206 @@
+name: Chart Submission
+description: Submit a new chart for inclusion in this repository
+title: "[New Chart]: "
+labels: ["new-chart", "triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for proposing a new chart! Please provide detailed information below.
+
+        **Note:** Before submitting, please review our [Chart Development Guide](https://github.com/scriptonbasestar-container/sb-helm-charts/blob/master/docs/CHART_DEVELOPMENT_GUIDE.md) and [Contributing Guidelines](https://github.com/scriptonbasestar-container/sb-helm-charts/blob/master/.github/CONTRIBUTING.md).
+
+  - type: input
+    id: chart-name
+    attributes:
+      label: Chart Name
+      description: What is the name of the chart?
+      placeholder: "e.g., my-application"
+    validations:
+      required: true
+
+  - type: input
+    id: app-version
+    attributes:
+      label: Application Version
+      description: What version of the application will this chart deploy?
+      placeholder: "e.g., 1.2.3"
+    validations:
+      required: true
+
+  - type: input
+    id: app-url
+    attributes:
+      label: Application Homepage
+      description: Official website or GitHub repository of the application
+      placeholder: "https://..."
+    validations:
+      required: true
+
+  - type: textarea
+    id: description
+    attributes:
+      label: Application Description
+      description: What does this application do? Why should it be included in this repository?
+      placeholder: A brief description of the application and its purpose...
+    validations:
+      required: true
+
+  - type: dropdown
+    id: chart-type
+    attributes:
+      label: Chart Type
+      description: What category does this chart fall into?
+      options:
+        - Self-hosted application (productivity, media, etc.)
+        - Infrastructure service (database, cache, message broker)
+        - Development tool
+        - Monitoring/observability
+        - Security tool
+        - Other
+    validations:
+      required: true
+
+  - type: dropdown
+    id: database-dependency
+    attributes:
+      label: Database Dependency
+      description: Does this application require a database?
+      options:
+        - No database required
+        - Requires external PostgreSQL
+        - Requires external MySQL/MariaDB
+        - Requires external Redis
+        - Multiple databases required
+        - Uses built-in SQLite
+    validations:
+      required: true
+
+  - type: textarea
+    id: storage-requirements
+    attributes:
+      label: Storage Requirements
+      description: What persistent storage does this application need?
+      placeholder: |
+        - Data volume for user files
+        - Config volume for application settings
+        - Cache volume (optional)
+      render: markdown
+
+  - type: textarea
+    id: resource-requirements
+    attributes:
+      label: Resource Requirements
+      description: Typical CPU/memory requirements for different scenarios
+      placeholder: |
+        - Home Server: 100m CPU, 256Mi RAM
+        - Startup: 500m CPU, 512Mi RAM
+        - Production: 1000m CPU, 1Gi RAM
+      render: markdown
+
+  - type: textarea
+    id: key-features
+    attributes:
+      label: Key Features
+      description: What are the main features of this application?
+      placeholder: |
+        - Feature 1
+        - Feature 2
+        - Feature 3
+      render: markdown
+    validations:
+      required: true
+
+  - type: textarea
+    id: configuration-approach
+    attributes:
+      label: Configuration Approach
+      description: How should configuration be managed? (Following our philosophy of config files over env vars)
+      placeholder: |
+        - Uses config.yaml mounted via ConfigMap
+        - Supports environment variables for: ...
+        - Configuration file path: ...
+      render: markdown
+    validations:
+      required: true
+
+  - type: textarea
+    id: docker-image
+    attributes:
+      label: Docker Image
+      description: Which Docker image will be used? Is it official?
+      placeholder: |
+        - Official image: docker.io/library/myapp:latest
+        - Or custom image needed because...
+    validations:
+      required: true
+
+  - type: dropdown
+    id: existing-chart
+    attributes:
+      label: Existing Helm Charts
+      description: Are there existing Helm charts for this application?
+      options:
+        - No existing charts found
+        - Yes, but they are too complex/not maintained
+        - Yes, but they don't follow our philosophy
+        - Not sure
+    validations:
+      required: true
+
+  - type: textarea
+    id: why-this-repo
+    attributes:
+      label: Why This Repository?
+      description: Why should this chart be in sb-helm-charts instead of using an existing one?
+      placeholder: |
+        This chart follows the sb-helm-charts philosophy by:
+        - Using configuration files instead of env vars
+        - Not including database as subchart
+        - Supporting scenario-based deployments
+        - ...
+    validations:
+      required: true
+
+  - type: dropdown
+    id: contribution-status
+    attributes:
+      label: Contribution Status
+      description: Do you plan to contribute this chart or just suggesting it?
+      options:
+        - I will contribute the chart (PR coming)
+        - I would like to contribute but need guidance
+        - Just suggesting - someone else can implement
+    validations:
+      required: true
+
+  - type: textarea
+    id: pr-link
+    attributes:
+      label: Pull Request Link (if applicable)
+      description: If you already have a PR ready, link it here
+      placeholder: "https://github.com/scriptonbasestar-container/sb-helm-charts/pull/XXX"
+
+  - type: textarea
+    id: additional
+    attributes:
+      label: Additional Context
+      description: Any other information, screenshots, configuration examples, etc.
+      placeholder: Add any other context here...
+
+  - type: checkboxes
+    id: checklist
+    attributes:
+      label: Pre-submission Checklist
+      description: Please confirm the following
+      options:
+        - label: I have searched for existing charts and issues
+          required: true
+        - label: I have reviewed the Chart Development Guide
+          required: true
+        - label: The application is open-source or freely available
+          required: true
+        - label: The application is actively maintained
+          required: false
+        - label: I understand the sb-helm-charts philosophy (config files, external DB, scenarios)
+          required: true

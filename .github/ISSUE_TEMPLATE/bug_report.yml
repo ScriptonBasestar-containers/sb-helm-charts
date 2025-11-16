@@ -1,0 +1,138 @@
+name: Bug Report
+description: Report a bug or issue with a chart
+title: "[Bug]: "
+labels: ["bug", "triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to report a bug! Please fill out the form below.
+
+  - type: dropdown
+    id: chart
+    attributes:
+      label: Chart Name
+      description: Which chart is affected?
+      options:
+        - keycloak
+        - redis
+        - memcached
+        - rabbitmq
+        - wireguard
+        - browserless-chrome
+        - devpi
+        - rsshub
+        - rustfs
+        - nextcloud
+        - wordpress
+        - paperless-ngx
+        - uptime-kuma
+        - immich
+        - jellyfin
+        - vaultwarden
+        - Other / Multiple charts
+    validations:
+      required: true
+
+  - type: input
+    id: chart-version
+    attributes:
+      label: Chart Version
+      description: What version of the chart are you using?
+      placeholder: "e.g., 0.3.0"
+    validations:
+      required: true
+
+  - type: textarea
+    id: description
+    attributes:
+      label: Bug Description
+      description: A clear and concise description of what the bug is.
+      placeholder: Describe the bug...
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to Reproduce
+      description: Steps to reproduce the behavior
+      placeholder: |
+        1. Install chart with 'helm install ...'
+        2. Configure values.yaml with '...'
+        3. Run command '...'
+        4. See error
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected Behavior
+      description: What did you expect to happen?
+      placeholder: Describe what should happen...
+    validations:
+      required: true
+
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual Behavior
+      description: What actually happened?
+      placeholder: Describe what actually happened...
+    validations:
+      required: true
+
+  - type: textarea
+    id: values
+    attributes:
+      label: values.yaml (relevant parts)
+      description: Please provide relevant parts of your values.yaml
+      render: yaml
+      placeholder: |
+        # Paste relevant values.yaml content here
+        key: value
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs
+      description: Please provide relevant logs (kubectl logs, helm output, etc.)
+      render: shell
+      placeholder: Paste logs here...
+
+  - type: textarea
+    id: environment
+    attributes:
+      label: Environment
+      description: |
+        Please provide information about your environment:
+        - Kubernetes version: (run `kubectl version`)
+        - Helm version: (run `helm version`)
+        - Cloud provider or platform: (e.g., AWS EKS, GKE, kind, minikube)
+      placeholder: |
+        - Kubernetes version: v1.28.0
+        - Helm version: v3.13.0
+        - Platform: AWS EKS
+    validations:
+      required: true
+
+  - type: textarea
+    id: additional
+    attributes:
+      label: Additional Context
+      description: Add any other context about the problem here (screenshots, related issues, etc.)
+      placeholder: Any additional information...
+
+  - type: checkboxes
+    id: checklist
+    attributes:
+      label: Pre-submission Checklist
+      description: Please confirm the following
+      options:
+        - label: I have searched for existing issues before creating this one
+          required: true
+        - label: I have tested with the latest chart version
+          required: false
+        - label: I have included relevant logs and error messages
+          required: false
