@@ -1,197 +1,72 @@
-# Devpi values for Production - Master-Replica Setup
-# Note: This chart supports single-node. For production HA, consider PostgreSQL backend and external load balancing
-# Use: helm install devpi ./charts/devpi -f charts/devpi/values-prod-master-replica.yaml \
-#        --set devpi.rootPassword='your-strong-password'
+# Production scenario for devpi
+# Single replica (devpi doesn't support clustering natively)
+# Full monitoring, network policies, external PostgreSQL support
 
-# ⚠️ IMPORTANT: Password is REQUIRED
-devpi:
-  # Root password - REQUIRED
-  rootPassword: ""  # REQUIRED - set via --set or existingSecret
-
-  existingSecret: ""
-  secretKeyName: "devpi-root-password"
-
-  # Server URL - set to your production domain
-  serverUrl: "https://devpi.production.example.com"
-
-  # Port to bind
-  port: 3141
-
-  # PyPI mirror configuration
-  mirror:
-    enabled: true
-    indexUrl: "https://pypi.org/simple"
-    cacheExpiry: 7200  # Increased cache for production
-
-  # Initial users - manage via automation
-  initialUsers: []
-
-  # Initial indexes for production environments
-  initialIndexes: []
-  # Example:
-  # initialIndexes:
-  #   - "prod/stable"
-  #   - "prod/releases"
-
-# External Dependencies - consider PostgreSQL for production HA
-postgresql:
-  enabled: false
-  external:
-    # For production HA, enable PostgreSQL backend
-    enabled: false
-    host: ""
-    port: 5432
-    database: "devpi"
-    username: "devpi"
-    password: ""
-
-mysql:
-  enabled: false
-
-redis:
-  enabled: false
-
-# Persistence - production level
-persistence:
-  enabled: true
-  storageClass: ""
-  size: 50Gi       # Production level
-  accessMode: ReadWriteOnce
-  reclaimPolicy: Retain
-  mountPath: /devpi/server
-
-# Single replica (horizontal scaling via load balancer if using PostgreSQL)
 replicaCount: 1
 
-# Container image
 image:
-  repository: jonasal/devpi-server
-  tag: "6.17.0-alpine"
+  repository: muccg/devpi
+  tag: "latest"
   pullPolicy: IfNotPresent
 
-imagePullSecrets: []
-nameOverride: ""
-fullnameOverride: ""
-
-# Deployment strategy
 strategy:
-  type: RollingUpdate
-  rollingUpdate:
-    maxSurge: 1
-    maxUnavailable: 0
+  type: Recreate
 
-# Service account
 serviceAccount:
   create: true
   automount: true
-  annotations: {}
-  name: ""
 
 podAnnotations:
   prometheus.io/scrape: "true"
   prometheus.io/port: "3141"
 
-podLabels:
-  environment: "production"
-  tier: "package-index"
-
-# Security context
-podSecurityContext:
-  fsGroup: 1000
-  runAsUser: 1000
-  runAsGroup: 1000
-  runAsNonRoot: true
+podSecurityContext: {}
 
 securityContext:
   capabilities:
     drop:
       - ALL
   readOnlyRootFilesystem: false
-  runAsNonRoot: true
-  runAsUser: 1000
-  runAsGroup: 1000
   allowPrivilegeEscalation: false
 
-# Service configuration
 service:
   type: ClusterIP
   port: 3141
-  targetPort: 3141
-  protocol: TCP
-  annotations:
-    service.alpha.kubernetes.io/tolerate-unready-endpoints: "true"
 
-# Ingress - production ready
-ingress:
-  enabled: false
-  className: "nginx"
-  annotations:
-    nginx.ingress.kubernetes.io/proxy-body-size: "100m"
-    nginx.ingress.kubernetes.io/proxy-read-timeout: "600"
-    cert-manager.io/cluster-issuer: "letsencrypt-prod"
-  hosts:
-    - host: devpi.production.example.com
-      paths:
-        - path: /
-          pathType: Prefix
-  tls:
-    - secretName: devpi-tls
-      hosts:
-        - devpi.production.example.com
+persistence:
+  enabled: true
+  storageClass: ""
+  accessMode: ReadWriteOnce
+  size: 20Gi
+  reclaimPolicy: Retain
 
-# Resource limits - production level
+# Production grade resources
 resources:
   limits:
-    cpu: 1000m      # Production level
-    memory: 1Gi     # Production level
+    cpu: 1000m
+    memory: 1Gi
   requests:
-    cpu: 250m       # Guaranteed
-    memory: 512Mi   # Guaranteed (minimum for PyPI indexing)
+    cpu: 250m
+    memory: 512Mi
 
-# Health probes - production tuned
 livenessProbe:
   enabled: true
-  httpGet:
-    path: /
-    port: http
-  initialDelaySeconds: 60
-  periodSeconds: 30
-  timeoutSeconds: 10
-  failureThreshold: 6
-  successThreshold: 1
 
 readinessProbe:
   enabled: true
-  httpGet:
-    path: /
-    port: http
-  initialDelaySeconds: 30
-  periodSeconds: 10
-  timeoutSeconds: 5
-  failureThreshold: 3
-  successThreshold: 1
 
 startupProbe:
   enabled: true
-  httpGet:
-    path: /
-    port: http
-  initialDelaySeconds: 10
-  periodSeconds: 10
-  timeoutSeconds: 5
-  failureThreshold: 60
-  successThreshold: 1
 
-# Autoscaling - disabled for single node with SQLite
 autoscaling:
   enabled: false
 
-# Pod Disruption Budget - production safety
+# Pod disruption budget
 podDisruptionBudget:
   enabled: true
   minAvailable: 1
 
-# Network Policy - production security
+# Network policy
 networkPolicy:
   enabled: true
   ingress:
@@ -202,78 +77,21 @@ networkPolicy:
       ports:
         - protocol: TCP
           port: 3141
-    - from:
-        - namespaceSelector:
-            matchLabels:
-              name: monitoring
-      ports:
-        - protocol: TCP
-          port: 3141
   egress:
-    # Allow DNS resolution
     - to:
         - namespaceSelector: {}
       ports:
         - protocol: UDP
           port: 53
-    # Allow HTTPS for PyPI mirror
-    - to:
-        - namespaceSelector: {}
-      ports:
-        - protocol: TCP
-          port: 443
-    # Allow PostgreSQL if external DB is used
-    - to:
-        - podSelector:
-            matchLabels:
-              app: postgresql
-      ports:
-        - protocol: TCP
-          port: 5432
 
 # Monitoring
 monitoring:
-  enabled: false  # Requires Prometheus Operator CRD
+  enabled: true
   serviceMonitor:
     enabled: false
     interval: 30s
     scrapeTimeout: 10s
-    labels:
-      prometheus: kube-prometheus
 
-# Scheduling
 nodeSelector: {}
-
 tolerations: []
-
 affinity: {}
-
-# Graceful shutdown
-lifecycle:
-  preStop:
-    exec:
-      command:
-        - /bin/sh
-        - -c
-        - sleep 15
-
-# Extensibility
-extraEnv: []
-extraEnvFrom: []
-extraVolumes: []
-extraVolumeMounts: []
-
-# Database health check (if using PostgreSQL)
-initContainers: []
-# Example when postgresql.external.enabled: true
-# initContainers:
-#   - name: wait-for-db
-#     image: postgres:16-alpine
-#     command:
-#       - sh
-#       - -c
-#       - |
-#         until pg_isready -h {{ .Values.postgresql.external.host }} -p {{ .Values.postgresql.external.port }} -U {{ .Values.postgresql.external.username }}; do
-#           echo "Waiting for PostgreSQL..."
-#           sleep 2
-#         done

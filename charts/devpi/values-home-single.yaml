@@ -1,186 +1,71 @@
-# Devpi values for Home Server - Single Node
-# Minimal resource configuration for personal/home lab use
-# Use: helm install devpi ./charts/devpi -f charts/devpi/values-home-single.yaml
+# Home Server scenario for devpi
+# Minimal resources for personal Python package index
+# Single replica, SQLite database
 
-# Devpi configuration
-devpi:
-  # Root password - required
-  rootPassword: ""
-
-  existingSecret: ""
-  secretKeyName: "devpi-root-password"
-
-  # Server URL - optional for home use
-  serverUrl: ""
-
-  # Port to bind
-  port: 3141
-
-  # PyPI mirror configuration
-  mirror:
-    enabled: true
-    indexUrl: "https://pypi.org/simple"
-    cacheExpiry: 3600
-
-  initialUsers: []
-  initialIndexes: []
-
-# External Dependencies - use SQLite for home server
-postgresql:
-  enabled: false
-  external:
-    enabled: false
-
-mysql:
-  enabled: false
-
-redis:
-  enabled: false
-
-# Persistence - reduced for home use
-persistence:
-  enabled: true
-  storageClass: ""
-  size: 5Gi        # Reduced from 8Gi
-  accessMode: ReadWriteOnce
-  reclaimPolicy: Retain
-  mountPath: /devpi/server
-
-# Single replica for home server
 replicaCount: 1
 
-# Container image
 image:
-  repository: jonasal/devpi-server
-  tag: "6.17.0-alpine"
+  repository: muccg/devpi
+  tag: "latest"
   pullPolicy: IfNotPresent
 
-imagePullSecrets: []
-nameOverride: ""
-fullnameOverride: ""
-
-# Deployment strategy
 strategy:
-  type: RollingUpdate
-  rollingUpdate:
-    maxSurge: 1
-    maxUnavailable: 0
+  type: Recreate
 
-# Service account
 serviceAccount:
   create: true
   automount: true
-  annotations: {}
-  name: ""
 
-podAnnotations: {}
-
-podLabels:
-  environment: "home"
-  tier: "package-index"
-
-# Security context
-podSecurityContext:
-  fsGroup: 1000
-  runAsUser: 1000
-  runAsGroup: 1000
-  runAsNonRoot: true
+podSecurityContext: {}
 
 securityContext:
   capabilities:
     drop:
       - ALL
   readOnlyRootFilesystem: false
-  runAsNonRoot: true
-  runAsUser: 1000
-  runAsGroup: 1000
   allowPrivilegeEscalation: false
 
-# Service configuration
 service:
   type: ClusterIP
   port: 3141
-  targetPort: 3141
-  protocol: TCP
-  annotations: {}
 
-# Ingress - disabled for home server
-ingress:
-  enabled: false
+persistence:
+  enabled: true
+  storageClass: ""
+  accessMode: ReadWriteOnce
+  size: 5Gi
+  reclaimPolicy: Retain
 
-# Resource limits - minimal for home server
-# Note: devpi-server requires minimum 512Mi for initial PyPI indexing
+# Minimal resources for home server
 resources:
   limits:
-    cpu: 250m       # Reduced from 1000m
-    memory: 256Mi   # Reduced from 1Gi (minimum viable)
+    cpu: 250m
+    memory: 256Mi
   requests:
-    cpu: 50m        # Reduced from 100m
-    memory: 128Mi   # Minimal guaranteed
+    cpu: 50m
+    memory: 128Mi
 
-# Health probes
 livenessProbe:
   enabled: true
-  httpGet:
-    path: /
-    port: http
-  initialDelaySeconds: 30
-  periodSeconds: 10
-  timeoutSeconds: 5
-  failureThreshold: 6
-  successThreshold: 1
 
 readinessProbe:
   enabled: true
-  httpGet:
-    path: /
-    port: http
-  initialDelaySeconds: 10
-  periodSeconds: 10
-  timeoutSeconds: 5
-  failureThreshold: 3
-  successThreshold: 1
 
 startupProbe:
   enabled: true
-  httpGet:
-    path: /
-    port: http
-  initialDelaySeconds: 10
-  periodSeconds: 10
-  timeoutSeconds: 5
-  failureThreshold: 30
-  successThreshold: 1
 
-# Autoscaling - disabled for home server
 autoscaling:
   enabled: false
 
-# Pod Disruption Budget - disabled for single node
 podDisruptionBudget:
   enabled: false
 
-# Network Policy - disabled for home server simplicity
 networkPolicy:
   enabled: false
 
-# Monitoring - disabled for home server
 monitoring:
   enabled: false
-  serviceMonitor:
-    enabled: false
 
-# Scheduling - no special requirements
 nodeSelector: {}
-
 tolerations: []
-
 affinity: {}
-
-# Extensibility
-extraEnv: []
-extraEnvFrom: []
-extraVolumes: []
-extraVolumeMounts: []
-initContainers: []
-lifecycle: {}
