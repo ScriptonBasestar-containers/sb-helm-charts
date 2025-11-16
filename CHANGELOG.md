@@ -12,6 +12,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Home Server scenario (minimal resources)
   - Startup Environment scenario (balanced configuration)
   - Production HA scenario (high availability with monitoring)
+- Artifact Hub metadata to all v0.3.0 charts (9 charts)
+  - Detailed changelog entries (`artifacthub.io/changes`)
+  - Recommendations to Scenario Values Guide and Chart Development Guide
+  - Links to chart source and upstream documentation
+- Recent Changes section in main README.md
+  - Highlights v0.3.0 release features
+  - Links to CHANGELOG.md for complete version history
+- `.gitattributes` file for Git optimization
+  - Normalized line endings (LF)
+  - Enhanced diff drivers for YAML, JSON, Markdown
+  - Export-ignore for development files
 
 ## [0.3.0] - 2025-11-16
 
