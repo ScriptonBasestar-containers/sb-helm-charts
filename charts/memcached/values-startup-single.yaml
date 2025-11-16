@@ -1,70 +1,45 @@
-# Memcached values for Startup - Single Node
-# Balanced configuration for development and small production workloads
-# Use: helm install memcached ./charts/memcached -f charts/memcached/values-startup-single.yaml
+# Startup scenario for memcached
+# Balanced configuration for small team/startup use
+# Single replica with monitoring enabled
 
-# Memcached configuration
+# 1. Application-specific Configuration
+
 memcached:
-  # Maximum memory (in MB) - moderate for startup
+  # Moderate memory for team use (256MB)
   maxMemory: 256
 
-  # Maximum connections - standard for small workloads
+  # Moderate connection limit
   maxConnections: 512
 
-  # Chunk size growth factor
   chunkSizeGrowthFactor: 1.25
-
-  # Minimum item size
   minItemSize: 48
-
-  # Enable CAS operations
   enableCas: true
-
-  # Verbosity (0=off, 1=normal, 2=verbose)
   verbosity: 0
+  extraArgs: []
 
-  # Additional arguments for better performance
-  extraArgs:
-    - "-o"
-    - "modern"  # Modern memory allocator
+# 4. Kubernetes Resources
 
-# Persistence - N/A for Memcached (in-memory only)
-persistence:
-  enabled: false
-
-# Single replica for startup
 replicaCount: 1
 
-# Container image
 image:
   repository: memcached
   pullPolicy: IfNotPresent
   tag: "1.6.39-alpine3.22"
 
-imagePullSecrets: []
-nameOverride: ""
-fullnameOverride: ""
-
-# Deployment strategy
 strategy:
   type: RollingUpdate
   rollingUpdate:
     maxUnavailable: 0
     maxSurge: 1
 
-# Service account
+# 5. Service Account
+
 serviceAccount:
   create: true
   automount: true
-  annotations: {}
-  name: ""
 
-podAnnotations: {}
+# 6. Pod Configuration
 
-podLabels:
-  environment: "startup"
-  tier: "cache"
-
-# Security context
 podSecurityContext:
   fsGroup: 11211
   runAsUser: 11211
@@ -72,35 +47,33 @@ podSecurityContext:
   runAsNonRoot: true
 
 securityContext:
-  runAsUser: 11211
-  runAsGroup: 11211
-  runAsNonRoot: true
-  readOnlyRootFilesystem: true
-  allowPrivilegeEscalation: false
   capabilities:
     drop:
       - ALL
+  readOnlyRootFilesystem: true
+  runAsNonRoot: true
+  runAsUser: 11211
+  runAsGroup: 11211
+  allowPrivilegeEscalation: false
 
-# Service configuration
+# 7. Service Configuration
+
 service:
   type: ClusterIP
   port: 11211
-  annotations: {}
 
-# Ingress - N/A for binary protocol
-ingress:
-  enabled: false
+# 9. Resources - Balanced for startup
 
-# Resource limits - balanced for startup
 resources:
   limits:
-    cpu: 500m       # Standard CPU limit
-    memory: 512Mi   # Matches maxMemory + overhead
+    cpu: 500m
+    memory: 512Mi
   requests:
-    cpu: 100m       # Guaranteed CPU
-    memory: 256Mi   # Guaranteed memory
+    cpu: 100m
+    memory: 128Mi
 
-# Health probes
+# 10. Health Probes
+
 livenessProbe:
   enabled: true
   tcpSocket:
@@ -131,61 +104,43 @@ startupProbe:
   failureThreshold: 10
   successThreshold: 1
 
-# Autoscaling - disabled for single node
+# 11. Autoscaling - Disabled (manual scaling)
+
 autoscaling:
   enabled: false
 
-# Pod Disruption Budget - disabled for single node
+# 12. Pod Disruption Budget - Optional
+
 podDisruptionBudget:
   enabled: false
 
-# Network Policy - optional for startup
+# 13. Network Policy - Optional
+
 networkPolicy:
   enabled: false
-  # Example: Uncomment to restrict access
-  # ingress:
-  #   - from:
-  #       - podSelector:
-  #           matchLabels:
-  #             app: myapp
-  #     ports:
-  #       - protocol: TCP
-  #         port: 11211
 
-# Monitoring - optional for startup
+# 14. Monitoring - Enabled with metrics exporter
+
 monitoring:
-  enabled: false
-  serviceMonitor:
-    enabled: false
+  enabled: true
 
-# Metrics exporter - optional for startup
 metrics:
-  enabled: false
-  # Enable if you need Prometheus metrics
-  # image:
-  #   repository: prom/memcached-exporter
-  #   tag: v0.14.4
-  #   pullPolicy: IfNotPresent
-  # resources:
-  #   limits:
-  #     cpu: 100m
-  #     memory: 128Mi
-  #   requests:
-  #     cpu: 50m
-  #     memory: 64Mi
-  # port: 9150
+  enabled: true
+  image:
+    repository: prom/memcached-exporter
+    tag: v0.14.4
+    pullPolicy: IfNotPresent
+  resources:
+    limits:
+      cpu: 100m
+      memory: 128Mi
+    requests:
+      cpu: 50m
+      memory: 64Mi
+  port: 9150
 
-# Scheduling
+# 15. Scheduling
+
 nodeSelector: {}
-
 tolerations: []
-
 affinity: {}
-
-# Extensibility
-extraEnv: []
-extraEnvFrom: []
-extraVolumes: []
-extraVolumeMounts: []
-initContainers: []
-lifecycle: {}

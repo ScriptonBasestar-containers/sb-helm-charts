@@ -1,68 +1,45 @@
-# Memcached values for Home Server - Single Node
-# Minimal resource configuration for personal/home lab use
-# Use: helm install memcached ./charts/memcached -f charts/memcached/values-home-single.yaml
+# Home Server scenario for memcached
+# Minimal resources for personal/home lab use
+# Single replica, no HA features
 
-# Memcached configuration
+# 1. Application-specific Configuration
+
 memcached:
-  # Maximum memory (in MB) - minimal for home use
+  # Reduced memory for home server (128MB)
   maxMemory: 128
 
-  # Maximum connections - reduced for home server
+  # Lower connection limit for single user
   maxConnections: 256
 
-  # Chunk size growth factor
   chunkSizeGrowthFactor: 1.25
-
-  # Minimum item size
   minItemSize: 48
-
-  # Enable CAS operations
   enableCas: true
-
-  # Verbosity (0=off, 1=normal, 2=verbose)
   verbosity: 0
-
-  # Additional arguments
   extraArgs: []
 
-# Persistence - N/A for Memcached (in-memory only)
-persistence:
-  enabled: false
+# 4. Kubernetes Resources
 
-# Single replica for home server
 replicaCount: 1
 
-# Container image
 image:
   repository: memcached
   pullPolicy: IfNotPresent
   tag: "1.6.39-alpine3.22"
 
-imagePullSecrets: []
-nameOverride: ""
-fullnameOverride: ""
-
-# Deployment strategy
 strategy:
   type: RollingUpdate
   rollingUpdate:
     maxUnavailable: 0
     maxSurge: 1
 
-# Service account
+# 5. Service Account
+
 serviceAccount:
   create: true
   automount: true
-  annotations: {}
-  name: ""
 
-podAnnotations: {}
+# 6. Pod Configuration
 
-podLabels:
-  environment: "home"
-  tier: "cache"
-
-# Security context
 podSecurityContext:
   fsGroup: 11211
   runAsUser: 11211
@@ -70,43 +47,41 @@ podSecurityContext:
   runAsNonRoot: true
 
 securityContext:
-  runAsUser: 11211
-  runAsGroup: 11211
-  runAsNonRoot: true
-  readOnlyRootFilesystem: true
-  allowPrivilegeEscalation: false
   capabilities:
     drop:
       - ALL
+  readOnlyRootFilesystem: true
+  runAsNonRoot: true
+  runAsUser: 11211
+  runAsGroup: 11211
+  allowPrivilegeEscalation: false
 
-# Service configuration
+# 7. Service Configuration
+
 service:
   type: ClusterIP
   port: 11211
-  annotations: {}
 
-# Ingress - N/A for binary protocol
-ingress:
-  enabled: false
+# 9. Resources - Minimal for home server
 
-# Resource limits - minimal for home server
 resources:
   limits:
-    cpu: 250m       # Reduced from 500m
-    memory: 256Mi   # Reduced from 512Mi (matches maxMemory + overhead)
+    cpu: 250m
+    memory: 256Mi
   requests:
-    cpu: 50m        # Reduced from 100m
-    memory: 128Mi   # Minimal guaranteed
+    cpu: 50m
+    memory: 64Mi
 
-# Health probes
+# 10. Health Probes
+
 livenessProbe:
   enabled: true
   tcpSocket:
     port: 11211
-  initialDelaySeconds: 15
+  initialDelaySeconds: 30
   periodSeconds: 10
   timeoutSeconds: 5
-  failureThreshold: 3
+  failureThreshold: 6
   successThreshold: 1
 
 readinessProbe:
@@ -129,39 +104,31 @@ startupProbe:
   failureThreshold: 10
   successThreshold: 1
 
-# Autoscaling - disabled for home server
+# 11. Autoscaling - Disabled
+
 autoscaling:
   enabled: false
 
-# Pod Disruption Budget - disabled for single node
+# 12. Pod Disruption Budget - Disabled
+
 podDisruptionBudget:
   enabled: false
 
-# Network Policy - disabled for home server simplicity
+# 13. Network Policy - Disabled
+
 networkPolicy:
   enabled: false
 
-# Monitoring - disabled for home server
+# 14. Monitoring - Disabled
+
 monitoring:
   enabled: false
-  serviceMonitor:
-    enabled: false
 
-# Metrics exporter - disabled for home server
 metrics:
   enabled: false
 
-# Scheduling - no special requirements for home server
+# 15. Scheduling
+
 nodeSelector: {}
-
 tolerations: []
-
 affinity: {}
-
-# Extensibility
-extraEnv: []
-extraEnvFrom: []
-extraVolumes: []
-extraVolumeMounts: []
-initContainers: []
-lifecycle: {}
