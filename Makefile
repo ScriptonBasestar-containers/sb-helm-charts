@@ -114,6 +114,84 @@ dependency-build:
 		$(HELM) dependency build $$chart; \
 	done
 
+# 시나리오 기반 배포 타겟
+.PHONY: install-home install-startup install-prod
+install-home:
+	@if [ -z "$(CHART)" ]; then \
+		echo "Error: CHART variable is required"; \
+		echo "Usage: make install-home CHART=<chart-name>"; \
+		exit 1; \
+	fi; \
+	if [ ! -f "charts/$(CHART)/values-home-single.yaml" ]; then \
+		echo "Error: values-home-single.yaml not found for chart $(CHART)"; \
+		exit 1; \
+	fi; \
+	echo "Installing $(CHART) with home-single scenario"; \
+	$(HELM) install $(CHART)-home charts/$(CHART) -f charts/$(CHART)/values-home-single.yaml
+
+install-startup:
+	@if [ -z "$(CHART)" ]; then \
+		echo "Error: CHART variable is required"; \
+		echo "Usage: make install-startup CHART=<chart-name>"; \
+		exit 1; \
+	fi; \
+	if [ ! -f "charts/$(CHART)/values-startup-single.yaml" ]; then \
+		echo "Error: values-startup-single.yaml not found for chart $(CHART)"; \
+		exit 1; \
+	fi; \
+	echo "Installing $(CHART) with startup-single scenario"; \
+	$(HELM) install $(CHART)-startup charts/$(CHART) -f charts/$(CHART)/values-startup-single.yaml
+
+install-prod:
+	@if [ -z "$(CHART)" ]; then \
+		echo "Error: CHART variable is required"; \
+		echo "Usage: make install-prod CHART=<chart-name>"; \
+		exit 1; \
+	fi; \
+	if [ ! -f "charts/$(CHART)/values-prod-master-replica.yaml" ]; then \
+		echo "Error: values-prod-master-replica.yaml not found for chart $(CHART)"; \
+		exit 1; \
+	fi; \
+	echo "Installing $(CHART) with prod-master-replica scenario"; \
+	$(HELM) install $(CHART)-prod charts/$(CHART) -f charts/$(CHART)/values-prod-master-replica.yaml
+
+# 시나리오 파일 검증
+.PHONY: validate-scenarios
+validate-scenarios:
+	@echo "Validating scenario files for all charts..."
+	@for chart in $(CHART_DIRS); do \
+		chart_name=$$(basename $$chart); \
+		echo "Validating $$chart_name scenarios..."; \
+		for scenario in home-single startup-single prod-master-replica; do \
+			values_file="$$chart/values-$$scenario.yaml"; \
+			if [ -f "$$values_file" ]; then \
+				echo "  Linting $$scenario scenario..."; \
+				$(HELM) lint $$chart -f $$values_file || exit 1; \
+				echo "  Template validation for $$scenario..."; \
+				$(HELM) template $$chart_name $$chart -f $$values_file --validate > /dev/null || exit 1; \
+			fi; \
+		done; \
+	done
+	@echo "All scenario files validated successfully!"
+
+# 시나리오 파일 목록
+.PHONY: list-scenarios
+list-scenarios:
+	@echo "Available scenario files:"
+	@for chart in $(CHART_DIRS); do \
+		chart_name=$$(basename $$chart); \
+		echo ""; \
+		echo "Chart: $$chart_name"; \
+		for scenario in home-single startup-single prod-master-replica; do \
+			values_file="$$chart/values-$$scenario.yaml"; \
+			if [ -f "$$values_file" ]; then \
+				echo "  ✓ $$scenario"; \
+			else \
+				echo "  ✗ $$scenario (missing)"; \
+			fi; \
+		done; \
+	done
+
 # 도움말
 .PHONY: help
 help:
@@ -127,8 +205,22 @@ help:
 	@echo "  uninstall        - Uninstall all charts"
 	@echo "  dependency-update - Update dependencies for all charts"
 	@echo "  dependency-build  - Build dependencies for all charts"
+	@echo ""
+	@echo "Scenario-based deployment:"
+	@echo "  install-home     - Install chart with home-single scenario"
+	@echo "                     Usage: make install-home CHART=<chart-name>"
+	@echo "  install-startup  - Install chart with startup-single scenario"
+	@echo "                     Usage: make install-startup CHART=<chart-name>"
+	@echo "  install-prod     - Install chart with prod-master-replica scenario"
+	@echo "                     Usage: make install-prod CHART=<chart-name>"
+	@echo "  validate-scenarios - Validate all scenario files with helm lint/template"
+	@echo "  list-scenarios   - List available scenario files for all charts"
+	@echo ""
+	@echo "Kind cluster management:"
 	@echo "  kind-create      - Create kind cluster"
 	@echo "  kind-delete      - Delete kind cluster"
+	@echo ""
+	@echo "Git utilities:"
 	@echo "  git-hide-gh-pages - Hide gh-pages from local git log"
 	@echo "  git-show-gh-pages - Show gh-pages in local git log"
 	@echo ""
