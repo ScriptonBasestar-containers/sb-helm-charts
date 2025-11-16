@@ -12,7 +12,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Home Server scenario (minimal resources)
   - Startup Environment scenario (balanced configuration)
   - Production HA scenario (high availability with monitoring)
-- Artifact Hub metadata to all v0.3.0 charts (9 charts)
+- Artifact Hub metadata to all charts (16 charts total)
+  - v0.3.0 charts (9 charts): keycloak, redis, memcached, rabbitmq, wireguard, browserless-chrome, devpi, rsshub, rustfs
+  - v0.2.0 charts (7 charts): immich, jellyfin, vaultwarden, nextcloud, wordpress, paperless-ngx, uptime-kuma
   - Detailed changelog entries (`artifacthub.io/changes`)
   - Recommendations to Scenario Values Guide and Chart Development Guide
   - Links to chart source and upstream documentation
@@ -23,6 +25,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Normalized line endings (LF)
   - Enhanced diff drivers for YAML, JSON, Markdown
   - Export-ignore for development files
+- `.pre-commit-config.yaml` for code quality automation
+  - General file checks (trailing whitespace, EOF, YAML validation)
+  - YAML linting with yamllint (line-length: 120)
+  - Helm chart linting for all charts
+  - Markdown linting with markdownlint
+  - Shell script linting with shellcheck
+  - Conventional commits enforcement
+  - CI auto-fix and auto-update configuration
+- `.github/CONTRIBUTING.md` comprehensive contribution guide
+  - Code of Conduct and Getting Started
+  - Chart Development Guidelines (core principles, values.yaml structure, database strategy)
+  - Pull Request Process and checklist
+  - Coding Standards (Helm templates, helper functions, NOTES.txt pattern)
+  - Testing Requirements (lint, template rendering, install/upgrade tests)
+  - Documentation Standards (README, CHANGELOG, Artifact Hub annotations)
 
 ## [0.3.0] - 2025-11-16
 
