@@ -2,7 +2,7 @@ apiVersion: v2
 name: vaultwarden
 description: Unofficial Bitwarden-compatible password manager written in Rust
 type: application
-version: 0.1.0
+version: 0.2.0
 appVersion: "1.34.3"
 icon: https://raw.githubusercontent.com/dani-garcia/vaultwarden/main/resources/vaultwarden-icon.svg
 keywords:
