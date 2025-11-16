@@ -13,6 +13,54 @@ Production-ready WordPress deployment on Kubernetes with external MySQL support 
 
 ## Prerequisites
 
+## Deployment Scenarios
+
+This chart includes three pre-configured deployment scenarios optimized for different use cases:
+
+### Home Server (`values-home-single.yaml`)
+
+Minimal resources for personal servers, home labs, Raspberry Pi, or Intel NUC:
+
+```bash
+helm install wordpress-home charts/wordpress \
+  -f charts/wordpress/values-home-single.yaml \
+  --set mysql.external.password=your-db-password \
+  --set mysql.external.host=mysql.default.svc.cluster.local
+```
+
+**Resource allocation:** 100-500m CPU, 256-512Mi RAM, 5Gi storage
+
+### Startup Environment (`values-startup-single.yaml`)
+
+Balanced configuration for small teams, startups, and development environments:
+
+```bash
+helm install wordpress-startup charts/wordpress \
+  -f charts/wordpress/values-startup-single.yaml \
+  --set mysql.external.password=your-db-password \
+  --set mysql.external.host=mysql.default.svc.cluster.local
+```
+
+**Resource allocation:** 250m-1000m CPU, 512Mi-1Gi RAM, 10Gi storage
+
+### Production HA (`values-prod-master-replica.yaml`)
+
+High availability deployment with multiple replicas and monitoring:
+
+```bash
+helm install wordpress-prod charts/wordpress \
+  -f charts/wordpress/values-prod-master-replica.yaml \
+  --set mysql.external.password=your-db-password \
+  --set mysql.external.host=mysql.default.svc.cluster.local
+```
+
+**Features:** 3 replicas, pod anti-affinity, HPA, PodDisruptionBudget, NetworkPolicy
+
+**Resource allocation:** 500m-2000m CPU, 1-2Gi RAM, 20Gi storage per pod
+
+For detailed comparison and configuration examples, see the [Scenario Values Guide](../../docs/SCENARIO_VALUES_GUIDE.md#wordpress).
+
+
 - Kubernetes 1.19+
 - Helm 3.0+
 - External MySQL database

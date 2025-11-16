@@ -15,6 +15,57 @@ Production-ready Nextcloud deployment on Kubernetes with external PostgreSQL 16 
 
 ## Prerequisites
 
+## Deployment Scenarios
+
+This chart includes three pre-configured deployment scenarios optimized for different use cases:
+
+### Home Server (`values-home-single.yaml`)
+
+Minimal resources for personal servers, home labs, Raspberry Pi, or Intel NUC:
+
+```bash
+helm install nextcloud-home charts/nextcloud \
+  -f charts/nextcloud/values-home-single.yaml \
+  --set nextcloud.admin.password=your-secure-password \
+  --set postgresql.external.password=your-db-password \
+  --set postgresql.external.host=postgres.default.svc.cluster.local
+```
+
+**Resource allocation:** 100-500m CPU, 256-512Mi RAM, 10Gi storage
+
+### Startup Environment (`values-startup-single.yaml`)
+
+Balanced configuration for small teams, startups, and development environments:
+
+```bash
+helm install nextcloud-startup charts/nextcloud \
+  -f charts/nextcloud/values-startup-single.yaml \
+  --set nextcloud.admin.password=your-secure-password \
+  --set postgresql.external.password=your-db-password \
+  --set postgresql.external.host=postgres.default.svc.cluster.local
+```
+
+**Resource allocation:** 250m-1000m CPU, 512Mi-1Gi RAM, 20Gi storage
+
+### Production HA (`values-prod-master-replica.yaml`)
+
+High availability deployment with multiple replicas and monitoring:
+
+```bash
+helm install nextcloud-prod charts/nextcloud \
+  -f charts/nextcloud/values-prod-master-replica.yaml \
+  --set nextcloud.admin.password=your-secure-password \
+  --set postgresql.external.password=your-db-password \
+  --set postgresql.external.host=postgres.default.svc.cluster.local
+```
+
+**Features:** 3 replicas, pod anti-affinity, HPA, PodDisruptionBudget, NetworkPolicy, ServiceMonitor
+
+**Resource allocation:** 500m-2000m CPU, 1-2Gi RAM, 50Gi storage per pod
+
+For detailed comparison and configuration examples, see the [Scenario Values Guide](../../docs/SCENARIO_VALUES_GUIDE.md#nextcloud).
+
+
 - Kubernetes 1.19+
 - Helm 3.0+
 - External PostgreSQL 16 database

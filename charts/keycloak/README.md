@@ -20,6 +20,58 @@
 
 ## Prerequisites
 
+## Deployment Scenarios
+
+This chart includes three pre-configured deployment scenarios optimized for different use cases:
+
+### Home Server (`values-home-single.yaml`)
+
+Minimal resources for personal servers, home labs, Raspberry Pi, or Intel NUC:
+
+```bash
+helm install keycloak-home charts/keycloak \
+  -f charts/keycloak/values-home-single.yaml \
+  --set keycloak.admin.password=your-secure-password \
+  --set postgresql.external.password=your-db-password \
+  --set postgresql.external.host=postgres.default.svc.cluster.local
+```
+
+**Resource allocation:** 100-500m CPU, 256-512Mi RAM, 5Gi storage
+
+### Startup Environment (`values-startup-single.yaml`)
+
+Balanced configuration for small teams, startups, and development environments:
+
+```bash
+helm install keycloak-startup charts/keycloak \
+  -f charts/keycloak/values-startup-single.yaml \
+  --set keycloak.admin.password=your-secure-password \
+  --set postgresql.external.password=your-db-password \
+  --set postgresql.external.host=postgres.default.svc.cluster.local
+```
+
+**Resource allocation:** 250m-1000m CPU, 512Mi-1Gi RAM, 10Gi storage
+
+### Production HA (`values-prod-master-replica.yaml`)
+
+High availability deployment with clustering and monitoring:
+
+```bash
+helm install keycloak-prod charts/keycloak \
+  -f charts/keycloak/values-prod-master-replica.yaml \
+  --set keycloak.admin.password=your-secure-password \
+  --set postgresql.external.password=your-db-password \
+  --set postgresql.external.host=postgres.default.svc.cluster.local \
+  --set redis.external.password=your-redis-password
+```
+
+**Features:** 3 replicas, JGroups clustering, pod anti-affinity, HPA, PodDisruptionBudget, NetworkPolicy, ServiceMonitor
+
+**Resource allocation:** 500m-2000m CPU, 1-2Gi RAM, 20Gi storage per pod
+
+For detailed comparison and configuration examples, see the [Scenario Values Guide](../../docs/SCENARIO_VALUES_GUIDE.md#keycloak).
+
+
 - Kubernetes 1.19+
 - Helm 3.2.0+
 - **External PostgreSQL 13+ database** (required for Keycloak 26.x)

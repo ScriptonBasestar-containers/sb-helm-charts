@@ -14,6 +14,54 @@ A powerful document management system with OCR, full-text search, and modern web
 
 ## Prerequisites
 
+## Deployment Scenarios
+
+This chart includes three pre-configured deployment scenarios optimized for different use cases:
+
+### Home Server (`values-home-single.yaml`)
+
+Minimal resources for personal servers, home labs, Raspberry Pi, or Intel NUC:
+
+```bash
+helm install paperless-home charts/paperless-ngx \
+  -f charts/paperless-ngx/values-home-single.yaml \
+  --set postgresql.external.password=your-db-password \
+  --set postgresql.external.host=postgres.default.svc.cluster.local
+```
+
+**Resource allocation:** 100-500m CPU, 256-512Mi RAM, 15Gi total storage (4 PVCs)
+
+### Startup Environment (`values-startup-single.yaml`)
+
+Balanced configuration for small teams, startups, and development environments:
+
+```bash
+helm install paperless-startup charts/paperless-ngx \
+  -f charts/paperless-ngx/values-startup-single.yaml \
+  --set postgresql.external.password=your-db-password \
+  --set postgresql.external.host=postgres.default.svc.cluster.local
+```
+
+**Resource allocation:** 250m-1000m CPU, 512Mi-1Gi RAM, 50Gi total storage (4 PVCs)
+
+### Production HA (`values-prod-master-replica.yaml`)
+
+High availability deployment with monitoring and enhanced storage:
+
+```bash
+helm install paperless-prod charts/paperless-ngx \
+  -f charts/paperless-ngx/values-prod-master-replica.yaml \
+  --set postgresql.external.password=your-db-password \
+  --set postgresql.external.host=postgres.default.svc.cluster.local
+```
+
+**Features:** PodDisruptionBudget, NetworkPolicy, ServiceMonitor, enhanced OCR resources
+
+**Resource allocation:** 500m-2000m CPU, 1-2Gi RAM, 200Gi total storage (4 PVCs)
+
+For detailed comparison and configuration examples, see the [Scenario Values Guide](../../docs/SCENARIO_VALUES_GUIDE.md#paperless-ngx).
+
+
 - Kubernetes 1.22+
 - Helm 3.0+
 - **External PostgreSQL** 13+ (required)
