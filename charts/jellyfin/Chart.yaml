@@ -24,3 +24,21 @@ icon: https://raw.githubusercontent.com/jellyfin/jellyfin-ux/master/branding/SVG
 annotations:
   artifacthub.io/license: BSD-3-Clause
   category: Media
+  artifacthub.io/changes: |
+    - kind: added
+      description: Initial Jellyfin chart with hardware transcoding support
+    - kind: added
+      description: Deployment scenario values files (home-single, startup-single, prod-master-replica)
+    - kind: added
+      description: Comprehensive README with deployment scenarios section
+  artifacthub.io/prerelease: "false"
+  artifacthub.io/recommendations: |
+    - url: https://github.com/scriptonbasestar-container/sb-helm-charts/blob/master/docs/SCENARIO_VALUES_GUIDE.md
+      description: Scenario Values Deployment Guide
+    - url: https://github.com/scriptonbasestar-container/sb-helm-charts/blob/master/docs/CHART_DEVELOPMENT_GUIDE.md
+      description: Chart Development Guide
+  artifacthub.io/links: |
+    - name: Chart Source
+      url: https://github.com/scriptonbasestar-container/sb-helm-charts/tree/master/charts/jellyfin
+    - name: Jellyfin Documentation
+      url: https://jellyfin.org/docs

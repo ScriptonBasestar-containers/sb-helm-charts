@@ -25,7 +25,18 @@ annotations:
   artifacthub.io/changes: |
     - kind: added
       description: Initial Immich chart with microservices architecture
-  artifacthub.io/prerelease: "true"
+    - kind: added
+      description: Deployment scenario values files (home-single, startup-single, prod-master-replica)
+    - kind: added
+      description: Comprehensive README with deployment scenarios section
+  artifacthub.io/prerelease: "false"
   artifacthub.io/recommendations: |
-    - url: https://artifacthub.io/packages/helm/bitnami/postgresql
-    - url: https://artifacthub.io/packages/helm/bitnami/redis
+    - url: https://github.com/scriptonbasestar-container/sb-helm-charts/blob/master/docs/SCENARIO_VALUES_GUIDE.md
+      description: Scenario Values Deployment Guide
+    - url: https://github.com/scriptonbasestar-container/sb-helm-charts/blob/master/docs/CHART_DEVELOPMENT_GUIDE.md
+      description: Chart Development Guide
+  artifacthub.io/links: |
+    - name: Chart Source
+      url: https://github.com/scriptonbasestar-container/sb-helm-charts/tree/master/charts/immich
+    - name: Immich Documentation
+      url: https://immich.app/docs
