@@ -1,0 +1,149 @@
+# RSSHub values for Home Server - Single Node
+# RSS feed aggregator for personal use
+# Use: helm install rsshub ./charts/rsshub -f charts/rsshub/values-home-single.yaml
+
+rsshub:
+  nodeEnv: "production"
+
+  cache:
+    type: "memory"  # Use in-memory cache for simplicity
+    expire: 300
+    contentExpire: 3600
+
+  redis:
+    url: ""  # Not needed with memory cache
+
+  request:
+    userAgent: "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36"
+    timeout: 30000
+    retry: 3
+
+  accessKey: ""  # Optional: set for access control
+
+  puppeteer:
+    wsEndpoint: ""  # Optional: connect to browserless-chrome
+
+  features:
+    enabledRoutes: []
+    disallowedRoutes: []
+
+  logLevel: "info"
+
+# No external dependencies needed
+postgresql:
+  enabled: false
+
+mysql:
+  enabled: false
+
+redis:
+  enabled: false
+
+# Persistence disabled for home use (memory cache)
+persistence:
+  enabled: false
+
+replicaCount: 1
+
+strategy:
+  type: RollingUpdate
+  rollingUpdate:
+    maxSurge: 1
+    maxUnavailable: 0
+
+image:
+  repository: diygod/rsshub
+  tag: "2025-11-09"
+  pullPolicy: IfNotPresent
+
+serviceAccount:
+  create: true
+  automount: true
+
+podLabels:
+  environment: "home"
+  tier: "rss"
+
+podSecurityContext:
+  fsGroup: 1000
+  runAsUser: 1000
+  runAsGroup: 1000
+  runAsNonRoot: true
+
+securityContext:
+  capabilities:
+    drop:
+      - ALL
+  readOnlyRootFilesystem: false
+  runAsNonRoot: true
+  runAsUser: 1000
+  runAsGroup: 1000
+  allowPrivilegeEscalation: false
+
+service:
+  type: ClusterIP
+  port: 1200
+  targetPort: 1200
+  protocol: TCP
+
+ingress:
+  enabled: false
+  className: ""
+  hosts:
+    - host: rsshub.local
+      paths:
+        - path: /
+          pathType: Prefix
+
+resources:
+  limits:
+    cpu: 500m
+    memory: 512Mi
+  requests:
+    cpu: 100m
+    memory: 128Mi
+
+livenessProbe:
+  enabled: true
+  httpGet:
+    path: /healthz
+    port: http
+  initialDelaySeconds: 30
+  periodSeconds: 10
+  failureThreshold: 6
+
+readinessProbe:
+  enabled: true
+  httpGet:
+    path: /healthz
+    port: http
+  initialDelaySeconds: 10
+  periodSeconds: 10
+  failureThreshold: 3
+
+startupProbe:
+  enabled: true
+  httpGet:
+    path: /healthz
+    port: http
+  initialDelaySeconds: 10
+  periodSeconds: 5
+  failureThreshold: 30
+
+autoscaling:
+  enabled: false
+
+podDisruptionBudget:
+  enabled: false
+
+networkPolicy:
+  enabled: false
+
+monitoring:
+  enabled: false
+  serviceMonitor:
+    enabled: false
+
+nodeSelector: {}
+tolerations: []
+affinity: {}
