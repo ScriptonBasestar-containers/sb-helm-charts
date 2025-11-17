@@ -6,9 +6,9 @@ replicaCount: 2
 
 # Container image
 image:
-  repository: browserless/chrome
+  repository: ghcr.io/browserless/chromium
   pullPolicy: IfNotPresent
-  tag: "latest"  # Or specify a specific version (e.g., "1.57.2-chrome-stable")
+  tag: "v2.32.1"  # Or use "v2-chrome-stable" for latest stable version
 
 # Service configuration
 service:
@@ -60,7 +60,7 @@ resources:
 # Health check configuration
 livenessProbe:
   httpGet:
-    path: /
+    path: /active  # v2+ health check endpoint
     port: http
   initialDelaySeconds: 30
   periodSeconds: 10
@@ -69,7 +69,7 @@ livenessProbe:
 
 readinessProbe:
   httpGet:
-    path: /
+    path: /active  # v2+ health check endpoint
     port: http
   initialDelaySeconds: 10
   periodSeconds: 10
@@ -78,7 +78,7 @@ readinessProbe:
 
 startupProbe:
   httpGet:
-    path: /
+    path: /active  # v2+ health check endpoint
     port: http
   initialDelaySeconds: 15
   periodSeconds: 5

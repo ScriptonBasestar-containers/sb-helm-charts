@@ -84,8 +84,8 @@ curl http://localhost:3000/
 | Parameter | Description | Default |
 |-----------|-------------|---------|
 | `replicaCount` | Number of replicas | `1` |
-| `image.repository` | Container image repository | `ghcr.io/browserless/chrome` |
-| `image.tag` | Container image tag | `1.61.1-puppeteer-21.4.1` |
+| `image.repository` | Container image repository | `ghcr.io/browserless/chromium` |
+| `image.tag` | Container image tag | `v2.32.1` |
 | `image.pullPolicy` | Image pull policy | `IfNotPresent` |
 | `service.type` | Kubernetes service type | `ClusterIP` |
 | `service.port` | Service port | `3000` |
@@ -101,9 +101,9 @@ curl http://localhost:3000/
 
 | Parameter | Description | Default |
 |-----------|-------------|---------|
-| `livenessProbe` | Liveness probe configuration | HTTP GET / on port 3000 |
-| `readinessProbe` | Readiness probe configuration | HTTP GET / on port 3000 |
-| `startupProbe` | Startup probe configuration | HTTP GET / on port 3000 |
+| `livenessProbe` | Liveness probe configuration | HTTP GET /active on port 3000 |
+| `readinessProbe` | Readiness probe configuration | HTTP GET /active on port 3000 |
+| `startupProbe` | Startup probe configuration | HTTP GET /active on port 3000 |
 
 ### Resources
 
@@ -251,4 +251,4 @@ This Helm chart is provided as-is under the MIT License.
 ## Support
 
 - Browserless Documentation: https://docs.browserless.io/
-- GitHub Issues: https://github.com/browserless/chrome/issues
+- GitHub Issues: https://github.com/browserless/browserless/issues

@@ -31,7 +31,7 @@ icon: https://www.browserless.io/favicon.ico
 sources:
   - https://github.com/scriptonbasestar-container/sb-helm-charts
   - https://github.com/browserless/browserless
-  - https://hub.docker.com/r/browserless/chrome
+  - https://github.com/orgs/browserless/packages/container/package/chromium
 
 # Keywords for discoverability
 keywords:
@@ -58,4 +58,4 @@ version: 0.3.0
 # incremented each time you make changes to the application. Versions are not expected to
 # follow Semantic Versioning. They should reflect the version the application is using.
 # It is recommended to use it with quotes.
-appVersion: "1.61.1"
+appVersion: "2.32.1"
