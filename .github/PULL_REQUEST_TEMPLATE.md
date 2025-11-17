@@ -79,6 +79,7 @@ helm lint charts/my-chart
 - [ ] CHANGELOG.md updated
 - [ ] values.yaml comments are clear
 - [ ] NOTES.txt provides useful post-install information
+- [ ] Chart catalog regenerated (if metadata changed): `make generate-catalog`
 - [ ] Related documentation updated (if applicable)
 
 ## Checklist

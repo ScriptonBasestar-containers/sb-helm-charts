@@ -2,6 +2,8 @@
 
 This guide explains how to use the scenario-specific values files provided with each chart for different deployment environments.
 
+> **See Also**: [Chart Catalog](CHARTS.md) - Browse all available charts to see which ones support these scenario values.
+
 ## Overview
 
 All charts in this repository include pre-configured values files for three deployment scenarios:
