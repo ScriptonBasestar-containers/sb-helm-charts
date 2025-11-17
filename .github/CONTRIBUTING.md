@@ -172,13 +172,20 @@ When working with chart metadata, follow this workflow:
    make validate-metadata
    ```
 
-4. **Commit changes**:
+4. **Regenerate chart catalog** (optional but recommended):
    ```bash
-   git add charts-metadata.yaml charts/my-app/Chart.yaml
-   git commit -m "feat(my-app): Update chart keywords"
+   make generate-catalog
+   ```
+
+5. **Commit changes**:
+   ```bash
+   git add charts-metadata.yaml charts/my-app/Chart.yaml docs/CHARTS.md
+   git commit -m "feat(my-app): Update chart keywords and regenerate catalog"
    ```
 
 The pre-commit hook will automatically validate metadata before allowing the commit.
+
+**Note**: Regenerating the catalog ensures that the [Chart Catalog](../docs/CHARTS.md) stays up-to-date with the latest metadata changes.
 
 ## Chart Development Guidelines
 
@@ -283,7 +290,12 @@ See [Scenario Values Guide](../docs/SCENARIO_VALUES_GUIDE.md) for detailed speci
    make validate-metadata
    ```
 
-3. **Test all scenarios:**
+3. **Regenerate chart catalog** (if metadata changed):
+   ```bash
+   make generate-catalog
+   ```
+
+4. **Test all scenarios:**
    ```bash
    make -f make/ops/my-app.mk install  # Test default values
    make install-home                    # Test home scenario
@@ -291,13 +303,14 @@ See [Scenario Values Guide](../docs/SCENARIO_VALUES_GUIDE.md) for detailed speci
    make install-prod                    # Test production scenario
    ```
 
-4. **Update documentation:**
+5. **Update documentation:**
    - Chart `README.md` with deployment examples
    - Main `CHANGELOG.md` with your changes
    - Chart `Chart.yaml` annotations for Artifact Hub
    - `charts-metadata.yaml` if keywords or description changed
+   - `docs/CHARTS.md` (auto-generated, run `make generate-catalog`)
 
-5. **Commit message format:**
+6. **Commit message format:**
    ```
    <type>(<scope>): <subject>
 
