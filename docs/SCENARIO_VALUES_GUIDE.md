@@ -337,6 +337,8 @@ When creating new scenario values files:
 
 ## See Also
 
+- [Chart Catalog](CHARTS.md) - Browse all available charts with scenario support
+- [Artifact Hub Dashboard](ARTIFACTHUB_DASHBOARD.md) - Artifact Hub publishing status and badges
 - [Chart Development Guide](./CHART_DEVELOPMENT_GUIDE.md)
 - [Chart Version Policy](./CHART_VERSION_POLICY.md)
 - Individual chart READMEs for chart-specific configuration

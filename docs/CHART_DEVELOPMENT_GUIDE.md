@@ -2352,6 +2352,8 @@ charts/
 
 ### Related Documentation
 
+- [Chart Catalog](CHARTS.md) - Browse all available charts with detailed information
+- [Artifact Hub Dashboard](ARTIFACTHUB_DASHBOARD.md) - Artifact Hub publishing status and badges
 - [Scenario Values Guide](SCENARIO_VALUES_GUIDE.md) - Comprehensive guide with examples for all charts
 - [Chart Version Policy](CHART_VERSION_POLICY.md) - Version increment rules for scenario file changes
 - Main [README.md](../README.md) - User-facing deployment scenario documentation
