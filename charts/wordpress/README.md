@@ -117,7 +117,7 @@ wordpress:
   title: "My WordPress Site"
   siteUrl: "https://myblog.example.com"
   homeUrl: "https://myblog.example.com"
-  
+
   admin:
     username: "admin"
     password: "YourSecurePassword123!"

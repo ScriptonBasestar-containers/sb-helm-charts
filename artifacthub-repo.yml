@@ -1,0 +1,90 @@
+# Artifact Hub repository metadata file
+# See https://github.com/artifacthub/hub/blob/master/docs/metadata/artifacthub-repo.yml
+repositoryID: 36e86b53-71f0-4c6d-8f52-7a3e0c8d5e2b
+owners:
+  - name: ScriptonBasestar
+    email: scriptonbasestar@gmail.com
+
+# Repository Information
+name: ScriptonBasestar Helm Charts
+displayName: ScriptonBasestar Charts
+url: https://scriptonbasestar-containers.github.io/sb-helm-charts
+branch: master
+
+# Repository description
+description: |
+  Personal server Helm charts focused on simplicity and configuration file preservation.
+
+  **Core Philosophy:**
+  - Prefer configuration files over environment variables
+  - Avoid subchart complexity - external databases (PostgreSQL, MySQL, Redis) are separate
+  - Use simple Docker images where available
+  - Configuration files should be used as-is, not translated through complex Helm abstractions
+
+  **Chart Categories:**
+  - Application Charts (13): Self-hosted applications for various use cases
+  - Infrastructure Charts (3): Dev/Test infrastructure (consider operators for production)
+
+  **Deployment Scenarios:**
+  All charts include pre-configured values files:
+  - Home Server: Minimal resources for personal/home lab use
+  - Startup: Balanced configuration for small teams
+  - Production: High availability deployment with clustering
+
+# Links
+links:
+  - name: source
+    url: https://github.com/ScriptonBasestar-containers/sb-helm-charts
+  - name: Chart Development Guide
+    url: https://github.com/ScriptonBasestar-containers/sb-helm-charts/blob/master/docs/CHART_DEVELOPMENT_GUIDE.md
+  - name: Chart Catalog
+    url: https://github.com/ScriptonBasestar-containers/sb-helm-charts/blob/master/docs/CHARTS.md
+  - name: Scenario Values Guide
+    url: https://github.com/ScriptonBasestar-containers/sb-helm-charts/blob/master/docs/SCENARIO_VALUES_GUIDE.md
+  - name: Artifact Hub Dashboard
+    url: https://github.com/ScriptonBasestar-containers/sb-helm-charts/blob/master/docs/ARTIFACTHUB_DASHBOARD.md
+
+# Ignore patterns - charts that should not be published to Artifact Hub
+ignore:
+  # Example: Development or experimental charts
+  # - name: experimental-chart
+
+# Container images scanning
+# Enable automatic security scanning for container images referenced in charts
+containersImages:
+  - name: keycloak
+    image: quay.io/keycloak/keycloak:26.0.7
+  - name: nextcloud
+    image: lscr.io/linuxserver/nextcloud:latest
+  - name: wordpress
+    image: wordpress:6.4-apache
+  - name: wireguard
+    image: lscr.io/linuxserver/wireguard:latest
+  - name: redis
+    image: redis:8.0-alpine
+  - name: memcached
+    image: memcached:1.6-alpine
+  - name: rabbitmq
+    image: rabbitmq:3.13-management-alpine
+  - name: browserless-chrome
+    image: browserless/chrome:latest
+  - name: devpi
+    image: muccg/devpi:latest
+  - name: rsshub
+    image: diygod/rsshub:latest
+  - name: uptime-kuma
+    image: louislam/uptime-kuma:1
+  - name: jellyfin
+    image: jellyfin/jellyfin:latest
+  - name: vaultwarden
+    image: vaultwarden/server:latest
+  - name: immich
+    image: ghcr.io/immich-app/immich-server:release
+  - name: paperless-ngx
+    image: ghcr.io/paperless-ngx/paperless-ngx:latest
+  - name: rustfs
+    image: rustfs/rustfs:latest
+
+# Maintainers
+# List of maintainers for the charts in this repository
+# This will be shown on Artifact Hub for each chart

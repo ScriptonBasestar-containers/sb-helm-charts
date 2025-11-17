@@ -91,4 +91,4 @@ help:
 	@echo "  dependency-update - Update dependencies"
 	@echo "  dependency-build  - Build dependencies"
 	@echo "  kind-create      - Create kind cluster"
-	@echo "  kind-delete      - Delete kind cluster" 
+	@echo "  kind-delete      - Delete kind cluster"

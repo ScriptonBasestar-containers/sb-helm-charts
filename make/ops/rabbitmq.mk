@@ -200,12 +200,12 @@ rmq-describe: ## Describe RabbitMQ resources
 # Help Targets
 # ==============================================================================
 
-.PHONY: 
+.PHONY:
 :
 	@$(MAKE) -f  CHART_NAME=$(CHART_NAME) help
 
 .PHONY: help
-help: 
+help:
 	@echo ""
 	@echo "RabbitMQ Operational Commands:"
 	@echo "  rmq-status               - Show cluster status"
