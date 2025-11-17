@@ -341,6 +341,8 @@ oldFeature:
 - [Helm Chart Best Practices](https://helm.sh/docs/chart_best_practices/)
 - [Helm Chart Versioning](https://helm.sh/docs/topics/charts/#the-chartyaml-file)
 - [Chart Development Guide](./CHART_DEVELOPMENT_GUIDE.md)
+- [Chart Catalog](CHARTS.md) - Browse all available charts with version information
+- [Artifact Hub Dashboard](ARTIFACTHUB_DASHBOARD.md) - Artifact Hub publishing status
 
 ## Questions?
 
