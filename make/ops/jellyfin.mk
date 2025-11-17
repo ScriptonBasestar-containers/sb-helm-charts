@@ -48,10 +48,12 @@ jellyfin-check-gpu:
 	@echo "Hardware acceleration type: $$(helm get values $(RELEASE_NAME) -o json | jq -r '.jellyfin.hardwareAcceleration.type // "none"')"
 	@if [ "$$(helm get values $(RELEASE_NAME) -o json | jq -r '.jellyfin.hardwareAcceleration.enabled')" = "true" ]; then \
 		echo "GPU enabled: Yes"; \
-		if [ "$$(helm get values $(RELEASE_NAME) -o json | jq -r '.jellyfin.hardwareAcceleration.type')" = "intel-qsv" ]; then \
+		GPU_TYPE=$$(helm get values $(RELEASE_NAME) -o json | jq -r '.jellyfin.hardwareAcceleration.type'); \
+		if [ "$$GPU_TYPE" = "intel-qsv" ] || [ "$$GPU_TYPE" = "amd-vaapi" ]; then \
 			echo "Checking /dev/dri access..."; \
 			$(KUBECTL) exec $$($(KUBECTL) get pod -l app.kubernetes.io/name=$(CHART_NAME) -o jsonpath="{.items[0].metadata.name}") -- ls -la /dev/dri || echo "Error: /dev/dri not accessible"; \
-		elif [ "$$(helm get values $(RELEASE_NAME) -o json | jq -r '.jellyfin.hardwareAcceleration.type')" = "nvidia-nvenc" ]; then \
+			$(KUBECTL) exec $$($(KUBECTL) get pod -l app.kubernetes.io/name=$(CHART_NAME) -o jsonpath="{.items[0].metadata.name}") -- ls -la /dev/dri/renderD* || echo "Info: No renderD* devices found"; \
+		elif [ "$$GPU_TYPE" = "nvidia-nvenc" ]; then \
 			echo "Checking NVIDIA GPU..."; \
 			$(KUBECTL) exec $$($(KUBECTL) get pod -l app.kubernetes.io/name=$(CHART_NAME) -o jsonpath="{.items[0].metadata.name}") -- nvidia-smi || echo "Error: nvidia-smi not available"; \
 		fi; \
