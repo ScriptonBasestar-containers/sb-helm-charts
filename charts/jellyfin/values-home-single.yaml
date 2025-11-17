@@ -1,33 +1,53 @@
-# Jellyfin values for Home Server - Single Node
-# Media server for personal/home lab use
+# Jellyfin values for Home Server - Single Instance
+# Minimal resources optimized for home lab/personal use
 # Use: helm install jellyfin ./charts/jellyfin -f charts/jellyfin/values-home-single.yaml
+#
+# Requirements:
+# - Storage for config, cache, and media
+# - (Optional) GPU for hardware transcoding
 
-# Jellyfin configuration
+# Jellyfin-specific configuration
 jellyfin:
-  # Media directories - configure based on your media library
-  mediaDirectories: []
-  # Example:
-  # - name: movies
-  #   mountPath: /media/movies
-  #   size: 50Gi
-  # - name: tvshows
-  #   mountPath: /media/tvshows
-  #   size: 100Gi
+  # Media directories - mount from NAS or local storage
+  mediaDirectories:
+    - name: movies
+      mountPath: /media/movies
+      # Use hostPath for NAS mounts in home servers
+      hostPath: "/mnt/nas/media/movies"
+      readOnly: true  # Jellyfin only reads media files
+    - name: tvshows
+      mountPath: /media/tvshows
+      hostPath: "/mnt/nas/media/tvshows"
+      readOnly: true
+    # Add more directories as needed:
+    # - name: music
+    #   mountPath: /media/music
+    #   hostPath: "/mnt/nas/media/music"
+    #   readOnly: true
 
-  # Hardware acceleration (optional for home use)
+  # GPU hardware acceleration (recommended for home servers)
+  # Intel QuickSync Video is most common in home servers (Intel NUC, Mini PCs)
   hardwareAcceleration:
-    enabled: false
-    type: "none"  # Change to intel-qsv, nvidia-nvenc, or amd-vaapi if available
+    enabled: false  # Enable if you have compatible GPU
+    type: "none"  # Change to "intel-qsv", "nvidia-nvenc", or "amd-vaapi"
 
+    # Intel QuickSync Video (for Intel CPUs with iGPU)
+    intel:
+      renderDevice: "/dev/dri/renderD128"
+
+  # Transcoding configuration for home server
   transcoding:
     cacheSize: 5Gi  # Reduced for home use
-    threads: 0  # Auto-detect
+    threads: 0  # Auto-detect (0 = use all available cores)
 
+  # Network configuration
   network:
-    publishedServerUrl: ""
+    # Published server URL (for remote access via DDNS/VPN)
+    publishedServerUrl: ""  # e.g., "https://jellyfin.home.example.com"
+    # DLNA disabled by default (requires host network)
     enableDlna: false
 
-# No external database needed (SQLite)
+# No external databases needed (uses SQLite)
 postgresql:
   enabled: false
 mysql:
@@ -35,48 +55,64 @@ mysql:
 redis:
   enabled: false
 
-# Persistence
+# Persistent storage - minimal for home server
 persistence:
   enabled: true
 
+  # Config volume (Jellyfin configuration and SQLite database)
   config:
     enabled: true
-    storageClass: ""
-    size: 2Gi  # Minimal for home
+    storageClass: ""  # Use default storage class
+    size: 2Gi  # Minimal for home use (config + SQLite DB)
     accessMode: ReadWriteOnce
     mountPath: /config
+    existingClaim: ""
 
+  # Cache volume (transcoding cache)
   cache:
     enabled: true
-    storageClass: ""
-    size: 5Gi  # Reduced cache
+    storageClass: ""  # Use default storage class
+    size: 5Gi  # Reduced for home use
     accessMode: ReadWriteOnce
     mountPath: /cache
+    existingClaim: ""
 
+# Single instance
 replicaCount: 1
 
+# Recreate strategy (Jellyfin uses local SQLite database)
 strategy:
   type: Recreate
 
+# Container image
 image:
   repository: jellyfin/jellyfin
   tag: "10.10.3"
   pullPolicy: IfNotPresent
 
+imagePullSecrets: []
+nameOverride: ""
+fullnameOverride: ""
+
+# Service account
 serviceAccount:
   create: true
   automount: true
+  annotations: {}
+  name: ""
 
-podLabels:
-  environment: "home"
-  tier: "media"
+podAnnotations: {}
+podLabels: {}
 
+# Pod security context
 podSecurityContext:
   fsGroup: 1000
   runAsUser: 1000
   runAsGroup: 1000
   runAsNonRoot: true
+  # supplementalGroups auto-added if GPU enabled (44, 109 for Intel/AMD)
 
+# Container security context
 securityContext:
   capabilities:
     drop:
@@ -84,6 +120,7 @@ securityContext:
   readOnlyRootFilesystem: false
   allowPrivilegeEscalation: false
 
+# Service
 service:
   type: ClusterIP
   ports:
@@ -92,31 +129,45 @@ service:
       targetPort: 8096
       protocol: TCP
 
+# Ingress (disabled by default)
 ingress:
   enabled: false
-  className: ""
+  className: "nginx"
+  annotations:
+    nginx.ingress.kubernetes.io/proxy-body-size: "0"  # Unlimited for media streaming
+    nginx.ingress.kubernetes.io/proxy-buffering: "off"
+    # cert-manager.io/cluster-issuer: letsencrypt-prod
   hosts:
-    - host: jellyfin.local
+    - host: jellyfin.home.local
       paths:
         - path: /
           pathType: Prefix
+  tls: []
+  #  - secretName: jellyfin-tls
+  #    hosts:
+  #      - jellyfin.home.local
 
+# Resource limits - OPTIMIZED for home server
+# These limits work well on Raspberry Pi 4, Intel NUC, or small Mini PCs
 resources:
   limits:
-    cpu: 2000m
-    memory: 2Gi
+    cpu: 2000m      # 2 cores max (sufficient for 1-2 concurrent streams)
+    memory: 2Gi     # 2GB RAM (minimal for Jellyfin)
   requests:
-    cpu: 500m
-    memory: 1Gi
+    cpu: 500m       # 0.5 core baseline
+    memory: 1Gi     # 1GB baseline
 
+# Health checks - relaxed for home server
 livenessProbe:
   enabled: true
   httpGet:
     path: /health
     port: http
   initialDelaySeconds: 60
-  periodSeconds: 10
+  periodSeconds: 30  # Less frequent checks
+  timeoutSeconds: 5
   failureThreshold: 6
+  successThreshold: 1
 
 readinessProbe:
   enabled: true
@@ -124,8 +175,10 @@ readinessProbe:
     path: /health
     port: http
   initialDelaySeconds: 30
-  periodSeconds: 10
+  periodSeconds: 30  # Less frequent checks
+  timeoutSeconds: 5
   failureThreshold: 3
+  successThreshold: 1
 
 startupProbe:
   enabled: true
@@ -133,18 +186,56 @@ startupProbe:
     path: /health
     port: http
   initialDelaySeconds: 10
-  periodSeconds: 5
+  periodSeconds: 10
+  timeoutSeconds: 5
   failureThreshold: 30
+  successThreshold: 1
 
+# Autoscaling - DISABLED for home server
 autoscaling:
   enabled: false
 
+# Pod Disruption Budget - DISABLED for single instance
 podDisruptionBudget:
   enabled: false
 
+# Network Policy - DISABLED for home use
 networkPolicy:
   enabled: false
 
+# Node selector - empty unless you have specific GPU nodes
 nodeSelector: {}
+# Example for Intel GPU node:
+#   intel.feature.node.kubernetes.io/gpu: "true"
+
+# Tolerations - empty
 tolerations: []
+
+# Affinity - empty for single instance
 affinity: {}
+
+# Priority class - empty for home use
+priorityClassName: ""
+
+# Topology spread constraints - empty
+topologySpreadConstraints: []
+
+# Additional environment variables
+extraEnv: []
+# Example for published server URL:
+# - name: JELLYFIN_PublishedServerUrl
+#   value: "https://jellyfin.home.example.com"
+
+extraEnvFrom: []
+
+# Extra volumes - empty (GPU volumes auto-added if enabled)
+extraVolumes: []
+
+# Extra volume mounts - empty
+extraVolumeMounts: []
+
+# Init containers - empty
+initContainers: []
+
+# Lifecycle hooks - empty
+lifecycle: {}

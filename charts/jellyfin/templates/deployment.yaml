@@ -89,7 +89,7 @@ spec:
               readOnly: true
               {{- end }}
             {{- end }}
-            {{- if and .Values.jellyfin.hardwareAcceleration.enabled (eq .Values.jellyfin.hardwareAcceleration.type "intel-qsv") }}
+            {{- if and .Values.jellyfin.hardwareAcceleration.enabled (or (eq .Values.jellyfin.hardwareAcceleration.type "intel-qsv") (eq .Values.jellyfin.hardwareAcceleration.type "amd-vaapi")) }}
             - name: dri
               mountPath: /dev/dri
               readOnly: true
@@ -128,10 +128,14 @@ spec:
             claimName: {{ include "jellyfin.fullname" $ }}-{{ .name }}
           {{- end }}
         {{- end }}
-        {{- if and .Values.jellyfin.hardwareAcceleration.enabled (eq .Values.jellyfin.hardwareAcceleration.type "intel-qsv") }}
+        {{- if and .Values.jellyfin.hardwareAcceleration.enabled (or (eq .Values.jellyfin.hardwareAcceleration.type "intel-qsv") (eq .Values.jellyfin.hardwareAcceleration.type "amd-vaapi")) }}
         - name: dri
           hostPath:
+            {{- if eq .Values.jellyfin.hardwareAcceleration.type "intel-qsv" }}
             path: {{ .Values.jellyfin.hardwareAcceleration.intel.renderDevice | dir }}
+            {{- else if eq .Values.jellyfin.hardwareAcceleration.type "amd-vaapi" }}
+            path: /dev/dri
+            {{- end }}
             type: Directory
         {{- end }}
         {{- with .Values.extraVolumes }}

@@ -40,6 +40,11 @@ jellyfin:
       # Uses nvidia.com/gpu resource
       runtimeClassName: "nvidia"
 
+    # AMD VAAPI configuration
+    amd:
+      # Uses /dev/dri for hardware acceleration
+      # No additional configuration needed (uses same path as Intel QSV)
+
   # Transcoding configuration
   transcoding:
     # Transcoding cache directory size

@@ -78,7 +78,7 @@ Merged podSecurityContext with GPU supplemental groups
 */}}
 {{- define "jellyfin.podSecurityContext" -}}
 {{- $ctx := .Values.podSecurityContext | deepCopy -}}
-{{- if and .Values.jellyfin.hardwareAcceleration.enabled (eq .Values.jellyfin.hardwareAcceleration.type "intel-qsv") -}}
+{{- if and .Values.jellyfin.hardwareAcceleration.enabled (or (eq .Values.jellyfin.hardwareAcceleration.type "intel-qsv") (eq .Values.jellyfin.hardwareAcceleration.type "amd-vaapi")) -}}
 {{- $groups := list 44 109 -}}
 {{- if $ctx.supplementalGroups -}}
 {{- $groups = concat $ctx.supplementalGroups $groups | uniq -}}
