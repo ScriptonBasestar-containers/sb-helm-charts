@@ -542,6 +542,13 @@ This chart follows the **ScriptonBasestar Helm Charts** philosophy:
 - **Jellyfin GitHub**: https://github.com/jellyfin/jellyfin
 - **Chart Development Guide**: [docs/CHART_DEVELOPMENT_GUIDE.md](../../docs/CHART_DEVELOPMENT_GUIDE.md)
 
+## Additional Resources
+
+- [Troubleshooting Guide](../../docs/TROUBLESHOOTING.md) - Common issues and solutions
+- [Production Checklist](../../docs/PRODUCTION_CHECKLIST.md) - Production readiness validation
+- [Testing Guide](../../docs/TESTING_GUIDE.md) - Comprehensive testing procedures
+- [Chart Analysis Report](../../docs/05-chart-analysis-2025-11.md) - November 2025 analysis
+
 ## License
 
 This Helm chart is licensed under the **BSD-3-Clause** license.

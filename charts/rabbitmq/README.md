@@ -555,6 +555,13 @@ For full changelog, see [Chart.yaml](./Chart.yaml) or [docs/05-chart-analysis-20
 
 For comprehensive testing scenarios, see [Testing Guide](../../docs/TESTING_GUIDE.md).
 
+## Additional Resources
+
+- [Troubleshooting Guide](../../docs/TROUBLESHOOTING.md) - Common issues and solutions
+- [Production Checklist](../../docs/PRODUCTION_CHECKLIST.md) - Production readiness validation
+- [Testing Guide](../../docs/TESTING_GUIDE.md) - Comprehensive testing procedures
+- [Chart Analysis Report](../../docs/05-chart-analysis-2025-11.md) - November 2025 analysis
+
 ## Roadmap
 
 - [ ] StatefulSet support for multi-node clustering

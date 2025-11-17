@@ -471,6 +471,13 @@ Uptime Kuma does not provide automatic migration. You'll need to:
 - **Embedded Database**: SQLite is embedded, no separate database pod needed
 - **Stateless with MariaDB**: With external database, the pod becomes stateless (except for temp files)
 
+## Additional Resources
+
+- [Troubleshooting Guide](../../docs/TROUBLESHOOTING.md) - Common issues and solutions
+- [Production Checklist](../../docs/PRODUCTION_CHECKLIST.md) - Production readiness validation
+- [Testing Guide](../../docs/TESTING_GUIDE.md) - Comprehensive testing procedures
+- [Chart Analysis Report](../../docs/05-chart-analysis-2025-11.md) - November 2025 analysis
+
 ## License
 
 Uptime Kuma is licensed under the [MIT License](https://github.com/louislam/uptime-kuma/blob/master/LICENSE).
