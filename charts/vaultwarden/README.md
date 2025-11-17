@@ -1,5 +1,7 @@
 # Vaultwarden Helm Chart
 
+[![Artifact Hub](https://img.shields.io/endpoint?url=https://artifacthub.io/badge/repository/sb-helm-charts)](https://artifacthub.io/packages/helm/sb-helm-charts/vaultwarden)
+
 [Vaultwarden](https://github.com/dani-garcia/vaultwarden) is an unofficial Bitwarden-compatible server written in Rust. It is lightweight, self-hosted, and provides a complete password management solution without requiring enterprise licensing.
 
 ## TL;DR

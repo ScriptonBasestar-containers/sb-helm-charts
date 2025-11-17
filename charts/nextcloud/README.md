@@ -1,5 +1,7 @@
 # Nextcloud Helm Chart
 
+[![Artifact Hub](https://img.shields.io/endpoint?url=https://artifacthub.io/badge/repository/sb-helm-charts)](https://artifacthub.io/packages/helm/sb-helm-charts/nextcloud)
+
 Production-ready Nextcloud deployment on Kubernetes with external PostgreSQL 16 and Redis 8 support.
 
 ## Features

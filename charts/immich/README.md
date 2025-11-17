@@ -1,5 +1,7 @@
 # Immich Helm Chart
 
+[![Artifact Hub](https://img.shields.io/endpoint?url=https://artifacthub.io/badge/repository/sb-helm-charts)](https://artifacthub.io/packages/helm/sb-helm-charts/immich)
+
 [Immich](https://immich.app/) is a high-performance self-hosted photo and video management solution with AI-powered features including facial recognition, object detection, and smart search.
 
 ## TL;DR

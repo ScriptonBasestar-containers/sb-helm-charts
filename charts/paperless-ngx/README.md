@@ -1,5 +1,7 @@
 # Paperless-ngx Helm Chart
 
+[![Artifact Hub](https://img.shields.io/endpoint?url=https://artifacthub.io/badge/repository/sb-helm-charts)](https://artifacthub.io/packages/helm/sb-helm-charts/paperless-ngx)
+
 A powerful document management system with OCR, full-text search, and modern web UI for Kubernetes.
 
 ## Features

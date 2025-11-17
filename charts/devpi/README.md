@@ -1,5 +1,7 @@
 # Devpi Helm Chart
 
+[![Artifact Hub](https://img.shields.io/endpoint?url=https://artifacthub.io/badge/repository/sb-helm-charts)](https://artifacthub.io/packages/helm/sb-helm-charts/devpi)
+
 Production-ready Devpi PyPI server deployment on Kubernetes for Python package management and caching.
 
 ## Features

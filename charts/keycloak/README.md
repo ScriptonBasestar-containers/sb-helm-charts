@@ -1,5 +1,7 @@
 # Keycloak Helm Chart
 
+[![Artifact Hub](https://img.shields.io/endpoint?url=https://artifacthub.io/badge/repository/sb-helm-charts)](https://artifacthub.io/packages/helm/sb-helm-charts/keycloak)
+
 [Keycloak](https://www.keycloak.org/) is an open-source Identity and Access Management solution for modern applications and services.
 
 ## Features

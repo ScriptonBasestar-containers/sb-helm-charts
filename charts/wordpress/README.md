@@ -1,5 +1,7 @@
 # WordPress Helm Chart
 
+[![Artifact Hub](https://img.shields.io/endpoint?url=https://artifacthub.io/badge/repository/sb-helm-charts)](https://artifacthub.io/packages/helm/sb-helm-charts/wordpress)
+
 Production-ready WordPress deployment on Kubernetes with external MySQL support and Apache web server.
 
 ## Features

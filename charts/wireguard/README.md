@@ -1,5 +1,7 @@
 # WireGuard Helm Chart
 
+[![Artifact Hub](https://img.shields.io/endpoint?url=https://artifacthub.io/badge/repository/sb-helm-charts)](https://artifacthub.io/packages/helm/sb-helm-charts/wireguard)
+
 [WireGuard](https://www.wireguard.com/) is a fast, modern, secure VPN tunnel that uses state-of-the-art cryptography.
 
 ## Features

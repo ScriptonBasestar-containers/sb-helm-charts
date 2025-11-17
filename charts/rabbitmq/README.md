@@ -1,5 +1,7 @@
 # RabbitMQ Helm Chart
 
+[![Artifact Hub](https://img.shields.io/endpoint?url=https://artifacthub.io/badge/repository/sb-helm-charts)](https://artifacthub.io/packages/helm/sb-helm-charts/rabbitmq)
+
 A production-ready Helm chart for deploying [RabbitMQ](https://www.rabbitmq.com/) message broker on Kubernetes with management UI and Prometheus metrics support.
 
 ## ⚠️ Production Consideration

@@ -1,5 +1,7 @@
 # RSSHub Helm Chart
 
+[![Artifact Hub](https://img.shields.io/endpoint?url=https://artifacthub.io/badge/repository/sb-helm-charts)](https://artifacthub.io/packages/helm/sb-helm-charts/rsshub)
+
 Production-ready RSSHub deployment on Kubernetes for generating RSS feeds from various sources.
 
 ## 💡 Alternative: All-in-One Chart
