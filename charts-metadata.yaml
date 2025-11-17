@@ -86,7 +86,7 @@ charts:
     path: charts/rustfs
     category: application
     tags: [Storage, S3, Object-Storage]
-    keywords: [rustfs, s3, object-storage, minio-compatible, storage, high-performance]
+    keywords: [rustfs, object-storage, s3, minio-alternative, rust]
     description: High-performance S3-compatible object storage (StatefulSet, tiered storage, clustering)
 
   rsshub:
@@ -94,7 +94,7 @@ charts:
     path: charts/rsshub
     category: application
     tags: [RSS, Aggregator]
-    keywords: [rsshub, rss, feed, aggregator]
+    keywords: [rsshub, rss, feed, aggregator, social-media, news, content-aggregation]
     description: RSS aggregator (well-maintained external chart available)
 
   browserless-chrome:
@@ -102,7 +102,7 @@ charts:
     path: charts/browserless-chrome
     category: application
     tags: [Browser, Automation, Headless]
-    keywords: [browserless, chrome, headless, automation, crawling, scraping]
+    keywords: [browserless, chrome, chromium, headless-browser, web-scraping, automation, puppeteer, playwright]
     description: Headless browser for crawling
 
   devpi:
@@ -110,7 +110,7 @@ charts:
     path: charts/devpi
     category: application
     tags: [Python, Package-Index, Development]
-    keywords: [devpi, python, pypi, package-index, development]
+    keywords: [devpi, python, pypi, package-index, private-registry, package-mirror]
     description: Python package index
 
   # Infrastructure Charts (Dev/Test - Consider Operators for Production)
@@ -119,7 +119,7 @@ charts:
     path: charts/redis
     category: infrastructure
     tags: [Cache, Database, In-Memory]
-    keywords: [redis, cache, in-memory, key-value, data-store]
+    keywords: [redis, cache, database, nosql, key-value, in-memory, data-structure]
     description: In-memory data store (StatefulSet, no external database, full redis.conf support)
     production_note: "For production HA, consider Spotahome Redis Operator"
 
@@ -128,7 +128,7 @@ charts:
     path: charts/memcached
     category: infrastructure
     tags: [Cache, Distributed, In-Memory]
-    keywords: [memcached, cache, distributed, in-memory, performance]
+    keywords: [memcached, cache, memory, performance]
     description: High-performance distributed memory caching system (Deployment, no database)
     production_note: "For production, consider Memcached Operator"
 
@@ -137,6 +137,6 @@ charts:
     path: charts/rabbitmq
     category: infrastructure
     tags: [Message-Queue, AMQP, Messaging]
-    keywords: [rabbitmq, message-broker, amqp, queue, messaging, metrics]
+    keywords: [rabbitmq, message-queue, amqp, messaging, broker, message-broker]
     description: Message broker with management UI (Deployment, no database, AMQP + Prometheus metrics)
     production_note: "For production clustering, consider RabbitMQ Cluster Operator"
