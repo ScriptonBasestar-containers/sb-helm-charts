@@ -96,10 +96,12 @@ helm lint charts/my-chart
 - [ ] Branch is up-to-date with target branch
 
 ### Chart-specific (if applicable)
+- [ ] `charts-metadata.yaml` updated with chart metadata (name, path, category, tags, keywords)
 - [ ] External database configuration follows project philosophy (no subcharts)
 - [ ] Configuration uses files over environment variables where appropriate
 - [ ] All three scenario values files created/updated
 - [ ] Artifact Hub metadata added/updated in Chart.yaml
+- [ ] Chart.yaml keywords match charts-metadata.yaml
 - [ ] Templates follow naming conventions
 - [ ] Helper functions use standard names
 - [ ] NOTES.txt includes access information and credential retrieval commands

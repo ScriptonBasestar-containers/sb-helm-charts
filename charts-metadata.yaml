@@ -1,0 +1,142 @@
+# Chart Metadata
+# This file contains metadata for all charts in the repository
+# Used for search, categorization, and documentation generation
+#
+# When adding or modifying charts:
+# 1. Update this file with chart metadata (name, path, tags, keywords)
+# 2. Ensure Chart.yaml has matching keywords
+# 3. Update CLAUDE.md Available Charts section if needed
+
+charts:
+  # Application Charts (Self-Hosted)
+  uptime-kuma:
+    name: Uptime Kuma
+    path: charts/uptime-kuma
+    category: application
+    tags: [Monitoring, Alerting, Status-Page]
+    keywords: [uptime-kuma, monitoring, uptime, status-page, alerting, self-hosted, notifications, health-check]
+    description: Self-hosted monitoring tool with beautiful UI and 90+ notification services
+
+  jellyfin:
+    name: Jellyfin
+    path: charts/jellyfin
+    category: application
+    tags: [Media, Streaming, HomeLab]
+    keywords: [jellyfin, media-server, streaming, plex-alternative, transcoding, gpu-acceleration]
+    description: Media server with hardware transcoding support
+
+  immich:
+    name: Immich
+    path: charts/immich
+    category: application
+    tags: [Photo, Media, AI]
+    keywords: [immich, photos, media, gallery, ai, machine-learning]
+    description: AI-powered photo and video management
+
+  paperless-ngx:
+    name: Paperless-ngx
+    path: charts/paperless-ngx
+    category: application
+    tags: [Document, Productivity]
+    keywords: [paperless, document-management, ocr, dms]
+    description: Document management system with OCR (4 PVC architecture)
+
+  vaultwarden:
+    name: Vaultwarden
+    path: charts/vaultwarden
+    category: application
+    tags: [Password, Security]
+    keywords: [vaultwarden, bitwarden, password-manager, secrets, security]
+    description: Bitwarden-compatible password manager
+
+  keycloak:
+    name: Keycloak
+    path: charts/keycloak
+    category: application
+    tags: [IAM, Security, SSO]
+    keywords: [keycloak, identity, access-management, authentication, authorization, sso, iam]
+    description: IAM solution (StatefulSet, PostgreSQL, clustering, realm management)
+
+  wireguard:
+    name: WireGuard
+    path: charts/wireguard
+    category: application
+    tags: [VPN, Security, Networking]
+    keywords: [wireguard, vpn, network, security, tunnel]
+    description: VPN solution (Deployment, no database, UDP service, NET_ADMIN capabilities)
+
+  wordpress:
+    name: WordPress
+    path: charts/wordpress
+    category: application
+    tags: [CMS, Web, Publishing]
+    keywords: [wordpress, blog, cms, php, content-management, website, publishing]
+    description: WordPress CMS (Deployment, MySQL, Apache)
+
+  nextcloud:
+    name: Nextcloud
+    path: charts/nextcloud
+    category: application
+    tags: [CMS, Productivity, Collaboration]
+    keywords: [nextcloud, cloud-storage, file-sync, collaboration, productivity, self-hosted, calendar, contacts]
+    description: Nextcloud with LinuxServer.io image (Deployment, PostgreSQL, config-based)
+
+  rustfs:
+    name: RustFS
+    path: charts/rustfs
+    category: application
+    tags: [Storage, S3, Object-Storage]
+    keywords: [rustfs, s3, object-storage, minio-compatible, storage, high-performance]
+    description: High-performance S3-compatible object storage (StatefulSet, tiered storage, clustering)
+
+  rsshub:
+    name: RSSHub
+    path: charts/rsshub
+    category: application
+    tags: [RSS, Aggregator]
+    keywords: [rsshub, rss, feed, aggregator]
+    description: RSS aggregator (well-maintained external chart available)
+
+  browserless-chrome:
+    name: Browserless Chrome
+    path: charts/browserless-chrome
+    category: application
+    tags: [Browser, Automation, Headless]
+    keywords: [browserless, chrome, headless, automation, crawling, scraping]
+    description: Headless browser for crawling
+
+  devpi:
+    name: Devpi
+    path: charts/devpi
+    category: application
+    tags: [Python, Package-Index, Development]
+    keywords: [devpi, python, pypi, package-index, development]
+    description: Python package index
+
+  # Infrastructure Charts (Dev/Test - Consider Operators for Production)
+  redis:
+    name: Redis
+    path: charts/redis
+    category: infrastructure
+    tags: [Cache, Database, In-Memory]
+    keywords: [redis, cache, in-memory, key-value, data-store]
+    description: In-memory data store (StatefulSet, no external database, full redis.conf support)
+    production_note: "For production HA, consider Spotahome Redis Operator"
+
+  memcached:
+    name: Memcached
+    path: charts/memcached
+    category: infrastructure
+    tags: [Cache, Distributed, In-Memory]
+    keywords: [memcached, cache, distributed, in-memory, performance]
+    description: High-performance distributed memory caching system (Deployment, no database)
+    production_note: "For production, consider Memcached Operator"
+
+  rabbitmq:
+    name: RabbitMQ
+    path: charts/rabbitmq
+    category: infrastructure
+    tags: [Message-Queue, AMQP, Messaging]
+    keywords: [rabbitmq, message-broker, amqp, queue, messaging, metrics]
+    description: Message broker with management UI (Deployment, no database, AMQP + Prometheus metrics)
+    production_note: "For production clustering, consider RabbitMQ Cluster Operator"
