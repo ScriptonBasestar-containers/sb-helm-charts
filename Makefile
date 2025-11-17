@@ -58,6 +58,20 @@ lint:
 		$(HELM) lint $$chart; \
 	done
 
+# 차트 메타데이터 검증
+.PHONY: validate-metadata
+validate-metadata:
+	@echo "Validating chart metadata consistency..."
+	@if ! command -v python3 >/dev/null 2>&1; then \
+		echo "Error: python3 is required for metadata validation"; \
+		exit 1; \
+	fi; \
+	if ! python3 -c "import yaml" >/dev/null 2>&1; then \
+		echo "Error: PyYAML is required. Install with: pip install pyyaml"; \
+		exit 1; \
+	fi; \
+	python3 scripts/validate-chart-metadata.py
+
 # 모든 차트 빌드
 .PHONY: build
 build:
@@ -198,6 +212,7 @@ help:
 	@echo "Available targets:"
 	@echo "  all-charts       - Process all charts"
 	@echo "  lint             - Run helm lint for all charts"
+	@echo "  validate-metadata - Validate chart metadata consistency"
 	@echo "  build            - Build all charts"
 	@echo "  template         - Generate template for all charts"
 	@echo "  install          - Install all charts"
