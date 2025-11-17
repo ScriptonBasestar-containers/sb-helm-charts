@@ -359,6 +359,28 @@ echo "stats" | nc my-memcached 11211
 
 See `values.yaml` for full parameter list.
 
+## Recent Changes
+
+### Version 0.3.2 (2025-11-17)
+
+**Health Probe Improvements:**
+- ✅ Improved readinessProbe to use application-level check (`stats` command)
+- ✅ Replaced TCP socket check with memcached stats validation for better health detection
+- ✅ Now validates actual memcached functionality instead of just port availability
+
+### Version 0.3.1 (2025-11-17)
+
+**Documentation:**
+- ✅ Clarified architecture in `values-prod-master-replica.yaml`
+- ✅ Added comprehensive explanation about independent instances (no replication)
+- ✅ Added guidance on client-side consistent hashing for distributed cache
+
+For full changelog, see [Chart.yaml](./Chart.yaml) or [docs/05-chart-analysis-2025-11.md](../../docs/05-chart-analysis-2025-11.md).
+
+## Testing
+
+For comprehensive testing scenarios, see [Testing Guide](../../docs/TESTING_GUIDE.md).
+
 ## License
 
 This Helm chart is licensed under the BSD-3-Clause License. See the chart's `Chart.yaml` for details.
