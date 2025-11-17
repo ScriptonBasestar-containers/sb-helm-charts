@@ -2,6 +2,8 @@
 
 This document defines the standard patterns and structures used across all charts in the sb-helm-charts repository. Use this as a reference when creating new charts or modifying existing ones.
 
+> **See Also**: [Chart Catalog](CHARTS.md) - Browse all available charts with detailed information, installation examples, and categorization.
+
 ## Chart Classification
 
 Charts are classified into three categories based on their complexity and dependencies:
