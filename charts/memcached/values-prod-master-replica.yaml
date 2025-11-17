@@ -1,6 +1,30 @@
-# Production scenario for memcached
+# Production scenario for memcached - Multiple Independent Instances
 # High availability with multiple replicas
 # Full monitoring, autoscaling, and network policies
+#
+# ⚠️ IMPORTANT: Memcached Architecture Clarification
+#
+# Despite the filename "prod-master-replica", Memcached does NOT have a master-replica
+# architecture like Redis or PostgreSQL. Each Memcached instance is INDEPENDENT and
+# does NOT replicate data to other instances.
+#
+# This deployment creates multiple INDEPENDENT Memcached instances that:
+#   - Do NOT share data with each other
+#   - Do NOT replicate cache entries
+#   - Are accessed via a shared Service (round-robin load balancing by default)
+#   - Require CLIENT-SIDE consistent hashing for proper data distribution
+#
+# For proper production use:
+#   1. Use a client library that supports consistent hashing (e.g., libmemcached, pylibmc)
+#   2. Configure clients to connect to individual pod IPs or use StatefulSet headless service
+#   3. Client maintains consistent hash ring to distribute keys across instances
+#
+# Why multiple instances?
+#   - Increased total cache capacity (3 instances × 512MB = 1.5GB total)
+#   - Better availability (if one instance fails, others continue serving)
+#   - Horizontal scaling of cache operations
+#
+# Alternative: Use single large instance with more memory if consistent hashing is not feasible
 
 # 1. Application-specific Configuration
 
