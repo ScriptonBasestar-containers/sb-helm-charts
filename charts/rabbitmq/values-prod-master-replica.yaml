@@ -1,6 +1,37 @@
-# Production scenario for rabbitmq
-# Currently single replica (clustering requires StatefulSet)
+# Production scenario for rabbitmq - Single Instance
 # Full monitoring, network policies, and production-grade configuration
+#
+# ⚠️ IMPORTANT: RabbitMQ Clustering Clarification
+#
+# Despite the filename "prod-master-replica", this chart deploys a SINGLE RabbitMQ instance.
+# RabbitMQ clustering is NOT implemented in the current chart templates.
+#
+# This deployment:
+#   - Creates ONE RabbitMQ instance (not clustered)
+#   - Suitable for: Development, Testing, Low-volume production workloads
+#   - NOT suitable for: High-availability production requiring automatic failover
+#
+# For production RabbitMQ clustering with high availability:
+#
+# Option 1: RabbitMQ Cluster Operator (Recommended)
+#   - Official operator from RabbitMQ team
+#   - GitHub: https://github.com/rabbitmq/cluster-operator
+#   - Features: Automatic cluster formation, rolling upgrades, backup/restore
+#   - Installation:
+#       kubectl apply -f https://github.com/rabbitmq/cluster-operator/releases/latest/download/cluster-operator.yml
+#
+# Option 2: Bitnami RabbitMQ Helm Chart
+#   - Full clustering support out of the box
+#   - GitHub: https://github.com/bitnami/charts/tree/main/bitnami/rabbitmq
+#   - Installation:
+#       helm repo add bitnami https://charts.bitnami.com/bitnami
+#       helm install rabbitmq bitnami/rabbitmq --set replicaCount=3
+#
+# Migration Path:
+#   1. Use this chart for development/testing
+#   2. Test your application thoroughly with single instance
+#   3. For production HA: Migrate to RabbitMQ Cluster Operator or Bitnami chart
+#   4. See CLAUDE.md for more details on production deployment strategies
 
 # 1. Application-specific Configuration
 
