@@ -1,6 +1,6 @@
 apiVersion: v2
 name: rabbitmq
-version: 0.3.0
+version: 0.3.1
 appVersion: "3.13.1"
 type: application
 description: A Helm chart for RabbitMQ message broker with management UI and Prometheus metrics
@@ -23,12 +23,12 @@ maintainers:
 annotations:
   artifacthub.io/license: BSD-3-Clause
   artifacthub.io/changes: |
-    - kind: added
-      description: Deployment scenario values files (home-single, startup-single, prod-master-replica)
-    - kind: added
-      description: Comprehensive README with deployment scenarios section
     - kind: changed
-      description: Chart version bumped to 0.3.0 for scenario values feature
+      description: Clarify single-instance architecture in prod-master-replica values file
+    - kind: added
+      description: Add production clustering alternatives (RabbitMQ Cluster Operator, Bitnami chart)
+    - kind: added
+      description: Document migration path from single to clustered deployment
   artifacthub.io/prerelease: "false"
   artifacthub.io/recommendations: |
     - url: https://github.com/scriptonbasestar-container/sb-helm-charts/blob/master/docs/SCENARIO_VALUES_GUIDE.md
