@@ -776,8 +776,8 @@ Application licenses differ from chart license (e.g., Keycloak: Apache 2.0) and 
 
 ### Current Chart Versions
 
-- **Stable (0.2.x - 0.3.x)**: keycloak, redis, wireguard, memcached, rabbitmq, browserless-chrome, devpi, rsshub
-- **Development (0.1.0)**: rustfs, wordpress, nextcloud, uptime-kuma, paperless-ngx, immich, jellyfin, vaultwarden
+- **Mature (0.3.x)**: keycloak, wireguard, memcached, rabbitmq, browserless-chrome, devpi, rsshub
+- **Stable (0.2.x)**: redis, rustfs, wordpress, nextcloud, uptime-kuma, paperless-ngx, immich, jellyfin, vaultwarden
 
 ### Version Increment Guidelines
 
