@@ -8,6 +8,33 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+
+#### Chart Metadata Management System
+- **Centralized Metadata** (`charts-metadata.yaml`)
+  - Single source of truth for chart keywords, tags, descriptions
+  - 16 charts documented with complete metadata
+  - Categories: `application` and `infrastructure`
+  - Searchable keywords for Artifact Hub integration
+- **Automation Scripts**
+  - `scripts/validate-chart-metadata.py` - Validates keywords consistency
+  - `scripts/sync-chart-keywords.py` - Syncs Chart.yaml keywords from metadata
+  - `scripts/requirements.txt` - Python dependencies (PyYAML>=6.0)
+- **Makefile Targets**
+  - `make validate-metadata` - Validate metadata consistency
+  - `make sync-keywords` - Sync Chart.yaml keywords
+  - `make sync-keywords-dry-run` - Preview sync changes
+- **Pre-commit Hook**
+  - Automatic metadata validation before commits
+  - Validates Chart.yaml and charts-metadata.yaml consistency
+- **Documentation**
+  - [Chart README Template](docs/CHART_README_TEMPLATE.md) - Standard chart README structure
+  - [Chart README Guide](docs/CHART_README_GUIDE.md) - Template usage guide
+  - [Workflow Update Instructions](docs/WORKFLOW_UPDATE_INSTRUCTIONS.md) - CI workflow manual update
+  - Updated CLAUDE.md with metadata management workflow
+  - Updated CONTRIBUTING.md with metadata workflow steps
+  - Updated README.md with validation instructions
+
+#### Development Tools
 - Deployment Scenarios sections to all 16 chart READMEs
   - Home Server scenario (minimal resources)
   - Startup Environment scenario (balanced configuration)
@@ -29,6 +56,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - General file checks (trailing whitespace, EOF, YAML validation)
   - YAML linting with yamllint (line-length: 120)
   - Helm chart linting for all charts
+  - Chart metadata validation (NEW)
   - Markdown linting with markdownlint
   - Shell script linting with shellcheck
   - Conventional commits enforcement
@@ -36,6 +64,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `.github/CONTRIBUTING.md` comprehensive contribution guide
   - Code of Conduct and Getting Started
   - Chart Development Guidelines (core principles, values.yaml structure, database strategy)
+  - Chart Metadata Workflow (4-step process with sync and validation)
   - Pull Request Process and checklist
   - Coding Standards (Helm templates, helper functions, NOTES.txt pattern)
   - Testing Requirements (lint, template rendering, install/upgrade tests)
