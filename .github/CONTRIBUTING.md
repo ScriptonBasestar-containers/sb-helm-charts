@@ -78,6 +78,30 @@ charts/my-app/
     └── tests/
 ```
 
+**IMPORTANT: Update Chart Metadata**
+
+When creating a new chart or modifying an existing one, you MUST update `charts-metadata.yaml` at the repository root:
+
+```yaml
+charts:
+  my-app:
+    name: My Application
+    path: charts/my-app
+    category: application  # or 'infrastructure'
+    tags: [Web, CMS, Publishing]
+    keywords: [my-app, web, cms, content-management]
+    description: Brief description of the application
+    production_note: "Optional production warning"  # For infrastructure charts
+```
+
+This metadata is used for:
+- Chart discovery and search
+- Documentation generation
+- Artifact Hub keywords
+- Consistent categorization
+
+See [CLAUDE.md](../CLAUDE.md#chart-metadata) for complete metadata requirements.
+
 ### 2. Modifying Existing Charts
 
 - Always increment chart version following [Semantic Versioning](../docs/CHART_VERSION_POLICY.md)
@@ -243,6 +267,7 @@ See [Scenario Values Guide](../docs/SCENARIO_VALUES_GUIDE.md) for detailed speci
 3. PR Checklist:
    - [ ] Chart version incremented according to [version policy](../docs/CHART_VERSION_POLICY.md)
    - [ ] `CHANGELOG.md` updated
+   - [ ] `charts-metadata.yaml` updated (for new/modified charts)
    - [ ] All three scenario values files included
    - [ ] README.md includes deployment scenarios section
    - [ ] `helm lint` passes with 0 errors

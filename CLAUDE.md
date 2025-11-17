@@ -39,6 +39,35 @@ charts/{chart-name}/
     └── tests/
 ```
 
+## Chart Metadata
+
+**IMPORTANT**: All chart metadata is centrally managed in `charts-metadata.yaml` at the repository root.
+
+### When Adding or Modifying Charts
+
+When you add a new chart or modify an existing one, you MUST update both:
+
+1. **`charts-metadata.yaml`**: Add/update chart entry with:
+   - `name`: Human-readable chart name
+   - `path`: Chart directory path (e.g., `charts/chart-name`)
+   - `category`: Either `application` or `infrastructure`
+   - `tags`: List of categorization tags (e.g., `[Monitoring, Alerting]`)
+   - `keywords`: List of searchable keywords for Chart.yaml
+   - `description`: Brief description matching CLAUDE.md
+   - `production_note`: (Optional) Production warnings for infrastructure charts
+
+2. **This file (CLAUDE.md)**: Update the "Available Charts" section below to match
+
+3. **`charts/{chart-name}/Chart.yaml`**: Ensure `keywords` field matches `charts-metadata.yaml`
+
+### Metadata Usage
+
+The metadata file serves multiple purposes:
+- **Documentation**: Single source of truth for chart categorization
+- **Search**: Keywords used in Chart.yaml for Helm Hub/Artifact Hub
+- **Automation**: Future automation for chart discovery and documentation generation
+- **Consistency**: Ensures tags and keywords are consistent across all charts
+
 ## Available Charts
 
 ### Application Charts (Self-Hosted)
@@ -708,6 +737,7 @@ Each chart-specific Makefile:
 - Use `values-example.yaml` as production deployment templates
 - Chart version follows semantic versioning in `Chart.yaml`
 - Git commits are automated; `git push` requires manual execution
+- **ALWAYS update `charts-metadata.yaml` when adding or modifying charts** - see Chart Metadata section above
 
 ### Kubernetes Environment Variable Precedence
 
