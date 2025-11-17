@@ -2,7 +2,7 @@ apiVersion: v2
 name: jellyfin
 description: Jellyfin - The Free Software Media System (Plex Alternative)
 type: application
-version: 0.2.0
+version: 0.3.0
 appVersion: "10.10.3"
 home: https://github.com/scriptonbasestar-container/sb-helm-charts
 sources:
@@ -26,11 +26,15 @@ annotations:
   category: Media
   artifacthub.io/changes: |
     - kind: added
-      description: Initial Jellyfin chart with hardware transcoding support
+      description: AMD VAAPI GPU acceleration support (in addition to Intel QSV and NVIDIA NVENC)
     - kind: added
-      description: Deployment scenario values files (home-single, startup-single, prod-master-replica)
+      description: values-home-single.yaml optimized for home servers (Raspberry Pi, Intel NUC)
     - kind: added
-      description: Comprehensive README with deployment scenarios section
+      description: Comprehensive README with GPU acceleration guide for all vendors
+    - kind: changed
+      description: Enhanced jellyfin-check-gpu command to support AMD VAAPI
+    - kind: changed
+      description: Updated Chart.yaml to version 0.3.0 (production-ready)
   artifacthub.io/prerelease: "false"
   artifacthub.io/recommendations: |
     - url: https://github.com/scriptonbasestar-container/sb-helm-charts/blob/master/docs/SCENARIO_VALUES_GUIDE.md

@@ -9,6 +9,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+#### Jellyfin 0.3.0 - Complete GPU Acceleration Support
+- **AMD VAAPI GPU Support** (New)
+  - Added AMD VAAPI hardware acceleration alongside Intel QSV and NVIDIA NVENC
+  - Automatic `/dev/dri` device mounting for AMD GPUs
+  - Automatic supplementalGroups (44, 109) for AMD VAAPI
+  - Updated deployment.yaml, _helpers.tpl, and values.yaml
+- **Home Server Configuration** (`values-home-single.yaml`)
+  - Optimized for Raspberry Pi 4, Intel NUC, and Mini PCs
+  - Minimal resources: 2 CPU cores, 2Gi RAM
+  - Reduced storage: 2Gi config, 5Gi cache
+  - hostPath media directories with NAS mount examples
+  - Intel QSV GPU acceleration examples
+  - Relaxed health checks for home server use
+- **Comprehensive Documentation** (`README.md`)
+  - Complete GPU acceleration guide for all vendors (Intel QSV, NVIDIA NVENC, AMD VAAPI)
+  - Media library configuration guide (hostPath, PVC, existing claims)
+  - Deployment scenarios (home server, startup, production)
+  - Operational commands reference
+  - Troubleshooting guide for GPU and media library issues
+- **Enhanced Makefile Operations** (`make/ops/jellyfin.mk`)
+  - Updated `jellyfin-check-gpu` command to support AMD VAAPI
+  - Added renderD* device listing for debugging
+  - Consolidated Intel/AMD GPU check logic
+
 #### Chart Metadata Management System
 - **Centralized Metadata** (`charts-metadata.yaml`)
   - Single source of truth for chart keywords, tags, descriptions
