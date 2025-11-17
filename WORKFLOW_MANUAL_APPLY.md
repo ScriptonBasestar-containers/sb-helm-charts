@@ -226,6 +226,27 @@ After applying the changes:
    - Modify `charts-metadata.yaml` without running `make generate-catalog`
    - Verify workflow detects outdated catalog
 
+## 📝 Additional Optional Changes
+
+### cleanup.yaml Formatting (Optional)
+
+**File:** `.github/workflows/cleanup.yaml`
+
+**Change:** Remove trailing whitespace (lines 2, 26)
+
+```yaml
+# Line 2
+-concurrency:
++concurrency:
+
+# Line 26
+-
++
+```
+
+**Impact:** Code formatting only, no functional change
+**Priority:** Low (optional cleanup)
+
 ## 🎯 Benefits
 
 Once applied, the enhanced CI workflow will:
