@@ -27,15 +27,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - `make sync-keywords-dry-run` - Preview sync changes
   - `make generate-catalog` - Generate docs/CHARTS.md from metadata
   - `make generate-artifacthub-dashboard` - Generate Artifact Hub dashboard
-- **Pre-commit Hook**
+- **Pre-commit Hooks** (Enhanced)
   - Automatic metadata validation before commits
   - Validates Chart.yaml and charts-metadata.yaml consistency
+  - Fixed configuration (removed unsupported additional_dependencies from system language hook)
+  - Trailing whitespace and end-of-file auto-fixes applied
+  - Conventional commits enforcement
+  - YAML, Markdown, and Shell script linting
+- **CI/CD Automation** (Ready for deployment)
+  - Metadata validation job for GitHub Actions (manual application pending)
+  - Catalog verification to ensure docs/CHARTS.md is up-to-date
+  - Workflow triggers for metadata and scripts changes
+  - See `WORKFLOW_MANUAL_APPLY.md` for deployment instructions
+- **Artifact Hub Integration**
+  - `artifacthub-repo.yml` - Repository metadata for Artifact Hub
+  - Container image security scanning configuration
+  - Repository links and maintainer information
+  - Ready for Artifact Hub publishing (requires GitHub Pages)
 - **Documentation**
   - [Chart Catalog](docs/CHARTS.md) - Auto-generated catalog of all 16 charts with badges and examples
   - [Artifact Hub Dashboard](docs/ARTIFACTHUB_DASHBOARD.md) - Artifact Hub statistics and publishing guide
   - [Chart README Template](docs/CHART_README_TEMPLATE.md) - Standard chart README structure
   - [Chart README Guide](docs/CHART_README_GUIDE.md) - Template usage guide
   - [Workflow Update Instructions](docs/WORKFLOW_UPDATE_INSTRUCTIONS.md) - CI workflow manual update
+  - `WORKFLOW_MANUAL_APPLY.md` - Step-by-step guide for workflow deployment
   - Updated CLAUDE.md with metadata management workflow and catalog generation
   - Updated CONTRIBUTING.md with metadata workflow steps
   - Updated README.md with Available Charts section and catalog links

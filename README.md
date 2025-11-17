@@ -86,11 +86,32 @@ The catalog includes:
 
 For comprehensive chart documentation, deployment scenarios, and configuration options, see the [full catalog](docs/CHARTS.md).
 
+### Artifact Hub
+
+Charts are available on Artifact Hub for easy discovery and security scanning:
+
+- **Browse on Artifact Hub**: [scriptonbasestar-charts](https://artifacthub.io/) (Coming soon - pending GitHub Pages setup)
+- **Automated Security Scanning**: Container images are scanned for vulnerabilities
+- **Publishing Status**: See [Artifact Hub Dashboard](docs/ARTIFACTHUB_DASHBOARD.md) for badges and statistics
+
+The repository includes `artifacthub-repo.yml` with metadata for all 16 charts, enabling:
+- Automatic chart discovery
+- Container image security scanning
+- Rich chart documentation with badges and links
+- Integration with the Artifact Hub ecosystem
+
 ## Recent Changes
 
 **Latest Release: v0.3.0** (2025-11-16)
 
-### What's New
+### What's New in Unreleased
+- **Chart Metadata Management System**: Centralized metadata in `charts-metadata.yaml` with automated validation and sync
+- **Pre-commit Hooks**: Enhanced code quality automation with metadata validation, linting, and auto-fixes
+- **Artifact Hub Integration**: Repository metadata (`artifacthub-repo.yml`) ready for Artifact Hub publishing
+- **CI/CD Automation**: Metadata validation and catalog verification for GitHub Actions (pending deployment)
+- **Documentation**: Auto-generated chart catalog, Artifact Hub dashboard, and comprehensive guides
+
+### v0.3.0 Highlights
 - **Deployment Scenarios**: Pre-configured values files for Home Server, Startup, and Production environments
 - **Documentation**: Comprehensive [Scenario Values Guide](docs/SCENARIO_VALUES_GUIDE.md) with deployment examples
 - **CI/CD**: Automated scenario file validation in GitHub Actions
