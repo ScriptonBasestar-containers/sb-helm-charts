@@ -67,6 +67,24 @@ helm install nextcloud ./charts/nextcloud \
 
 For detailed scenario documentation, see [Scenario Values Guide](docs/SCENARIO_VALUES_GUIDE.md).
 
+## Available Charts
+
+Browse the complete chart catalog with detailed information:
+
+**📚 [View Full Chart Catalog](docs/CHARTS.md)**
+
+The catalog includes:
+- **16 charts** organized by category (Application/Infrastructure)
+- Version badges, descriptions, and installation examples
+- Searchable by tags and keywords
+- Auto-generated from `charts-metadata.yaml`
+
+**Quick Overview:**
+- **Application Charts** (13): uptime-kuma, jellyfin, immich, paperless-ngx, vaultwarden, keycloak, wireguard, wordpress, nextcloud, rustfs, rsshub, browserless-chrome, devpi
+- **Infrastructure Charts** (3): redis, memcached, rabbitmq
+
+For comprehensive chart documentation, deployment scenarios, and configuration options, see the [full catalog](docs/CHARTS.md).
+
 ## Recent Changes
 
 **Latest Release: v0.3.0** (2025-11-16)
@@ -223,13 +241,20 @@ All chart metadata (keywords, tags, descriptions) is centrally managed in `chart
    # or
    python3 scripts/validate-chart-metadata.py
    ```
+4. **Regenerate catalog** (optional):
+   ```bash
+   make generate-catalog
+   ```
 
 The validation ensures:
 - ✅ All charts have metadata entries
 - ✅ Keywords in `Chart.yaml` match `charts-metadata.yaml`
 - ✅ Consistent categorization across all charts
 
+The metadata is also used to auto-generate the [Chart Catalog](docs/CHARTS.md).
+
 For more details, see:
+- [Chart Catalog](docs/CHARTS.md) - Browse all available charts
 - [Chart Development Guide](docs/CHART_DEVELOPMENT_GUIDE.md)
 - [Scenario Values Guide](docs/SCENARIO_VALUES_GUIDE.md)
 - [Chart Version Policy](docs/CHART_VERSION_POLICY.md)

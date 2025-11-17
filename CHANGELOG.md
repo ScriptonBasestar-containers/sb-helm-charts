@@ -18,21 +18,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Automation Scripts**
   - `scripts/validate-chart-metadata.py` - Validates keywords consistency
   - `scripts/sync-chart-keywords.py` - Syncs Chart.yaml keywords from metadata
+  - `scripts/generate-chart-catalog.py` - Generates comprehensive chart catalog
   - `scripts/requirements.txt` - Python dependencies (PyYAML>=6.0)
 - **Makefile Targets**
   - `make validate-metadata` - Validate metadata consistency
   - `make sync-keywords` - Sync Chart.yaml keywords
   - `make sync-keywords-dry-run` - Preview sync changes
+  - `make generate-catalog` - Generate docs/CHARTS.md from metadata
 - **Pre-commit Hook**
   - Automatic metadata validation before commits
   - Validates Chart.yaml and charts-metadata.yaml consistency
 - **Documentation**
+  - [Chart Catalog](docs/CHARTS.md) - Auto-generated catalog of all 16 charts with badges and examples
   - [Chart README Template](docs/CHART_README_TEMPLATE.md) - Standard chart README structure
   - [Chart README Guide](docs/CHART_README_GUIDE.md) - Template usage guide
   - [Workflow Update Instructions](docs/WORKFLOW_UPDATE_INSTRUCTIONS.md) - CI workflow manual update
-  - Updated CLAUDE.md with metadata management workflow
+  - Updated CLAUDE.md with metadata management workflow and catalog generation
   - Updated CONTRIBUTING.md with metadata workflow steps
-  - Updated README.md with validation instructions
+  - Updated README.md with Available Charts section and catalog links
 
 #### Development Tools
 - Deployment Scenarios sections to all 16 chart READMEs

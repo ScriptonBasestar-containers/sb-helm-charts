@@ -75,7 +75,12 @@ When you add a new chart or modify an existing one, you MUST update:
    make validate-metadata
    ```
 
-4. **Update this file (CLAUDE.md)**: Update the "Available Charts" section if needed
+4. **Regenerate catalog**:
+   ```bash
+   make generate-catalog
+   ```
+
+5. **Update this file (CLAUDE.md)**: Update the "Available Charts" section if needed
 
 ### Metadata Tools
 
@@ -88,6 +93,12 @@ When you add a new chart or modify an existing one, you MUST update:
 - `make sync-keywords` - Syncs Chart.yaml keywords from charts-metadata.yaml
 - `make sync-keywords-dry-run` - Preview changes without applying
 - `python3 scripts/sync-chart-keywords.py --chart <name>` - Sync specific chart
+
+**Catalog Generation:**
+- `make generate-catalog` - Generates docs/CHARTS.md from charts-metadata.yaml
+- Auto-generates comprehensive chart catalog with badges, descriptions, installation examples
+- Organizes by category, tags, and keywords for easy discovery
+- Run after updating charts-metadata.yaml
 
 **Dependencies:**
 - Python 3.x required
@@ -155,6 +166,22 @@ make uninstall
 
 # Update dependencies for all charts
 make dependency-update
+```
+
+### Chart Metadata and Documentation
+
+```bash
+# Validate chart metadata consistency
+make validate-metadata
+
+# Sync Chart.yaml keywords from metadata
+make sync-keywords
+
+# Preview keyword sync changes
+make sync-keywords-dry-run
+
+# Generate chart catalog
+make generate-catalog
 ```
 
 ### Working with Individual Charts
@@ -497,6 +524,13 @@ The repository uses chart-testing (ct) for validation:
 - Can sync all charts or specific chart with --chart flag
 - Preserves Chart.yaml formatting during updates
 
+**Catalog Generator** (`scripts/generate-chart-catalog.py`):
+- Generates comprehensive chart catalog (docs/CHARTS.md) from charts-metadata.yaml
+- Organizes charts by category (Application/Infrastructure)
+- Creates searchable indexes by tags and keywords
+- Includes version badges, descriptions, and installation examples
+- Auto-discovers all charts from metadata
+
 **Dependencies** (`scripts/requirements.txt`):
 - PyYAML>=6.0 for YAML processing
 - Install: `pip install -r scripts/requirements.txt`
@@ -521,6 +555,14 @@ python3 scripts/sync-chart-keywords.py
 
 # Sync specific chart
 python3 scripts/sync-chart-keywords.py --chart keycloak
+
+# Generate chart catalog
+make generate-catalog
+# or
+python3 scripts/generate-chart-catalog.py
+
+# Specify custom output location
+python3 scripts/generate-chart-catalog.py --output docs/CHARTS.md
 ```
 
 ## Architecture Principles
