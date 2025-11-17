@@ -21,6 +21,12 @@ ScriptonBasestar Helm Charts - Personal server Helm charts focused on simplicity
 - All new charts MUST follow the standard structure and patterns defined in the guides
 - Existing charts should be updated to align with these patterns over time
 
+**Operational Guides:**
+- [Testing Guide](docs/TESTING_GUIDE.md) - Comprehensive testing procedures for all deployment scenarios
+- [Troubleshooting Guide](docs/TROUBLESHOOTING.md) - Common issues and solutions for production deployments
+- [Production Checklist](docs/PRODUCTION_CHECKLIST.md) - Production readiness validation and deployment checklist
+- [Chart Analysis Report](docs/05-chart-analysis-2025-11.md) - November 2025 comprehensive analysis of all 16 charts
+
 ## Chart Structure
 
 Each chart follows a consistent structure:

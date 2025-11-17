@@ -228,3 +228,14 @@ For each scenario, verify:
 - Ingress controller should be installed for ingress tests
 - Metrics server should be installed for HPA tests
 - Some charts may require specific hardware (GPU for Jellyfin transcoding, etc.)
+
+---
+
+## Additional Resources
+
+- [Troubleshooting Guide](TROUBLESHOOTING.md) - Common issues and solutions for production deployments
+- [Production Checklist](PRODUCTION_CHECKLIST.md) - Production readiness validation and deployment checklist
+- [Chart Development Guide](CHART_DEVELOPMENT_GUIDE.md) - Development patterns and standards
+- [Chart Version Policy](CHART_VERSION_POLICY.md) - Semantic versioning and release process
+- [Analysis Report](05-chart-analysis-2025-11.md) - Comprehensive analysis of all charts
+- [Scenario Values Guide](SCENARIO_VALUES_GUIDE.md) - Deployment scenarios explained

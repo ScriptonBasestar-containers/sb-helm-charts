@@ -722,11 +722,12 @@ make -f make/ops/wireguard.mk wg-get-peer PEER=peer1
 
 ## Additional Resources
 
-- [Troubleshooting Guide](TROUBLESHOOTING.md) - Common issues and solutions
-- [Testing Guide](TESTING_GUIDE.md) - Testing procedures
-- [Chart Development Guide](CHART_DEVELOPMENT_GUIDE.md) - Chart patterns and standards
-- [Analysis Report](05-chart-analysis-2025-11.md) - Known limitations
-- [Scenario Values Guide](SCENARIO_VALUES_GUIDE.md) - Deployment scenarios
+- [Troubleshooting Guide](TROUBLESHOOTING.md) - Common issues and solutions for production deployments
+- [Testing Guide](TESTING_GUIDE.md) - Comprehensive testing procedures for all deployment scenarios
+- [Chart Development Guide](CHART_DEVELOPMENT_GUIDE.md) - Development patterns and standards
+- [Chart Version Policy](CHART_VERSION_POLICY.md) - Semantic versioning and release process
+- [Analysis Report](05-chart-analysis-2025-11.md) - Comprehensive analysis of all charts
+- [Scenario Values Guide](SCENARIO_VALUES_GUIDE.md) - Deployment scenarios explained
 
 ---
 

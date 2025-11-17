@@ -277,6 +277,12 @@ The metadata is also used to auto-generate the [Chart Catalog](docs/CHARTS.md).
 
 For more details, see:
 - [Chart Catalog](docs/CHARTS.md) - Browse all available charts
-- [Chart Development Guide](docs/CHART_DEVELOPMENT_GUIDE.md)
-- [Scenario Values Guide](docs/SCENARIO_VALUES_GUIDE.md)
-- [Chart Version Policy](docs/CHART_VERSION_POLICY.md)
+- [Chart Development Guide](docs/CHART_DEVELOPMENT_GUIDE.md) - Comprehensive development patterns and standards
+- [Chart Version Policy](docs/CHART_VERSION_POLICY.md) - Semantic versioning and release process
+- [Scenario Values Guide](docs/SCENARIO_VALUES_GUIDE.md) - Deployment scenarios explained
+
+**Operational Guides:**
+- [Testing Guide](docs/TESTING_GUIDE.md) - Comprehensive testing procedures for all deployment scenarios
+- [Troubleshooting Guide](docs/TROUBLESHOOTING.md) - Common issues and solutions for production deployments
+- [Production Checklist](docs/PRODUCTION_CHECKLIST.md) - Production readiness validation and deployment checklist
+- [Chart Analysis Report](docs/05-chart-analysis-2025-11.md) - November 2025 comprehensive analysis of all 16 charts

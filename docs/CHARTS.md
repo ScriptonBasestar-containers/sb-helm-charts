@@ -25,7 +25,7 @@
 ![Browser](https://img.shields.io/badge/tag-Browser-orange.svg)
 ![Automation](https://img.shields.io/badge/tag-Automation-orange.svg)
 ![Headless](https://img.shields.io/badge/tag-Headless-orange.svg)
-![Chart Version](https://img.shields.io/badge/chart-0.3.0-blue.svg) ![App Version](https://img.shields.io/badge/app-1.61.1-green.svg)
+![Chart Version](https://img.shields.io/badge/chart-0.3.0-blue.svg) ![App Version](https://img.shields.io/badge/app-2.32.1-green.svg)
 
 **Description**: Headless browser for crawling
 
@@ -336,7 +336,7 @@ helm install my-wordpress sb-charts/wordpress
 ![Cache](https://img.shields.io/badge/tag-Cache-orange.svg)
 ![Distributed](https://img.shields.io/badge/tag-Distributed-orange.svg)
 ![In-Memory](https://img.shields.io/badge/tag-In-Memory-orange.svg)
-![Chart Version](https://img.shields.io/badge/chart-0.3.0-blue.svg) ![App Version](https://img.shields.io/badge/app-1.6.39-green.svg)
+![Chart Version](https://img.shields.io/badge/chart-0.3.2-blue.svg) ![App Version](https://img.shields.io/badge/app-1.6.39-green.svg)
 
 **Description**: High-performance distributed memory caching system (Deployment, no database)
 
@@ -362,7 +362,7 @@ helm install my-memcached sb-charts/memcached
 ![Message-Queue](https://img.shields.io/badge/tag-Message-Queue-orange.svg)
 ![AMQP](https://img.shields.io/badge/tag-AMQP-orange.svg)
 ![Messaging](https://img.shields.io/badge/tag-Messaging-orange.svg)
-![Chart Version](https://img.shields.io/badge/chart-0.3.0-blue.svg) ![App Version](https://img.shields.io/badge/app-3.13.1-green.svg)
+![Chart Version](https://img.shields.io/badge/chart-0.3.1-blue.svg) ![App Version](https://img.shields.io/badge/app-3.13.1-green.svg)
 
 **Description**: Message broker with management UI (Deployment, no database, AMQP + Prometheus metrics)
 
@@ -388,7 +388,7 @@ helm install my-rabbitmq sb-charts/rabbitmq
 ![Cache](https://img.shields.io/badge/tag-Cache-orange.svg)
 ![Database](https://img.shields.io/badge/tag-Database-orange.svg)
 ![In-Memory](https://img.shields.io/badge/tag-In-Memory-orange.svg)
-![Chart Version](https://img.shields.io/badge/chart-0.3.0-blue.svg) ![App Version](https://img.shields.io/badge/app-7.4.1-green.svg)
+![Chart Version](https://img.shields.io/badge/chart-0.3.1-blue.svg) ![App Version](https://img.shields.io/badge/app-7.4.1-green.svg)
 
 **Description**: In-memory data store (StatefulSet, no external database, full redis.conf support)
 
