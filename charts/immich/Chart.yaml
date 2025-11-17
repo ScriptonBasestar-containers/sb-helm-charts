@@ -2,7 +2,7 @@ apiVersion: v2
 name: immich
 description: High-performance self-hosted photo and video management solution with AI-powered features
 type: application
-version: 0.2.0
+version: 0.3.0
 appVersion: "v1.122.3"
 icon: https://immich.app/img/immich-logo.svg
 keywords:
@@ -23,12 +23,18 @@ annotations:
   artifacthub.io/license: BSD-3-Clause
   category: Media
   artifacthub.io/changes: |
+    - kind: changed
+      description: Promoted to version 0.3.0 (Mature - production-ready)
     - kind: added
-      description: Initial Immich chart with microservices architecture
+      description: Microservices architecture (separate server and machine-learning deployments)
     - kind: added
-      description: Deployment scenario values files (home-single, startup-single, prod-master-replica)
+      description: External PostgreSQL with pgvecto.rs extension and Redis support
     - kind: added
-      description: Comprehensive README with deployment scenarios section
+      description: Hardware acceleration support (CUDA, ROCm, OpenVINO, ARMNN)
+    - kind: added
+      description: Model cache persistence for ML worker
+    - kind: added
+      description: Complete Makefile operational commands (logs, shell, restart for both services)
   artifacthub.io/prerelease: "false"
   artifacthub.io/recommendations: |
     - url: https://github.com/scriptonbasestar-container/sb-helm-charts/blob/master/docs/SCENARIO_VALUES_GUIDE.md

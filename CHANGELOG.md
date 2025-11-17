@@ -9,6 +9,52 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+#### Immich 0.3.0 - AI-Powered Photo Management
+- **Mature Status** (0.2.0 → 0.3.0)
+  - Promoted to Mature status with production-ready features
+  - Microservices architecture (separate server and machine-learning deployments)
+  - External PostgreSQL with pgvecto.rs extension and Redis support
+- **Microservices Architecture**
+  - Independent server deployment for web UI and API
+  - Separate machine-learning deployment for AI features
+  - Shared model cache persistence between ML workers
+  - Independent resource allocation and scaling
+- **Hardware Acceleration Support**
+  - CUDA: NVIDIA GPU acceleration for machine learning
+  - ROCm: AMD GPU acceleration for machine learning
+  - OpenVINO: Intel GPU/CPU acceleration
+  - ARMNN: ARM neural network acceleration
+  - Configurable device mapping for GPU access
+- **External Service Integration**
+  - PostgreSQL with pgvecto.rs extension for vector search
+  - Redis for caching and session management
+  - Automatic database connection health checks
+  - Typesense support for advanced search capabilities
+- **Model Cache Management**
+  - Persistent volume for machine learning models
+  - Shared cache across ML worker replicas
+  - Configurable storage size (default 10Gi)
+- **Makefile Operational Commands** (`make/ops/immich.mk`)
+  - `immich-logs-server`: View server logs
+  - `immich-logs-ml`: View machine-learning logs
+  - `immich-shell-server`: Open shell in server pod
+  - `immich-shell-ml`: Open shell in ML pod
+  - `immich-restart-server`: Restart server deployment
+  - `immich-restart-ml`: Restart ML deployment
+  - `immich-port-forward`: Port forward to localhost:2283
+  - `immich-check-db`: Test PostgreSQL connection
+  - `immich-check-redis`: Test Redis connection
+- **Deployment Scenarios** (values files)
+  - `values-home-single.yaml`: Home server configuration
+  - `values-startup-single.yaml`: Startup/small business setup
+  - `values-prod-master-replica.yaml`: Production HA configuration
+- **Comprehensive Documentation** (`README.md`)
+  - Microservices architecture explanation
+  - Hardware acceleration guide for all platforms
+  - External service integration guide
+  - Deployment scenarios with examples
+  - Operational commands reference
+
 #### Vaultwarden 0.3.0 - Production-Ready Password Manager
 - **Mature Status** (0.2.0 → 0.3.0)
   - Promoted to Mature status with production-ready features
