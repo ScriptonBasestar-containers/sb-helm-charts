@@ -173,7 +173,9 @@ spec:
               command:
                 - sh
                 - -c
-                - redis-cli -a "$REDIS_PASSWORD" ping | grep -q PONG
+                - |
+                  export REDISCLI_AUTH="$REDIS_PASSWORD"
+                  redis-cli --no-auth-warning ping | grep -q PONG
             initialDelaySeconds: {{ .Values.readinessProbe.initialDelaySeconds | default 10 }}
             periodSeconds: {{ .Values.readinessProbe.periodSeconds | default 10 }}
             timeoutSeconds: {{ .Values.readinessProbe.timeoutSeconds | default 5 }}
@@ -216,9 +218,6 @@ spec:
           imagePullPolicy: {{ .Values.metrics.image.pullPolicy }}
           args:
             - --redis.addr=localhost:6379
-            {{- if $usePassword }}
-            - --redis.password=$(REDIS_PASSWORD)
-            {{- end }}
           env:
             {{- if $usePassword }}
             - name: REDIS_PASSWORD
@@ -235,6 +234,13 @@ spec:
             {{- toYaml .Values.metrics.resources | nindent 12 }}
         {{- end }}
       volumes:
+        {{- if .Values.persistence.enabled }}
+        {{- if .Values.persistence.existingClaim }}
+        - name: data
+          persistentVolumeClaim:
+            claimName: {{ .Values.persistence.existingClaim }}
+        {{- end }}
+        {{- end }}
         {{- if or .Values.replication.enabled $usePassword }}
         - name: config
           configMap:
