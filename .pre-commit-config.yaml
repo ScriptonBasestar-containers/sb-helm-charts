@@ -44,6 +44,17 @@ repos:
         pass_filenames: false
         files: ^charts/.*\.(yaml|yml|tpl)$
 
+  # Chart metadata validation
+  - repo: local
+    hooks:
+      - id: validate-chart-metadata
+        name: Validate Chart Metadata
+        entry: python3 scripts/validate-chart-metadata.py
+        language: system
+        pass_filenames: false
+        files: ^(charts/.*/Chart\.yaml|charts-metadata\.yaml|scripts/validate-chart-metadata\.py)$
+        additional_dependencies: [pyyaml>=6.0]
+
   # Markdown linting and link checking
   - repo: https://github.com/markdownlint/markdownlint
     rev: v0.12.0
