@@ -72,6 +72,34 @@ validate-metadata:
 	fi; \
 	python3 scripts/validate-chart-metadata.py
 
+# 차트 메타데이터에서 Chart.yaml keywords 동기화
+.PHONY: sync-keywords
+sync-keywords:
+	@echo "Syncing Chart.yaml keywords from charts-metadata.yaml..."
+	@if ! command -v python3 >/dev/null 2>&1; then \
+		echo "Error: python3 is required"; \
+		exit 1; \
+	fi; \
+	if ! python3 -c "import yaml" >/dev/null 2>&1; then \
+		echo "Error: PyYAML is required. Install with: pip install -r scripts/requirements.txt"; \
+		exit 1; \
+	fi; \
+	python3 scripts/sync-chart-keywords.py
+
+# 차트 메타데이터에서 Chart.yaml keywords 동기화 (dry-run)
+.PHONY: sync-keywords-dry-run
+sync-keywords-dry-run:
+	@echo "Previewing Chart.yaml keywords sync..."
+	@if ! command -v python3 >/dev/null 2>&1; then \
+		echo "Error: python3 is required"; \
+		exit 1; \
+	fi; \
+	if ! python3 -c "import yaml" >/dev/null 2>&1; then \
+		echo "Error: PyYAML is required. Install with: pip install -r scripts/requirements.txt"; \
+		exit 1; \
+	fi; \
+	python3 scripts/sync-chart-keywords.py --dry-run
+
 # 모든 차트 빌드
 .PHONY: build
 build:
@@ -213,6 +241,8 @@ help:
 	@echo "  all-charts       - Process all charts"
 	@echo "  lint             - Run helm lint for all charts"
 	@echo "  validate-metadata - Validate chart metadata consistency"
+	@echo "  sync-keywords    - Sync Chart.yaml keywords from charts-metadata.yaml"
+	@echo "  sync-keywords-dry-run - Preview keyword sync changes"
 	@echo "  build            - Build all charts"
 	@echo "  template         - Generate template for all charts"
 	@echo "  install          - Install all charts"
