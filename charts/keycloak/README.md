@@ -625,6 +625,13 @@ kubectl delete pvc -l app.kubernetes.io/instance=my-keycloak
 - [Keycloak GitHub](https://github.com/keycloak/keycloak)
 - [Keycloak Discourse](https://keycloak.discourse.group/)
 
+## Additional Resources
+
+- [Troubleshooting Guide](../../docs/TROUBLESHOOTING.md) - Common issues and solutions
+- [Production Checklist](../../docs/PRODUCTION_CHECKLIST.md) - Production readiness validation
+- [Testing Guide](../../docs/TESTING_GUIDE.md) - Comprehensive testing procedures
+- [Chart Analysis Report](../../docs/05-chart-analysis-2025-11.md) - November 2025 analysis
+
 ## License
 
 This Helm chart is licensed under the BSD 3-Clause License. See the [LICENSE](../../LICENSE) file for details.
