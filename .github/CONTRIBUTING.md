@@ -102,10 +102,28 @@ This metadata is used for:
 
 See [CLAUDE.md](../CLAUDE.md#chart-metadata) for complete metadata requirements.
 
+**Syncing Keywords:**
+
+After updating `charts-metadata.yaml`, you can automatically sync keywords to `Chart.yaml`:
+
+```bash
+# Preview changes (dry-run)
+make sync-keywords-dry-run
+
+# Apply changes
+make sync-keywords
+
+# Sync specific chart only
+python3 scripts/sync-chart-keywords.py --chart my-app
+```
+
+The sync tool ensures `Chart.yaml` keywords match `charts-metadata.yaml`, maintaining consistency across all charts.
+
 ### 2. Modifying Existing Charts
 
 - Always increment chart version following [Semantic Versioning](../docs/CHART_VERSION_POLICY.md)
 - Update `CHANGELOG.md` with your changes
+- Update `charts-metadata.yaml` if keywords or description changed
 - Test all scenario values files
 
 ### 3. Local Testing
@@ -113,6 +131,9 @@ See [CLAUDE.md](../CLAUDE.md#chart-metadata) for complete metadata requirements.
 ```bash
 # Lint your chart
 helm lint charts/my-app
+
+# Validate chart metadata consistency
+make validate-metadata
 
 # Test with scenario values
 helm install my-app-test charts/my-app \
@@ -126,6 +147,38 @@ helm install my-app charts/my-app \
 # Run tests
 helm test my-app
 ```
+
+### 4. Chart Metadata Workflow
+
+When working with chart metadata, follow this workflow:
+
+1. **Update metadata first** in `charts-metadata.yaml`:
+   ```bash
+   # Edit charts-metadata.yaml
+   vim charts-metadata.yaml
+   ```
+
+2. **Sync keywords to Chart.yaml**:
+   ```bash
+   # Preview changes
+   make sync-keywords-dry-run
+
+   # Apply if changes look correct
+   make sync-keywords
+   ```
+
+3. **Validate consistency**:
+   ```bash
+   make validate-metadata
+   ```
+
+4. **Commit changes**:
+   ```bash
+   git add charts-metadata.yaml charts/my-app/Chart.yaml
+   git commit -m "feat(my-app): Update chart keywords"
+   ```
+
+The pre-commit hook will automatically validate metadata before allowing the commit.
 
 ## Chart Development Guidelines
 
@@ -225,7 +278,12 @@ See [Scenario Values Guide](../docs/SCENARIO_VALUES_GUIDE.md) for detailed speci
    helm lint charts/my-app
    ```
 
-2. **Test all scenarios:**
+2. **Validate metadata consistency:**
+   ```bash
+   make validate-metadata
+   ```
+
+3. **Test all scenarios:**
    ```bash
    make -f make/ops/my-app.mk install  # Test default values
    make install-home                    # Test home scenario
@@ -233,12 +291,13 @@ See [Scenario Values Guide](../docs/SCENARIO_VALUES_GUIDE.md) for detailed speci
    make install-prod                    # Test production scenario
    ```
 
-3. **Update documentation:**
+4. **Update documentation:**
    - Chart `README.md` with deployment examples
    - Main `CHANGELOG.md` with your changes
    - Chart `Chart.yaml` annotations for Artifact Hub
+   - `charts-metadata.yaml` if keywords or description changed
 
-4. **Commit message format:**
+5. **Commit message format:**
    ```
    <type>(<scope>): <subject>
 
