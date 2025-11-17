@@ -72,6 +72,7 @@ For detailed scenario documentation, see [Scenario Values Guide](docs/SCENARIO_V
 Browse the complete chart catalog with detailed information:
 
 **📚 [View Full Chart Catalog](docs/CHARTS.md)**
+**🏷️ [Artifact Hub Dashboard](docs/ARTIFACTHUB_DASHBOARD.md)** - Publishing status and badges
 
 The catalog includes:
 - **16 charts** organized by category (Application/Infrastructure)
