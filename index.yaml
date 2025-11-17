@@ -437,6 +437,38 @@ entries:
     - https://github.com/ScriptonBasestar-containers/sb-helm-charts/releases/download/keycloak-0.3.0/keycloak-0.3.0.tgz
     version: 0.3.0
   memcached:
+  - annotations:
+      artifacthub.io/changes: |
+        - kind: changed
+          description: Improve readinessProbe to use application-level check (stats command)
+        - kind: changed
+          description: Replace TCP socket check with memcached stats validation for better health detection
+      artifacthub.io/license: BSD-3-Clause
+      artifacthub.io/prerelease: "false"
+    apiVersion: v2
+    appVersion: 1.6.39
+    created: "2025-11-17T13:15:18.780399146Z"
+    description: A Helm chart for Memcached - high-performance distributed memory
+      caching system
+    digest: 878043ad34843bc901cafdf165eee2f74067677a67e59e540aa58c5ff3df8efe
+    home: https://github.com/scriptonbasestar-container/sb-helm-charts
+    icon: https://memcached.org/memcached-logo.png
+    keywords:
+    - memcached
+    - cache
+    - memory
+    - performance
+    maintainers:
+    - email: archmagece@gmail.com
+      name: ScriptonBasestar
+    name: memcached
+    sources:
+    - https://github.com/scriptonbasestar-container/sb-helm-charts
+    - https://github.com/memcached/memcached
+    type: application
+    urls:
+    - https://github.com/ScriptonBasestar-containers/sb-helm-charts/releases/download/memcached-0.3.2/memcached-0.3.2.tgz
+    version: 0.3.2
   - apiVersion: v2
     appVersion: 1.6.39
     created: "2025-11-17T01:25:11.959059403Z"
@@ -748,6 +780,53 @@ entries:
   rabbitmq:
   - annotations:
       artifacthub.io/changes: |
+        - kind: changed
+          description: Clarify single-instance architecture in prod-master-replica values file
+        - kind: added
+          description: Add production clustering alternatives (RabbitMQ Cluster Operator, Bitnami chart)
+        - kind: added
+          description: Document migration path from single to clustered deployment
+      artifacthub.io/license: BSD-3-Clause
+      artifacthub.io/links: |
+        - name: Chart Source
+          url: https://github.com/scriptonbasestar-container/sb-helm-charts/tree/master/charts/rabbitmq
+        - name: rabbitmq Documentation
+          url: https://www.rabbitmq.com/
+      artifacthub.io/prerelease: "false"
+      artifacthub.io/recommendations: |
+        - url: https://github.com/scriptonbasestar-container/sb-helm-charts/blob/master/docs/SCENARIO_VALUES_GUIDE.md
+          description: Scenario Values Deployment Guide
+        - url: https://github.com/scriptonbasestar-container/sb-helm-charts/blob/master/docs/CHART_DEVELOPMENT_GUIDE.md
+          description: Chart Development Guide
+    apiVersion: v2
+    appVersion: 3.13.1
+    created: "2025-11-17T13:15:19.008292902Z"
+    description: A Helm chart for RabbitMQ message broker with management UI and Prometheus
+      metrics
+    digest: e7c127dcb5341c3443cf89ea1675b21153524eecec5397dca66dfc6a8b52ba17
+    home: https://www.rabbitmq.com/
+    icon: https://www.rabbitmq.com/img/rabbitmq-logo.svg
+    keywords:
+    - rabbitmq
+    - message-queue
+    - amqp
+    - messaging
+    - broker
+    - message-broker
+    maintainers:
+    - email: archmagece@users.noreply.github.com
+      name: archmagece
+    name: rabbitmq
+    sources:
+    - https://github.com/ScriptonBasestar-containers/sb-helm-charts
+    - https://github.com/rabbitmq/rabbitmq-server
+    - https://hub.docker.com/_/rabbitmq
+    type: application
+    urls:
+    - https://github.com/ScriptonBasestar-containers/sb-helm-charts/releases/download/rabbitmq-0.3.1/rabbitmq-0.3.1.tgz
+    version: 0.3.1
+  - annotations:
+      artifacthub.io/changes: |
         - kind: added
           description: Deployment scenario values files (home-single, startup-single, prod-master-replica)
         - kind: added
@@ -852,6 +931,55 @@ entries:
     - https://github.com/ScriptonBasestar-containers/sb-helm-charts/releases/download/rabbitmq-0.1.0/rabbitmq-0.1.0.tgz
     version: 0.1.0
   redis:
+  - annotations:
+      artifacthub.io/changes: |
+        - kind: fixed
+          description: Fix existingClaim support - now properly mounts existing PVCs
+        - kind: security
+          description: Fix password exposure in readiness probe using REDISCLI_AUTH
+        - kind: security
+          description: Fix password exposure in metrics exporter command-line args
+        - kind: changed
+          description: Add warnings to Sentinel/Cluster values files (modes not implemented)
+      artifacthub.io/license: BSD-3-Clause
+      artifacthub.io/links: |
+        - name: Chart Source
+          url: https://github.com/scriptonbasestar-container/sb-helm-charts/tree/master/charts/redis
+        - name: redis Documentation
+          url: https://redis.io/
+      artifacthub.io/prerelease: "false"
+      artifacthub.io/recommendations: |
+        - url: https://github.com/scriptonbasestar-container/sb-helm-charts/blob/master/docs/SCENARIO_VALUES_GUIDE.md
+          description: Scenario Values Deployment Guide
+        - url: https://github.com/scriptonbasestar-container/sb-helm-charts/blob/master/docs/CHART_DEVELOPMENT_GUIDE.md
+          description: Chart Development Guide
+    apiVersion: v2
+    appVersion: 7.4.1
+    created: "2025-11-17T13:15:19.181422208Z"
+    description: In-memory data structure store - cache, database, and message broker
+    digest: 1f9282ce972eda7f0c6d49222326f84b9051a927e39ce2a12e5bc4b0d70e86a7
+    home: https://redis.io/
+    icon: https://www.svgrepo.com/show/303460/redis-logo.svg
+    keywords:
+    - redis
+    - cache
+    - database
+    - nosql
+    - key-value
+    - in-memory
+    - data-structure
+    maintainers:
+    - email: archmagece@users.noreply.github.com
+      name: archmagece
+    name: redis
+    sources:
+    - https://github.com/scriptonbasestar-container/sb-helm-charts
+    - https://github.com/redis/redis
+    - https://hub.docker.com/_/redis
+    type: application
+    urls:
+    - https://github.com/ScriptonBasestar-containers/sb-helm-charts/releases/download/redis-0.3.1/redis-0.3.1.tgz
+    version: 0.3.1
   - annotations:
       artifacthub.io/changes: |
         - kind: changed
@@ -1619,4 +1747,4 @@ entries:
     urls:
     - https://github.com/ScriptonBasestar-containers/sb-helm-charts/releases/download/wordpress-0.1.0/wordpress-0.1.0.tgz
     version: 0.1.0
-generated: "2025-11-17T07:18:06.957658611Z"
+generated: "2025-11-17T13:15:19.475423272Z"
