@@ -2,7 +2,7 @@ apiVersion: v2
 name: rustfs
 description: High-performance S3-compatible object storage built with Rust, supporting migration and coexistence with MinIO/Ceph
 type: application
-version: 0.2.0
+version: 0.3.0
 appVersion: "1.0.0-alpha.66"
 keywords:
   - rustfs
@@ -22,4 +22,28 @@ dependencies: []
 annotations:
   # Chart license (BSD-3-Clause)
   # Application license: Apache-2.0 (see README.md)
-  licenses: BSD-3-Clause
+  artifacthub.io/license: BSD-3-Clause
+  artifacthub.io/changes: |
+    - kind: changed
+      description: Promoted to version 0.3.0 (Mature - production-ready)
+    - kind: added
+      description: Full S3 API compatibility for MinIO/Ceph migration and coexistence
+    - kind: added
+      description: StatefulSet-based clustering with multi-drive support per pod
+    - kind: added
+      description: Tiered storage support (Hot SSD + Cold HDD mixing)
+    - kind: added
+      description: Complete Makefile operational commands (credentials, S3 testing, health checks)
+    - kind: added
+      description: 4 deployment scenario values files (home, startup, production)
+  artifacthub.io/prerelease: "false"
+  artifacthub.io/recommendations: |
+    - url: https://github.com/scriptonbasestar-container/sb-helm-charts/blob/master/docs/SCENARIO_VALUES_GUIDE.md
+      description: Scenario Values Deployment Guide
+    - url: https://github.com/scriptonbasestar-container/sb-helm-charts/blob/master/docs/CHART_DEVELOPMENT_GUIDE.md
+      description: Chart Development Guide
+  artifacthub.io/links: |
+    - name: Chart Source
+      url: https://github.com/scriptonbasestar-container/sb-helm-charts/tree/master/charts/rustfs
+    - name: RustFS Documentation
+      url: https://rustfs.com/

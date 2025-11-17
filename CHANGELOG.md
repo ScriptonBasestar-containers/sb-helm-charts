@@ -9,6 +9,55 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+#### RustFS 0.3.0 - S3-Compatible Object Storage
+- **Mature Status** (0.2.0 → 0.3.0)
+  - Promoted to Mature status with production-ready features
+  - Full S3 API compatibility for MinIO/Ceph migration
+  - StatefulSet-based clustering with HA support
+- **S3 API Compatibility**
+  - Full AWS S3 API implementation
+  - Seamless migration from MinIO or Ceph
+  - S3-compatible client support (aws-cli, mc, s3cmd, boto3)
+  - Bucket operations, object operations, multipart uploads
+  - Pre-signed URLs and access control
+- **StatefulSet Clustering**
+  - 4+ replica HA deployment for production
+  - Multi-drive support per pod (configurable dataDirs)
+  - Automatic pod discovery and coordination
+  - StatefulSet DNS for stable network identities
+  - Headless service for direct pod access
+- **Tiered Storage Support** (Hot/Cold Architecture)
+  - Hot tier: SSD storage for frequently accessed objects
+  - Cold tier: HDD storage for archival and backup
+  - Automatic tier selection based on storage class
+  - Mixed storage configuration per pod
+  - Independent size configuration per tier
+- **Performance**
+  - 2.3x faster than MinIO for 4K small files
+  - Rust-based implementation for memory safety and speed
+  - Optimized for high-concurrency workloads
+- **Makefile Operational Commands** (`make/ops/rustfs.mk`)
+  - Credentials: `rustfs-get-credentials`
+  - Port forwarding: `rustfs-port-forward-api`, `rustfs-port-forward-console`
+  - S3 testing: `rustfs-test-s3` (MinIO Client integration)
+  - Health monitoring: `rustfs-health`, `rustfs-metrics`
+  - Operations: `rustfs-scale`, `rustfs-restart`, `rustfs-backup`
+  - Logging: `rustfs-logs`, `rustfs-logs-all`
+  - Status: `rustfs-status`, `rustfs-all`
+  - Utilities: `rustfs-shell`
+- **Deployment Scenarios** (4 values files)
+  - `values-home-single.yaml`: Home server (100-500m CPU, 256-512Mi RAM, 10Gi)
+  - `values-startup-single.yaml`: Startup environment (250m-1000m CPU, 512Mi-1Gi RAM, 50Gi)
+  - `values-prod-master-replica.yaml`: Production HA (500m-2000m CPU, 1-2Gi RAM, 100Gi per pod, 4 replicas)
+  - `values-example.yaml`: Production template
+- **Comprehensive Documentation** (`README.md`)
+  - S3 API usage examples
+  - MinIO/Ceph migration guide
+  - Tiered storage configuration
+  - Clustering and HA setup
+  - Deployment scenarios with resource specifications
+  - Operational commands reference
+
 #### Uptime Kuma 0.3.0 - Self-Hosted Monitoring Tool
 - **Mature Status** (0.2.0 → 0.3.0)
   - Promoted to Mature status with production-ready features
