@@ -16,7 +16,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 - **Documentation** (2025-11-17): Comprehensive Testing Guide (docs/TESTING_GUIDE.md) with scenarios for all charts
+- **Documentation** (2025-11-17): Troubleshooting Guide (docs/TROUBLESHOOTING.md) with common issues and solutions
+- **Documentation** (2025-11-17): Production Checklist (docs/PRODUCTION_CHECKLIST.md) for deployment readiness validation
 - **Documentation** (2025-11-17): Chart Analysis Report (docs/05-chart-analysis-2025-11.md) documenting production readiness
+- **Documentation** (2025-11-17): Integrated operational guides into documentation structure with cross-references
 - **CI/CD** (2025-11-17): Metadata validation job in GitHub Actions workflow
 - **Memcached v0.3.2** (2025-11-17): Application-level health probe using stats command validation
 - **READMEs** (2025-11-17): Recent Changes sections added to Redis, Memcached, and RabbitMQ
