@@ -7,6 +7,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Security
+- **Redis v0.3.1** (2025-11-17): Fixed password exposure in readiness probe using REDISCLI_AUTH environment variable
+- **Redis v0.3.1** (2025-11-17): Fixed password exposure in metrics exporter command-line arguments
+
+### Fixed
+- **Redis v0.3.1** (2025-11-17): Fixed `persistence.existingClaim` support - now properly mounts existing PVCs
+
+### Added
+- **Documentation** (2025-11-17): Comprehensive Testing Guide (docs/TESTING_GUIDE.md) with scenarios for all charts
+- **Documentation** (2025-11-17): Chart Analysis Report (docs/05-chart-analysis-2025-11.md) documenting production readiness
+- **CI/CD** (2025-11-17): Metadata validation job in GitHub Actions workflow
+- **Memcached v0.3.2** (2025-11-17): Application-level health probe using stats command validation
+- **READMEs** (2025-11-17): Recent Changes sections added to Redis, Memcached, and RabbitMQ
+
+### Changed
+- **Memcached v0.3.1→0.3.2** (2025-11-17): Improved readinessProbe from TCP socket check to memcached stats validation
+- **Memcached v0.3.1** (2025-11-17): Clarified architecture documentation in prod-master-replica values file
+- **RabbitMQ v0.3.1** (2025-11-17): Clarified single-instance architecture in prod-master-replica values file
+- **RabbitMQ v0.3.1** (2025-11-17): Added documentation for production clustering alternatives (Operator, Bitnami)
+- **Redis v0.3.1** (2025-11-17): Added clear warnings to Sentinel/Cluster values files (modes not implemented)
+- **CI/CD** (2025-11-17): Enhanced lint-test workflow with metadata consistency validation
+
 ### Added
 
 #### Nextcloud 0.3.0 - File Sync and Collaboration Platform

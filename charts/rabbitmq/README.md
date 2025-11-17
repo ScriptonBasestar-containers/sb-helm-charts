@@ -538,6 +538,23 @@ kubectl get endpoints my-rabbitmq
 - **No TLS/SSL**: AMQP+SSL configuration must be added manually via `extraEnv`
 - **No federation/shovel**: Advanced plugins can be enabled via `rabbitmq.plugins`
 
+## Recent Changes
+
+### Version 0.3.1 (2025-11-17)
+
+**Documentation:**
+- ✅ Clarified single-instance architecture in `values-prod-master-replica.yaml`
+- ✅ Added production clustering alternatives:
+  - RabbitMQ Cluster Operator (recommended for production)
+  - Bitnami RabbitMQ Helm Chart with clustering support
+- ✅ Documented migration path from single to clustered deployment
+
+For full changelog, see [Chart.yaml](./Chart.yaml) or [docs/05-chart-analysis-2025-11.md](../../docs/05-chart-analysis-2025-11.md).
+
+## Testing
+
+For comprehensive testing scenarios, see [Testing Guide](../../docs/TESTING_GUIDE.md).
+
 ## Roadmap
 
 - [ ] StatefulSet support for multi-node clustering

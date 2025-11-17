@@ -504,6 +504,27 @@ kubectl exec my-redis-0 -- redis-cli CLIENT LIST
 
 For full configuration options, see [values.yaml](./values.yaml).
 
+## Recent Changes
+
+### Version 0.3.1 (2025-11-17)
+
+**Security Fixes:**
+- ✅ Fixed password exposure in readiness probe (now uses `REDISCLI_AUTH` environment variable)
+- ✅ Fixed password exposure in metrics exporter command-line arguments
+
+**Bug Fixes:**
+- ✅ Fixed `persistence.existingClaim` support - now properly mounts existing PVCs
+
+**Documentation:**
+- ✅ Added clear warnings to `values-prod-sentinel.yaml` and `values-prod-cluster.yaml` (modes not implemented)
+- ✅ Provided alternative solutions: Redis Operator, Bitnami charts
+
+For full changelog, see [Chart.yaml](./Chart.yaml) or [docs/05-chart-analysis-2025-11.md](../../docs/05-chart-analysis-2025-11.md).
+
+## Testing
+
+For comprehensive testing scenarios, see [Testing Guide](../../docs/TESTING_GUIDE.md).
+
 ## License
 
 Redis is licensed under the [BSD 3-Clause License](https://redis.io/docs/about/license/).
