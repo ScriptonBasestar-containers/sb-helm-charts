@@ -61,8 +61,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Startup Environment scenario (balanced configuration)
   - Production HA scenario (high availability with monitoring)
 - Artifact Hub metadata to all charts (16 charts total)
-  - v0.3.0 charts (9 charts): keycloak, redis, memcached, rabbitmq, wireguard, browserless-chrome, devpi, rsshub, rustfs
-  - v0.2.0 charts (7 charts): immich, jellyfin, vaultwarden, nextcloud, wordpress, paperless-ngx, uptime-kuma
+  - v0.3.0 charts (7 charts): keycloak, wireguard, memcached, rabbitmq, browserless-chrome, devpi, rsshub
+  - v0.2.0 charts (9 charts): redis, rustfs, immich, jellyfin, vaultwarden, nextcloud, wordpress, paperless-ngx, uptime-kuma
   - Detailed changelog entries (`artifacthub.io/changes`)
   - Recommendations to Scenario Values Guide and Chart Development Guide
   - Links to chart source and upstream documentation

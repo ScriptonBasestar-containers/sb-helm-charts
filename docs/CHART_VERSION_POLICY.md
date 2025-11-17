@@ -208,35 +208,35 @@ appVersion: "7.4.1"  # App version unchanged
 
 ## Current Repository Status
 
-### Stable Charts (0.2.x - 0.3.x)
+### Mature Charts (0.3.x)
 
-Charts with established patterns, ready for production use:
+Production-ready charts with advanced features and stable APIs:
 
 | Chart | Version | Status | Notes |
 |-------|---------|--------|-------|
 | keycloak | 0.3.0 | Mature | PostgreSQL SSL, Redis SSL, clustering |
-| redis | 0.2.0 | Stable | Master-slave replication, Makefile ops |
-| wireguard | 0.2.0 | Stable | No database, NET_ADMIN capabilities |
-| memcached | 0.2.0 | Stable | Simple cache, production-ready |
-| rabbitmq | 0.2.0 | Stable | Message broker with management UI |
-| browserless-chrome | 0.2.0 | Stable | Headless browser service |
-| devpi | 0.2.0 | Stable | Python package index |
-| rsshub | 0.2.0 | Stable | RSS aggregator |
+| wireguard | 0.3.0 | Mature | No database, NET_ADMIN capabilities |
+| memcached | 0.3.0 | Mature | Simple cache, production-ready |
+| rabbitmq | 0.3.0 | Mature | Message broker with management UI |
+| browserless-chrome | 0.3.0 | Mature | Headless browser service |
+| devpi | 0.3.0 | Mature | Python package index |
+| rsshub | 0.3.0 | Mature | RSS aggregator |
 
-### Development Charts (0.1.0)
+### Stable Charts (0.2.x)
 
-Charts under active development, API may change:
+Charts with established patterns, ready for production use:
 
-| Chart | Version | Status | Path to 0.2.0 |
+| Chart | Version | Status | Path to 0.3.0 |
 |-------|---------|--------|---------------|
-| rustfs | 0.1.0 | Active | values-example.yaml added, needs testing |
-| wordpress | 0.1.0 | Active | Needs clustering support testing |
-| nextcloud | 0.1.0 | Active | Needs production validation |
-| uptime-kuma | 0.1.0 | New | Recently added, needs field testing |
-| paperless-ngx | 0.1.0 | New | 4-PVC architecture, needs validation |
-| immich | 0.1.0 | Active | AI features need resource testing |
-| jellyfin | 0.1.0 | Active | Hardware transcoding needs validation |
-| vaultwarden | 0.1.0 | Active | Security features need audit |
+| redis | 0.2.0 | Stable | Master-slave replication, needs HA testing |
+| rustfs | 0.2.0 | Stable | S3-compatible storage, needs clustering validation |
+| wordpress | 0.2.0 | Stable | CMS with MySQL, needs advanced features |
+| nextcloud | 0.2.0 | Stable | Cloud storage, needs production validation |
+| uptime-kuma | 0.2.0 | Stable | Monitoring tool, needs HA testing |
+| paperless-ngx | 0.2.0 | Stable | Document management, needs backup automation |
+| immich | 0.2.0 | Stable | Photo management, needs ML worker optimization |
+| jellyfin | 0.2.0 | Stable | Media server, needs GPU acceleration validation |
+| vaultwarden | 0.2.0 | Stable | Password manager, needs security audit |
 
 ## Version Increment Checklist
 
