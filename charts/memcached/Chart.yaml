@@ -8,12 +8,12 @@ annotations:
   artifacthub.io/license: BSD-3-Clause
   artifacthub.io/changes: |
     - kind: changed
-      description: Clarify architecture in prod-master-replica values file (independent instances, not replication)
-    - kind: added
-      description: Add guidance on client-side consistent hashing for distributed cache
+      description: Improve readinessProbe to use application-level check (stats command)
+    - kind: changed
+      description: Replace TCP socket check with memcached stats validation for better health detection
   artifacthub.io/prerelease: "false"
 
-version: 0.3.1
+version: 0.3.2
 appVersion: "1.6.39"
 keywords:
   - memcached
