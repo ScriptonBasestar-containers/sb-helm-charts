@@ -53,11 +53,13 @@ helm install myapp ./charts/nextcloud \
 ### Home Server (values-home-single.yaml)
 
 **Target Environment:**
+
 - Personal use, home lab, development
 - Single user or small family
 - Cost-conscious deployment
 
 **Characteristics:**
+
 - Minimal resource allocation (CPU/memory)
 - Single replica (no HA)
 - Smaller persistent storage
@@ -67,6 +69,7 @@ helm install myapp ./charts/nextcloud \
 - Monitoring disabled by default
 
 **Example Resource Allocation:**
+
 ```yaml
 resources:
   limits:
@@ -78,6 +81,7 @@ resources:
 ```
 
 **When to Use:**
+
 - Running on Raspberry Pi, Intel NUC, or home server
 - Learning and experimentation
 - Personal productivity tools
@@ -86,11 +90,13 @@ resources:
 ### Startup (values-startup-single.yaml)
 
 **Target Environment:**
+
 - Small team (5-20 users)
 - Development/staging environments
 - Cost-optimized production
 
 **Characteristics:**
+
 - Balanced resource allocation
 - Single replica (limited HA)
 - Medium persistent storage
@@ -99,6 +105,7 @@ resources:
 - Network policies optional
 
 **Example Resource Allocation:**
+
 ```yaml
 resources:
   limits:
@@ -110,6 +117,7 @@ resources:
 ```
 
 **When to Use:**
+
 - Small team deployments
 - Development/staging environments
 - Budget-conscious production
@@ -118,11 +126,13 @@ resources:
 ### Production (values-prod-master-replica.yaml)
 
 **Target Environment:**
+
 - Production workloads
 - Business-critical applications
 - High availability requirements
 
 **Characteristics:**
+
 - High resource allocation
 - Multiple replicas (2-3+)
 - Large persistent storage (often ReadWriteMany)
@@ -134,6 +144,7 @@ resources:
 - Ingress with TLS
 
 **Example Resource Allocation:**
+
 ```yaml
 resources:
   limits:
@@ -152,6 +163,7 @@ autoscaling:
 ```
 
 **When to Use:**
+
 - Production deployments
 - Business-critical services
 - High availability requirements
@@ -162,11 +174,13 @@ autoscaling:
 All 16 charts in this repository include scenario values files:
 
 ### Infrastructure Charts
+
 - **redis**: Includes 5 scenarios (home, startup, prod-master-replica, prod-sentinel, prod-cluster)
 - **memcached**: Standard 3 scenarios
 - **rabbitmq**: Standard 3 scenarios
 
 ### Application Charts
+
 - **keycloak**: IAM with clustering support
 - **nextcloud**: File hosting platform
 - **wordpress**: CMS platform
@@ -188,12 +202,14 @@ All 16 charts in this repository include scenario values files:
 Most charts require these values to be set regardless of scenario:
 
 **Database Charts (Keycloak, Nextcloud, WordPress, etc.):**
+
 ```bash
 --set postgresql.external.host=postgres-host \
 --set postgresql.external.password=secure-password
 ```
 
 **Password-Protected Charts (Vaultwarden, RustFS, etc.):**
+
 ```bash
 --set vaultwarden.admin.token=secure-token
 # or
@@ -201,6 +217,7 @@ Most charts require these values to be set regardless of scenario:
 ```
 
 **Domain/Ingress Configuration:**
+
 ```bash
 --set ingress.enabled=true \
 --set ingress.hosts[0].host=myapp.example.com \
@@ -273,25 +290,31 @@ helm upgrade myapp ./charts/nextcloud \
 
 ### Common Issues
 
-**Issue: Pods stuck in Pending**
+#### Pods stuck in Pending
+
 ```bash
 # Check resource availability
 kubectl describe pod POD_NAME
 ```
+
 - Reduce resource requests in custom values file
 
-**Issue: PVC not binding**
+#### PVC not binding
+
 ```bash
 kubectl get pvc
 ```
+
 - Check storage class exists
 - For multi-replica deployments, verify ReadWriteMany support
 
-**Issue: Ingress not working**
+#### Ingress not working
+
 ```bash
 kubectl get ingress
 kubectl describe ingress INGRESS_NAME
 ```
+
 - Verify ingress controller is installed
 - Check TLS certificate secrets exist
 
