@@ -339,6 +339,7 @@ This Helm chart is licensed under the BSD 3-Clause License.
 ## Links
 
 - **Chart Repository**: https://github.com/scriptonbasestar-container/sb-helm-charts
+- **Chart Catalog**: [docs/CHARTS.md](../../docs/CHARTS.md) - Browse all available charts
 - **Application Homepage**: {APP_URL}
 - **Application Documentation**: {DOCS_URL}
 - **Chart Development Guide**: [docs/CHART_DEVELOPMENT_GUIDE.md](../../docs/CHART_DEVELOPMENT_GUIDE.md)
