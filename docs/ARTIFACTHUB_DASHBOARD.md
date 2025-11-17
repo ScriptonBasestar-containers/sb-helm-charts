@@ -1,7 +1,7 @@
 # Artifact Hub Statistics Dashboard
 
 <!-- AUTO-GENERATED FILE - DO NOT EDIT MANUALLY -->
-<!-- Generated: 2025-11-17 06:04:43 -->
+<!-- Generated: 2025-11-17 07:21:04 -->
 <!-- To update, run: make generate-artifacthub-dashboard -->
 
 > **Note**: This dashboard is automatically generated from `charts-metadata.yaml`.
