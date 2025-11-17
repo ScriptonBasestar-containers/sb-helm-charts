@@ -1,5 +1,7 @@
 # Jellyfin Helm Chart
 
+[![Artifact Hub](https://img.shields.io/endpoint?url=https://artifacthub.io/badge/repository/sb-helm-charts)](https://artifacthub.io/packages/helm/sb-helm-charts/jellyfin)
+
 [Jellyfin](https://jellyfin.org/) is a Free Software Media System that puts you in control of managing and streaming your media. It is an alternative to the proprietary Plex, to provide media from a dedicated server to end-user devices via multiple apps.
 
 ## TL;DR

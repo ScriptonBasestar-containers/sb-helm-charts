@@ -1,5 +1,7 @@
 # Uptime Kuma Helm Chart
 
+[![Artifact Hub](https://img.shields.io/endpoint?url=https://artifacthub.io/badge/repository/sb-helm-charts)](https://artifacthub.io/packages/helm/sb-helm-charts/uptime-kuma)
+
 A self-hosted monitoring tool with beautiful UI, multi-protocol support, and flexible alerting.
 
 ## Features

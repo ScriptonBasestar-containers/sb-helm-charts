@@ -1,5 +1,7 @@
 # RustFS Helm Chart
 
+[![Artifact Hub](https://img.shields.io/endpoint?url=https://artifacthub.io/badge/repository/sb-helm-charts)](https://artifacthub.io/packages/helm/sb-helm-charts/rustfs)
+
 High-performance S3-compatible object storage built with Rust. This Helm chart deploys RustFS on Kubernetes with production-ready features including high availability, tiered storage, and comprehensive monitoring.
 
 [![Chart Version](https://img.shields.io/badge/chart-0.1.0-blue)](https://github.com/scriptonbasestar-container/sb-helm-charts)

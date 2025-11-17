@@ -1,5 +1,7 @@
 # Browserless Chrome Helm Chart
 
+[![Artifact Hub](https://img.shields.io/endpoint?url=https://artifacthub.io/badge/repository/sb-helm-charts)](https://artifacthub.io/packages/helm/sb-helm-charts/browserless-chrome)
+
 Production-ready Browserless Chrome deployment on Kubernetes for headless browser automation and web scraping.
 
 ## Features
