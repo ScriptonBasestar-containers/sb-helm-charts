@@ -172,14 +172,15 @@ When working with chart metadata, follow this workflow:
    make validate-metadata
    ```
 
-4. **Regenerate chart catalog** (optional but recommended):
+4. **Regenerate documentation** (optional but recommended):
    ```bash
    make generate-catalog
+   make generate-artifacthub-dashboard
    ```
 
 5. **Commit changes**:
    ```bash
-   git add charts-metadata.yaml charts/my-app/Chart.yaml docs/CHARTS.md
+   git add charts-metadata.yaml charts/my-app/Chart.yaml docs/CHARTS.md docs/ARTIFACTHUB_DASHBOARD.md
    git commit -m "feat(my-app): Update chart keywords and regenerate catalog"
    ```
 

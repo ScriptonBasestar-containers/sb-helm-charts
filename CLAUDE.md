@@ -100,6 +100,13 @@ When you add a new chart or modify an existing one, you MUST update:
 - Organizes by category, tags, and keywords for easy discovery
 - Run after updating charts-metadata.yaml
 
+**Artifact Hub Dashboard:**
+- `make generate-artifacthub-dashboard` - Generates docs/ARTIFACTHUB_DASHBOARD.md from charts-metadata.yaml
+- Creates Artifact Hub statistics dashboard with repository and package badges
+- Includes publishing guide and badge usage examples
+- Shows quick statistics (total charts, categories breakdown)
+- Provides ready-to-use badge markdown for chart READMEs
+
 **Dependencies:**
 - Python 3.x required
 - Install dependencies: `pip install -r scripts/requirements.txt`
@@ -182,6 +189,9 @@ make sync-keywords-dry-run
 
 # Generate chart catalog
 make generate-catalog
+
+# Generate Artifact Hub dashboard
+make generate-artifacthub-dashboard
 ```
 
 ### Working with Individual Charts

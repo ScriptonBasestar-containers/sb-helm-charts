@@ -19,17 +19,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - `scripts/validate-chart-metadata.py` - Validates keywords consistency
   - `scripts/sync-chart-keywords.py` - Syncs Chart.yaml keywords from metadata
   - `scripts/generate-chart-catalog.py` - Generates comprehensive chart catalog
+  - `scripts/generate-artifacthub-dashboard.py` - Generates Artifact Hub statistics dashboard
   - `scripts/requirements.txt` - Python dependencies (PyYAML>=6.0)
 - **Makefile Targets**
   - `make validate-metadata` - Validate metadata consistency
   - `make sync-keywords` - Sync Chart.yaml keywords
   - `make sync-keywords-dry-run` - Preview sync changes
   - `make generate-catalog` - Generate docs/CHARTS.md from metadata
+  - `make generate-artifacthub-dashboard` - Generate Artifact Hub dashboard
 - **Pre-commit Hook**
   - Automatic metadata validation before commits
   - Validates Chart.yaml and charts-metadata.yaml consistency
 - **Documentation**
   - [Chart Catalog](docs/CHARTS.md) - Auto-generated catalog of all 16 charts with badges and examples
+  - [Artifact Hub Dashboard](docs/ARTIFACTHUB_DASHBOARD.md) - Artifact Hub statistics and publishing guide
   - [Chart README Template](docs/CHART_README_TEMPLATE.md) - Standard chart README structure
   - [Chart README Guide](docs/CHART_README_GUIDE.md) - Template usage guide
   - [Workflow Update Instructions](docs/WORKFLOW_UPDATE_INSTRUCTIONS.md) - CI workflow manual update
