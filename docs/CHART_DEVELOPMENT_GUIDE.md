@@ -2352,8 +2352,15 @@ charts/
 
 ### Related Documentation
 
+**Development Resources:**
 - [Chart Catalog](CHARTS.md) - Browse all available charts with detailed information
 - [Artifact Hub Dashboard](ARTIFACTHUB_DASHBOARD.md) - Artifact Hub publishing status and badges
 - [Scenario Values Guide](SCENARIO_VALUES_GUIDE.md) - Comprehensive guide with examples for all charts
 - [Chart Version Policy](CHART_VERSION_POLICY.md) - Version increment rules for scenario file changes
 - Main [README.md](../README.md) - User-facing deployment scenario documentation
+
+**Operational Guides:**
+- [Testing Guide](TESTING_GUIDE.md) - Comprehensive testing procedures for all deployment scenarios
+- [Troubleshooting Guide](TROUBLESHOOTING.md) - Common issues and solutions for production deployments
+- [Production Checklist](PRODUCTION_CHECKLIST.md) - Production readiness validation and deployment checklist
+- [Chart Analysis Report](05-chart-analysis-2025-11.md) - November 2025 comprehensive analysis of all 16 charts

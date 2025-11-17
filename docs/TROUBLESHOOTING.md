@@ -919,11 +919,12 @@ If you encounter issues not covered in this guide:
 
 ## Additional Resources
 
-- [Chart Development Guide](CHART_DEVELOPMENT_GUIDE.md)
-- [Chart Version Policy](CHART_VERSION_POLICY.md)
-- [Testing Guide](TESTING_GUIDE.md)
-- [Analysis Report](05-chart-analysis-2025-11.md)
-- [Scenario Values Guide](SCENARIO_VALUES_GUIDE.md)
+- [Chart Development Guide](CHART_DEVELOPMENT_GUIDE.md) - Development patterns and standards
+- [Chart Version Policy](CHART_VERSION_POLICY.md) - Semantic versioning and release process
+- [Testing Guide](TESTING_GUIDE.md) - Testing procedures for all deployment scenarios
+- [Production Checklist](PRODUCTION_CHECKLIST.md) - Production readiness validation
+- [Analysis Report](05-chart-analysis-2025-11.md) - Comprehensive analysis of all charts
+- [Scenario Values Guide](SCENARIO_VALUES_GUIDE.md) - Deployment scenarios explained
 
 ---
 
