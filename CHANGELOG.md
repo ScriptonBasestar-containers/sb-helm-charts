@@ -9,6 +9,49 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+#### WordPress 0.3.0 - Content Management System
+- **Mature Status** (0.2.0 → 0.3.0)
+  - Promoted to Mature status with production-ready features
+  - wp-cli integration for command-line management
+  - External MySQL/MariaDB database support
+- **wp-cli Integration**
+  - Core management: Install, update, and configure WordPress via command line
+  - Plugin management: Install, activate, update, and remove plugins
+  - Theme management: Install, activate, update themes
+  - User management: Create, update, delete users
+  - Database operations: Export, import, optimize database
+- **External Database Support**
+  - MySQL/MariaDB external service integration
+  - Flexible connection configuration (host, port, database, credentials)
+  - Existing secret support for credentials
+  - SSL/TLS connection support
+- **Apache-based Deployment**
+  - Official WordPress image with Apache HTTP Server
+  - mod_rewrite enabled for permalinks
+  - PHP-FPM optimizations
+  - Production-ready .htaccess configuration
+- **Makefile Operational Commands** (`make/ops/wordpress.mk`)
+  - `wp-cli`: Run any wp-cli command
+  - `wp-install`: Install WordPress (URL, title, admin credentials)
+  - `wp-update`: Update WordPress core, plugins, and themes
+- **Configuration Management**
+  - WordPress salts and keys auto-generation
+  - Table prefix customization
+  - Debug mode toggle
+  - Site URL and home URL configuration
+  - Plugin and theme auto-installation on deploy
+- **Deployment Scenarios** (4 values files)
+  - `values-home-single.yaml`: Home server (100-500m CPU, 256-512Mi RAM, 5Gi)
+  - `values-startup-single.yaml`: Startup environment (250m-1000m CPU, 512Mi-1Gi RAM, 10Gi)
+  - `values-prod-master-replica.yaml`: Production HA (500m-2000m CPU, 1-2Gi RAM, 20Gi, 3 replicas)
+  - `values-example.yaml`: Production template
+- **Comprehensive Documentation** (`README.md`)
+  - wp-cli usage examples
+  - MySQL/MariaDB configuration guide
+  - Plugin and theme management
+  - Deployment scenarios with resource specifications
+  - Operational commands reference
+
 #### RustFS 0.3.0 - S3-Compatible Object Storage
 - **Mature Status** (0.2.0 → 0.3.0)
   - Promoted to Mature status with production-ready features
