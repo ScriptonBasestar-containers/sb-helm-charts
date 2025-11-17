@@ -92,6 +92,7 @@ After replacing placeholders, customize these sections:
 ### Installing the Chart
 
 Include all three deployment scenarios:
+
 1. Home Server (minimal resources)
 2. Startup (balanced)
 3. Production (HA)
@@ -99,6 +100,7 @@ Include all three deployment scenarios:
 ### Configuration
 
 Split into logical subsections:
+
 - Database Strategy
 - Common Configuration Options
 - Using Configuration Files
@@ -107,6 +109,7 @@ Split into logical subsections:
 ### Database Strategy
 
 **CRITICAL**: Always emphasize external database pattern:
+
 - ✅ External database required
 - ❌ No subcharts included
 - Provide clear setup instructions
@@ -160,6 +163,7 @@ Split into logical subsections:
 ### Troubleshooting
 
 Include:
+
 - Common issues and solutions
 - Debug commands
 - Log locations
@@ -231,6 +235,7 @@ yq '.appVersion' charts/keycloak/Chart.yaml
 ### Good README
 
 See existing charts with complete READMEs:
+
 - `charts/keycloak/README.md`
 - `charts/redis/README.md`
 - `charts/nextcloud/README.md`
@@ -238,11 +243,13 @@ See existing charts with complete READMEs:
 ### Minimal README
 
 For simple charts, you can omit:
+
 - High Availability section (if not applicable)
 - Monitoring section (if no metrics)
 - Complex troubleshooting (if straightforward)
 
 But NEVER omit:
+
 - TL;DR
 - Prerequisites
 - Database Strategy (if uses database)
