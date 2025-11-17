@@ -1,19 +1,38 @@
 # Redis values for Production - Redis Cluster Mode
 # 6 nodes: 3 masters + 3 replicas with automatic sharding
-# Use: helm install redis ./charts/redis -f charts/redis/values-prod-cluster.yaml
 #
-# NOTE: This values file demonstrates Redis Cluster configuration structure.
-# Full Cluster support requires:
-# 1. cluster-enabled yes in redis.conf
-# 2. Additional service for cluster bus port (16379)
-# 3. Post-install job to initialize cluster (redis-cli --cluster create)
-# 4. Cluster-aware health checks
+# ⚠️⚠️⚠️ WARNING: CLUSTER MODE NOT IMPLEMENTED ⚠️⚠️⚠️
 #
-# Current chart focuses on single-instance and master-replica modes.
-# For production Redis Cluster, consider:
-# 1. Use this as configuration reference
-# 2. Bitnami Redis Cluster chart (full cluster support)
-# 3. Redis Operator (advanced cluster management)
+# This values file is provided as a REFERENCE ONLY.
+# The current chart templates DO NOT support Redis Cluster mode.
+# Attempting to use this file will result in a regular master-replica deployment,
+# NOT a Redis Cluster with automatic sharding.
+#
+# Redis Cluster requires:
+#   1. cluster-enabled yes in redis.conf
+#   2. Additional service for cluster bus port (16379)
+#   3. Post-install job to initialize cluster (redis-cli --cluster create)
+#   4. Cluster-aware health checks
+#   5. Special handling for cluster topology changes
+#
+# For production Redis Cluster support, please use one of these alternatives:
+#
+# Option 1: Redis Operator (Recommended for Production)
+#   - Spotahome Redis Operator: https://github.com/spotahome/redis-operator
+#   - See: docs/03-redis-operator-migration.md
+#
+# Option 2: Bitnami Redis Cluster Helm Chart
+#   - Dedicated cluster chart: https://github.com/bitnami/charts/tree/main/bitnami/redis-cluster
+#   - helm repo add bitnami https://charts.bitnami.com/bitnami
+#   - helm install redis-cluster bitnami/redis-cluster
+#
+# Option 3: Use master-replica mode (currently supported)
+#   - File: charts/redis/values-prod-master-replica.yaml
+#   - Provides 1 master + N replicas without sharding
+#
+# This file will remain as reference until Cluster support is implemented.
+#
+# ⚠️⚠️⚠️ DO NOT USE THIS FILE FOR ACTUAL DEPLOYMENT ⚠️⚠️⚠️
 
 # Redis configuration
 redis:

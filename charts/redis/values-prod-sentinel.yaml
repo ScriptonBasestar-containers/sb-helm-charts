@@ -1,13 +1,31 @@
 # Redis values for Production - Sentinel High Availability
 # 1 master + 2 replicas + 3 Sentinel nodes for automatic failover
-# Use: helm install redis ./charts/redis -f charts/redis/values-prod-sentinel.yaml
 #
-# NOTE: This values file demonstrates Sentinel configuration structure.
-# Full Sentinel support requires additional templates (sentinel.yaml, sentinel-service.yaml).
-# Current chart focuses on master-replica setup. For production Sentinel:
-# 1. Use this as configuration reference
-# 2. Consider Bitnami Redis chart with full Sentinel support
-# 3. Or extend this chart with Sentinel templates
+# ⚠️⚠️⚠️ WARNING: SENTINEL MODE NOT IMPLEMENTED ⚠️⚠️⚠️
+#
+# This values file is provided as a REFERENCE ONLY.
+# The current chart templates DO NOT support Redis Sentinel mode.
+# Attempting to use this file will result in a regular master-replica deployment,
+# NOT a Sentinel-based deployment.
+#
+# For production Sentinel support, please use one of these alternatives:
+#
+# Option 1: Redis Operator (Recommended for Production)
+#   - Spotahome Redis Operator: https://github.com/spotahome/redis-operator
+#   - See: docs/03-redis-operator-migration.md
+#
+# Option 2: Bitnami Redis Helm Chart
+#   - Full Sentinel support: https://github.com/bitnami/charts/tree/main/bitnami/redis
+#   - helm repo add bitnami https://charts.bitnami.com/bitnami
+#   - helm install redis bitnami/redis --set sentinel.enabled=true
+#
+# Option 3: Use master-replica mode (currently supported)
+#   - File: charts/redis/values-prod-master-replica.yaml
+#   - Provides 1 master + N replicas without automatic failover
+#
+# This file will remain as reference until Sentinel support is implemented.
+#
+# ⚠️⚠️⚠️ DO NOT USE THIS FILE FOR ACTUAL DEPLOYMENT ⚠️⚠️⚠️
 
 # Redis configuration
 redis:
