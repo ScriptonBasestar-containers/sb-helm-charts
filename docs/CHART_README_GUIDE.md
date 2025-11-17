@@ -259,6 +259,7 @@ When updating the template:
 
 ## Related Documentation
 
+- [Chart Catalog](CHARTS.md) - Browse all available charts
 - [Chart Development Guide](CHART_DEVELOPMENT_GUIDE.md)
 - [Scenario Values Guide](SCENARIO_VALUES_GUIDE.md)
 - [Chart Version Policy](CHART_VERSION_POLICY.md)
