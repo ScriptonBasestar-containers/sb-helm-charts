@@ -174,7 +174,7 @@ Include:
 - Document defaults from values.yaml
 - Provide troubleshooting for common issues
 - Keep formatting consistent
-- Use badges for visual appeal
+- Use badges for visual appeal (including Artifact Hub badge)
 - Link to related documentation
 
 ### Don'ts ❌
@@ -197,7 +197,8 @@ Before committing your README:
 - [ ] External database pattern emphasized
 - [ ] Troubleshooting section completed
 - [ ] License information correct
-- [ ] Badges point to correct URLs
+- [ ] Badges point to correct URLs (including Artifact Hub badge)
+- [ ] Artifact Hub badge uses correct chart name
 
 ## Automation
 
