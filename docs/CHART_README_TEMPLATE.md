@@ -1,6 +1,7 @@
 # {CHART_NAME}
 
 <!-- Badges -->
+[![Artifact Hub](https://img.shields.io/endpoint?url=https://artifacthub.io/badge/repository/sb-helm-charts)](https://artifacthub.io/packages/helm/sb-helm-charts/{chart-name})
 [![Chart Version](https://img.shields.io/badge/chart-{VERSION}-blue.svg)](https://github.com/scriptonbasestar-container/sb-helm-charts)
 [![App Version](https://img.shields.io/badge/app-{APP_VERSION}-green.svg)]({APP_URL})
 [![License](https://img.shields.io/badge/license-BSD--3--Clause-orange.svg)](https://opensource.org/licenses/BSD-3-Clause)
