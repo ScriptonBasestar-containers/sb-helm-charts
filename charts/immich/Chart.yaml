@@ -4,7 +4,7 @@ description: High-performance self-hosted photo and video management solution wi
 type: application
 version: 0.3.0
 appVersion: "v1.122.3"
-icon: https://immich.app/img/immich-logo.svg
+icon: https://raw.githubusercontent.com/immich-app/immich/main/design/immich-logo.svg
 keywords:
   - immich
   - photos

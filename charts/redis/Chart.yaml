@@ -33,7 +33,7 @@ annotations:
 
 # Project URLs
 home: https://redis.io/
-icon: https://raw.githubusercontent.com/scriptonbasestar-container/sb-helm-charts/master/charts/redis/icon.png
+icon: https://www.svgrepo.com/show/303460/redis-logo.svg
 sources:
   - https://github.com/scriptonbasestar-container/sb-helm-charts
   - https://github.com/redis/redis

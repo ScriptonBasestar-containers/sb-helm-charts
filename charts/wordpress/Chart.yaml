@@ -33,7 +33,7 @@ annotations:
 
 # Project URLs
 home: https://wordpress.org/
-icon: https://raw.githubusercontent.com/scriptonbasestar-container/sb-helm-charts/master/charts/wordpress/icon.png
+icon: https://www.svgrepo.com/show/349553/wordpress.svg
 sources:
   - https://github.com/scriptonbasestar-container/sb-helm-charts
   - https://github.com/wordpress/wordpress

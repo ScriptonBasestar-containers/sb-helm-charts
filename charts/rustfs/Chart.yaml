@@ -11,7 +11,7 @@ keywords:
   - minio-alternative
   - rust
 home: https://rustfs.com/
-icon: https://rustfs.com/logo.png
+icon: https://rustfs.com/images/rustfs-github.png
 sources:
   - https://github.com/scriptonbasestar-container/sb-helm-charts
   - https://github.com/rustfs/rustfs
