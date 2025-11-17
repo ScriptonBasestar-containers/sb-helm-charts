@@ -1,0 +1,762 @@
+# Helm Charts Catalog
+
+This catalog is automatically generated from `charts-metadata.yaml`.
+
+**Total Charts**: 16
+
+## Table of Contents
+
+- [Charts by Category](#charts-by-category)
+  - [Application](#application)
+  - [Infrastructure](#infrastructure)
+- [Charts by Tag](#charts-by-tag)
+- [Keyword Index](#keyword-index)
+
+## Charts by Category
+
+### Application
+
+#### Browserless Chrome
+
+![Browser](https://img.shields.io/badge/tag-Browser-orange.svg)
+![Automation](https://img.shields.io/badge/tag-Automation-orange.svg)
+![Headless](https://img.shields.io/badge/tag-Headless-orange.svg)
+![Chart Version](https://img.shields.io/badge/chart-0.3.0-blue.svg) ![App Version](https://img.shields.io/badge/app-1.61.1-green.svg)
+
+**Description**: Headless browser for crawling
+
+**Homepage**: [https://www.browserless.io/](https://www.browserless.io/)
+
+**Chart Path**: `charts/browserless-chrome`
+
+**Tags**: Browser, Automation, Headless
+
+**Installation**:
+```bash
+helm install my-browserless-chrome oci://ghcr.io/scriptonbasestar-containers/charts/browserless-chrome
+# or
+helm install my-browserless-chrome sb-charts/browserless-chrome
+```
+
+---
+
+#### Devpi
+
+![Python](https://img.shields.io/badge/tag-Python-orange.svg)
+![Package-Index](https://img.shields.io/badge/tag-Package-Index-orange.svg)
+![Development](https://img.shields.io/badge/tag-Development-orange.svg)
+![Chart Version](https://img.shields.io/badge/chart-0.3.0-blue.svg) ![App Version](https://img.shields.io/badge/app-6.17.0-green.svg)
+
+**Description**: Python package index
+
+**Homepage**: [https://devpi.net/](https://devpi.net/)
+
+**Chart Path**: `charts/devpi`
+
+**Tags**: Python, Package-Index, Development
+
+**Installation**:
+```bash
+helm install my-devpi oci://ghcr.io/scriptonbasestar-containers/charts/devpi
+# or
+helm install my-devpi sb-charts/devpi
+```
+
+---
+
+#### Immich
+
+![Photo](https://img.shields.io/badge/tag-Photo-orange.svg)
+![Media](https://img.shields.io/badge/tag-Media-orange.svg)
+![AI](https://img.shields.io/badge/tag-AI-orange.svg)
+![Chart Version](https://img.shields.io/badge/chart-0.2.0-blue.svg) ![App Version](https://img.shields.io/badge/app-v1.122.3-green.svg)
+
+**Description**: AI-powered photo and video management
+
+**Homepage**: [https://immich.app](https://immich.app)
+
+**Chart Path**: `charts/immich`
+
+**Tags**: Photo, Media, AI
+
+**Installation**:
+```bash
+helm install my-immich oci://ghcr.io/scriptonbasestar-containers/charts/immich
+# or
+helm install my-immich sb-charts/immich
+```
+
+---
+
+#### Jellyfin
+
+![Media](https://img.shields.io/badge/tag-Media-orange.svg)
+![Streaming](https://img.shields.io/badge/tag-Streaming-orange.svg)
+![HomeLab](https://img.shields.io/badge/tag-HomeLab-orange.svg)
+![Chart Version](https://img.shields.io/badge/chart-0.2.0-blue.svg) ![App Version](https://img.shields.io/badge/app-10.10.3-green.svg)
+
+**Description**: Media server with hardware transcoding support
+
+**Homepage**: [https://github.com/scriptonbasestar-container/sb-helm-charts](https://github.com/scriptonbasestar-container/sb-helm-charts)
+
+**Chart Path**: `charts/jellyfin`
+
+**Tags**: Media, Streaming, HomeLab
+
+**Installation**:
+```bash
+helm install my-jellyfin oci://ghcr.io/scriptonbasestar-containers/charts/jellyfin
+# or
+helm install my-jellyfin sb-charts/jellyfin
+```
+
+---
+
+#### Keycloak
+
+![IAM](https://img.shields.io/badge/tag-IAM-orange.svg)
+![Security](https://img.shields.io/badge/tag-Security-orange.svg)
+![SSO](https://img.shields.io/badge/tag-SSO-orange.svg)
+![Chart Version](https://img.shields.io/badge/chart-0.3.0-blue.svg) ![App Version](https://img.shields.io/badge/app-26.0.6-green.svg)
+
+**Description**: IAM solution (StatefulSet, PostgreSQL, clustering, realm management)
+
+**Homepage**: [https://www.keycloak.org/](https://www.keycloak.org/)
+
+**Chart Path**: `charts/keycloak`
+
+**Tags**: IAM, Security, SSO
+
+**Installation**:
+```bash
+helm install my-keycloak oci://ghcr.io/scriptonbasestar-containers/charts/keycloak
+# or
+helm install my-keycloak sb-charts/keycloak
+```
+
+---
+
+#### Nextcloud
+
+![CMS](https://img.shields.io/badge/tag-CMS-orange.svg)
+![Productivity](https://img.shields.io/badge/tag-Productivity-orange.svg)
+![Collaboration](https://img.shields.io/badge/tag-Collaboration-orange.svg)
+![Chart Version](https://img.shields.io/badge/chart-0.2.0-blue.svg) ![App Version](https://img.shields.io/badge/app-31.0.10-green.svg)
+
+**Description**: Nextcloud with LinuxServer.io image (Deployment, PostgreSQL, config-based)
+
+**Homepage**: [https://nextcloud.com/](https://nextcloud.com/)
+
+**Chart Path**: `charts/nextcloud`
+
+**Tags**: CMS, Productivity, Collaboration
+
+**Installation**:
+```bash
+helm install my-nextcloud oci://ghcr.io/scriptonbasestar-containers/charts/nextcloud
+# or
+helm install my-nextcloud sb-charts/nextcloud
+```
+
+---
+
+#### Paperless-ngx
+
+![Document](https://img.shields.io/badge/tag-Document-orange.svg)
+![Productivity](https://img.shields.io/badge/tag-Productivity-orange.svg)
+![Chart Version](https://img.shields.io/badge/chart-0.2.0-blue.svg) ![App Version](https://img.shields.io/badge/app-2.14.7-green.svg)
+
+**Description**: Document management system with OCR (4 PVC architecture)
+
+**Homepage**: [https://docs.paperless-ngx.com/](https://docs.paperless-ngx.com/)
+
+**Chart Path**: `charts/paperless-ngx`
+
+**Tags**: Document, Productivity
+
+**Installation**:
+```bash
+helm install my-paperless-ngx oci://ghcr.io/scriptonbasestar-containers/charts/paperless-ngx
+# or
+helm install my-paperless-ngx sb-charts/paperless-ngx
+```
+
+---
+
+#### RSSHub
+
+![RSS](https://img.shields.io/badge/tag-RSS-orange.svg)
+![Aggregator](https://img.shields.io/badge/tag-Aggregator-orange.svg)
+![Chart Version](https://img.shields.io/badge/chart-0.3.0-blue.svg) ![App Version](https://img.shields.io/badge/app-2025-11-09-green.svg)
+
+**Description**: RSS aggregator (well-maintained external chart available)
+
+**Homepage**: [https://docs.rsshub.app/](https://docs.rsshub.app/)
+
+**Chart Path**: `charts/rsshub`
+
+**Tags**: RSS, Aggregator
+
+**Installation**:
+```bash
+helm install my-rsshub oci://ghcr.io/scriptonbasestar-containers/charts/rsshub
+# or
+helm install my-rsshub sb-charts/rsshub
+```
+
+---
+
+#### RustFS
+
+![Storage](https://img.shields.io/badge/tag-Storage-orange.svg)
+![S3](https://img.shields.io/badge/tag-S3-orange.svg)
+![Object-Storage](https://img.shields.io/badge/tag-Object-Storage-orange.svg)
+![Chart Version](https://img.shields.io/badge/chart-0.2.0-blue.svg) ![App Version](https://img.shields.io/badge/app-1.0.0-alpha.66-green.svg)
+
+**Description**: High-performance S3-compatible object storage (StatefulSet, tiered storage, clustering)
+
+**Homepage**: [https://rustfs.com/](https://rustfs.com/)
+
+**Chart Path**: `charts/rustfs`
+
+**Tags**: Storage, S3, Object-Storage
+
+**Installation**:
+```bash
+helm install my-rustfs oci://ghcr.io/scriptonbasestar-containers/charts/rustfs
+# or
+helm install my-rustfs sb-charts/rustfs
+```
+
+---
+
+#### Uptime Kuma
+
+![Monitoring](https://img.shields.io/badge/tag-Monitoring-orange.svg)
+![Alerting](https://img.shields.io/badge/tag-Alerting-orange.svg)
+![Status-Page](https://img.shields.io/badge/tag-Status-Page-orange.svg)
+![Chart Version](https://img.shields.io/badge/chart-0.2.0-blue.svg) ![App Version](https://img.shields.io/badge/app-2.0.2-green.svg)
+
+**Description**: Self-hosted monitoring tool with beautiful UI and 90+ notification services
+
+**Homepage**: [https://uptime.kuma.pet](https://uptime.kuma.pet)
+
+**Chart Path**: `charts/uptime-kuma`
+
+**Tags**: Monitoring, Alerting, Status-Page
+
+**Installation**:
+```bash
+helm install my-uptime-kuma oci://ghcr.io/scriptonbasestar-containers/charts/uptime-kuma
+# or
+helm install my-uptime-kuma sb-charts/uptime-kuma
+```
+
+---
+
+#### Vaultwarden
+
+![Password](https://img.shields.io/badge/tag-Password-orange.svg)
+![Security](https://img.shields.io/badge/tag-Security-orange.svg)
+![Chart Version](https://img.shields.io/badge/chart-0.2.0-blue.svg) ![App Version](https://img.shields.io/badge/app-1.34.3-green.svg)
+
+**Description**: Bitwarden-compatible password manager
+
+**Homepage**: [https://github.com/dani-garcia/vaultwarden](https://github.com/dani-garcia/vaultwarden)
+
+**Chart Path**: `charts/vaultwarden`
+
+**Tags**: Password, Security
+
+**Installation**:
+```bash
+helm install my-vaultwarden oci://ghcr.io/scriptonbasestar-containers/charts/vaultwarden
+# or
+helm install my-vaultwarden sb-charts/vaultwarden
+```
+
+---
+
+#### WireGuard
+
+![VPN](https://img.shields.io/badge/tag-VPN-orange.svg)
+![Security](https://img.shields.io/badge/tag-Security-orange.svg)
+![Networking](https://img.shields.io/badge/tag-Networking-orange.svg)
+![Chart Version](https://img.shields.io/badge/chart-0.3.0-blue.svg) ![App Version](https://img.shields.io/badge/app-1.0.20250521-green.svg)
+
+**Description**: VPN solution (Deployment, no database, UDP service, NET_ADMIN capabilities)
+
+**Homepage**: [https://www.wireguard.com/](https://www.wireguard.com/)
+
+**Chart Path**: `charts/wireguard`
+
+**Tags**: VPN, Security, Networking
+
+**Installation**:
+```bash
+helm install my-wireguard oci://ghcr.io/scriptonbasestar-containers/charts/wireguard
+# or
+helm install my-wireguard sb-charts/wireguard
+```
+
+---
+
+#### WordPress
+
+![CMS](https://img.shields.io/badge/tag-CMS-orange.svg)
+![Web](https://img.shields.io/badge/tag-Web-orange.svg)
+![Publishing](https://img.shields.io/badge/tag-Publishing-orange.svg)
+![Chart Version](https://img.shields.io/badge/chart-0.2.0-blue.svg) ![App Version](https://img.shields.io/badge/app-6.4.3-green.svg)
+
+**Description**: WordPress CMS (Deployment, MySQL, Apache)
+
+**Homepage**: [https://wordpress.org/](https://wordpress.org/)
+
+**Chart Path**: `charts/wordpress`
+
+**Tags**: CMS, Web, Publishing
+
+**Installation**:
+```bash
+helm install my-wordpress oci://ghcr.io/scriptonbasestar-containers/charts/wordpress
+# or
+helm install my-wordpress sb-charts/wordpress
+```
+
+---
+
+### Infrastructure
+
+#### Memcached
+
+![Cache](https://img.shields.io/badge/tag-Cache-orange.svg)
+![Distributed](https://img.shields.io/badge/tag-Distributed-orange.svg)
+![In-Memory](https://img.shields.io/badge/tag-In-Memory-orange.svg)
+![Chart Version](https://img.shields.io/badge/chart-0.3.0-blue.svg) ![App Version](https://img.shields.io/badge/app-1.6.39-green.svg)
+
+**Description**: High-performance distributed memory caching system (Deployment, no database)
+
+**Homepage**: [https://github.com/scriptonbasestar-container/sb-helm-charts](https://github.com/scriptonbasestar-container/sb-helm-charts)
+
+**Chart Path**: `charts/memcached`
+
+**Tags**: Cache, Distributed, In-Memory
+
+> ⚠️ **Production Note**: For production, consider Memcached Operator
+
+**Installation**:
+```bash
+helm install my-memcached oci://ghcr.io/scriptonbasestar-containers/charts/memcached
+# or
+helm install my-memcached sb-charts/memcached
+```
+
+---
+
+#### RabbitMQ
+
+![Message-Queue](https://img.shields.io/badge/tag-Message-Queue-orange.svg)
+![AMQP](https://img.shields.io/badge/tag-AMQP-orange.svg)
+![Messaging](https://img.shields.io/badge/tag-Messaging-orange.svg)
+![Chart Version](https://img.shields.io/badge/chart-0.3.0-blue.svg) ![App Version](https://img.shields.io/badge/app-3.13.1-green.svg)
+
+**Description**: Message broker with management UI (Deployment, no database, AMQP + Prometheus metrics)
+
+**Homepage**: [https://www.rabbitmq.com/](https://www.rabbitmq.com/)
+
+**Chart Path**: `charts/rabbitmq`
+
+**Tags**: Message-Queue, AMQP, Messaging
+
+> ⚠️ **Production Note**: For production clustering, consider RabbitMQ Cluster Operator
+
+**Installation**:
+```bash
+helm install my-rabbitmq oci://ghcr.io/scriptonbasestar-containers/charts/rabbitmq
+# or
+helm install my-rabbitmq sb-charts/rabbitmq
+```
+
+---
+
+#### Redis
+
+![Cache](https://img.shields.io/badge/tag-Cache-orange.svg)
+![Database](https://img.shields.io/badge/tag-Database-orange.svg)
+![In-Memory](https://img.shields.io/badge/tag-In-Memory-orange.svg)
+![Chart Version](https://img.shields.io/badge/chart-0.2.0-blue.svg) ![App Version](https://img.shields.io/badge/app-7.4.1-green.svg)
+
+**Description**: In-memory data store (StatefulSet, no external database, full redis.conf support)
+
+**Homepage**: [https://redis.io/](https://redis.io/)
+
+**Chart Path**: `charts/redis`
+
+**Tags**: Cache, Database, In-Memory
+
+> ⚠️ **Production Note**: For production HA, consider Spotahome Redis Operator
+
+**Installation**:
+```bash
+helm install my-redis oci://ghcr.io/scriptonbasestar-containers/charts/redis
+# or
+helm install my-redis sb-charts/redis
+```
+
+---
+
+## Charts by Tag
+
+### AI
+
+[Immich](#immich)
+
+### AMQP
+
+[RabbitMQ](#rabbitmq)
+
+### Aggregator
+
+[RSSHub](#rsshub)
+
+### Alerting
+
+[Uptime Kuma](#uptime-kuma)
+
+### Automation
+
+[Browserless Chrome](#browserless-chrome)
+
+### Browser
+
+[Browserless Chrome](#browserless-chrome)
+
+### CMS
+
+[Nextcloud](#nextcloud), [WordPress](#wordpress)
+
+### Cache
+
+[Memcached](#memcached), [Redis](#redis)
+
+### Collaboration
+
+[Nextcloud](#nextcloud)
+
+### Database
+
+[Redis](#redis)
+
+### Development
+
+[Devpi](#devpi)
+
+### Distributed
+
+[Memcached](#memcached)
+
+### Document
+
+[Paperless-ngx](#paperless-ngx)
+
+### Headless
+
+[Browserless Chrome](#browserless-chrome)
+
+### HomeLab
+
+[Jellyfin](#jellyfin)
+
+### IAM
+
+[Keycloak](#keycloak)
+
+### In-Memory
+
+[Memcached](#memcached), [Redis](#redis)
+
+### Media
+
+[Immich](#immich), [Jellyfin](#jellyfin)
+
+### Message-Queue
+
+[RabbitMQ](#rabbitmq)
+
+### Messaging
+
+[RabbitMQ](#rabbitmq)
+
+### Monitoring
+
+[Uptime Kuma](#uptime-kuma)
+
+### Networking
+
+[WireGuard](#wireguard)
+
+### Object-Storage
+
+[RustFS](#rustfs)
+
+### Package-Index
+
+[Devpi](#devpi)
+
+### Password
+
+[Vaultwarden](#vaultwarden)
+
+### Photo
+
+[Immich](#immich)
+
+### Productivity
+
+[Nextcloud](#nextcloud), [Paperless-ngx](#paperless-ngx)
+
+### Publishing
+
+[WordPress](#wordpress)
+
+### Python
+
+[Devpi](#devpi)
+
+### RSS
+
+[RSSHub](#rsshub)
+
+### S3
+
+[RustFS](#rustfs)
+
+### SSO
+
+[Keycloak](#keycloak)
+
+### Security
+
+[Keycloak](#keycloak), [Vaultwarden](#vaultwarden), [WireGuard](#wireguard)
+
+### Status-Page
+
+[Uptime Kuma](#uptime-kuma)
+
+### Storage
+
+[RustFS](#rustfs)
+
+### Streaming
+
+[Jellyfin](#jellyfin)
+
+### VPN
+
+[WireGuard](#wireguard)
+
+### Web
+
+[WordPress](#wordpress)
+
+## Keyword Index
+
+Search charts by keyword:
+
+**access-management**: `Keycloak`
+
+**aggregator**: `RSSHub`
+
+**ai**: `Immich`
+
+**alerting**: `Uptime Kuma`
+
+**amqp**: `RabbitMQ`
+
+**authentication**: `Keycloak`
+
+**authorization**: `Keycloak`
+
+**automation**: `Browserless Chrome`
+
+**bitwarden**: `Vaultwarden`
+
+**blog**: `WordPress`
+
+**broker**: `RabbitMQ`
+
+**browserless**: `Browserless Chrome`
+
+**cache**: `Memcached`, `Redis`
+
+**calendar**: `Nextcloud`
+
+**chrome**: `Browserless Chrome`
+
+**chromium**: `Browserless Chrome`
+
+**cloud-storage**: `Nextcloud`
+
+**cms**: `WordPress`
+
+**collaboration**: `Nextcloud`
+
+**contacts**: `Nextcloud`
+
+**content-aggregation**: `RSSHub`
+
+**content-management**: `WordPress`
+
+**data-structure**: `Redis`
+
+**database**: `Redis`
+
+**devpi**: `Devpi`
+
+**dms**: `Paperless-ngx`
+
+**document-management**: `Paperless-ngx`
+
+**feed**: `RSSHub`
+
+**file-sync**: `Nextcloud`
+
+**gallery**: `Immich`
+
+**gpu-acceleration**: `Jellyfin`
+
+**headless-browser**: `Browserless Chrome`
+
+**health-check**: `Uptime Kuma`
+
+**iam**: `Keycloak`
+
+**identity**: `Keycloak`
+
+**immich**: `Immich`
+
+**in-memory**: `Redis`
+
+**jellyfin**: `Jellyfin`
+
+**key-value**: `Redis`
+
+**keycloak**: `Keycloak`
+
+**machine-learning**: `Immich`
+
+**media**: `Immich`
+
+**media-server**: `Jellyfin`
+
+**memcached**: `Memcached`
+
+**memory**: `Memcached`
+
+**message-broker**: `RabbitMQ`
+
+**message-queue**: `RabbitMQ`
+
+**messaging**: `RabbitMQ`
+
+**minio-alternative**: `RustFS`
+
+**monitoring**: `Uptime Kuma`
+
+**network**: `WireGuard`
+
+**news**: `RSSHub`
+
+**nextcloud**: `Nextcloud`
+
+**nosql**: `Redis`
+
+**notifications**: `Uptime Kuma`
+
+**object-storage**: `RustFS`
+
+**ocr**: `Paperless-ngx`
+
+**package-index**: `Devpi`
+
+**package-mirror**: `Devpi`
+
+**paperless**: `Paperless-ngx`
+
+**password-manager**: `Vaultwarden`
+
+**performance**: `Memcached`
+
+**photos**: `Immich`
+
+**php**: `WordPress`
+
+**playwright**: `Browserless Chrome`
+
+**plex-alternative**: `Jellyfin`
+
+**private-registry**: `Devpi`
+
+**productivity**: `Nextcloud`
+
+**publishing**: `WordPress`
+
+**puppeteer**: `Browserless Chrome`
+
+**pypi**: `Devpi`
+
+**python**: `Devpi`
+
+**rabbitmq**: `RabbitMQ`
+
+**redis**: `Redis`
+
+**rss**: `RSSHub`
+
+**rsshub**: `RSSHub`
+
+**rust**: `RustFS`
+
+**rustfs**: `RustFS`
+
+**s3**: `RustFS`
+
+**secrets**: `Vaultwarden`
+
+**security**: `Vaultwarden`, `WireGuard`
+
+**self-hosted**: `Nextcloud`, `Uptime Kuma`
+
+**social-media**: `RSSHub`
+
+**sso**: `Keycloak`
+
+**status-page**: `Uptime Kuma`
+
+**streaming**: `Jellyfin`
+
+**transcoding**: `Jellyfin`
+
+**tunnel**: `WireGuard`
+
+**uptime**: `Uptime Kuma`
+
+**uptime-kuma**: `Uptime Kuma`
+
+**vaultwarden**: `Vaultwarden`
+
+**vpn**: `WireGuard`
+
+**web-scraping**: `Browserless Chrome`
+
+**website**: `WordPress`
+
+**wireguard**: `WireGuard`
+
+**wordpress**: `WordPress`
+
+---
+
+**Last Updated**: Auto-generated from `charts-metadata.yaml`
+
+**Maintained by**: [ScriptonBasestar](https://github.com/scriptonbasestar-container)
