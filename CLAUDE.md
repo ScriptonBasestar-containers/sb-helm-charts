@@ -15,6 +15,9 @@ ScriptonBasestar Helm Charts - Personal server Helm charts focused on simplicity
 **Development Guides:**
 - [Chart Development Guide](docs/CHART_DEVELOPMENT_GUIDE.md) - Comprehensive chart development patterns and standards
 - [Chart Version Policy](docs/CHART_VERSION_POLICY.md) - Semantic versioning and release process
+- [Chart README Template](docs/CHART_README_TEMPLATE.md) - Standard README template for all charts
+- [Chart README Guide](docs/CHART_README_GUIDE.md) - How to use the README template effectively
+- [Workflow Update Instructions](docs/WORKFLOW_UPDATE_INSTRUCTIONS.md) - Manual CI workflow update guide
 - All new charts MUST follow the standard structure and patterns defined in the guides
 - Existing charts should be updated to align with these patterns over time
 
@@ -45,7 +48,7 @@ charts/{chart-name}/
 
 ### When Adding or Modifying Charts
 
-When you add a new chart or modify an existing one, you MUST update both:
+When you add a new chart or modify an existing one, you MUST update:
 
 1. **`charts-metadata.yaml`**: Add/update chart entry with:
    - `name`: Human-readable chart name
@@ -56,17 +59,48 @@ When you add a new chart or modify an existing one, you MUST update both:
    - `description`: Brief description matching CLAUDE.md
    - `production_note`: (Optional) Production warnings for infrastructure charts
 
-2. **This file (CLAUDE.md)**: Update the "Available Charts" section below to match
+2. **Sync keywords to Chart.yaml**:
+   ```bash
+   # Preview changes
+   make sync-keywords-dry-run
 
-3. **`charts/{chart-name}/Chart.yaml`**: Ensure `keywords` field matches `charts-metadata.yaml`
+   # Apply changes
+   make sync-keywords
+   # or for specific chart
+   python3 scripts/sync-chart-keywords.py --chart chart-name
+   ```
+
+3. **Validate consistency**:
+   ```bash
+   make validate-metadata
+   ```
+
+4. **Update this file (CLAUDE.md)**: Update the "Available Charts" section if needed
+
+### Metadata Tools
+
+**Validation:**
+- `make validate-metadata` - Validates keywords consistency between Chart.yaml and charts-metadata.yaml
+- Pre-commit hook automatically runs validation before commits
+- CI workflow validates on PR/push (see docs/WORKFLOW_UPDATE_INSTRUCTIONS.md)
+
+**Synchronization:**
+- `make sync-keywords` - Syncs Chart.yaml keywords from charts-metadata.yaml
+- `make sync-keywords-dry-run` - Preview changes without applying
+- `python3 scripts/sync-chart-keywords.py --chart <name>` - Sync specific chart
+
+**Dependencies:**
+- Python 3.x required
+- Install dependencies: `pip install -r scripts/requirements.txt`
 
 ### Metadata Usage
 
 The metadata file serves multiple purposes:
 - **Documentation**: Single source of truth for chart categorization
 - **Search**: Keywords used in Chart.yaml for Helm Hub/Artifact Hub
-- **Automation**: Future automation for chart discovery and documentation generation
+- **Automation**: Chart discovery and documentation generation
 - **Consistency**: Ensures tags and keywords are consistent across all charts
+- **Validation**: Pre-commit hooks and CI ensure metadata stays synchronized
 
 ## Available Charts
 
@@ -446,6 +480,48 @@ The repository uses chart-testing (ct) for validation:
 - Config: `ct.yaml`
 - Timeout: 600s for chart operations
 - Chart directory: `charts/`
+
+## Automation Scripts
+
+### Metadata Management
+
+**Validation Script** (`scripts/validate-chart-metadata.py`):
+- Validates keywords consistency between Chart.yaml and charts-metadata.yaml
+- Checks all charts have metadata entries
+- Provides clear error messages for discrepancies
+- Exit code 0 for success, 1 for failures
+
+**Sync Script** (`scripts/sync-chart-keywords.py`):
+- Syncs Chart.yaml keywords from charts-metadata.yaml
+- Supports dry-run mode for preview
+- Can sync all charts or specific chart with --chart flag
+- Preserves Chart.yaml formatting during updates
+
+**Dependencies** (`scripts/requirements.txt`):
+- PyYAML>=6.0 for YAML processing
+- Install: `pip install -r scripts/requirements.txt`
+
+### Usage Examples
+
+```bash
+# Validate metadata consistency
+make validate-metadata
+# or
+python3 scripts/validate-chart-metadata.py
+
+# Preview keyword sync
+make sync-keywords-dry-run
+# or
+python3 scripts/sync-chart-keywords.py --dry-run
+
+# Apply keyword sync
+make sync-keywords
+# or
+python3 scripts/sync-chart-keywords.py
+
+# Sync specific chart
+python3 scripts/sync-chart-keywords.py --chart keycloak
+```
 
 ## Architecture Principles
 
