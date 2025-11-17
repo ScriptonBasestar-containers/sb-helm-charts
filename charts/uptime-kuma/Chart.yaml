@@ -7,10 +7,18 @@ type: application
 annotations:
   artifacthub.io/license: BSD-3-Clause
   artifacthub.io/changes: |
+    - kind: changed
+      description: Promoted to version 0.3.0 (Mature - production-ready)
     - kind: added
-      description: Deployment scenario values files (home-single, startup-single, prod-master-replica)
+      description: 90+ notification services integration (Telegram, Discord, Slack, Email, and more)
     - kind: added
-      description: Comprehensive README with deployment scenarios section
+      description: Multi-protocol monitoring support (HTTP/HTTPS, TCP, Ping, DNS, SMTP)
+    - kind: added
+      description: SQLite and MariaDB database support with flexible configuration
+    - kind: added
+      description: Complete Makefile operational commands (backup, restore, password management)
+    - kind: added
+      description: 4 deployment scenario values files (home, startup, production)
   artifacthub.io/prerelease: "false"
   artifacthub.io/recommendations: |
     - url: https://github.com/scriptonbasestar-container/sb-helm-charts/blob/master/docs/SCENARIO_VALUES_GUIDE.md
@@ -47,5 +55,5 @@ maintainers:
   - name: archmagece
     email: archmagece@users.noreply.github.com
 
-version: 0.2.0
+version: 0.3.0
 appVersion: "2.0.2"

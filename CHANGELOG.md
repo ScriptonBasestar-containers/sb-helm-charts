@@ -9,6 +9,60 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+#### Uptime Kuma 0.3.0 - Self-Hosted Monitoring Tool
+- **Mature Status** (0.2.0 → 0.3.0)
+  - Promoted to Mature status with production-ready features
+  - 90+ notification services integration
+  - Multi-protocol monitoring support
+- **Notification Services** (90+ Integrations)
+  - Chat platforms: Telegram, Discord, Slack, Microsoft Teams, Mattermost
+  - Email: SMTP, SendGrid, Mailgun, AWS SES
+  - SMS: Twilio, Nexmo, Clickatell
+  - VoIP: Skype, Teams Call
+  - Push notifications: Pushbullet, Pushover, Pushy, Apprise
+  - Incident management: PagerDuty, Opsgenie, Alertmanager
+  - And 70+ more services
+- **Multi-Protocol Monitoring**
+  - HTTP/HTTPS: GET, POST, keyword matching, status codes
+  - TCP: Port connectivity checks
+  - Ping: ICMP ping monitoring
+  - DNS: DNS query and record validation
+  - SMTP: Email server monitoring
+  - WebSocket: Real-time connection monitoring
+  - Database: MongoDB, MySQL, PostgreSQL health checks
+- **Database Support**
+  - SQLite: Zero-configuration embedded database (default)
+  - MariaDB/MySQL: External database for production HA
+  - Flexible database type switching via configuration
+  - Automatic database migrations
+- **Makefile Operational Commands** (`make/ops/uptime-kuma.mk`)
+  - Basic operations: `uk-logs`, `uk-shell`, `uk-port-forward`
+  - Health checks: `uk-check-db`, `uk-check-storage`
+  - Data management: `uk-backup-sqlite`, `uk-restore-sqlite`
+  - User management: `uk-reset-password`
+  - System info: `uk-version`, `uk-node-info`, `uk-get-settings`
+  - Operations: `uk-restart`, `uk-scale`
+  - API access: `uk-list-monitors`, `uk-status-pages`
+- **Additional Features**
+  - Beautiful web UI with modern design
+  - Public status pages for services
+  - Multi-user support with 2FA
+  - Multi-language support (25+ languages)
+  - Customizable monitoring intervals
+  - SSL/TLS certificate monitoring
+- **Deployment Scenarios** (4 values files)
+  - `values-home-single.yaml`: Home server (50-250m CPU, 128-256Mi RAM, 2Gi)
+  - `values-startup-single.yaml`: Startup environment (100-500m CPU, 256-512Mi RAM, 5Gi)
+  - `values-prod-master-replica.yaml`: Production (250m-1000m CPU, 512Mi-1Gi RAM, 10Gi)
+  - `values-example.yaml`: Production template
+- **Comprehensive Documentation** (`README.md`)
+  - Database configuration guide (SQLite vs MariaDB)
+  - Notification service setup examples
+  - Monitoring protocol configuration
+  - Status page creation guide
+  - Deployment scenarios with resource specifications
+  - Operational commands reference
+
 #### Paperless-ngx 0.3.0 - Document Management System
 - **Mature Status** (0.2.0 → 0.3.0)
   - Promoted to Mature status with production-ready features
