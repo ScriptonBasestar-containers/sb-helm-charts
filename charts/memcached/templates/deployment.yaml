@@ -85,8 +85,14 @@ spec:
         {{- end }}
         {{- if .Values.readinessProbe.enabled }}
         readinessProbe:
-          tcpSocket:
-            port: memcached
+          exec:
+            command:
+              - sh
+              - -c
+              - |
+                # Check if memcached is responding to stats command
+                # This is more reliable than TCP check as it validates actual functionality
+                printf "stats\r\n" | nc -w 1 localhost 11211 | grep -q uptime
           initialDelaySeconds: {{ .Values.readinessProbe.initialDelaySeconds }}
           periodSeconds: {{ .Values.readinessProbe.periodSeconds }}
           timeoutSeconds: {{ .Values.readinessProbe.timeoutSeconds }}
