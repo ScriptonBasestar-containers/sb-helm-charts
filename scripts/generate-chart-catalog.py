@@ -1,0 +1,266 @@
+#!/usr/bin/env python3
+"""
+Generate Chart Catalog from Metadata
+
+This script generates a markdown catalog from charts-metadata.yaml.
+Organizes charts by category, tags, and provides searchable keyword index.
+
+Usage:
+    # Generate catalog
+    python3 scripts/generate-chart-catalog.py
+
+    # Specify output file
+    python3 scripts/generate-chart-catalog.py --output docs/CHARTS.md
+
+Exit codes:
+    0: Success
+    1: Errors occurred
+"""
+
+import sys
+import argparse
+import yaml
+from pathlib import Path
+from typing import Dict, List, Set
+from collections import defaultdict
+
+
+def load_yaml_file(file_path: Path) -> Dict:
+    """Load and parse YAML file."""
+    try:
+        with open(file_path, 'r', encoding='utf-8') as f:
+            return yaml.safe_load(f)
+    except Exception as e:
+        print(f"Error loading {file_path}: {e}")
+        sys.exit(1)
+
+
+def load_chart_info(chart_dir: Path) -> Dict:
+    """Load chart version info from Chart.yaml."""
+    chart_yaml = chart_dir / "Chart.yaml"
+    if not chart_yaml.exists():
+        return {}
+
+    try:
+        data = load_yaml_file(chart_yaml)
+        return {
+            'version': data.get('version', 'N/A'),
+            'appVersion': data.get('appVersion', 'N/A'),
+            'home': data.get('home', ''),
+        }
+    except:
+        return {}
+
+
+def generate_catalog(metadata: Dict, charts_dir: Path) -> str:
+    """Generate markdown catalog from metadata."""
+    charts = metadata.get('charts', {})
+
+    # Organize by category
+    categories = defaultdict(list)
+    tags_index = defaultdict(list)
+    keywords_index = defaultdict(set)
+
+    for chart_id, chart_meta in charts.items():
+        category = chart_meta.get('category', 'uncategorized')
+        categories[category].append((chart_id, chart_meta))
+
+        # Build tags index
+        for tag in chart_meta.get('tags', []):
+            tags_index[tag].append(chart_id)
+
+        # Build keywords index
+        for keyword in chart_meta.get('keywords', []):
+            keywords_index[keyword].add(chart_id)
+
+    # Start building markdown
+    md = []
+    md.append("# Helm Charts Catalog")
+    md.append("")
+    md.append("This catalog is automatically generated from `charts-metadata.yaml`.")
+    md.append("")
+    md.append(f"**Total Charts**: {len(charts)}")
+    md.append("")
+
+    # Table of Contents
+    md.append("## Table of Contents")
+    md.append("")
+    md.append("- [Charts by Category](#charts-by-category)")
+    for category in sorted(categories.keys()):
+        category_title = category.replace('-', ' ').title()
+        md.append(f"  - [{category_title}](#{category.lower()})")
+    md.append("- [Charts by Tag](#charts-by-tag)")
+    md.append("- [Keyword Index](#keyword-index)")
+    md.append("")
+
+    # Charts by Category
+    md.append("## Charts by Category")
+    md.append("")
+
+    for category in sorted(categories.keys()):
+        category_title = category.replace('-', ' ').title()
+        md.append(f"### {category_title}")
+        md.append("")
+
+        # Sort charts by name
+        sorted_charts = sorted(categories[category], key=lambda x: x[1].get('name', x[0]))
+
+        for chart_id, chart_meta in sorted_charts:
+            chart_name = chart_meta.get('name', chart_id)
+            description = chart_meta.get('description', 'No description')
+            path = chart_meta.get('path', f'charts/{chart_id}')
+            tags = chart_meta.get('tags', [])
+            production_note = chart_meta.get('production_note', '')
+
+            # Load chart version info
+            chart_dir = charts_dir / chart_id
+            chart_info = load_chart_info(chart_dir)
+            version = chart_info.get('version', 'N/A')
+            app_version = chart_info.get('appVersion', 'N/A')
+            home = chart_info.get('home', '')
+
+            # Chart header with badges
+            md.append(f"#### {chart_name}")
+            md.append("")
+
+            # Badges
+            badge_line = []
+            badge_line.append(f"![Chart Version](https://img.shields.io/badge/chart-{version}-blue.svg)")
+            badge_line.append(f"![App Version](https://img.shields.io/badge/app-{app_version}-green.svg)")
+            if tags:
+                for tag in tags[:3]:  # Show first 3 tags
+                    tag_badge = tag.replace(' ', '%20')
+                    md.append(f"![{tag}](https://img.shields.io/badge/tag-{tag_badge}-orange.svg)")
+            md.append(" ".join(badge_line))
+            md.append("")
+
+            # Description
+            md.append(f"**Description**: {description}")
+            md.append("")
+
+            # Details
+            if home:
+                md.append(f"**Homepage**: [{home}]({home})")
+                md.append("")
+
+            md.append(f"**Chart Path**: `{path}`")
+            md.append("")
+
+            if tags:
+                md.append(f"**Tags**: {', '.join(tags)}")
+                md.append("")
+
+            # Production note for infrastructure charts
+            if production_note:
+                md.append(f"> ⚠️ **Production Note**: {production_note}")
+                md.append("")
+
+            # Installation example
+            md.append("**Installation**:")
+            md.append("```bash")
+            md.append(f"helm install my-{chart_id} oci://ghcr.io/scriptonbasestar-containers/charts/{chart_id}")
+            md.append("# or")
+            md.append(f"helm install my-{chart_id} sb-charts/{chart_id}")
+            md.append("```")
+            md.append("")
+
+            md.append("---")
+            md.append("")
+
+    # Charts by Tag
+    md.append("## Charts by Tag")
+    md.append("")
+
+    for tag in sorted(tags_index.keys()):
+        chart_ids = sorted(tags_index[tag])
+        chart_names = []
+        for cid in chart_ids:
+            cname = charts.get(cid, {}).get('name', cid)
+            chart_names.append(f"[{cname}](#{cid})")
+
+        md.append(f"### {tag}")
+        md.append("")
+        md.append(", ".join(chart_names))
+        md.append("")
+
+    # Keyword Index
+    md.append("## Keyword Index")
+    md.append("")
+    md.append("Search charts by keyword:")
+    md.append("")
+
+    for keyword in sorted(keywords_index.keys()):
+        chart_ids = sorted(keywords_index[keyword])
+        chart_names = []
+        for cid in chart_ids:
+            cname = charts.get(cid, {}).get('name', cid)
+            chart_names.append(f"`{cname}`")
+
+        md.append(f"**{keyword}**: {', '.join(chart_names)}")
+        md.append("")
+
+    # Footer
+    md.append("---")
+    md.append("")
+    md.append("**Last Updated**: Auto-generated from `charts-metadata.yaml`")
+    md.append("")
+    md.append("**Maintained by**: [ScriptonBasestar](https://github.com/scriptonbasestar-container)")
+    md.append("")
+
+    return '\n'.join(md)
+
+
+def main():
+    """Main generation logic."""
+    parser = argparse.ArgumentParser(
+        description='Generate chart catalog from charts-metadata.yaml'
+    )
+    parser.add_argument(
+        '--output',
+        type=str,
+        default='docs/CHARTS.md',
+        help='Output file path (default: docs/CHARTS.md)'
+    )
+    args = parser.parse_args()
+
+    # Setup paths
+    repo_root = Path(__file__).parent.parent
+    charts_dir = repo_root / "charts"
+    metadata_file = repo_root / "charts-metadata.yaml"
+    output_file = repo_root / args.output
+
+    print("=" * 80)
+    print("Chart Catalog Generation")
+    print("=" * 80)
+    print()
+
+    # Load metadata
+    if not metadata_file.exists():
+        print(f"Error: {metadata_file} not found")
+        sys.exit(1)
+
+    metadata = load_yaml_file(metadata_file)
+    charts_count = len(metadata.get('charts', {}))
+
+    print(f"Loaded metadata for {charts_count} charts")
+    print(f"Output: {output_file}")
+    print()
+
+    # Generate catalog
+    print("Generating catalog...")
+    catalog_md = generate_catalog(metadata, charts_dir)
+
+    # Write output
+    output_file.parent.mkdir(parents=True, exist_ok=True)
+    with open(output_file, 'w', encoding='utf-8') as f:
+        f.write(catalog_md)
+
+    print(f"✅ Catalog generated successfully!")
+    print(f"   Output: {output_file}")
+    print(f"   Charts: {charts_count}")
+    print()
+    print("=" * 80)
+
+
+if __name__ == "__main__":
+    main()

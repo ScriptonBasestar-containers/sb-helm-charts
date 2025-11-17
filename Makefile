@@ -100,6 +100,20 @@ sync-keywords-dry-run:
 	fi; \
 	python3 scripts/sync-chart-keywords.py --dry-run
 
+# 차트 카탈로그 생성
+.PHONY: generate-catalog
+generate-catalog:
+	@echo "Generating chart catalog from metadata..."
+	@if ! command -v python3 >/dev/null 2>&1; then \
+		echo "Error: python3 is required"; \
+		exit 1; \
+	fi; \
+	if ! python3 -c "import yaml" >/dev/null 2>&1; then \
+		echo "Error: PyYAML is required. Install with: pip install -r scripts/requirements.txt"; \
+		exit 1; \
+	fi; \
+	python3 scripts/generate-chart-catalog.py
+
 # 모든 차트 빌드
 .PHONY: build
 build:
@@ -243,6 +257,7 @@ help:
 	@echo "  validate-metadata - Validate chart metadata consistency"
 	@echo "  sync-keywords    - Sync Chart.yaml keywords from charts-metadata.yaml"
 	@echo "  sync-keywords-dry-run - Preview keyword sync changes"
+	@echo "  generate-catalog - Generate chart catalog from charts-metadata.yaml"
 	@echo "  build            - Build all charts"
 	@echo "  template         - Generate template for all charts"
 	@echo "  install          - Install all charts"
