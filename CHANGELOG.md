@@ -9,6 +9,47 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+#### Paperless-ngx 0.3.0 - Document Management System
+- **Mature Status** (0.2.0 → 0.3.0)
+  - Promoted to Mature status with production-ready features
+  - 4 PVC architecture for document lifecycle management
+  - PostgreSQL and Redis external service integration
+- **4 PVC Architecture** (Unique Document Lifecycle)
+  - Consume PVC (10Gi): Incoming documents directory for auto-import
+  - Data PVC (10Gi): Application data and search index
+  - Media PVC (50Gi): Processed and archived documents (largest storage)
+  - Export PVC (10Gi): Document exports and backups
+  - Each PVC independently configurable (size, storageClass, existingClaim)
+- **OCR and Document Processing**
+  - Multi-language OCR support (100+ languages)
+  - Configurable OCR modes: skip, redo, force
+  - Automatic document consumption with inotify or polling
+  - Configurable source document deletion after processing
+  - Subdirectories as tags for automatic organization
+- **External Service Integration**
+  - PostgreSQL 13+ with SSL/TLS support
+  - Redis 6+ for caching and session management
+  - Email integration for document import
+  - SMTP configuration for notifications
+- **Makefile Operational Commands** (`make/ops/paperless-ngx.mk`)
+  - Basic operations: `paperless-logs`, `paperless-shell`, `paperless-port-forward`
+  - Health checks: `paperless-check-db`, `paperless-check-redis`, `paperless-check-storage`
+  - Database: `paperless-migrate`, `paperless-create-superuser`
+  - Documents: `paperless-document-exporter`, `paperless-consume-list`, `paperless-process-status`
+  - Operations: `paperless-restart`
+- **Deployment Scenarios** (4 values files)
+  - `values-home-single.yaml`: Home server (100-500m CPU, 256-512Mi RAM, 15Gi total)
+  - `values-startup-single.yaml`: Startup environment (250m-1000m CPU, 512Mi-1Gi RAM, 50Gi total)
+  - `values-prod-master-replica.yaml`: Production (500m-2000m CPU, 1-2Gi RAM, 200Gi total)
+  - `values-example.yaml`: Production template
+- **Comprehensive Documentation** (`README.md`)
+  - 4 PVC architecture explanation
+  - OCR configuration and language support
+  - Deployment scenarios with resource specifications
+  - External service setup guide
+  - Document import and processing workflow
+  - Operational commands reference
+
 #### Redis 0.3.0 - In-Memory Data Store
 - **Mature Status** (0.2.0 → 0.3.0)
   - Promoted to Mature status with production-ready features

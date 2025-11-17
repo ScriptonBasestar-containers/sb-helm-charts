@@ -2,7 +2,7 @@ apiVersion: v2
 name: paperless-ngx
 description: A powerful open-source document management system with OCR, full-text search, and modern web UI
 type: application
-version: 0.2.0
+version: 0.3.0
 appVersion: "2.14.7"
 keywords:
   - paperless
@@ -19,10 +19,18 @@ maintainers:
 annotations:
   artifacthub.io/license: BSD-3-Clause
   artifacthub.io/changes: |
+    - kind: changed
+      description: Promoted to version 0.3.0 (Mature - production-ready)
     - kind: added
-      description: Deployment scenario values files (home-single, startup-single, prod-master-replica)
+      description: 4 PVC architecture (consume, data, media, export directories)
     - kind: added
-      description: Comprehensive README with deployment scenarios section
+      description: PostgreSQL and Redis external service integration
+    - kind: added
+      description: Multi-language OCR support with configurable processing modes
+    - kind: added
+      description: Complete Makefile operational commands (database, documents, health checks)
+    - kind: added
+      description: 4 deployment scenario values files (home, startup, production)
   artifacthub.io/prerelease: "false"
   artifacthub.io/recommendations: |
     - url: https://github.com/scriptonbasestar-container/sb-helm-charts/blob/master/docs/SCENARIO_VALUES_GUIDE.md
