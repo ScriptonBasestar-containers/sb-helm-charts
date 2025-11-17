@@ -9,6 +9,43 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+#### Redis 0.3.0 - In-Memory Data Store
+- **Mature Status** (0.2.0 → 0.3.0)
+  - Promoted to Mature status with production-ready features
+  - Master-Slave replication support (1 master + N read-only replicas)
+  - Full redis.conf configuration file support
+- **Master-Slave Replication**
+  - Automatic master-replica setup via StatefulSet
+  - Read-only replicas with automatic replication lag monitoring
+  - DNS-based service discovery for master and replicas
+  - Individual replica access via StatefulSet DNS
+- **Configuration Management**
+  - Full redis.conf file support (no environment variable abstraction)
+  - Customizable persistence (RDB snapshots, AOF)
+  - Memory management (maxmemory, eviction policies)
+  - Security settings (password, protected-mode)
+  - Slow log and client limits configuration
+- **Makefile Operational Commands** (`make/ops/redis.mk`)
+  - Data management: `redis-backup`, `redis-restore`, `redis-bgsave`, `redis-flushall`
+  - Analysis: `redis-slowlog`, `redis-bigkeys`, `redis-config-get`, `redis-info`
+  - Replication: `redis-replication-info`, `redis-master-info`, `redis-replica-lag`, `redis-role`
+  - Monitoring: `redis-memory`, `redis-stats`, `redis-clients`, `redis-monitor`
+  - Utilities: `redis-cli`, `redis-ping`, `redis-shell`, `redis-logs`, `redis-metrics`
+- **Deployment Scenarios** (6 values files)
+  - `values-home-single.yaml`: Home server (50-250m CPU, 128-512Mi RAM, 5Gi)
+  - `values-startup-single.yaml`: Startup environment (100-500m CPU, 256Mi-1Gi RAM, 10Gi)
+  - `values-prod-master-replica.yaml`: HA with replication (250m-2000m CPU, 512Mi-2Gi RAM, 20Gi)
+  - `values-prod-cluster.yaml`: Redis cluster mode
+  - `values-prod-sentinel.yaml`: Sentinel-based HA
+  - `values-example.yaml`: Production template
+- **Comprehensive Documentation** (`README.md`)
+  - Production operator comparison (Spotahome Redis Operator)
+  - Migration guide to operator for HA requirements
+  - Deployment scenarios with resource specifications
+  - Replication configuration and service discovery
+  - Operational commands reference
+  - Use case recommendations (dev/test vs production)
+
 #### Immich 0.3.0 - AI-Powered Photo Management
 - **Mature Status** (0.2.0 → 0.3.0)
   - Promoted to Mature status with production-ready features

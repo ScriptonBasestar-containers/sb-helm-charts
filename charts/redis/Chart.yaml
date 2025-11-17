@@ -7,12 +7,18 @@ type: application
 annotations:
   artifacthub.io/license: BSD-3-Clause
   artifacthub.io/changes: |
-    - kind: added
-      description: Deployment scenario values files (home-single, startup-single, prod-master-replica)
-    - kind: added
-      description: Comprehensive README with deployment scenarios section
     - kind: changed
-      description: Chart version bumped to 0.3.0 for scenario values feature
+      description: Promoted to version 0.3.0 (Mature - production-ready)
+    - kind: added
+      description: Master-Slave replication support (1 master + N read-only replicas)
+    - kind: added
+      description: Full redis.conf configuration file support (no environment variable abstraction)
+    - kind: added
+      description: Complete Makefile operational commands (backup, restore, replication management)
+    - kind: added
+      description: 6 deployment scenario values files (home, startup, prod variations)
+    - kind: added
+      description: Comprehensive README with production operator comparison and migration guide
   artifacthub.io/prerelease: "false"
   artifacthub.io/recommendations: |
     - url: https://github.com/scriptonbasestar-container/sb-helm-charts/blob/master/docs/SCENARIO_VALUES_GUIDE.md
@@ -48,5 +54,5 @@ maintainers:
   - name: archmagece
     email: archmagece@users.noreply.github.com
 
-version: 0.2.0
+version: 0.3.0
 appVersion: 7.4.1
