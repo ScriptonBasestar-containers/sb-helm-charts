@@ -171,6 +171,7 @@ pre-commit run --all-files
 The hooks will automatically check:
 - YAML syntax and formatting
 - Helm chart linting
+- Chart metadata consistency (keywords, tags)
 - Markdown formatting
 - Shell script linting
 - Trailing whitespace and EOF
@@ -197,11 +198,36 @@ make kind-delete
 # Lint specific chart
 helm lint charts/my-chart
 
+# Validate chart metadata consistency
+make validate-metadata
+
 # Test all scenario values
 helm install test-home charts/my-chart -f charts/my-chart/values-home-single.yaml --dry-run
 helm install test-startup charts/my-chart -f charts/my-chart/values-startup-single.yaml --dry-run
 helm install test-prod charts/my-chart -f charts/my-chart/values-prod-master-replica.yaml --dry-run
 ```
+
+### Chart Metadata Management
+
+All chart metadata (keywords, tags, descriptions) is centrally managed in `charts-metadata.yaml`. When adding or modifying charts:
+
+1. **Update metadata** in `charts-metadata.yaml`
+2. **Ensure Chart.yaml keywords match** the metadata file
+3. **Validate consistency**:
+   ```bash
+   # Install Python dependencies (one-time)
+   pip install -r scripts/requirements.txt
+
+   # Run validation
+   make validate-metadata
+   # or
+   python3 scripts/validate-chart-metadata.py
+   ```
+
+The validation ensures:
+- ✅ All charts have metadata entries
+- ✅ Keywords in `Chart.yaml` match `charts-metadata.yaml`
+- ✅ Consistent categorization across all charts
 
 For more details, see:
 - [Chart Development Guide](docs/CHART_DEVELOPMENT_GUIDE.md)

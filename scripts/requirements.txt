@@ -1,0 +1,4 @@
+# Python dependencies for chart validation scripts
+# Install with: pip install -r scripts/requirements.txt
+
+PyYAML>=6.0
