@@ -73,7 +73,7 @@ helm install my-devpi sb-charts/devpi
 ![Photo](https://img.shields.io/badge/tag-Photo-orange.svg)
 ![Media](https://img.shields.io/badge/tag-Media-orange.svg)
 ![AI](https://img.shields.io/badge/tag-AI-orange.svg)
-![Chart Version](https://img.shields.io/badge/chart-0.2.0-blue.svg) ![App Version](https://img.shields.io/badge/app-v1.122.3-green.svg)
+![Chart Version](https://img.shields.io/badge/chart-0.3.0-blue.svg) ![App Version](https://img.shields.io/badge/app-v1.122.3-green.svg)
 
 **Description**: AI-powered photo and video management
 
@@ -97,7 +97,7 @@ helm install my-immich sb-charts/immich
 ![Media](https://img.shields.io/badge/tag-Media-orange.svg)
 ![Streaming](https://img.shields.io/badge/tag-Streaming-orange.svg)
 ![HomeLab](https://img.shields.io/badge/tag-HomeLab-orange.svg)
-![Chart Version](https://img.shields.io/badge/chart-0.2.0-blue.svg) ![App Version](https://img.shields.io/badge/app-10.10.3-green.svg)
+![Chart Version](https://img.shields.io/badge/chart-0.3.0-blue.svg) ![App Version](https://img.shields.io/badge/app-10.10.3-green.svg)
 
 **Description**: Media server with hardware transcoding support
 
@@ -145,7 +145,7 @@ helm install my-keycloak sb-charts/keycloak
 ![CMS](https://img.shields.io/badge/tag-CMS-orange.svg)
 ![Productivity](https://img.shields.io/badge/tag-Productivity-orange.svg)
 ![Collaboration](https://img.shields.io/badge/tag-Collaboration-orange.svg)
-![Chart Version](https://img.shields.io/badge/chart-0.2.0-blue.svg) ![App Version](https://img.shields.io/badge/app-31.0.10-green.svg)
+![Chart Version](https://img.shields.io/badge/chart-0.3.0-blue.svg) ![App Version](https://img.shields.io/badge/app-31.0.10-green.svg)
 
 **Description**: Nextcloud with LinuxServer.io image (Deployment, PostgreSQL, config-based)
 
@@ -168,7 +168,7 @@ helm install my-nextcloud sb-charts/nextcloud
 
 ![Document](https://img.shields.io/badge/tag-Document-orange.svg)
 ![Productivity](https://img.shields.io/badge/tag-Productivity-orange.svg)
-![Chart Version](https://img.shields.io/badge/chart-0.2.0-blue.svg) ![App Version](https://img.shields.io/badge/app-2.14.7-green.svg)
+![Chart Version](https://img.shields.io/badge/chart-0.3.0-blue.svg) ![App Version](https://img.shields.io/badge/app-2.14.7-green.svg)
 
 **Description**: Document management system with OCR (4 PVC architecture)
 
@@ -215,7 +215,7 @@ helm install my-rsshub sb-charts/rsshub
 ![Storage](https://img.shields.io/badge/tag-Storage-orange.svg)
 ![S3](https://img.shields.io/badge/tag-S3-orange.svg)
 ![Object-Storage](https://img.shields.io/badge/tag-Object-Storage-orange.svg)
-![Chart Version](https://img.shields.io/badge/chart-0.2.0-blue.svg) ![App Version](https://img.shields.io/badge/app-1.0.0-alpha.66-green.svg)
+![Chart Version](https://img.shields.io/badge/chart-0.3.0-blue.svg) ![App Version](https://img.shields.io/badge/app-1.0.0-alpha.66-green.svg)
 
 **Description**: High-performance S3-compatible object storage (StatefulSet, tiered storage, clustering)
 
@@ -239,7 +239,7 @@ helm install my-rustfs sb-charts/rustfs
 ![Monitoring](https://img.shields.io/badge/tag-Monitoring-orange.svg)
 ![Alerting](https://img.shields.io/badge/tag-Alerting-orange.svg)
 ![Status-Page](https://img.shields.io/badge/tag-Status-Page-orange.svg)
-![Chart Version](https://img.shields.io/badge/chart-0.2.0-blue.svg) ![App Version](https://img.shields.io/badge/app-2.0.2-green.svg)
+![Chart Version](https://img.shields.io/badge/chart-0.3.0-blue.svg) ![App Version](https://img.shields.io/badge/app-2.0.2-green.svg)
 
 **Description**: Self-hosted monitoring tool with beautiful UI and 90+ notification services
 
@@ -262,7 +262,7 @@ helm install my-uptime-kuma sb-charts/uptime-kuma
 
 ![Password](https://img.shields.io/badge/tag-Password-orange.svg)
 ![Security](https://img.shields.io/badge/tag-Security-orange.svg)
-![Chart Version](https://img.shields.io/badge/chart-0.2.0-blue.svg) ![App Version](https://img.shields.io/badge/app-1.34.3-green.svg)
+![Chart Version](https://img.shields.io/badge/chart-0.3.0-blue.svg) ![App Version](https://img.shields.io/badge/app-1.34.3-green.svg)
 
 **Description**: Bitwarden-compatible password manager
 
@@ -310,7 +310,7 @@ helm install my-wireguard sb-charts/wireguard
 ![CMS](https://img.shields.io/badge/tag-CMS-orange.svg)
 ![Web](https://img.shields.io/badge/tag-Web-orange.svg)
 ![Publishing](https://img.shields.io/badge/tag-Publishing-orange.svg)
-![Chart Version](https://img.shields.io/badge/chart-0.2.0-blue.svg) ![App Version](https://img.shields.io/badge/app-6.4.3-green.svg)
+![Chart Version](https://img.shields.io/badge/chart-0.3.0-blue.svg) ![App Version](https://img.shields.io/badge/app-6.4.3-green.svg)
 
 **Description**: WordPress CMS (Deployment, MySQL, Apache)
 
@@ -388,7 +388,7 @@ helm install my-rabbitmq sb-charts/rabbitmq
 ![Cache](https://img.shields.io/badge/tag-Cache-orange.svg)
 ![Database](https://img.shields.io/badge/tag-Database-orange.svg)
 ![In-Memory](https://img.shields.io/badge/tag-In-Memory-orange.svg)
-![Chart Version](https://img.shields.io/badge/chart-0.2.0-blue.svg) ![App Version](https://img.shields.io/badge/app-7.4.1-green.svg)
+![Chart Version](https://img.shields.io/badge/chart-0.3.0-blue.svg) ![App Version](https://img.shields.io/badge/app-7.4.1-green.svg)
 
 **Description**: In-memory data store (StatefulSet, no external database, full redis.conf support)
 
