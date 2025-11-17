@@ -9,6 +9,59 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+#### Nextcloud 0.3.0 - File Sync and Collaboration Platform
+- **Mature Status** (0.2.0 → 0.3.0)
+  - Promoted to Mature status with production-ready features
+  - 3 PVC architecture for data isolation
+  - External PostgreSQL 16 and Redis 8 integration
+- **3 PVC Architecture** (Data Isolation)
+  - Data PVC: User files, photos, and documents storage
+  - Config PVC: Nextcloud configuration and settings
+  - Apps PVC: Custom apps and extensions
+  - Independent size configuration per PVC
+  - Flexible storage class assignment
+- **External Service Integration**
+  - PostgreSQL 16 for database with connection pooling
+  - Redis 8 for session management and memory cache
+  - Existing secret support for credentials
+  - Flexible connection configuration
+- **Apache-based Deployment**
+  - Official Nextcloud image with Apache HTTP Server
+  - CalDAV and CardDAV support for calendar and contacts
+  - WebDAV protocol for file access
+  - .htaccess configuration for security
+- **occ Command Integration** (Nextcloud CLI)
+  - `nextcloud-init`: Initialize Nextcloud installation
+  - `nextcloud-setup`: Run maintenance and repair tasks
+  - Database management via occ
+  - User and group management
+  - App installation and configuration
+- **Background Jobs**
+  - Kubernetes CronJob for Nextcloud background tasks
+  - Scheduled maintenance operations
+  - File scanning and indexing
+  - Activity notifications
+- **Collaboration Features**
+  - File sharing with users and groups
+  - Public link sharing with expiration
+  - Calendar and contacts synchronization
+  - Real-time document editing (with apps)
+  - Comments and activity streams
+- **Makefile Operational Commands** (`make/ops/nextcloud.mk`)
+  - `nextcloud-init`: Initialize Nextcloud
+  - `nextcloud-setup`: Maintenance and repair
+- **Deployment Scenarios** (4 values files)
+  - `values-home-single.yaml`: Home server (100-500m CPU, 256-512Mi RAM, 10Gi)
+  - `values-startup-single.yaml`: Startup environment (250m-1000m CPU, 512Mi-1Gi RAM, 20Gi)
+  - `values-prod-master-replica.yaml`: Production HA (500m-2000m CPU, 1-2Gi RAM, 50Gi, 3 replicas)
+  - `values-example.yaml`: Production template
+- **Comprehensive Documentation** (`README.md`)
+  - CalDAV/CardDAV configuration
+  - PostgreSQL and Redis setup guide
+  - Background jobs configuration
+  - Deployment scenarios with resource specifications
+  - Operational commands reference
+
 #### WordPress 0.3.0 - Content Management System
 - **Mature Status** (0.2.0 → 0.3.0)
   - Promoted to Mature status with production-ready features

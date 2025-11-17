@@ -7,10 +7,20 @@ type: application
 annotations:
   artifacthub.io/license: BSD-3-Clause
   artifacthub.io/changes: |
+    - kind: changed
+      description: Promoted to version 0.3.0 (Mature - production-ready)
     - kind: added
-      description: Deployment scenario values files (home-single, startup-single, prod-master-replica)
+      description: 3 PVC architecture for data isolation (data, config, custom apps)
     - kind: added
-      description: Comprehensive README with deployment scenarios section
+      description: External PostgreSQL 16 and Redis 8 integration
+    - kind: added
+      description: Apache-based official Nextcloud image with CalDAV/CardDAV support
+    - kind: added
+      description: occ command integration for Nextcloud management
+    - kind: added
+      description: Background jobs CronJob for maintenance tasks
+    - kind: added
+      description: 4 deployment scenario values files (home, startup, production)
   artifacthub.io/prerelease: "false"
   artifacthub.io/recommendations: |
     - url: https://github.com/scriptonbasestar-container/sb-helm-charts/blob/master/docs/SCENARIO_VALUES_GUIDE.md
@@ -47,5 +57,5 @@ maintainers:
   - name: archmagece
     email: archmagece@users.noreply.github.com
 
-version: 0.2.0
+version: 0.3.0
 appVersion: "31.0.10"
