@@ -80,6 +80,7 @@ helm lint charts/my-chart
 - [ ] values.yaml comments are clear
 - [ ] NOTES.txt provides useful post-install information
 - [ ] Chart catalog regenerated (if metadata changed): `make generate-catalog`
+- [ ] Artifact Hub dashboard regenerated (if metadata changed): `make generate-artifacthub-dashboard`
 - [ ] Related documentation updated (if applicable)
 
 ## Checklist
