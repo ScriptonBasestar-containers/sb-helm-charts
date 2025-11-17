@@ -9,6 +9,34 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+#### Vaultwarden 0.3.0 - Production-Ready Password Manager
+- **Mature Status** (0.2.0 → 0.3.0)
+  - Promoted to Mature status with production-ready features
+  - Auto-switching workload type (StatefulSet for SQLite, Deployment for external DB)
+  - Complete Makefile operational commands
+- **Backup & Restore** (`make/ops/vaultwarden.mk`)
+  - `vw-backup-db`: Backup SQLite database to tmp/vaultwarden-backups/
+  - `vw-restore-db`: Restore SQLite database from backup
+  - `vw-db-test`: Test external database connection (PostgreSQL/MySQL)
+- **Admin Panel Management**
+  - `vw-get-admin-token`: Retrieve admin panel token
+  - `vw-admin`: Open admin panel in browser
+  - `vw-get-config`: Show current configuration
+- **Database Mode Support**
+  - SQLite (embedded) mode: StatefulSet with PVC
+  - PostgreSQL/MySQL mode: Deployment (stateless)
+  - Automatic workload type selection based on database configuration
+- **Security Features**
+  - Admin token management
+  - SMTP password retrieval (vw-get-smtp-password)
+  - Database URL encryption
+- **Comprehensive Documentation** (`README.md`)
+  - Bitwarden feature comparison
+  - Deployment scenarios (home server, startup, production)
+  - Database mode switching guide
+  - Admin panel security guide
+  - Operational commands reference
+
 #### Jellyfin 0.3.0 - Complete GPU Acceleration Support
 - **AMD VAAPI GPU Support** (New)
   - Added AMD VAAPI hardware acceleration alongside Intel QSV and NVIDIA NVENC

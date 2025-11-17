@@ -2,7 +2,7 @@ apiVersion: v2
 name: vaultwarden
 description: Unofficial Bitwarden-compatible password manager written in Rust
 type: application
-version: 0.2.0
+version: 0.3.0
 appVersion: "1.34.3"
 icon: https://raw.githubusercontent.com/dani-garcia/vaultwarden/main/resources/vaultwarden-icon.svg
 keywords:
@@ -22,12 +22,16 @@ annotations:
   artifacthub.io/license: BSD-3-Clause
   category: Security
   artifacthub.io/changes: |
+    - kind: changed
+      description: Promoted to version 0.3.0 (Mature - production-ready)
     - kind: added
-      description: Initial Vaultwarden chart with SQLite/PostgreSQL support
+      description: Complete Makefile operational commands (backup, restore, admin panel)
     - kind: added
-      description: Deployment scenario values files (home-single, startup-single, prod-master-replica)
+      description: Auto-switching workload type (StatefulSet for SQLite, Deployment for external DB)
     - kind: added
-      description: Comprehensive README with deployment scenarios section
+      description: Comprehensive README with Bitwarden comparison and deployment scenarios
+    - kind: added
+      description: Admin panel security guide and token management
   artifacthub.io/prerelease: "false"
   artifacthub.io/recommendations: |
     - url: https://github.com/scriptonbasestar-container/sb-helm-charts/blob/master/docs/SCENARIO_VALUES_GUIDE.md
