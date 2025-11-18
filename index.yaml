@@ -439,6 +439,36 @@ entries:
   memcached:
   - annotations:
       artifacthub.io/changes: |
+        - kind: fixed
+          description: Fix chart icon URL to use working memcached banner image
+      artifacthub.io/license: BSD-3-Clause
+      artifacthub.io/prerelease: "false"
+    apiVersion: v2
+    appVersion: 1.6.39
+    created: "2025-11-18T01:37:13.960440632Z"
+    description: A Helm chart for Memcached - high-performance distributed memory
+      caching system
+    digest: 47fdd97120b545764ecec297d99f442efaebc05175f3df234b6d9c1b90af3643
+    home: https://github.com/scriptonbasestar-container/sb-helm-charts
+    icon: https://memcached.org/images/memcached_banner75.jpg
+    keywords:
+    - memcached
+    - cache
+    - memory
+    - performance
+    maintainers:
+    - email: archmagece@gmail.com
+      name: ScriptonBasestar
+    name: memcached
+    sources:
+    - https://github.com/scriptonbasestar-container/sb-helm-charts
+    - https://github.com/memcached/memcached
+    type: application
+    urls:
+    - https://github.com/ScriptonBasestar-containers/sb-helm-charts/releases/download/memcached-0.3.3/memcached-0.3.3.tgz
+    version: 0.3.3
+  - annotations:
+      artifacthub.io/changes: |
         - kind: changed
           description: Improve readinessProbe to use application-level check (stats command)
         - kind: changed
@@ -1747,4 +1777,4 @@ entries:
     urls:
     - https://github.com/ScriptonBasestar-containers/sb-helm-charts/releases/download/wordpress-0.1.0/wordpress-0.1.0.tgz
     version: 0.1.0
-generated: "2025-11-17T13:15:19.475423272Z"
+generated: "2025-11-18T01:37:15.958187683Z"
