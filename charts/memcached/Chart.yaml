@@ -7,13 +7,11 @@ type: application
 annotations:
   artifacthub.io/license: BSD-3-Clause
   artifacthub.io/changes: |
-    - kind: changed
-      description: Improve readinessProbe to use application-level check (stats command)
-    - kind: changed
-      description: Replace TCP socket check with memcached stats validation for better health detection
+    - kind: fixed
+      description: Fix chart icon URL to use working memcached banner image
   artifacthub.io/prerelease: "false"
 
-version: 0.3.2
+version: 0.3.3
 appVersion: "1.6.39"
 keywords:
   - memcached
@@ -27,4 +25,4 @@ sources:
 maintainers:
   - name: ScriptonBasestar
     email: archmagece@gmail.com
-icon: https://memcached.org/memcached-logo.png
+icon: https://memcached.org/images/memcached_banner75.jpg
