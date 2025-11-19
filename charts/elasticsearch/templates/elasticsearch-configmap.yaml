@@ -1,0 +1,63 @@
+{{- if not .Values.elasticsearch.existingConfigMap }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "elasticsearch.configMapName" . }}
+  labels:
+    {{- include "elasticsearch.labels" . | nindent 4 }}
+  {{- with .Values.elasticsearch.configMapAnnotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+data:
+  elasticsearch.yml: |
+    cluster.name: {{ .Values.elasticsearch.clusterName | quote }}
+    network.host: 0.0.0.0
+
+    # HTTP settings
+    http.port: 9200
+    http.cors.enabled: {{ .Values.elasticsearch.httpCorsEnabled }}
+    {{- if .Values.elasticsearch.httpCorsEnabled }}
+    http.cors.allow-origin: {{ .Values.elasticsearch.httpCorsAllowOrigin | quote }}
+    {{- end }}
+
+    # Transport settings
+    transport.port: 9300
+
+    # Path settings
+    path.data: /usr/share/elasticsearch/data
+    path.logs: /usr/share/elasticsearch/logs
+
+    # Bootstrap settings
+    bootstrap.memory_lock: false
+
+    {{- if .Values.elasticsearch.clusterMode }}
+    # Cluster mode settings
+    discovery.seed_hosts:
+      - {{ include "elasticsearch.headlessServiceName" . }}
+    cluster.initial_master_nodes:
+      - {{ include "elasticsearch.fullname" . }}-0
+      - {{ include "elasticsearch.fullname" . }}-1
+      - {{ include "elasticsearch.fullname" . }}-2
+    {{- else }}
+    # Single node mode
+    discovery.type: single-node
+    {{- end }}
+
+    # X-Pack settings
+    {{- if .Values.elasticsearch.password }}
+    xpack.security.enabled: true
+    xpack.security.transport.ssl.enabled: false
+    xpack.security.http.ssl.enabled: false
+    {{- else }}
+    xpack.security.enabled: false
+    {{- end }}
+
+    # Monitoring
+    xpack.monitoring.collection.enabled: {{ .Values.elasticsearch.monitoring.enabled }}
+
+    {{- with .Values.elasticsearch.config }}
+    # Additional custom configuration
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
+{{- end }}

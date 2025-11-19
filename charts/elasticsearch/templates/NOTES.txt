@@ -1,0 +1,132 @@
+===============================================================================
+Elasticsearch{{- if .Values.kibana.enabled }} + Kibana{{- end }} has been successfully installed!
+===============================================================================
+
+Deployment Configuration:
+- Mode: {{ if .Values.elasticsearch.clusterMode }}Cluster ({{ .Values.elasticsearch.replicas }} nodes){{ else }}Single Node{{ end }}
+- Replicas: {{ .Values.elasticsearch.replicas }}
+{{- if .Values.kibana.enabled }}
+- Kibana: Enabled
+{{- end }}
+
+-------------------------------------------------------------------------------
+1. CREDENTIALS
+-------------------------------------------------------------------------------
+
+{{- if .Values.elasticsearch.password }}
+Elastic User:
+  kubectl get secret {{ include "elasticsearch.secretName" . }} -o jsonpath='{.data.elastic-password}' | base64 -d
+
+{{- else }}
+⚠️  WARNING: Security is DISABLED (no password set)
+This configuration is for TESTING ONLY.
+For production, set elasticsearch.password in values.yaml
+{{- end }}
+
+-------------------------------------------------------------------------------
+2. ACCESS ELASTICSEARCH
+-------------------------------------------------------------------------------
+
+Elasticsearch HTTP endpoint:
+  kubectl port-forward svc/{{ include "elasticsearch.fullname" . }} 9200:9200
+  Access at: http://localhost:9200
+
+Check cluster health:
+  curl http://localhost:9200/_cluster/health{{- if .Values.elasticsearch.password }} -u elastic:$(kubectl get secret {{ include "elasticsearch.secretName" . }} -o jsonpath='{.data.elastic-password}' | base64 -d){{- end }}
+
+{{- if .Values.kibana.enabled }}
+
+-------------------------------------------------------------------------------
+3. ACCESS KIBANA
+-------------------------------------------------------------------------------
+
+{{- if .Values.kibana.ingress.enabled }}
+Kibana Web UI (Ingress):
+{{- range .Values.kibana.ingress.hosts }}
+  {{- $host := .host }}
+  {{- range .paths }}
+  {{ if $.Values.kibana.ingress.tls }}https{{ else }}http{{ end }}://{{ $host }}{{ .path }}
+  {{- end }}
+{{- end }}
+{{- else }}
+Kibana Web UI (Port Forward):
+  kubectl port-forward svc/{{ include "kibana.fullname" . }} 5601:5601
+  Access at: http://localhost:5601
+{{- end }}
+
+{{- if .Values.elasticsearch.password }}
+Login with:
+  Username: elastic
+  Password: (use command from section 1)
+{{- end }}
+{{- end }}
+
+-------------------------------------------------------------------------------
+4. STATUS & HEALTH
+-------------------------------------------------------------------------------
+
+Check Elasticsearch pods:
+  kubectl get pods -l app.kubernetes.io/component=elasticsearch
+
+View Elasticsearch logs:
+  kubectl logs -f -l app.kubernetes.io/component=elasticsearch
+
+{{- if .Values.elasticsearch.clusterMode }}
+Check cluster status:
+  kubectl exec -it {{ include "elasticsearch.fullname" . }}-0 -- curl http://localhost:9200/_cluster/health?pretty
+{{- end }}
+
+{{- if .Values.kibana.enabled }}
+Check Kibana pods:
+  kubectl get pods -l app.kubernetes.io/component=kibana
+
+View Kibana logs:
+  kubectl logs -f -l app.kubernetes.io/component=kibana
+{{- end }}
+
+-------------------------------------------------------------------------------
+5. OPERATIONAL COMMANDS
+-------------------------------------------------------------------------------
+
+Using Makefile (recommended):
+  make -f make/ops/elasticsearch.mk es-health
+  make -f make/ops/elasticsearch.mk es-cluster-status
+  make -f make/ops/elasticsearch.mk es-indices
+{{- if .Values.kibana.enabled }}
+  make -f make/ops/elasticsearch.mk kibana-port-forward
+{{- end }}
+  make -f make/ops/elasticsearch.mk es-logs
+
+-------------------------------------------------------------------------------
+6. NEXT STEPS
+-------------------------------------------------------------------------------
+
+{{- if not .Values.elasticsearch.password }}
+⚠️  SECURITY WARNING: Enable security for production:
+  - Set elasticsearch.password in values.yaml
+  - Consider enabling TLS for transport and HTTP
+{{- end }}
+
+{{- if eq (int .Values.elasticsearch.replicas) 1 }}
+📝 For production HA:
+  - Set elasticsearch.clusterMode=true
+  - Set elasticsearch.replicas=3 (or more)
+  - Use persistent storage (persistence.enabled=true)
+{{- end }}
+
+1. Create indices and mappings
+2. Configure index lifecycle policies
+3. Set up data retention policies
+{{- if .Values.kibana.enabled }}
+4. Create Kibana dashboards and visualizations
+{{- end }}
+5. Configure backup/snapshot repository (S3/MinIO recommended)
+
+Documentation:
+  - Elasticsearch: https://www.elastic.co/guide/en/elasticsearch/reference/current/index.html
+  - Chart README: https://github.com/scriptonbasestar-container/sb-helm-charts/tree/master/charts/elasticsearch
+{{- if .Values.kibana.enabled }}
+  - Kibana: https://www.elastic.co/guide/en/kibana/current/index.html
+{{- end }}
+
+===============================================================================

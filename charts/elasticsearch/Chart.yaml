@@ -1,0 +1,21 @@
+apiVersion: v2
+name: elasticsearch
+description: Opinionated Elasticsearch + Kibana chart for small to medium workloads
+home: https://www.elastic.co/elasticsearch/
+icon: https://raw.githubusercontent.com/elastic/elasticsearch/main/docs/reference/images/logo-elastic-search-color-64.svg
+sources:
+  - https://github.com/scriptonbasestar-container/sb-helm-charts/tree/master/charts/elasticsearch
+  - https://github.com/elastic/elasticsearch
+type: application
+version: 0.1.0
+appVersion: "8.11.0"
+keywords:
+  - elasticsearch
+  - kibana
+  - logging
+  - search
+  - analytics
+  - elk
+maintainers:
+  - name: ScriptonBasestar
+    url: https://github.com/scriptonbasestar-container

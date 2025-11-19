@@ -1,0 +1,250 @@
+# Default values for elasticsearch
+# This is a YAML-formatted file for single-node development/testing use
+# For production deployments, see values-dev.yaml or values-small-prod.yaml
+
+# ==================================================================================
+# DEPLOYMENT SCENARIOS
+# ==================================================================================
+# This file contains default values for single-node testing.
+# For production-ready configurations, see:
+# - values-dev.yaml: Development environment with Kibana
+# - values-small-prod.yaml: Small production cluster (3 nodes, security enabled)
+# See: charts/elasticsearch/README.md for complete documentation
+# ==================================================================================
+
+# Number of Elasticsearch replicas
+# Standalone mode: 1 replica
+# Cluster mode: minimum 3 replicas for quorum
+elasticsearch:
+  replicas: 1
+  clusterMode: false  # Enable for 3+ node cluster with quorum
+  clusterName: "elasticsearch"
+
+  # Root user password (elastic user)
+  # REQUIRED for production. Leave empty for testing (security disabled)
+  password: ""
+
+  # JVM heap size
+  # Recommendation: Set to 50% of memory limit, max 31GB
+  javaOpts: "-Xms1g -Xmx1g"
+
+  # HTTP CORS settings (for browser-based clients)
+  httpCorsEnabled: false
+  httpCorsAllowOrigin: "*"
+
+  # Use existing secret for credentials (optional)
+  existingSecret: ""
+
+  # Use existing ConfigMap (optional)
+  existingConfigMap: ""
+
+  # ConfigMap annotations (for tools like reloader)
+  configMapAnnotations: {}
+
+  # Secret annotations (for tools like external-secrets)
+  secretAnnotations: {}
+
+  # Additional Elasticsearch configuration
+  # Will be merged into elasticsearch.yml
+  config: {}
+    # index.number_of_shards: 1
+    # index.number_of_replicas: 0
+
+  # Monitoring
+  monitoring:
+    enabled: false
+
+# Kibana web UI
+kibana:
+  enabled: true
+  replicas: 1
+
+  # Kibana server settings
+  serverHost: "0.0.0.0"
+  serverName: "kibana"
+
+  # Additional Kibana configuration
+  config: {}
+
+  # Ingress configuration for Kibana
+  ingress:
+    enabled: false
+    className: ""
+    annotations: {}
+      # cert-manager.io/cluster-issuer: letsencrypt-prod
+      # nginx.ingress.kubernetes.io/proxy-body-size: "0"
+    hosts:
+      - host: kibana.example.com
+        paths:
+          - path: /
+            pathType: Prefix
+    tls: []
+      # - secretName: kibana-tls
+      #   hosts:
+      #     - kibana.example.com
+
+# Pod management policy for StatefulSet
+# Parallel: Pods are created/deleted in parallel (faster)
+# OrderedReady: Pods are created/deleted in order (slower but more controlled)
+podManagementPolicy: Parallel
+
+# Update strategy
+updateStrategy:
+  type: RollingUpdate
+  rollingUpdate:
+    partition: 0
+
+# Image configuration
+image:
+  repository: docker.elastic.co/elasticsearch/elasticsearch
+  pullPolicy: IfNotPresent
+  # Overrides the image tag whose default is the chart appVersion
+  tag: ""
+
+imagePullSecrets: []
+nameOverride: ""
+fullnameOverride: ""
+
+# ServiceAccount configuration
+serviceAccount:
+  create: true
+  automount: true
+  annotations: {}
+  name: ""
+
+# Pod annotations
+podAnnotations: {}
+
+# Pod labels
+podLabels: {}
+
+# Pod security context
+# Elasticsearch runs as user 1000 (elasticsearch)
+podSecurityContext:
+  fsGroup: 1000
+  runAsUser: 1000
+  runAsGroup: 1000
+  fsGroupChangePolicy: "OnRootMismatch"
+
+# Container security context
+securityContext:
+  runAsNonRoot: true
+  runAsUser: 1000
+  capabilities:
+    drop:
+      - ALL
+  # readOnlyRootFilesystem: true  # Elasticsearch needs writable temp
+
+# Service configuration
+service:
+  type: ClusterIP
+  clusterIP: ""
+  annotations: {}
+  loadBalancerIP: ""
+  loadBalancerSourceRanges: []
+  externalTrafficPolicy: ""
+
+  http:
+    port: 9200
+    nodePort: ""
+
+# Headless service configuration (for cluster discovery)
+headlessService:
+  annotations: {}
+
+# Resource limits and requests
+resources:
+  limits:
+    cpu: 2000m
+    memory: 2Gi
+  requests:
+    cpu: 500m
+    memory: 1Gi
+
+# Liveness probe configuration
+livenessProbe:
+  httpGet:
+    path: /_cluster/health?local=true
+    port: http
+    scheme: HTTP
+  initialDelaySeconds: 90
+  periodSeconds: 30
+  timeoutSeconds: 10
+  successThreshold: 1
+  failureThreshold: 3
+
+# Readiness probe configuration
+readinessProbe:
+  httpGet:
+    path: /_cluster/health?local=true
+    port: http
+    scheme: HTTP
+  initialDelaySeconds: 30
+  periodSeconds: 10
+  timeoutSeconds: 5
+  successThreshold: 1
+  failureThreshold: 3
+
+# Startup probe configuration
+startupProbe:
+  httpGet:
+    path: /_cluster/health?local=true
+    port: http
+    scheme: HTTP
+  initialDelaySeconds: 0
+  periodSeconds: 10
+  timeoutSeconds: 5
+  successThreshold: 1
+  failureThreshold: 60  # Up to 10 minutes for startup
+
+# Persistence configuration
+persistence:
+  enabled: true
+  storageClass: ""      # Use default storage class or specify
+  accessMode: ReadWriteOnce
+  size: 30Gi            # Data volume size per node
+  annotations: {}
+
+# PodDisruptionBudget configuration
+podDisruptionBudget:
+  enabled: false
+  minAvailable: 1
+  # maxUnavailable: 1
+
+# Node selector
+nodeSelector: {}
+
+# Tolerations
+tolerations: []
+
+# Affinity
+affinity: {}
+
+# Extra environment variables
+extraEnv: []
+  # - name: CUSTOM_VAR
+  #   value: "value"
+
+# Extra environment variables from ConfigMaps or Secrets
+extraEnvFrom: []
+  # - configMapRef:
+  #     name: extra-config
+
+# Extra volumes
+extraVolumes: []
+  # - name: extra-config
+  #   configMap:
+  #     name: extra-config
+
+# Extra volume mounts
+extraVolumeMounts: []
+  # - name: extra-config
+  #   mountPath: /extra-config
+
+# Init containers
+initContainers: []
+  # - name: init-sysctl
+  #   image: busybox:latest
+  #   command: ['sh', '-c', 'sysctl -w vm.max_map_count=262144']
+  #   securityContext:
+  #     privileged: true

@@ -140,3 +140,21 @@ charts:
     keywords: [rabbitmq, message-queue, amqp, messaging, broker, message-broker]
     description: Message broker with management UI (Deployment, no database, AMQP + Prometheus metrics)
     production_note: "For production clustering, consider RabbitMQ Cluster Operator"
+
+  minio:
+    name: MinIO
+    path: charts/minio
+    category: infrastructure
+    tags: [Storage, S3, Object-Storage]
+    keywords: [minio, object-storage, s3, aws-s3-compatible, distributed-storage, erasure-coding]
+    description: High-performance S3-compatible object storage (StatefulSet, distributed mode, erasure coding)
+    production_note: "For production HA, consider MinIO Operator for advanced features"
+
+  elasticsearch:
+    name: Elasticsearch
+    path: charts/elasticsearch
+    category: infrastructure
+    tags: [Logging, Search, Analytics]
+    keywords: [elasticsearch, kibana, logging, search, analytics, elk]
+    description: Opinionated Elasticsearch + Kibana for small to medium workloads (StatefulSet, simple operations)
+    production_note: "For large-scale production, consider Elastic Cloud on Kubernetes (ECK) Operator"
