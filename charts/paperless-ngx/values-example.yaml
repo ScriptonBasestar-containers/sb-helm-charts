@@ -27,6 +27,30 @@ paperless:
     from: "paperless@example.com"
     useTLS: true
 
+  # S3 Object Storage (Optional)
+  # Uncomment to use S3 for document storage instead of PVCs
+  # Reduces media PVC from 100Gi to ~2Gi (90% storage reduction)
+  # See: docs/S3_INTEGRATION_GUIDE.md#paperless-ngx-document-storage
+  # extraEnv:
+  #   - name: PAPERLESS_STORAGE_TYPE
+  #     value: "s3"
+  #   - name: PAPERLESS_AWS_ACCESS_KEY_ID
+  #     valueFrom:
+  #       secretKeyRef:
+  #         name: paperless-s3-credentials
+  #         key: access-key-id
+  #   - name: PAPERLESS_AWS_SECRET_ACCESS_KEY
+  #     valueFrom:
+  #       secretKeyRef:
+  #         name: paperless-s3-credentials
+  #         key: secret-access-key
+  #   - name: PAPERLESS_AWS_STORAGE_BUCKET_NAME
+  #     value: "paperless-documents"
+  #   - name: PAPERLESS_AWS_S3_ENDPOINT_URL
+  #     value: "http://minio.default.svc.cluster.local:9000"
+  #   - name: PAPERLESS_AWS_S3_REGION_NAME
+  #     value: "us-east-1"
+
 postgresql:
   external:
     enabled: true

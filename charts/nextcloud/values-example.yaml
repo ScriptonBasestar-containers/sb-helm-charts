@@ -27,6 +27,30 @@ nextcloud:
     username: "your-email@gmail.com"
     password: "your-app-password"
 
+  # S3 Object Storage (Optional)
+  # Uncomment to use S3 as primary storage backend
+  # Replaces data PVC entirely - only config/apps need local storage
+  # See: docs/S3_INTEGRATION_GUIDE.md#nextcloud-primary-storage
+  # configs:
+  #   s3.config.php: |-
+  #     <?php
+  #     $CONFIG = array(
+  #       'objectstore' => [
+  #         'class' => '\\OC\\Files\\ObjectStore\\S3',
+  #         'arguments' => [
+  #           'bucket' => 'nextcloud-data',
+  #           'autocreate' => true,
+  #           'key' => 'nextcloud-user',
+  #           'secret' => getenv('S3_SECRET_KEY'),
+  #           'hostname' => 'minio.default.svc.cluster.local',
+  #           'port' => 9000,
+  #           'use_ssl' => false,
+  #           'region' => 'us-east-1',
+  #           'use_path_style' => true
+  #         ],
+  #       ],
+  #     );
+
 # External PostgreSQL 16 configuration
 postgresql:
   enabled: false  # We use external PostgreSQL
@@ -291,6 +315,12 @@ extraEnv:
     value: "1024M"
   - name: PHP_UPLOAD_LIMIT
     value: "20G"
+  # S3 Object Storage secret (uncomment if using S3)
+  # - name: S3_SECRET_KEY
+  #   valueFrom:
+  #     secretKeyRef:
+  #       name: nextcloud-s3-credentials
+  #       key: secret-access-key
   # - name: CUSTOM_VAR
   #   value: "custom-value"
 
