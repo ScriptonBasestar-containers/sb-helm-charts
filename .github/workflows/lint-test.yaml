@@ -58,7 +58,7 @@ jobs:
         if: steps.list-changed.outputs.changed == 'true'
         run: |
           ct install --config ct.yaml \
-            --helm-extra-set-args "--set=postgresql.external.password=test123 --set=redis.external.password=test123"
+            --helm-extra-set-args "--set=postgresql.external.password=test123 --set=redis.external.password=test123 --set=minio.rootPassword=test123"
 
   helm-lint:
     runs-on: ubuntu-22.04
@@ -71,6 +71,7 @@ jobs:
           - jellyfin
           - keycloak
           - memcached
+          - minio
           - nextcloud
           - paperless-ngx
           - rabbitmq
@@ -100,7 +101,8 @@ jobs:
           helm lint charts/${{ matrix.chart }} \
             -f charts/${{ matrix.chart }}/values-example.yaml \
             --set postgresql.external.password=test123 \
-            --set redis.external.password=test123 || true
+            --set redis.external.password=test123 \
+            --set minio.rootPassword=test123 || true
 
       - name: Helm lint (values-homeserver.yaml)
         if: hashFiles('charts/${{ matrix.chart }}/values-homeserver.yaml') != ''
@@ -108,7 +110,8 @@ jobs:
           helm lint charts/${{ matrix.chart }} \
             -f charts/${{ matrix.chart }}/values-homeserver.yaml \
             --set postgresql.external.password=test123 \
-            --set redis.external.password=test123 || true
+            --set redis.external.password=test123 \
+            --set minio.rootPassword=test123 || true
 
       - name: Helm lint (scenario files)
         run: |
@@ -120,7 +123,8 @@ jobs:
               if helm lint charts/${{ matrix.chart }} -f "$values_file" \
                 --set postgresql.external.password=test123 \
                 --set redis.external.password=test123 \
-                --set rabbitmq.admin.password=test123; then
+                --set rabbitmq.admin.password=test123 \
+                --set minio.rootPassword=test123; then
                 echo "  ✅ $scenario lint passed" >> $GITHUB_STEP_SUMMARY
               else
                 echo "  ⚠️ $scenario lint failed (non-blocking)" >> $GITHUB_STEP_SUMMARY
@@ -130,6 +134,7 @@ jobs:
                 --set postgresql.external.password=test123 \
                 --set redis.external.password=test123 \
                 --set rabbitmq.admin.password=test123 \
+                --set minio.rootPassword=test123 \
                 --validate > /dev/null; then
                 echo "  ✅ $scenario template validation passed" >> $GITHUB_STEP_SUMMARY
               else
@@ -145,6 +150,7 @@ jobs:
           helm template test-release charts/${{ matrix.chart }} \
             --set postgresql.external.password=test123 \
             --set redis.external.password=test123 \
+            --set minio.rootPassword=test123 \
             --dry-run > /dev/null
 
   validation-summary:
