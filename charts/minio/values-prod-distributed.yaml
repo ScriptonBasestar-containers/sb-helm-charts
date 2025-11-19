@@ -1,0 +1,266 @@
+# MinIO configuration for production distributed mode
+# Optimized for: Production HA deployments with erasure coding
+# Mode: Distributed with 4 nodes, 4 drives per node
+# Resources: High (4Gi-8Gi RAM, 2-4 CPU per node)
+# Total: 16 drives for EC:4 erasure coding
+
+replicaCount: 4  # Minimum for distributed mode
+podManagementPolicy: Parallel
+
+updateStrategy:
+  type: RollingUpdate
+  rollingUpdate:
+    partition: 0
+
+minio:
+  mode: distributed
+  drivesPerNode: 4  # 4 drives per node = 16 total drives
+
+  rootUser: "admin"
+  rootPassword: ""  # SET THIS! Use strong password
+
+  region: "us-east-1"
+
+  # Console redirect URL (set to ingress URL when using ingress)
+  # Example: "https://minio-console.example.com"
+  browserRedirectURL: ""
+
+  # Prometheus configuration
+  prometheusAuthType: "public"  # Or use JWT for security
+  prometheusURL: "http://prometheus-server.monitoring.svc:9090"
+  prometheusJobID: "minio-production"
+
+  extraArgs: []
+    # Add additional arguments as needed
+
+image:
+  repository: minio/minio
+  pullPolicy: IfNotPresent
+  tag: ""
+
+serviceAccount:
+  create: true
+  automount: true
+  annotations: {}
+
+podAnnotations:
+  prometheus.io/scrape: "true"
+  prometheus.io/port: "9000"
+  prometheus.io/path: "/minio/v2/metrics/cluster"
+
+podLabels:
+  environment: "production"
+
+podSecurityContext:
+  fsGroup: 1000
+  runAsUser: 1000
+  runAsGroup: 1000
+  fsGroupChangePolicy: "OnRootMismatch"
+
+securityContext:
+  runAsNonRoot: true
+  runAsUser: 1000
+  capabilities:
+    drop:
+      - ALL
+
+service:
+  type: ClusterIP
+  api:
+    port: 9000
+  console:
+    port: 9001
+
+# Production resource allocations
+resources:
+  limits:
+    cpu: 4000m
+    memory: 8Gi
+  requests:
+    cpu: 2000m
+    memory: 4Gi
+
+livenessProbe:
+  httpGet:
+    path: /minio/health/live
+    port: api
+  initialDelaySeconds: 30
+  periodSeconds: 20
+  timeoutSeconds: 5
+  failureThreshold: 3
+
+readinessProbe:
+  httpGet:
+    path: /minio/health/ready
+    port: api
+  initialDelaySeconds: 10
+  periodSeconds: 10
+  timeoutSeconds: 5
+  failureThreshold: 3
+
+startupProbe:
+  httpGet:
+    path: /minio/health/live
+    port: api
+  initialDelaySeconds: 0
+  periodSeconds: 10
+  timeoutSeconds: 5
+  failureThreshold: 60  # Higher for distributed mode startup
+
+autoscaling:
+  enabled: false  # StatefulSet autoscaling requires K8s 1.27+
+
+# Production storage with high IOPS
+persistence:
+  enabled: true
+  storageClass: "fast-ssd"  # Use SSD storage class
+  accessMode: ReadWriteOnce
+  size: 500Gi  # 500GB per drive, 2TB total per node
+  annotations:
+    volume.beta.kubernetes.io/storage-class: "fast-ssd"
+
+# Production HA configuration
+podDisruptionBudget:
+  enabled: true
+  minAvailable: 3  # Maintain quorum during updates
+  unhealthyPodEvictionPolicy: "IfHealthyBudget"
+
+# Production network policy
+networkPolicy:
+  enabled: true
+  ingress:
+    api:
+      from:
+        # Allow from ingress controller
+        - namespaceSelector:
+            matchLabels:
+              name: ingress-nginx
+        # Allow from application namespace
+        - namespaceSelector:
+            matchLabels:
+              name: applications
+    console:
+      from:
+        # Allow from ingress controller
+        - namespaceSelector:
+            matchLabels:
+              name: ingress-nginx
+  egress:
+    extraRules:
+      # Allow Prometheus metrics push
+      - to:
+          - namespaceSelector:
+              matchLabels:
+                name: monitoring
+        ports:
+          - protocol: TCP
+            port: 9090
+      # Allow HTTPS for external connections
+      - to:
+          - namespaceSelector: {}
+        ports:
+          - protocol: TCP
+            port: 443
+
+# Production monitoring
+monitoring:
+  enabled: true
+  serviceMonitor:
+    enabled: true
+    namespace: ""  # Deploy in same namespace
+    labels:
+      release: prometheus
+    interval: 30s
+    scrapeTimeout: 10s
+    scheme: http
+
+# Node affinity for production
+nodeSelector:
+  node-role.kubernetes.io/storage: "true"  # Use dedicated storage nodes
+
+tolerations:
+  - key: "storage"
+    operator: "Equal"
+    value: "true"
+    effect: "NoSchedule"
+
+# Pod anti-affinity for HA
+affinity:
+  podAntiAffinity:
+    requiredDuringSchedulingIgnoredDuringExecution:
+      - labelSelector:
+          matchExpressions:
+            - key: app.kubernetes.io/name
+              operator: In
+              values:
+                - minio
+        topologyKey: kubernetes.io/hostname
+    preferredDuringSchedulingIgnoredDuringExecution:
+      - weight: 100
+        podAffinityTerm:
+          labelSelector:
+            matchExpressions:
+              - key: app.kubernetes.io/name
+                operator: In
+                values:
+                  - minio
+          topologyKey: topology.kubernetes.io/zone
+
+# Production ingress with TLS
+ingress:
+  api:
+    enabled: true
+    className: "nginx"
+    annotations:
+      cert-manager.io/cluster-issuer: "letsencrypt-prod"
+      nginx.ingress.kubernetes.io/proxy-body-size: "0"
+      nginx.ingress.kubernetes.io/proxy-buffering: "off"
+      nginx.ingress.kubernetes.io/proxy-request-buffering: "off"
+      nginx.ingress.kubernetes.io/proxy-connect-timeout: "300"
+      nginx.ingress.kubernetes.io/proxy-send-timeout: "300"
+      nginx.ingress.kubernetes.io/proxy-read-timeout: "300"
+    hosts:
+      - host: s3.example.com
+        paths:
+          - path: /
+            pathType: Prefix
+    tls:
+      - secretName: minio-api-tls
+        hosts:
+          - s3.example.com
+
+  console:
+    enabled: true
+    className: "nginx"
+    annotations:
+      cert-manager.io/cluster-issuer: "letsencrypt-prod"
+      nginx.ingress.kubernetes.io/proxy-buffering: "off"
+    hosts:
+      - host: minio-console.example.com
+        paths:
+          - path: /
+            pathType: Prefix
+    tls:
+      - secretName: minio-console-tls
+        hosts:
+          - minio-console.example.com
+
+# Optional: Init container to set permissions
+initContainers: []
+  # - name: init-chmod
+  #   image: busybox:latest
+  #   command: ['sh', '-c', 'for i in $(seq 0 3); do chown -R 1000:1000 /data$i; done']
+  #   volumeMounts:
+  #     - name: data-0
+  #       mountPath: /data0
+  #     - name: data-1
+  #       mountPath: /data1
+  #     - name: data-2
+  #       mountPath: /data2
+  #     - name: data-3
+  #       mountPath: /data3
+
+lifecycle:
+  preStop:
+    exec:
+      command: ["/bin/sh", "-c", "sleep 15"]  # Graceful shutdown
