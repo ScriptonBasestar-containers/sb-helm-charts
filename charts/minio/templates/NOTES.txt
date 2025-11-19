@@ -1,0 +1,152 @@
+{{- $mode := include "minio.effectiveMode" . -}}
+===============================================================================
+MinIO has been successfully installed!
+===============================================================================
+
+Deployment Mode: {{ $mode }}
+Replicas: {{ .Values.replicaCount }}
+Drives per Node: {{ .Values.minio.drivesPerNode }}
+{{- if eq $mode "distributed" }}
+Total Drives: {{ mul (int .Values.replicaCount) (int .Values.minio.drivesPerNode) }}
+{{- end }}
+
+-------------------------------------------------------------------------------
+1. CREDENTIALS
+-------------------------------------------------------------------------------
+
+Root User:
+  kubectl get secret {{ include "minio.secretName" . }} -o jsonpath='{.data.{{ .Values.minio.rootUserKey }}}' | base64 -d
+
+Root Password:
+  kubectl get secret {{ include "minio.secretName" . }} -o jsonpath='{.data.{{ .Values.minio.rootPasswordKey }}}' | base64 -d
+
+-------------------------------------------------------------------------------
+2. ACCESS MinIO
+-------------------------------------------------------------------------------
+
+{{- if .Values.ingress.api.enabled }}
+API Endpoint (S3):
+{{- range .Values.ingress.api.hosts }}
+  {{- $host := .host }}
+  {{- range .paths }}
+  {{ if $.Values.ingress.api.tls }}https{{ else }}http{{ end }}://{{ $host }}{{ .path }}
+  {{- end }}
+{{- end }}
+{{- else }}
+API Endpoint (S3) - Port Forward:
+  kubectl port-forward svc/{{ include "minio.fullname" . }} 9000:9000
+  Access at: http://localhost:9000
+{{- end }}
+
+{{- if .Values.ingress.console.enabled }}
+Console (Web UI):
+{{- range .Values.ingress.console.hosts }}
+  {{- $host := .host }}
+  {{- range .paths }}
+  {{ if $.Values.ingress.console.tls }}https{{ else }}http{{ end }}://{{ $host }}{{ .path }}
+  {{- end }}
+{{- end }}
+{{- else }}
+Console (Web UI) - Port Forward:
+  kubectl port-forward svc/{{ include "minio.fullname" . }} 9001:9001
+  Access at: http://localhost:9001
+{{- end }}
+
+-------------------------------------------------------------------------------
+3. MinIO CLIENT (mc) SETUP
+-------------------------------------------------------------------------------
+
+Install mc client:
+  https://min.io/docs/minio/linux/reference/minio-mc.html
+
+Set up alias:
+  export MINIO_ROOT_USER=$(kubectl get secret {{ include "minio.secretName" . }} -o jsonpath='{.data.{{ .Values.minio.rootUserKey }}}' | base64 -d)
+  export MINIO_ROOT_PASSWORD=$(kubectl get secret {{ include "minio.secretName" . }} -o jsonpath='{.data.{{ .Values.minio.rootPasswordKey }}}' | base64 -d)
+
+{{- if .Values.ingress.api.enabled }}
+{{- range .Values.ingress.api.hosts }}
+  {{- $host := .host }}
+  {{- range .paths }}
+  mc alias set {{ $.Release.Name }} {{ if $.Values.ingress.api.tls }}https{{ else }}http{{ end }}://{{ $host }}{{ .path }} $MINIO_ROOT_USER $MINIO_ROOT_PASSWORD
+  {{- end }}
+{{- end }}
+{{- else }}
+  kubectl port-forward svc/{{ include "minio.fullname" . }} 9000:9000 &
+  mc alias set {{ .Release.Name }} http://localhost:9000 $MINIO_ROOT_USER $MINIO_ROOT_PASSWORD
+{{- end }}
+
+Test connection:
+  mc admin info {{ .Release.Name }}
+
+Create a bucket:
+  mc mb {{ .Release.Name }}/mybucket
+
+-------------------------------------------------------------------------------
+4. STATUS & HEALTH
+-------------------------------------------------------------------------------
+
+Check pod status:
+  kubectl get pods -l app.kubernetes.io/name={{ include "minio.name" . }}
+
+View logs:
+  kubectl logs -f -l app.kubernetes.io/name={{ include "minio.name" . }}
+
+{{- if eq $mode "distributed" }}
+Check distributed mode status:
+  kubectl exec -it {{ include "minio.fullname" . }}-0 -- mc admin info local
+{{- end }}
+
+-------------------------------------------------------------------------------
+5. OPERATIONAL COMMANDS
+-------------------------------------------------------------------------------
+
+Using Makefile (recommended):
+  make -f make/ops/minio.mk minio-get-credentials
+  make -f make/ops/minio.mk minio-port-forward-api
+  make -f make/ops/minio.mk minio-port-forward-console
+  make -f make/ops/minio.mk minio-mc-alias
+  make -f make/ops/minio.mk minio-health
+  make -f make/ops/minio.mk minio-logs
+  make -f make/ops/minio.mk minio-shell
+
+{{- if .Values.monitoring.enabled }}
+
+-------------------------------------------------------------------------------
+6. MONITORING
+-------------------------------------------------------------------------------
+
+{{- if .Values.monitoring.serviceMonitor.enabled }}
+Prometheus metrics are exposed at: /minio/v2/metrics/cluster
+ServiceMonitor is configured for automatic scraping.
+{{- else }}
+Prometheus metrics endpoint:
+  http://{{ include "minio.fullname" . }}:9000/minio/v2/metrics/cluster
+
+Enable ServiceMonitor in values.yaml for automatic Prometheus integration.
+{{- end }}
+{{- end }}
+
+-------------------------------------------------------------------------------
+7. NEXT STEPS
+-------------------------------------------------------------------------------
+
+{{- if eq $mode "standalone" }}
+NOTE: You are running in standalone mode. For production deployments with HA:
+  - Set minio.mode=distributed
+  - Set replicaCount >= 4 (minimum for distributed mode)
+  - Ensure even number of replicas for erasure coding
+  - Configure minio.drivesPerNode (recommended: 4)
+{{- end }}
+
+1. Create buckets for your applications
+2. Configure bucket policies and lifecycle rules
+3. Set up TLS/HTTPS for production use
+4. Enable versioning and object locking if needed
+5. Configure backup and disaster recovery
+
+Documentation:
+  - MinIO Docs: https://min.io/docs/minio/linux/index.html
+  - Chart README: https://github.com/scriptonbasestar-container/sb-helm-charts/tree/master/charts/minio
+  - S3 Integration Guide: docs/S3_INTEGRATION_GUIDE.md
+
+===============================================================================

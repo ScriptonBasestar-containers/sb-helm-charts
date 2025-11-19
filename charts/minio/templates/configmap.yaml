@@ -1,0 +1,20 @@
+{{- if not .Values.minio.existingConfigMap }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "minio.configMapName" . }}
+  labels:
+    {{- include "minio.labels" . | nindent 4 }}
+  {{- with .Values.minio.configMapAnnotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+data:
+  {{- if .Values.minio.config }}
+  config.env: |
+    {{- .Values.minio.config | nindent 4 }}
+  {{- end }}
+  {{- with .Values.minio.configData }}
+  {{- toYaml . | nindent 2 }}
+  {{- end }}
+{{- end }}

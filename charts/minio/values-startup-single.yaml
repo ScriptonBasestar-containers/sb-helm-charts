@@ -1,0 +1,183 @@
+# MinIO configuration for startups / cost-optimized deployments
+# Optimized for: Early-stage startups, development environments, cost efficiency
+# Mode: Standalone with single drive
+# Resources: Minimal (512Mi RAM, 0.5 CPU)
+# Storage: 50Gi default
+
+replicaCount: 1
+podManagementPolicy: Parallel
+
+minio:
+  mode: standalone
+  drivesPerNode: 1  # Single drive to minimize costs
+
+  rootUser: "admin"
+  rootPassword: ""  # SET THIS!
+
+  region: "us-east-1"
+
+  # Enable public Prometheus metrics
+  prometheusAuthType: "public"
+
+image:
+  repository: minio/minio
+  pullPolicy: IfNotPresent
+  tag: ""
+
+serviceAccount:
+  create: true
+  automount: true
+
+podSecurityContext:
+  fsGroup: 1000
+  runAsUser: 1000
+  runAsGroup: 1000
+  fsGroupChangePolicy: "OnRootMismatch"
+
+securityContext:
+  runAsNonRoot: true
+  runAsUser: 1000
+  capabilities:
+    drop:
+      - ALL
+
+service:
+  type: ClusterIP
+  api:
+    port: 9000
+  console:
+    port: 9001
+
+# Minimal resources for cost optimization
+resources:
+  limits:
+    cpu: 500m
+    memory: 1Gi
+  requests:
+    cpu: 100m
+    memory: 256Mi
+
+livenessProbe:
+  httpGet:
+    path: /minio/health/live
+    port: api
+  initialDelaySeconds: 30
+  periodSeconds: 30
+  timeoutSeconds: 5
+  failureThreshold: 3
+
+readinessProbe:
+  httpGet:
+    path: /minio/health/ready
+    port: api
+  initialDelaySeconds: 10
+  periodSeconds: 15
+  timeoutSeconds: 5
+  failureThreshold: 3
+
+startupProbe:
+  httpGet:
+    path: /minio/health/live
+    port: api
+  initialDelaySeconds: 0
+  periodSeconds: 10
+  timeoutSeconds: 5
+  failureThreshold: 30
+
+# Enable autoscaling for cost optimization
+autoscaling:
+  enabled: true
+  minReplicas: 1
+  maxReplicas: 3
+  targetCPUUtilizationPercentage: 70
+  targetMemoryUtilizationPercentage: 80
+
+# Cost-effective storage
+persistence:
+  enabled: true
+  storageClass: ""  # Use default or specify cost-effective class
+  accessMode: ReadWriteOnce
+  size: 50Gi  # Smaller size to reduce costs
+
+# HA not enabled to save costs
+podDisruptionBudget:
+  enabled: false
+
+# Basic network policy for security
+networkPolicy:
+  enabled: true
+  ingress:
+    api:
+      from:
+        - namespaceSelector: {}  # Allow from all namespaces in cluster
+    console:
+      from:
+        - namespaceSelector: {}
+  egress:
+    extraRules:
+      - to:
+          - namespaceSelector: {}
+        ports:
+          - protocol: TCP
+            port: 443  # HTTPS
+          - protocol: TCP
+            port: 80   # HTTP
+
+# Basic monitoring
+monitoring:
+  enabled: true
+  serviceMonitor:
+    enabled: true
+    interval: 60s  # Less frequent to reduce overhead
+    scrapeTimeout: 15s
+
+nodeSelector: {}
+tolerations: []
+
+# Anti-affinity to prefer different nodes (if available)
+affinity:
+  podAntiAffinity:
+    preferredDuringSchedulingIgnoredDuringExecution:
+      - weight: 100
+        podAffinityTerm:
+          labelSelector:
+            matchExpressions:
+              - key: app.kubernetes.io/name
+                operator: In
+                values:
+                  - minio
+          topologyKey: kubernetes.io/hostname
+
+# Ingress for external access
+ingress:
+  api:
+    enabled: false
+    className: "nginx"
+    annotations:
+      cert-manager.io/cluster-issuer: "letsencrypt-prod"
+      nginx.ingress.kubernetes.io/proxy-body-size: "0"
+      nginx.ingress.kubernetes.io/proxy-buffering: "off"
+    hosts:
+      - host: s3.yourdomain.com
+        paths:
+          - path: /
+            pathType: Prefix
+    tls:
+      - secretName: minio-api-tls
+        hosts:
+          - s3.yourdomain.com
+
+  console:
+    enabled: false
+    className: "nginx"
+    annotations:
+      cert-manager.io/cluster-issuer: "letsencrypt-prod"
+    hosts:
+      - host: minio.yourdomain.com
+        paths:
+          - path: /
+            pathType: Prefix
+    tls:
+      - secretName: minio-console-tls
+        hosts:
+          - minio.yourdomain.com

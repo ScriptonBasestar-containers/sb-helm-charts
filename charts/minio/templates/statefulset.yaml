@@ -1,0 +1,178 @@
+{{- $mode := include "minio.effectiveMode" . -}}
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: {{ include "minio.fullname" . }}
+  labels:
+    {{- include "minio.labels" . | nindent 4 }}
+spec:
+  {{- if eq $mode "distributed" }}
+  serviceName: {{ include "minio.headlessServiceName" . }}
+  {{- else }}
+  serviceName: {{ include "minio.fullname" . }}
+  {{- end }}
+  replicas: {{ .Values.replicaCount }}
+  podManagementPolicy: {{ .Values.podManagementPolicy }}
+  updateStrategy:
+    type: {{ .Values.updateStrategy.type }}
+    {{- if eq .Values.updateStrategy.type "RollingUpdate" }}
+    rollingUpdate:
+      partition: {{ .Values.updateStrategy.rollingUpdate.partition }}
+    {{- end }}
+  selector:
+    matchLabels:
+      {{- include "minio.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      annotations:
+        {{- include "minio.checksumAnnotations" . | nindent 8 }}
+      {{- with .Values.podAnnotations }}
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      labels:
+        {{- include "minio.labels" . | nindent 8 }}
+        {{- with .Values.podLabels }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+    spec:
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      serviceAccountName: {{ include "minio.serviceAccountName" . }}
+      securityContext:
+        {{- toYaml .Values.podSecurityContext | nindent 8 }}
+      {{- with .Values.initContainers }}
+      initContainers:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      containers:
+        - name: minio
+          securityContext:
+            {{- toYaml .Values.securityContext | nindent 12 }}
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          command:
+            - /bin/sh
+            - -c
+          args:
+            - |
+              minio server {{ include "minio.serverCommand" . }} \
+                --console-address ":9001" \
+                {{- range .Values.minio.extraArgs }}
+                {{ . }} \
+                {{- end }}
+          env:
+            - name: MINIO_ROOT_USER
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "minio.secretName" . }}
+                  key: {{ .Values.minio.rootUserKey }}
+            - name: MINIO_ROOT_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "minio.secretName" . }}
+                  key: {{ .Values.minio.rootPasswordKey }}
+            {{- if .Values.minio.region }}
+            - name: MINIO_REGION
+              value: {{ .Values.minio.region | quote }}
+            {{- end }}
+            {{- if .Values.minio.browserRedirectURL }}
+            - name: MINIO_BROWSER_REDIRECT_URL
+              value: {{ .Values.minio.browserRedirectURL | quote }}
+            {{- end }}
+            {{- if .Values.minio.prometheusAuthType }}
+            - name: MINIO_PROMETHEUS_AUTH_TYPE
+              value: {{ .Values.minio.prometheusAuthType | quote }}
+            {{- end }}
+            {{- if .Values.minio.prometheusURL }}
+            - name: MINIO_PROMETHEUS_URL
+              value: {{ .Values.minio.prometheusURL | quote }}
+            {{- end }}
+            {{- if .Values.minio.prometheusJobID }}
+            - name: MINIO_PROMETHEUS_JOB_ID
+              value: {{ .Values.minio.prometheusJobID | quote }}
+            {{- end }}
+            {{- with .Values.extraEnv }}
+            {{- toYaml . | nindent 12 }}
+            {{- end }}
+          {{- with .Values.extraEnvFrom }}
+          envFrom:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          ports:
+            - name: api
+              containerPort: 9000
+              protocol: TCP
+            - name: console
+              containerPort: 9001
+              protocol: TCP
+          {{- with .Values.livenessProbe }}
+          livenessProbe:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          {{- with .Values.readinessProbe }}
+          readinessProbe:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          {{- with .Values.startupProbe }}
+          startupProbe:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+          volumeMounts:
+            {{- range $i := until (int .Values.minio.drivesPerNode) }}
+            - name: data-{{ $i }}
+              mountPath: /data{{ $i }}
+            {{- end }}
+            {{- with .Values.extraVolumeMounts }}
+            {{- toYaml . | nindent 12 }}
+            {{- end }}
+          {{- with .Values.lifecycle }}
+          lifecycle:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.extraVolumes }}
+      volumes:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+  {{- if .Values.persistence.enabled }}
+  volumeClaimTemplates:
+    {{- range $i := until (int .Values.minio.drivesPerNode) }}
+    - metadata:
+        name: data-{{ $i }}
+        {{- with $.Values.persistence.annotations }}
+        annotations:
+          {{- toYaml . | nindent 10 }}
+        {{- end }}
+        labels:
+          {{- include "minio.selectorLabels" $ | nindent 10 }}
+          drive-index: "{{ $i }}"
+      spec:
+        accessModes:
+          - {{ $.Values.persistence.accessMode }}
+        {{- if $.Values.persistence.storageClass }}
+        {{- if eq "-" $.Values.persistence.storageClass }}
+        storageClassName: ""
+        {{- else }}
+        storageClassName: {{ $.Values.persistence.storageClass | quote }}
+        {{- end }}
+        {{- end }}
+        resources:
+          requests:
+            storage: {{ $.Values.persistence.size | quote }}
+    {{- end }}
+  {{- end }}

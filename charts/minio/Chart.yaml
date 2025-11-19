@@ -1,0 +1,45 @@
+apiVersion: v2
+name: minio
+description: High-performance S3-compatible object storage with distributed architecture
+type: application
+version: 0.3.0
+appVersion: "RELEASE.2024-10-02T17-50-41Z"
+
+keywords:
+  - minio
+  - object-storage
+  - s3
+  - aws-s3-compatible
+  - distributed-storage
+  - erasure-coding
+
+home: https://min.io/
+icon: https://min.io/resources/img/logo.svg
+sources:
+  - https://github.com/scriptonbasestar-container/sb-helm-charts
+  - https://github.com/minio/minio
+  - https://hub.docker.com/r/minio/minio
+
+maintainers:
+  - name: archmagece
+    email: archmagece@users.noreply.github.com
+
+annotations:
+  artifacthub.io/license: BSD-3-Clause
+  artifacthub.io/changes: |
+    - kind: added
+      description: Initial MinIO chart with distributed mode support
+    - kind: added
+      description: StatefulSet-based deployment with multi-drive erasure coding
+    - kind: added
+      description: Mode selector for standalone and distributed deployments
+  artifacthub.io/prerelease: "false"
+  artifacthub.io/recommendations: |
+    - url: https://github.com/scriptonbasestar-container/sb-helm-charts/blob/master/docs/SCENARIO_VALUES_GUIDE.md
+  artifacthub.io/links: |
+    - name: Chart Source
+      url: https://github.com/scriptonbasestar-container/sb-helm-charts/tree/master/charts/minio
+    - name: MinIO Documentation
+      url: https://min.io/docs/minio/linux/index.html
+    - name: MinIO Console Guide
+      url: https://min.io/docs/minio/linux/administration/minio-console.html

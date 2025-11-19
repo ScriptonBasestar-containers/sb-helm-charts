@@ -1,0 +1,28 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: {{ include "minio.fullname" . }}-test-connection
+  labels:
+    {{- include "minio.labels" . | nindent 4 }}
+  annotations:
+    "helm.sh/hook": test
+    "helm.sh/hook-delete-policy": before-hook-creation,hook-succeeded
+spec:
+  restartPolicy: Never
+  containers:
+    - name: wget
+      image: busybox:latest
+      command:
+        - /bin/sh
+        - -c
+      args:
+        - |
+          echo "Testing MinIO API connectivity..."
+          wget --spider --timeout=10 http://{{ include "minio.fullname" . }}:9000/minio/health/live || exit 1
+          echo "MinIO API is accessible!"
+
+          echo "Testing MinIO Console connectivity..."
+          wget --spider --timeout=10 http://{{ include "minio.fullname" . }}:9001/ || exit 1
+          echo "MinIO Console is accessible!"
+
+          echo "All tests passed!"

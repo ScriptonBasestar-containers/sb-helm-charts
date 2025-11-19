@@ -1,0 +1,135 @@
+# MinIO configuration for home servers / NAS
+# Optimized for: Raspberry Pi 4, Intel NUC, small home servers
+# Mode: Standalone with 1-2 drives
+# Resources: Low (512Mi-1Gi RAM, 0.5-1 CPU)
+
+replicaCount: 1
+podManagementPolicy: Parallel
+
+minio:
+  mode: standalone
+  drivesPerNode: 2  # Use 2 drives for basic redundancy if available
+
+  rootUser: "admin"
+  rootPassword: ""  # SET THIS!
+
+  region: "us-east-1"
+
+  # Enable public Prometheus metrics for home monitoring
+  prometheusAuthType: "public"
+
+image:
+  repository: minio/minio
+  pullPolicy: IfNotPresent
+  tag: ""
+
+serviceAccount:
+  create: true
+  automount: true
+
+podSecurityContext:
+  fsGroup: 1000
+  runAsUser: 1000
+  runAsGroup: 1000
+  fsGroupChangePolicy: "OnRootMismatch"
+
+securityContext:
+  runAsNonRoot: true
+  runAsUser: 1000
+  capabilities:
+    drop:
+      - ALL
+
+service:
+  type: ClusterIP
+  api:
+    port: 9000
+  console:
+    port: 9001
+
+# Home server resource limits
+resources:
+  limits:
+    cpu: 1000m
+    memory: 1Gi
+  requests:
+    cpu: 250m
+    memory: 512Mi
+
+livenessProbe:
+  httpGet:
+    path: /minio/health/live
+    port: api
+  initialDelaySeconds: 30
+  periodSeconds: 30
+  timeoutSeconds: 5
+  failureThreshold: 3
+
+readinessProbe:
+  httpGet:
+    path: /minio/health/ready
+    port: api
+  initialDelaySeconds: 10
+  periodSeconds: 15
+  timeoutSeconds: 5
+  failureThreshold: 3
+
+startupProbe:
+  httpGet:
+    path: /minio/health/live
+    port: api
+  initialDelaySeconds: 0
+  periodSeconds: 10
+  timeoutSeconds: 5
+  failureThreshold: 30
+
+autoscaling:
+  enabled: false
+
+# Home server storage
+persistence:
+  enabled: true
+  storageClass: ""  # Use default storage class
+  accessMode: ReadWriteOnce
+  size: 50Gi  # Smaller default for home use
+
+# HA not needed for home
+podDisruptionBudget:
+  enabled: false
+
+# Network policy not typically needed for home
+networkPolicy:
+  enabled: false
+
+# Optional: Enable basic monitoring
+monitoring:
+  enabled: false
+  serviceMonitor:
+    enabled: false
+
+nodeSelector: {}
+tolerations: []
+affinity: {}
+
+# Optional: Ingress for home access
+ingress:
+  api:
+    enabled: false
+    className: ""
+    annotations: {}
+    hosts:
+      - host: minio.home.local
+        paths:
+          - path: /
+            pathType: Prefix
+    tls: []
+  console:
+    enabled: false
+    className: ""
+    annotations: {}
+    hosts:
+      - host: minio-console.home.local
+        paths:
+          - path: /
+            pathType: Prefix
+    tls: []

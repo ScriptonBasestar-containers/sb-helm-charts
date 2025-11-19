@@ -1,0 +1,345 @@
+# Default values for minio.
+# This is a YAML-formatted file.
+# Declare variables to be passed into your templates.
+
+# ==================================================================================
+# DEPLOYMENT SCENARIOS
+# ==================================================================================
+# This file contains default values. For production-ready configurations, see:
+# - values-home-single.yaml: Home server/personal use (1 node, 2 drives)
+# - values-startup-single.yaml: Small teams (1 node, 4 drives)
+# - values-prod-distributed.yaml: Production HA (4+ nodes, distributed erasure coding)
+# See: charts/minio/README.md for complete documentation
+# ==================================================================================
+
+# Deployment mode
+# standalone: Single-server deployment (1 node, development/testing)
+# distributed: Multi-server distributed deployment (4+ nodes, production/HA with erasure coding)
+# Note: Distributed mode requires replicaCount >= 4 and even number of total drives
+replicaCount: 1
+
+# Pod management policy for StatefulSet
+# Parallel: Pods are created/deleted in parallel (faster but less ordered)
+# OrderedReady: Pods are created/deleted in order (slower but more controlled)
+podManagementPolicy: Parallel
+
+# Update strategy
+updateStrategy:
+  type: RollingUpdate
+  rollingUpdate:
+    partition: 0
+
+# Cluster domain for DNS resolution
+clusterDomain: cluster.local
+
+# MinIO configuration
+minio:
+  # Deployment mode: standalone or distributed
+  # - standalone: Single server with one or more drives (development)
+  # - distributed: 4+ servers with erasure coding (production)
+  mode: standalone
+
+  # Number of drives per node
+  # Standalone: Typically 1-2 drives
+  # Distributed: Recommended 4+ drives for better erasure coding
+  drivesPerNode: 1
+
+  # Root credentials
+  rootUser: "admin"
+  rootPassword: ""  # REQUIRED - Set this or use existingSecret
+
+  # Use an existing secret for credentials
+  existingSecret: ""
+  rootUserKey: "root-user"
+  rootPasswordKey: "root-password"
+
+  # Secret annotations (for tools like external-secrets)
+  secretAnnotations: {}
+
+  # Use an existing ConfigMap
+  existingConfigMap: ""
+
+  # ConfigMap annotations
+  configMapAnnotations: {}
+
+  # Additional environment configuration
+  # This will be mounted as config.env if provided
+  config: ""
+
+  # Additional config data
+  configData: {}
+
+  # MinIO region
+  region: "us-east-1"
+
+  # Browser redirect URL (for console behind proxy/ingress)
+  browserRedirectURL: ""
+
+  # Prometheus configuration
+  prometheusAuthType: ""  # "public" to allow unauthenticated access
+  prometheusURL: ""
+  prometheusJobID: "minio-job"
+
+  # Additional MinIO server arguments
+  extraArgs: []
+    # - --ftp="address=:8021"
+    # - --sftp="address=:8022"
+
+# Image configuration
+image:
+  repository: minio/minio
+  pullPolicy: IfNotPresent
+  # Overrides the image tag whose default is the chart appVersion.
+  tag: ""
+
+imagePullSecrets: []
+nameOverride: ""
+fullnameOverride: ""
+
+# ServiceAccount configuration
+serviceAccount:
+  # Specifies whether a service account should be created
+  create: true
+  # Automatically mount a ServiceAccount's API credentials?
+  automount: true
+  # Annotations to add to the service account
+  annotations: {}
+  # The name of the service account to use.
+  # If not set and create is true, a name is generated using the fullname template
+  name: ""
+
+# Pod annotations
+podAnnotations: {}
+
+# Pod labels
+podLabels: {}
+
+# Pod security context
+# MinIO runs as non-root user (UID 1000) for security
+podSecurityContext:
+  fsGroup: 1000         # Group ownership for volume mounts
+  runAsUser: 1000       # MinIO default user
+  runAsGroup: 1000      # MinIO default group
+  fsGroupChangePolicy: "OnRootMismatch"  # Only change permissions if mismatch (faster)
+
+# Container security context
+# Enforces security best practices (non-root, no privileged capabilities)
+securityContext:
+  runAsNonRoot: true    # Prevent running as root
+  runAsUser: 1000       # MinIO user UID
+  capabilities:
+    drop:
+      - ALL           # Drop all Linux capabilities for security
+  # readOnlyRootFilesystem: true  # Enable for enhanced security (MinIO needs writable tmp)
+
+# Service configuration
+service:
+  type: ClusterIP
+  clusterIP: ""
+  annotations: {}
+  externalIPs: []
+  loadBalancerIP: ""
+  loadBalancerSourceRanges: []
+  externalTrafficPolicy: ""
+  sessionAffinity: ""
+  sessionAffinityConfig: {}
+
+  api:
+    port: 9000
+    nodePort: ""
+  console:
+    port: 9001
+    nodePort: ""
+
+# Headless service configuration (for distributed mode)
+headlessService:
+  annotations: {}
+
+# Ingress configuration
+ingress:
+  # API ingress (S3 endpoint)
+  api:
+    enabled: false
+    className: ""
+    annotations: {}
+      # cert-manager.io/cluster-issuer: letsencrypt-prod
+      # nginx.ingress.kubernetes.io/proxy-body-size: "0"
+    hosts:
+      - host: minio-api.example.com
+        paths:
+          - path: /
+            pathType: Prefix
+    tls: []
+      # - secretName: minio-api-tls
+      #   hosts:
+      #     - minio-api.example.com
+
+  # Console ingress (Web UI)
+  console:
+    enabled: false
+    className: ""
+    annotations: {}
+      # cert-manager.io/cluster-issuer: letsencrypt-prod
+    hosts:
+      - host: minio-console.example.com
+        paths:
+          - path: /
+            pathType: Prefix
+    tls: []
+      # - secretName: minio-console-tls
+      #   hosts:
+      #     - minio-console.example.com
+
+# Resource limits and requests
+resources:
+  limits:
+    cpu: 2000m
+    memory: 2Gi
+  requests:
+    cpu: 500m
+    memory: 512Mi
+
+# Liveness probe configuration
+livenessProbe:
+  httpGet:
+    path: /minio/health/live
+    port: api
+    scheme: HTTP
+  initialDelaySeconds: 30
+  periodSeconds: 20
+  timeoutSeconds: 5
+  successThreshold: 1
+  failureThreshold: 3
+
+# Readiness probe configuration
+readinessProbe:
+  httpGet:
+    path: /minio/health/ready
+    port: api
+    scheme: HTTP
+  initialDelaySeconds: 10
+  periodSeconds: 10
+  timeoutSeconds: 5
+  successThreshold: 1
+  failureThreshold: 3
+
+# Startup probe configuration
+startupProbe:
+  httpGet:
+    path: /minio/health/live
+    port: api
+    scheme: HTTP
+  initialDelaySeconds: 0
+  periodSeconds: 10
+  timeoutSeconds: 5
+  successThreshold: 1
+  failureThreshold: 30
+
+# Autoscaling configuration
+# Note: StatefulSet autoscaling requires Kubernetes 1.27+
+autoscaling:
+  enabled: false
+  minReplicas: 1
+  maxReplicas: 10
+  targetCPUUtilizationPercentage: 80
+  targetMemoryUtilizationPercentage: 80
+
+# Persistence configuration
+# Storage per drive (total = size × drivesPerNode × replicaCount)
+# Example: 100Gi × 4 drives × 4 nodes = 1.6TB total in distributed mode
+persistence:
+  enabled: true
+  storageClass: ""      # Use default storage class or specify (e.g., "fast-ssd")
+  accessMode: ReadWriteOnce
+  size: 100Gi           # Size per drive (recommended: 100Gi-500Gi for production)
+  annotations: {}
+  # Optionally use an existing PVC
+  # Note: This only works for standalone mode with single drive
+  existingClaim: ""
+
+# PodDisruptionBudget configuration
+podDisruptionBudget:
+  enabled: false
+  minAvailable: 1
+  # maxUnavailable: 1
+  unhealthyPodEvictionPolicy: ""
+
+# NetworkPolicy configuration
+networkPolicy:
+  enabled: false
+  ingress:
+    api:
+      from: []
+        # - namespaceSelector:
+        #     matchLabels:
+        #       name: myapp
+    console:
+      from: []
+    extraRules: []
+  egress:
+    extraRules: []
+
+# Monitoring configuration
+monitoring:
+  enabled: false
+  serviceMonitor:
+    enabled: false
+    namespace: ""
+    labels: {}
+    annotations: {}
+    interval: 30s
+    scrapeTimeout: 10s
+    scheme: http
+    tlsConfig: {}
+    bearerTokenFile: ""
+    bearerTokenSecret: {}
+    relabelings: []
+    metricRelabelings: []
+
+# Node selector
+nodeSelector: {}
+
+# Tolerations
+tolerations: []
+
+# Affinity
+affinity: {}
+
+# Extra environment variables
+extraEnv: []
+  # - name: CUSTOM_VAR
+  #   value: "value"
+
+# Extra environment variables from ConfigMaps or Secrets
+extraEnvFrom: []
+  # - configMapRef:
+  #     name: minio-extra-config
+  # - secretRef:
+  #     name: minio-extra-secret
+
+# Extra volumes
+extraVolumes: []
+  # - name: extra-config
+  #   configMap:
+  #     name: extra-config
+
+# Extra volume mounts
+extraVolumeMounts: []
+  # - name: extra-config
+  #   mountPath: /extra-config
+  #   readOnly: true
+
+# Init containers
+initContainers: []
+  # - name: init-chmod
+  #   image: busybox:latest
+  #   command: ['sh', '-c', 'chown -R 1000:1000 /data']
+  #   volumeMounts:
+  #     - name: data-0
+  #       mountPath: /data
+
+# Lifecycle hooks
+lifecycle: {}
+  # preStop:
+  #   exec:
+  #     command: ["/bin/sh", "-c", "sleep 5"]
