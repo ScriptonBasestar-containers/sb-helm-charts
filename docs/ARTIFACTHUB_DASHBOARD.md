@@ -1,7 +1,7 @@
 # Artifact Hub Statistics Dashboard
 
 <!-- AUTO-GENERATED FILE - DO NOT EDIT MANUALLY -->
-<!-- Generated: 2025-11-17 12:33:30 -->
+<!-- Generated: 2025-11-19 16:51:25 -->
 <!-- To update, run: make generate-artifacthub-dashboard -->
 
 > **Note**: This dashboard is automatically generated from `charts-metadata.yaml`.
@@ -17,9 +17,9 @@
 
 ## Quick Statistics
 
-- **Total Charts**: 16
+- **Total Charts**: 17
 - **Application Charts**: 13
-- **Infrastructure Charts**: 3
+- **Infrastructure Charts**: 4
 
 ## Table of Contents
 
@@ -258,6 +258,24 @@
 
 ---
 
+### MinIO
+
+[![Artifact Hub](https://img.shields.io/endpoint?url=https://artifacthub.io/badge/repository/sb-helm-charts)](https://artifacthub.io/packages/helm/sb-helm-charts/minio)
+
+**Description**: High-performance S3-compatible object storage (StatefulSet, distributed mode, erasure coding)
+
+**Artifact Hub Package**: https://artifacthub.io/packages/helm/sb-helm-charts/minio
+
+**Tags**: Storage, S3, Object-Storage
+
+**Keywords**: minio, object-storage, s3, aws-s3-compatible, distributed-storage (+1 more)
+
+> ⚠️ **Production Note**: For production HA, consider MinIO Operator for advanced features
+
+**Local Documentation**: [charts/minio/README.md](../charts/minio/README.md)
+
+---
+
 ### RabbitMQ
 
 [![Artifact Hub](https://img.shields.io/endpoint?url=https://artifacthub.io/badge/repository/sb-helm-charts)](https://artifacthub.io/packages/helm/sb-helm-charts/rabbitmq)
@@ -366,4 +384,4 @@ Once published, you can add Artifact Hub badges to your READMEs:
 
 ---
 
-**Last Updated**: 2025-11-17
+**Last Updated**: 2025-11-19
