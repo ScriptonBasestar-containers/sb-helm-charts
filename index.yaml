@@ -965,6 +965,55 @@ entries:
       artifacthub.io/changes: |
         - kind: fixed
           description: Fix existingClaim support - now properly mounts existing PVCs
+        - kind: added
+          description: Add redis.mode selector (standalone|replica) with validation and backward compatibility
+        - kind: changed
+          description: Fail fast when unsupported Sentinel or Cluster modes are selected
+        - kind: changed
+          description: Allow replication.replicas=0 in replica mode (master-only with replica wiring)
+      artifacthub.io/license: BSD-3-Clause
+      artifacthub.io/links: |
+        - name: Chart Source
+          url: https://github.com/scriptonbasestar-container/sb-helm-charts/tree/master/charts/redis
+        - name: redis Documentation
+          url: https://redis.io/
+      artifacthub.io/prerelease: "false"
+      artifacthub.io/recommendations: |
+        - url: https://github.com/scriptonbasestar-container/sb-helm-charts/blob/master/docs/SCENARIO_VALUES_GUIDE.md
+          description: Scenario Values Deployment Guide
+        - url: https://github.com/scriptonbasestar-container/sb-helm-charts/blob/master/docs/CHART_DEVELOPMENT_GUIDE.md
+          description: Chart Development Guide
+    apiVersion: v2
+    appVersion: 7.4.1
+    created: "2025-11-19T06:00:05.03220657Z"
+    description: In-memory data structure store - cache, database, and message broker
+    digest: c6ce28d2052437880dd3e19c33579cb2759072a1f7bdda5c64171fa2e967037b
+    home: https://redis.io/
+    icon: https://www.svgrepo.com/show/303460/redis-logo.svg
+    keywords:
+    - redis
+    - cache
+    - database
+    - nosql
+    - key-value
+    - in-memory
+    - data-structure
+    maintainers:
+    - email: archmagece@users.noreply.github.com
+      name: archmagece
+    name: redis
+    sources:
+    - https://github.com/scriptonbasestar-container/sb-helm-charts
+    - https://github.com/redis/redis
+    - https://hub.docker.com/_/redis
+    type: application
+    urls:
+    - https://github.com/ScriptonBasestar-containers/sb-helm-charts/releases/download/redis-0.3.3/redis-0.3.3.tgz
+    version: 0.3.3
+  - annotations:
+      artifacthub.io/changes: |
+        - kind: fixed
+          description: Fix existingClaim support - now properly mounts existing PVCs
         - kind: security
           description: Fix password exposure in readiness probe using REDISCLI_AUTH
         - kind: security
@@ -1777,4 +1826,4 @@ entries:
     urls:
     - https://github.com/ScriptonBasestar-containers/sb-helm-charts/releases/download/wordpress-0.1.0/wordpress-0.1.0.tgz
     version: 0.1.0
-generated: "2025-11-18T01:37:15.958187683Z"
+generated: "2025-11-19T06:00:05.032315653Z"
