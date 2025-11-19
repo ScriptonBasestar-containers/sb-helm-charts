@@ -1,0 +1,86 @@
+# Elasticsearch + Kibana - Development Environment Configuration
+# Optimized for: Development, testing, and local environments
+# Mode: Single node
+# Resources: Moderate (2-4Gi RAM, 1-2 CPU)
+# Security: Disabled (for easy testing)
+
+elasticsearch:
+  replicas: 1
+  clusterMode: false
+  clusterName: "elasticsearch-dev"
+
+  # No password for dev (security disabled)
+  password: ""
+
+  # Lower heap for dev
+  javaOpts: "-Xms1g -Xmx1g"
+
+  # Enable CORS for browser-based tools
+  httpCorsEnabled: true
+  httpCorsAllowOrigin: "*"
+
+  # Dev-friendly monitoring
+  monitoring:
+    enabled: true
+
+# Kibana enabled for dev
+kibana:
+  enabled: true
+  replicas: 1
+
+  serverHost: "0.0.0.0"
+  serverName: "kibana-dev"
+
+  # Ingress for easy access
+  ingress:
+    enabled: true
+    className: "nginx"
+    annotations:
+      nginx.ingress.kubernetes.io/proxy-body-size: "0"
+      # cert-manager.io/cluster-issuer: letsencrypt-staging
+    hosts:
+      - host: kibana-dev.local
+        paths:
+          - path: /
+            pathType: Prefix
+    tls: []
+
+# Dev resources
+resources:
+  limits:
+    cpu: 2000m
+    memory: 2Gi
+  requests:
+    cpu: 500m
+    memory: 1Gi
+
+# Faster startup for dev
+livenessProbe:
+  initialDelaySeconds: 60
+  periodSeconds: 20
+
+readinessProbe:
+  initialDelaySeconds: 20
+  periodSeconds: 10
+
+startupProbe:
+  initialDelaySeconds: 0
+  periodSeconds: 10
+  failureThreshold: 30
+
+# Smaller storage for dev
+persistence:
+  enabled: true
+  size: 10Gi
+  storageClass: ""
+
+# No PDB for dev
+podDisruptionBudget:
+  enabled: false
+
+# Dev labels
+podLabels:
+  environment: "development"
+
+podAnnotations:
+  description: "Development Elasticsearch cluster"

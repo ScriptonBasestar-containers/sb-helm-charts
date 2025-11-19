@@ -1,7 +1,7 @@
 # Artifact Hub Statistics Dashboard
 
 <!-- AUTO-GENERATED FILE - DO NOT EDIT MANUALLY -->
-<!-- Generated: 2025-11-19 16:51:25 -->
+<!-- Generated: 2025-11-19 17:36:37 -->
 <!-- To update, run: make generate-artifacthub-dashboard -->
 
 > **Note**: This dashboard is automatically generated from `charts-metadata.yaml`.
@@ -17,9 +17,9 @@
 
 ## Quick Statistics
 
-- **Total Charts**: 17
+- **Total Charts**: 18
 - **Application Charts**: 13
-- **Infrastructure Charts**: 4
+- **Infrastructure Charts**: 5
 
 ## Table of Contents
 
@@ -239,6 +239,24 @@
 ---
 
 ## Infrastructure Charts
+
+### Elasticsearch
+
+[![Artifact Hub](https://img.shields.io/endpoint?url=https://artifacthub.io/badge/repository/sb-helm-charts)](https://artifacthub.io/packages/helm/sb-helm-charts/elasticsearch)
+
+**Description**: Opinionated Elasticsearch + Kibana for small to medium workloads (StatefulSet, simple operations)
+
+**Artifact Hub Package**: https://artifacthub.io/packages/helm/sb-helm-charts/elasticsearch
+
+**Tags**: Logging, Search, Analytics
+
+**Keywords**: elasticsearch, kibana, logging, search, analytics (+1 more)
+
+> ⚠️ **Production Note**: For large-scale production, consider Elastic Cloud on Kubernetes (ECK) Operator
+
+**Local Documentation**: [charts/elasticsearch/README.md](../charts/elasticsearch/README.md)
+
+---
 
 ### Memcached
 

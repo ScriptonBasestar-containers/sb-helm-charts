@@ -146,6 +146,8 @@ The metadata file serves multiple purposes:
 
 ### Infrastructure Charts (Dev/Test - Consider Operators for Production)
 
+- **elasticsearch**: Distributed search and analytics engine (StatefulSet, Kibana, cluster mode, S3 snapshots)
+  - ⚠️ For large-scale production, consider [Elastic Cloud on Kubernetes (ECK) Operator](https://www.elastic.co/guide/en/cloud-on-k8s/current/index.html)
 - **redis**: In-memory data store (StatefulSet, no external database, full redis.conf support)
   - ⚠️ For production HA, consider [Spotahome Redis Operator](https://github.com/spotahome/redis-operator)
   - See [docs/03-redis-operator-migration.md](docs/03-redis-operator-migration.md)
@@ -153,6 +155,8 @@ The metadata file serves multiple purposes:
   - ⚠️ For production, consider [Memcached Operator](https://github.com/ianlewis/memcached-operator)
 - **rabbitmq**: Message broker with management UI (Deployment, no database, AMQP + Prometheus metrics)
   - ⚠️ For production clustering, consider [RabbitMQ Cluster Operator](https://github.com/rabbitmq/cluster-operator)
+- **minio**: High-performance S3-compatible object storage (StatefulSet, distributed mode, erasure coding)
+  - ⚠️ For production HA, consider [MinIO Operator](https://github.com/minio/operator) for advanced features
 
 ## Common Development Commands
 
@@ -337,6 +341,52 @@ make -f make/ops/rabbitmq.mk rmq-logs
 make -f make/ops/rabbitmq.mk rmq-restart
 ```
 
+### Elasticsearch Specific Commands
+
+```bash
+# Get elastic user password
+make -f make/ops/elasticsearch.mk es-get-password
+
+# Port forward services
+make -f make/ops/elasticsearch.mk es-port-forward           # ES API (9200)
+make -f make/ops/elasticsearch.mk kibana-port-forward       # Kibana (5601)
+
+# Health and status
+make -f make/ops/elasticsearch.mk es-health
+make -f make/ops/elasticsearch.mk es-cluster-status
+make -f make/ops/elasticsearch.mk es-nodes
+make -f make/ops/elasticsearch.mk es-version
+make -f make/ops/elasticsearch.mk kibana-health
+
+# Index management
+make -f make/ops/elasticsearch.mk es-indices
+make -f make/ops/elasticsearch.mk es-create-index INDEX=myindex
+make -f make/ops/elasticsearch.mk es-delete-index INDEX=myindex
+make -f make/ops/elasticsearch.mk es-shards
+make -f make/ops/elasticsearch.mk es-allocation
+
+# Monitoring
+make -f make/ops/elasticsearch.mk es-stats
+make -f make/ops/elasticsearch.mk es-tasks
+make -f make/ops/elasticsearch.mk es-logs
+make -f make/ops/elasticsearch.mk es-logs-all
+make -f make/ops/elasticsearch.mk kibana-logs
+
+# Operations
+make -f make/ops/elasticsearch.mk es-shell
+make -f make/ops/elasticsearch.mk kibana-shell
+make -f make/ops/elasticsearch.mk es-restart
+make -f make/ops/elasticsearch.mk kibana-restart
+make -f make/ops/elasticsearch.mk es-scale REPLICAS=3
+
+# Snapshot/Backup (S3/MinIO)
+make -f make/ops/elasticsearch.mk es-snapshot-repos
+make -f make/ops/elasticsearch.mk es-create-snapshot-repo REPO=minio BUCKET=backups ENDPOINT=http://minio:9000 ACCESS_KEY=xxx SECRET_KEY=xxx
+make -f make/ops/elasticsearch.mk es-snapshots REPO=minio
+make -f make/ops/elasticsearch.mk es-create-snapshot REPO=minio SNAPSHOT=snapshot_1
+make -f make/ops/elasticsearch.mk es-restore-snapshot REPO=minio SNAPSHOT=snapshot_1
+```
+
 ### Memcached Specific Commands
 
 ```bash
@@ -366,6 +416,48 @@ make -f make/ops/memcached.mk mc-shell
 
 # Port forward to memcached
 make -f make/ops/memcached.mk mc-port-forward
+```
+
+### MinIO Specific Commands
+
+```bash
+# Get credentials
+make -f make/ops/minio.mk minio-get-credentials
+
+# Port forward services
+make -f make/ops/minio.mk minio-port-forward-api      # S3 API (9000)
+make -f make/ops/minio.mk minio-port-forward-console  # Web Console (9001)
+
+# Setup MinIO Client (mc) alias
+make -f make/ops/minio.mk minio-mc-alias
+
+# Bucket operations
+make -f make/ops/minio.mk minio-create-bucket BUCKET=mybucket
+make -f make/ops/minio.mk minio-list-buckets
+
+# Health and monitoring
+make -f make/ops/minio.mk minio-health
+make -f make/ops/minio.mk minio-metrics
+make -f make/ops/minio.mk minio-server-info
+
+# Cluster operations
+make -f make/ops/minio.mk minio-cluster-status
+make -f make/ops/minio.mk minio-scale REPLICAS=4
+make -f make/ops/minio.mk minio-restart
+
+# Service endpoints
+make -f make/ops/minio.mk minio-service-endpoint
+
+# Logs and shell
+make -f make/ops/minio.mk minio-logs
+make -f make/ops/minio.mk minio-logs-all
+make -f make/ops/minio.mk minio-shell
+
+# Disk usage
+make -f make/ops/minio.mk minio-disk-usage
+
+# Version info
+make -f make/ops/minio.mk minio-version
 ```
 
 ### Redis Specific Commands

@@ -67,6 +67,7 @@ jobs:
         chart:
           - browserless-chrome
           - devpi
+          - elasticsearch
           - immich
           - jellyfin
           - keycloak
