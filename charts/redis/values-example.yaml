@@ -1,6 +1,9 @@
 # values-example.yaml
 # Production-ready Redis configuration
 
+# Deployment mode
+mode: standalone
+
 # Redis configuration
 redis:
   # IMPORTANT: Set a strong password for production

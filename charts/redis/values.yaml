@@ -2,6 +2,12 @@
 # This is a YAML-formatted file.
 # Declare variables to be passed into your templates.
 
+# Deployment mode
+# - standalone: single instance (default)
+# - replica: 1 primary + N replicas (manual failover)
+# - sentinel / cluster: NOT implemented yet (chart will fail fast)
+mode: standalone
+
 # Redis configuration
 redis:
   # Redis password (leave empty for no password)
@@ -72,7 +78,9 @@ redis:
   # - "--maxmemory-policy allkeys-lru"
 
 # Master-Slave Replication
-# When enabled, creates 1 master + N replicas with read-only replication
+# Deprecated in favor of `mode: replica`.
+# When enabled, creates 1 master + N replicas with read-only replication.
+# If mode is set, it takes precedence and this block is ignored for mode detection.
 replication:
   enabled: false  # Default: single instance mode
   # Number of read-only replicas (when replication.enabled=true)

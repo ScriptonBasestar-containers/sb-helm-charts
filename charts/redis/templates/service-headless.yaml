@@ -1,4 +1,5 @@
-{{- if .Values.replication.enabled }}
+{{- $mode := include "redis.effectiveMode" . -}}
+{{- if eq $mode "replica" }}
 apiVersion: v1
 kind: Service
 metadata:

@@ -69,3 +69,47 @@ Get Redis password
 {{- "" }}
 {{- end }}
 {{- end }}
+
+{{/*
+Determine deployment mode with backward compatibility.
+Supported modes: standalone, replica.
+Sentinel/cluster are not implemented and fail fast to avoid silent misconfigurations.
+*/}}
+{{- define "redis.effectiveMode" -}}
+{{- $mode := default "" .Values.mode | lower | trim -}}
+{{- if and (not $mode) .Values.replication.enabled -}}
+  {{- $mode = "replica" -}}
+{{- else if not $mode -}}
+  {{- $mode = "standalone" -}}
+{{- end -}}
+{{- if eq $mode "standalone" }}
+  {{- if .Values.replication.enabled }}
+    {{- fail "mode=standalone conflicts with replication.enabled=true. Remove replication.enabled or set mode=replica." }}
+  {{- end }}
+{{- end }}
+{{- if or (eq $mode "sentinel") (eq $mode "cluster") }}
+  {{- fail (printf "redis.mode=%s is not implemented in this chart. Supported modes: standalone, replica. See values-prod-sentinel.yaml / values-prod-cluster.yaml for alternatives." $mode) }}
+{{- end }}
+{{- if and (ne $mode "standalone") (ne $mode "replica") }}
+  {{- fail (printf "Unsupported redis.mode=%s. Valid modes: standalone, replica." $mode) }}
+{{- end }}
+{{- $mode -}}
+{{- end }}
+
+{{/* Boolean helpers for template readability */}}
+{{- define "redis.isReplicaMode" -}}
+{{- eq (include "redis.effectiveMode" .) "replica" -}}
+{{- end }}
+
+{{/*
+Validate value combinations early.
+*/}}
+{{- define "redis.validateValues" -}}
+{{- $mode := include "redis.effectiveMode" . -}}
+{{- if eq $mode "replica" }}
+  {{- $replicas := int (default 0 .Values.replication.replicas) -}}
+  {{- if lt $replicas 0 }}
+    {{- fail "replication.replicas must be >= 0 when mode=replica (0 = master only, keeps replica-ready wiring)" }}
+  {{- end -}}
+{{- end -}}
+{{- end }}

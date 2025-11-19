@@ -34,6 +34,9 @@
 #
 # ⚠️⚠️⚠️ DO NOT USE THIS FILE FOR ACTUAL DEPLOYMENT ⚠️⚠️⚠️
 
+# Deployment mode (will fail chart rendering until cluster support is implemented)
+mode: cluster
+
 # Redis configuration
 redis:
   # Redis password - REQUIRED for production cluster

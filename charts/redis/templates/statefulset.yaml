@@ -4,6 +4,9 @@
 {{- $secretName = .Values.redis.existingSecret -}}
 {{- end -}}
 {{- $secretKey := default "redis-password" .Values.redis.secretKeyName -}}
+{{- $mode := include "redis.effectiveMode" . -}}
+{{- $isReplica := eq $mode "replica" -}}
+{{- $replicaCount := int (default 0 .Values.replication.replicas) -}}
 apiVersion: apps/v1
 kind: StatefulSet
 metadata:
@@ -11,9 +14,9 @@ metadata:
   labels:
     {{- include "redis.labels" . | nindent 4 }}
 spec:
-  {{- if .Values.replication.enabled }}
+  {{- if $isReplica }}
   serviceName: {{ include "redis.fullname" . }}-headless
-  replicas: {{ add 1 .Values.replication.replicas }}  # 1 master + N replicas
+  replicas: {{ add 1 $replicaCount }}  # 1 master + N replicas
   {{- else }}
   serviceName: {{ include "redis.fullname" . }}
   replicas: {{ .Values.replicaCount }}
@@ -43,7 +46,7 @@ spec:
       securityContext:
         {{- toYaml .Values.podSecurityContext | nindent 8 }}
       initContainers:
-        {{- if .Values.replication.enabled }}
+        {{- if $isReplica }}
         - name: setup-replication
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
           imagePullPolicy: {{ .Values.image.pullPolicy }}
@@ -135,7 +138,7 @@ spec:
           command:
             - redis-server
           args:
-            {{- if or .Values.replication.enabled $usePassword }}
+            {{- if or $isReplica $usePassword }}
             - /etc/redis/redis.conf
             {{- else if or .Values.redis.config .Values.redis.existingConfigMap }}
             - /usr/local/etc/redis/redis.conf
@@ -196,7 +199,7 @@ spec:
             - name: data
               mountPath: /data
             {{- end }}
-            {{- if or .Values.replication.enabled $usePassword }}
+            {{- if or $isReplica $usePassword }}
             - name: redis-config
               mountPath: /etc/redis
               readOnly: true
@@ -241,7 +244,7 @@ spec:
             claimName: {{ .Values.persistence.existingClaim }}
         {{- end }}
         {{- end }}
-        {{- if or .Values.replication.enabled $usePassword }}
+        {{- if or $isReplica $usePassword }}
         - name: config
           configMap:
             name: {{ .Values.redis.existingConfigMap | default (include "redis.fullname" .) }}

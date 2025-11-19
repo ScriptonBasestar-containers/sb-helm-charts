@@ -2,6 +2,9 @@
 # Optimized for startup environments with node selector examples
 # Use: helm install redis ./charts/redis -f charts/redis/values-startup-single.yaml
 
+# Deployment mode
+mode: standalone
+
 # Redis configuration
 redis:
   # Redis password - REQUIRED for startup use

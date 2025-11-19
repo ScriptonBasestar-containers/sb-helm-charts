@@ -25,6 +25,7 @@ See [Redis Operator Migration Guide](../../docs/03-redis-operator-migration.md) 
 
 - ✅ StatefulSet-based deployment for data persistence
 - ✅ **Master-Slave replication** (1 master + N read-only replicas)
+- ✅ `mode` selector (`standalone`/`replica`) with validation; Sentinel/Cluster explicitly blocked until implemented
 - ✅ Customizable redis.conf configuration file
 - ✅ Password authentication support
 - ✅ Persistent volume for data storage
@@ -41,6 +42,13 @@ See [Redis Operator Migration Guide](../../docs/03-redis-operator-migration.md) 
 - Kubernetes 1.19+
 - Helm 3.2.0+
 - PersistentVolume provisioner support in the underlying infrastructure
+
+## Modes
+
+- `mode: standalone` (default): Single instance, uses `replicaCount`.
+- `mode: replica`: 1 primary + N replicas, uses `replication.replicas` (manual failover). `replication.replicas: 0` is allowed (master only) but keeps replica-ready services/config in place.
+- `mode: sentinel` / `mode: cluster`: **Not implemented yet**. The chart now fails fast if selected; use Redis Operator or Bitnami charts instead.
+- Backward compatibility: `replication.enabled=true` still works and maps to `mode: replica`, but `mode` is the preferred switch going forward.
 
 ## Deployment Scenarios
 
@@ -192,9 +200,10 @@ metrics:
 Enable read-only replicas for scaling read operations:
 
 ```yaml
+mode: replica
+
 replication:
-  enabled: true
-  replicas: 2  # Number of read-only replicas (in addition to 1 master)
+  replicas: 2  # Number of read-only replicas (in addition to 1 master). Use 0 for master-only with replica wiring.
 ```
 
 **This creates:**
@@ -218,6 +227,7 @@ replication:
 - ⚠️ For automatic failover, use [Redis Operator](../../docs/03-redis-operator-migration.md) with Sentinel
 - ✅ Each replica has its own persistent volume
 - ✅ Password authentication is synced via `masterauth`
+- Backward compatibility: `replication.enabled=true` is still accepted; when set, the chart treats it as `mode: replica`.
 
 **Monitoring replication:**
 
@@ -494,17 +504,25 @@ kubectl exec my-redis-0 -- redis-cli CLIENT LIST
 
 | Key | Type | Default | Description |
 |-----|------|---------|-------------|
+| `mode` | string | `"standalone"` | Deployment mode (`standalone` or `replica`; Sentinel/Cluster not implemented) |
 | `redis.password` | string | `""` | Redis password (empty = no auth) |
 | `redis.config` | string | See values.yaml | Redis configuration file content |
 | `persistence.enabled` | bool | `true` | Enable persistent storage |
 | `persistence.size` | string | `"8Gi"` | Size of persistent volume |
-| `replicaCount` | int | `1` | Number of Redis replicas |
+| `replication.replicas` | int | `2` | Number of read-only replicas when `mode=replica` (1 master is added automatically; 0 = master-only with replica wiring) |
+| `replicaCount` | int | `1` | Pod count when `mode=standalone` |
 | `metrics.enabled` | bool | `false` | Enable Prometheus metrics exporter |
 | `resources.limits.memory` | string | `"512Mi"` | Memory limit |
 
 For full configuration options, see [values.yaml](./values.yaml).
 
 ## Recent Changes
+
+### Version 0.3.3 (2025-11-17)
+
+- ✅ Added `mode` selector (`standalone`/`replica`) with validation and backward compatibility
+- ✅ Allowed `replication.replicas: 0` when `mode=replica` (master-only while keeping replica wiring)
+- ⚠️ Chart now fails fast when `mode=sentinel` or `mode=cluster` is selected (still not implemented)
 
 ### Version 0.3.1 (2025-11-17)
 

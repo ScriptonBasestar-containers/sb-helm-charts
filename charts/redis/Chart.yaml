@@ -9,12 +9,12 @@ annotations:
   artifacthub.io/changes: |
     - kind: fixed
       description: Fix existingClaim support - now properly mounts existing PVCs
-    - kind: security
-      description: Fix password exposure in readiness probe using REDISCLI_AUTH
-    - kind: security
-      description: Fix password exposure in metrics exporter command-line args
+    - kind: added
+      description: Add redis.mode selector (standalone|replica) with validation and backward compatibility
     - kind: changed
-      description: Add warnings to Sentinel/Cluster values files (modes not implemented)
+      description: Fail fast when unsupported Sentinel or Cluster modes are selected
+    - kind: changed
+      description: Allow replication.replicas=0 in replica mode (master-only with replica wiring)
   artifacthub.io/prerelease: "false"
   artifacthub.io/recommendations: |
     - url: https://github.com/scriptonbasestar-container/sb-helm-charts/blob/master/docs/SCENARIO_VALUES_GUIDE.md
@@ -50,5 +50,5 @@ maintainers:
   - name: archmagece
     email: archmagece@users.noreply.github.com
 
-version: 0.3.1
+version: 0.3.3
 appVersion: 7.4.1

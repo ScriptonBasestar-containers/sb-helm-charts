@@ -1,3 +1,6 @@
+{{- $mode := include "redis.effectiveMode" . -}}
+{{- $isReplica := eq $mode "replica" -}}
+{{- $replicaCount := int (default 0 .Values.replication.replicas) -}}
 1. Get the Redis password by running:
 
 {{- if .Values.redis.password }}
@@ -8,9 +11,9 @@
 
 2. Connect to Redis:
 
-{{- if .Values.replication.enabled }}
+{{- if $isReplica }}
 
-   Master-Slave replication is ENABLED with {{ add 1 .Values.replication.replicas }} total pods (1 master + {{ .Values.replication.replicas }} replicas)
+   Master-Slave replication is ENABLED with {{ add 1 $replicaCount }} total pods (1 master + {{ $replicaCount }} replicas)
 
    Available service endpoints:
    - {{ include "redis.fullname" . }}.{{ .Release.Namespace }}.svc.cluster.local        → Master (read/write)
@@ -56,7 +59,7 @@
 
    kubectl exec -it --namespace {{ .Release.Namespace }} {{ include "redis.fullname" . }}-0 -- redis-cli{{- if .Values.redis.password }} -a $REDIS_PASSWORD{{- end }} ping
 
-{{- if .Values.replication.enabled }}
+{{- if $isReplica }}
 
 4. Check replication status:
 
@@ -76,7 +79,7 @@
 
 {{- if .Values.metrics.enabled }}
 
-{{- if .Values.replication.enabled }}
+{{- if $isReplica }}
 5. Access Redis metrics:
 {{- else }}
 4. Access Redis metrics:
@@ -91,9 +94,9 @@
 
 {{- if .Values.persistence.enabled }}
 
-{{- if and .Values.replication.enabled .Values.metrics.enabled }}
+{{- if and $isReplica .Values.metrics.enabled }}
 6. Persistence:
-{{- else if or .Values.replication.enabled .Values.metrics.enabled }}
+{{- else if or $isReplica .Values.metrics.enabled }}
 5. Persistence:
 {{- else }}
 4. Persistence:

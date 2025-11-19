@@ -25,6 +25,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **READMEs** (2025-11-17): Recent Changes sections added to Redis, Memcached, and RabbitMQ
 
 ### Changed
+- **Redis v0.3.3** (2025-11-17): Allowed `replication.replicas=0` in replica mode (master-only with replica wiring)
+- **Redis v0.3.2** (2025-11-17): Added mode selector (standalone/replica) with validation; Sentinel/Cluster values now fail fast
 - **Memcached v0.3.1→0.3.2** (2025-11-17): Improved readinessProbe from TCP socket check to memcached stats validation
 - **Memcached v0.3.1** (2025-11-17): Clarified architecture documentation in prod-master-replica values file
 - **RabbitMQ v0.3.1** (2025-11-17): Clarified single-instance architecture in prod-master-replica values file

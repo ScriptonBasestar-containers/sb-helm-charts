@@ -2,6 +2,9 @@
 # 1 master + 2 read replicas for high availability and read scaling
 # Use: helm install redis ./charts/redis -f charts/redis/values-prod-master-replica.yaml
 
+# Deployment mode
+mode: replica
+
 # Redis configuration
 redis:
   # Redis password - REQUIRED for production

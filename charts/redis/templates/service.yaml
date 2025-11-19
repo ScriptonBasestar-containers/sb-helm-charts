@@ -1,10 +1,12 @@
+{{- $mode := include "redis.effectiveMode" . -}}
+{{- $isReplica := eq $mode "replica" -}}
 apiVersion: v1
 kind: Service
 metadata:
   name: {{ include "redis.fullname" . }}
   labels:
     {{- include "redis.labels" . | nindent 4 }}
-    {{- if .Values.replication.enabled }}
+    {{- if $isReplica }}
     app.kubernetes.io/component: master
     {{- end }}
   {{- with .Values.service.annotations }}
@@ -20,7 +22,7 @@ spec:
       name: redis
   selector:
     {{- include "redis.selectorLabels" . | nindent 4 }}
-    {{- if .Values.replication.enabled }}
+    {{- if $isReplica }}
     # In replication mode, route to master only (redis-0)
     statefulset.kubernetes.io/pod-name: {{ include "redis.fullname" . }}-0
     {{- end }}

@@ -1,0 +1,4 @@
+{{/*
+Run early validations; renders nothing.
+*/}}
+{{- include "redis.validateValues" . -}}
