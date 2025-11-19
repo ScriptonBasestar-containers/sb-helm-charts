@@ -168,6 +168,66 @@ persistence:
     size: 10Gi  # Exports and backups
 ```
 
+## S3 Object Storage
+
+Paperless-ngx can store documents in S3-compatible object storage instead of local PVCs, significantly reducing storage requirements.
+
+### Quick Configuration
+
+```yaml
+paperless:
+  extraEnv:
+    - name: PAPERLESS_STORAGE_TYPE
+      value: "s3"
+    - name: PAPERLESS_AWS_ACCESS_KEY_ID
+      valueFrom:
+        secretKeyRef:
+          name: paperless-s3-credentials
+          key: access-key-id
+    - name: PAPERLESS_AWS_SECRET_ACCESS_KEY
+      valueFrom:
+        secretKeyRef:
+          name: paperless-s3-credentials
+          key: secret-access-key
+    - name: PAPERLESS_AWS_STORAGE_BUCKET_NAME
+      value: "paperless-documents"
+    - name: PAPERLESS_AWS_S3_ENDPOINT_URL
+      value: "http://minio.default.svc.cluster.local:9000"
+    - name: PAPERLESS_AWS_S3_REGION_NAME
+      value: "us-east-1"
+```
+
+Create S3 credentials secret:
+```bash
+kubectl create secret generic paperless-s3-credentials \
+  --from-literal=access-key-id=paperless-user \
+  --from-literal=secret-access-key=paperless-secure-password
+```
+
+### Reduced PVC Sizes with S3
+
+When using S3 storage, reduce PVC sizes significantly:
+
+```yaml
+persistence:
+  data:
+    size: 5Gi      # Reduced from 50Gi (only for thumbnails/cache)
+  media:
+    size: 2Gi      # Reduced from 10Gi (temp files only)
+  consume:
+    size: 2Gi      # Inbox for new documents
+  export:
+    size: 2Gi      # Export destination
+```
+
+**Benefits:**
+- Massive storage cost reduction (documents stored in S3, not PVCs)
+- Scalable storage independent of Kubernetes volumes
+- Simplified backup and disaster recovery
+- Multi-region replication support
+
+For complete S3 integration guide including MinIO setup, bucket creation, and security best practices, see the [S3 Integration Guide](../../docs/S3_INTEGRATION_GUIDE.md#paperless-ngx-document-storage).
+
 ### Email Integration
 
 ```yaml

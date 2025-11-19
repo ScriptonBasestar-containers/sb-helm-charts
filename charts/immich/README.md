@@ -150,6 +150,53 @@ helm install my-immich scripton-charts/immich \
 | `persistence.library.size` | Photo library size | `100Gi` |
 | `immich.machineLearning.modelCache.size` | ML model cache | `10Gi` |
 
+## S3 Object Storage
+
+Immich can use S3-compatible object storage (MinIO, AWS S3, etc.) for photo and video storage instead of local PVCs.
+
+### Quick Configuration
+
+```yaml
+immich:
+  server:
+    extraEnv:
+      - name: IMMICH_MEDIA_LOCATION
+        value: "s3"
+      - name: AWS_ACCESS_KEY_ID
+        valueFrom:
+          secretKeyRef:
+            name: immich-s3-credentials
+            key: access-key-id
+      - name: AWS_SECRET_ACCESS_KEY
+        valueFrom:
+          secretKeyRef:
+            name: immich-s3-credentials
+            key: secret-access-key
+      - name: AWS_ENDPOINT
+        value: "http://minio.default.svc.cluster.local:9000"
+      - name: AWS_REGION
+        value: "us-east-1"
+      - name: AWS_S3_BUCKET
+        value: "immich-media"
+      - name: AWS_S3_FORCE_PATH_STYLE
+        value: "true"
+```
+
+Create S3 credentials secret:
+```bash
+kubectl create secret generic immich-s3-credentials \
+  --from-literal=access-key-id=immich-user \
+  --from-literal=secret-access-key=immich-secure-password
+```
+
+**Benefits:**
+- Significantly reduced PVC requirements (only thumbnails/cache need local storage)
+- Scalable storage independent of pod lifecycle
+- Multi-region replication support
+- Lower storage costs
+
+For complete S3 integration guide including MinIO setup, bucket creation, and security best practices, see the [S3 Integration Guide](../../docs/S3_INTEGRATION_GUIDE.md#immich-photo--video-storage).
+
 ## Hardware Acceleration
 
 Enable GPU acceleration for ML workloads:

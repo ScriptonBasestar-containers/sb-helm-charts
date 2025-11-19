@@ -240,6 +240,72 @@ https://nextcloud.example.com
 | `persistence.apps.enabled` | Enable custom apps volume | `true` |
 | `persistence.apps.size` | Apps volume size | `1Gi` |
 
+## S3 Object Storage
+
+Nextcloud can use S3-compatible object storage as its primary storage backend, replacing local file storage entirely.
+
+### Quick Configuration
+
+Add S3 configuration to your values:
+
+```yaml
+nextcloud:
+  configs:
+    s3.config.php: |-
+      <?php
+      $CONFIG = array(
+        'objectstore' => [
+          'class' => '\\OC\\Files\\ObjectStore\\S3',
+          'arguments' => [
+            'bucket' => 'nextcloud-data',
+            'autocreate' => true,
+            'key' => 'nextcloud-user',
+            'secret' => getenv('S3_SECRET_KEY'),
+            'hostname' => 'minio.default.svc.cluster.local',
+            'port' => 9000,
+            'use_ssl' => false,
+            'region' => 'us-east-1',
+            'use_path_style' => true
+          ],
+        ],
+      );
+
+  extraEnv:
+    - name: S3_SECRET_KEY
+      valueFrom:
+        secretKeyRef:
+          name: nextcloud-s3-credentials
+          key: secret-access-key
+```
+
+Create S3 credentials secret:
+```bash
+kubectl create secret generic nextcloud-s3-credentials \
+  --from-literal=secret-access-key=nextcloud-secure-password
+```
+
+### Important Notes
+
+**Migration:** Moving existing data to S3 requires manual migration. S3 object storage must be configured **before** first installation or during a clean install.
+
+**Database:** Nextcloud still requires PostgreSQL for metadata, even when using S3 for files.
+
+**Performance:** Enable Redis caching for better performance with S3:
+```yaml
+redis:
+  external:
+    enabled: true
+    host: "redis.default.svc.cluster.local"
+```
+
+**Benefits:**
+- Unlimited scalable storage
+- Multi-region replication support
+- Reduced PVC costs (only config/apps need local storage)
+- Simplified backup and disaster recovery
+
+For complete S3 integration guide including MinIO setup, bucket creation, and security best practices, see the [S3 Integration Guide](../../docs/S3_INTEGRATION_GUIDE.md#nextcloud-primary-storage).
+
 ### Ingress
 
 | Parameter | Description | Default |
