@@ -1,0 +1,186 @@
+# Small Production Environment Profile
+# 3-broker Kafka cluster for HA
+#
+# Usage:
+#   helm install my-kafka charts/kafka \
+#     -f charts/kafka/values-small-prod.yaml \
+#     --set kafka.sasl.password='<STRONG_PASSWORD>'
+#
+# WARNING: Update controllerQuorumVoters and advertisedListeners for your namespace!
+
+# 3 brokers for HA
+replicaCount: 3
+
+image:
+  repository: bitnami/kafka
+  pullPolicy: IfNotPresent
+  tag: "3.6.1"
+
+# Kafka configuration for production
+kafka:
+  # KRaft mode
+  processRoles: "broker,controller"
+
+  # Controller quorum voters - ALL 3 brokers
+  # IMPORTANT: Update namespace if not using 'default'
+  controllerQuorumVoters: "0@kafka-0.kafka-headless.default.svc.cluster.local:9093,1@kafka-1.kafka-headless.default.svc.cluster.local:9093,2@kafka-2.kafka-headless.default.svc.cluster.local:9093"
+
+  # Advertised listeners - will use pod DNS
+  # Each pod will override this with its own address
+  advertisedListeners: "PLAINTEXT://kafka-0.kafka-headless.default.svc.cluster.local:9092"
+
+  # Topic defaults for HA
+  numPartitions: 3
+  defaultReplicationFactor: 3
+  minInsyncReplicas: 2
+  autoCreateTopicsEnable: false  # Disable auto-creation for production
+
+  # Production retention
+  logRetentionHours: 168  # 7 days
+  logRetentionBytes: -1  # unlimited
+
+  # Log segment size (1GB)
+  logSegmentBytes: 1073741824
+
+  # Performance tuning for production
+  numNetworkThreads: 8
+  numIoThreads: 16
+  socketSendBufferBytes: 102400
+  socketReceiveBufferBytes: 102400
+  socketRequestMaxBytes: 104857600  # 100MB
+
+  # SASL authentication for production
+  sasl:
+    enabled: true
+    mechanisms: "PLAIN"
+    interBrokerProtocol: "PLAIN"
+    username: "admin"
+    password: ""  # SET THIS VIA --set OR EXTERNAL SECRET
+
+  # Additional production configuration
+  config:
+    # Compression
+    compression.type: "gzip"
+
+    # Message size limits
+    message.max.bytes: "10485760"  # 10MB
+    replica.fetch.max.bytes: "10485760"
+
+    # Timeouts
+    request.timeout.ms: "30000"
+    session.timeout.ms: "10000"
+
+    # Leader election
+    leader.imbalance.check.interval.seconds: "300"
+    leader.imbalance.per.broker.percentage: "10"
+
+# Kafka UI for monitoring
+kafkaUI:
+  enabled: true
+  replicaCount: 1
+
+  service:
+    type: ClusterIP
+    port: 8080
+
+  # Production resources for UI
+  resources:
+    limits:
+      cpu: 500m
+      memory: 512Mi
+    requests:
+      cpu: 100m
+      memory: 256Mi
+
+# Production storage with SSD
+persistence:
+  enabled: true
+  storageClass: "fast-ssd"  # Use your SSD storageClass
+  accessMode: ReadWriteOnce
+  size: 50Gi
+  annotations: {}
+
+# Service configuration
+service:
+  type: ClusterIP
+  port: 9092
+  annotations: {}
+
+# ServiceAccount
+serviceAccount:
+  create: true
+  annotations: {}
+
+# Production resource limits
+# Adjust based on your workload
+resources:
+  limits:
+    cpu: 2000m
+    memory: 4Gi
+  requests:
+    cpu: 500m
+    memory: 1Gi
+
+# Production health probes
+livenessProbe:
+  initialDelaySeconds: 60
+  periodSeconds: 10
+  timeoutSeconds: 5
+  failureThreshold: 6
+
+readinessProbe:
+  initialDelaySeconds: 30
+  periodSeconds: 10
+  timeoutSeconds: 5
+  failureThreshold: 3
+
+startupProbe:
+  initialDelaySeconds: 0
+  periodSeconds: 10
+  timeoutSeconds: 5
+  failureThreshold: 30
+
+# Pod security context
+podSecurityContext:
+  fsGroup: 1001
+  runAsUser: 1001
+  runAsNonRoot: true
+
+# Container security context
+securityContext:
+  capabilities:
+    drop:
+    - ALL
+  readOnlyRootFilesystem: false
+  allowPrivilegeEscalation: false
+
+# Pod annotations for Prometheus monitoring
+podAnnotations:
+  prometheus.io/scrape: "false"  # Enable if using JMX exporter
+  # prometheus.io/port: "7071"
+  # prometheus.io/path: "/metrics"
+
+# Anti-affinity to spread brokers across nodes
+affinity:
+  podAntiAffinity:
+    preferredDuringSchedulingIgnoredDuringExecution:
+      - weight: 100
+        podAffinityTerm:
+          labelSelector:
+            matchExpressions:
+              - key: app.kubernetes.io/name
+                operator: In
+                values:
+                  - kafka
+          topologyKey: kubernetes.io/hostname
+
+# Tolerations for dedicated nodes (optional)
+# tolerations:
+#   - key: "dedicated"
+#     operator: "Equal"
+#     value: "kafka"
+#     effect: "NoSchedule"
+
+# Node selector for dedicated nodes (optional)
+# nodeSelector:
+#   workload: kafka

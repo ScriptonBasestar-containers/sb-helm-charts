@@ -1,0 +1,113 @@
+# Development Environment Profile
+# Single-broker Kafka for local development and testing
+#
+# Usage:
+#   helm install my-kafka charts/kafka -f charts/kafka/values-dev.yaml
+
+# Single broker for development
+replicaCount: 1
+
+image:
+  repository: bitnami/kafka
+  pullPolicy: IfNotPresent
+  tag: "3.6.1"
+
+# Kafka configuration optimized for development
+kafka:
+  # KRaft mode (auto-generated cluster ID)
+  processRoles: "broker,controller"
+  controllerQuorumVoters: "0@kafka-0.kafka-headless.default.svc.cluster.local:9093"
+
+  # Simple listeners for development
+  listeners: "PLAINTEXT://:9092,CONTROLLER://:9093"
+  advertisedListeners: "PLAINTEXT://kafka-0.kafka-headless.default.svc.cluster.local:9092"
+
+  # Topic defaults - permissive for development
+  numPartitions: 1
+  defaultReplicationFactor: 1
+  minInsyncReplicas: 1
+  autoCreateTopicsEnable: true  # Enable auto-creation for dev
+
+  # Short retention for development
+  logRetentionHours: 24  # 1 day
+  logRetentionBytes: 1073741824  # 1GB
+
+  # No authentication for development
+  sasl:
+    enabled: false
+
+# Kafka UI enabled for easy management
+kafkaUI:
+  enabled: true
+  replicaCount: 1
+
+  service:
+    type: ClusterIP
+    port: 8080
+
+  # Reduced resources for development
+  resources:
+    limits:
+      cpu: 200m
+      memory: 256Mi
+    requests:
+      cpu: 50m
+      memory: 128Mi
+
+# Smaller storage for development
+persistence:
+  enabled: true
+  storageClass: ""  # Use cluster default
+  accessMode: ReadWriteOnce
+  size: 5Gi
+
+# Service configuration
+service:
+  type: ClusterIP
+  port: 9092
+
+# ServiceAccount
+serviceAccount:
+  create: true
+
+# Reduced resources for development
+resources:
+  limits:
+    cpu: 1000m
+    memory: 1Gi
+  requests:
+    cpu: 250m
+    memory: 512Mi
+
+# Faster probes for quick iteration
+livenessProbe:
+  initialDelaySeconds: 30
+  periodSeconds: 10
+  timeoutSeconds: 3
+  failureThreshold: 3
+
+readinessProbe:
+  initialDelaySeconds: 15
+  periodSeconds: 5
+  timeoutSeconds: 3
+  failureThreshold: 2
+
+startupProbe:
+  initialDelaySeconds: 0
+  periodSeconds: 5
+  timeoutSeconds: 3
+  failureThreshold: 20
+
+# Pod security context
+podSecurityContext:
+  fsGroup: 1001
+  runAsUser: 1001
+  runAsNonRoot: true
+
+# Container security context
+securityContext:
+  capabilities:
+    drop:
+    - ALL
+  readOnlyRootFilesystem: false
+  allowPrivilegeEscalation: false

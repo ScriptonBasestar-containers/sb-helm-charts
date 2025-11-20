@@ -1,7 +1,7 @@
 # Artifact Hub Statistics Dashboard
 
 <!-- AUTO-GENERATED FILE - DO NOT EDIT MANUALLY -->
-<!-- Generated: 2025-11-20 13:42:13 -->
+<!-- Generated: 2025-11-20 14:44:18 -->
 <!-- To update, run: make generate-artifacthub-dashboard -->
 
 > **Note**: This dashboard is automatically generated from `charts-metadata.yaml`.
@@ -17,9 +17,9 @@
 
 ## Quick Statistics
 
-- **Total Charts**: 20
+- **Total Charts**: 21
 - **Application Charts**: 14
-- **Infrastructure Charts**: 6
+- **Infrastructure Charts**: 7
 
 ## Table of Contents
 
@@ -271,6 +271,24 @@
 > ⚠️ **Production Note**: For large-scale production, consider Elastic Cloud on Kubernetes (ECK) Operator
 
 **Local Documentation**: [charts/elasticsearch/README.md](../charts/elasticsearch/README.md)
+
+---
+
+### Apache Kafka
+
+[![Artifact Hub](https://img.shields.io/endpoint?url=https://artifacthub.io/badge/repository/sb-helm-charts)](https://artifacthub.io/packages/helm/sb-helm-charts/kafka)
+
+**Description**: Apache Kafka streaming platform with KRaft mode and management UI (StatefulSet, no Zookeeper)
+
+**Artifact Hub Package**: https://artifacthub.io/packages/helm/sb-helm-charts/kafka
+
+**Tags**: Message-Queue, Streaming, Event-Driven
+
+**Keywords**: kafka, streaming, message-broker, event-streaming, kraft (+1 more)
+
+> ⚠️ **Production Note**: For production clustering, consider Strimzi Kafka Operator
+
+**Local Documentation**: [charts/kafka/README.md](../charts/kafka/README.md)
 
 ---
 

@@ -71,6 +71,7 @@ jobs:
           - elasticsearch
           - immich
           - jellyfin
+          - kafka
           - keycloak
           - memcached
           - minio

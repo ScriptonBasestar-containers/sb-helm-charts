@@ -149,6 +149,8 @@ The metadata file serves multiple purposes:
 
 - **elasticsearch**: Distributed search and analytics engine (StatefulSet, Kibana, cluster mode, S3 snapshots)
   - ⚠️ For large-scale production, consider [Elastic Cloud on Kubernetes (ECK) Operator](https://www.elastic.co/guide/en/cloud-on-k8s/current/index.html)
+- **kafka**: Apache Kafka streaming platform with KRaft mode and management UI (StatefulSet, no Zookeeper)
+  - ⚠️ For production clustering, consider [Strimzi Kafka Operator](https://strimzi.io/)
 - **memcached**: High-performance distributed memory caching system (Deployment, no database)
   - ⚠️ For production, consider [Memcached Operator](https://github.com/ianlewis/memcached-operator)
 - **minio**: High-performance S3-compatible object storage (StatefulSet, distributed mode, erasure coding)
@@ -566,6 +568,38 @@ make -f make/ops/postgresql.mk pg-restart            # Restart StatefulSet
 make -f make/ops/postgresql.mk pg-scale REPLICAS=2   # Scale replicas
 make -f make/ops/postgresql.mk pg-get-password       # Get postgres password
 make -f make/ops/postgresql.mk pg-get-replication-password # Get replication password
+```
+
+### Kafka Specific Commands
+
+```bash
+# Topic Management
+make -f make/ops/kafka.mk kafka-topics-list
+make -f make/ops/kafka.mk kafka-topic-create TOPIC=my-topic PARTITIONS=3 REPLICATION=2
+make -f make/ops/kafka.mk kafka-topic-describe TOPIC=my-topic
+make -f make/ops/kafka.mk kafka-topic-delete TOPIC=my-topic
+
+# Consumer Groups
+make -f make/ops/kafka.mk kafka-consumer-groups-list
+make -f make/ops/kafka.mk kafka-consumer-group-describe GROUP=my-group
+
+# Producer/Consumer
+make -f make/ops/kafka.mk kafka-produce TOPIC=my-topic  # Interactive producer
+make -f make/ops/kafka.mk kafka-consume TOPIC=my-topic  # Consumer from beginning
+
+# Broker Information
+make -f make/ops/kafka.mk kafka-broker-list
+make -f make/ops/kafka.mk kafka-cluster-id
+
+# Kafka UI
+make -f make/ops/kafka.mk kafka-ui-port-forward  # Port forward UI to localhost:8080
+
+# Utilities
+make -f make/ops/kafka.mk kafka-port-forward  # Port forward to localhost:9092
+make -f make/ops/kafka.mk kafka-restart       # Restart StatefulSet
+make -f make/ops/kafka.mk kafka-scale REPLICAS=3  # Scale brokers
+make -f make/ops/kafka.mk kafka-shell
+make -f make/ops/kafka.mk kafka-logs
 ```
 
 ### Redis Specific Commands
