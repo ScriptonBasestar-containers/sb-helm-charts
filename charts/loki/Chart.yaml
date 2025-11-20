@@ -1,0 +1,20 @@
+apiVersion: v2
+name: loki
+description: Loki log aggregation system with Grafana integration
+type: application
+version: 0.1.0
+appVersion: "2.9.3"
+keywords:
+  - loki
+  - logging
+  - logs
+  - observability
+  - grafana
+  - promtail
+home: https://github.com/scriptonbasestar-container/sb-helm-charts
+sources:
+  - https://github.com/scriptonbasestar-container/sb-helm-charts/tree/master/charts/loki
+  - https://github.com/grafana/loki
+maintainers:
+  - name: ScriptonBasestar
+    email: scriptonbasestar@gmail.com

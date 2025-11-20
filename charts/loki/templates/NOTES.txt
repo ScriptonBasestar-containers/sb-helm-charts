@@ -1,0 +1,64 @@
+Thank you for installing {{ .Chart.Name }}!
+
+Your Loki deployment is ready.
+
+1. Get the application URL:
+
+{{- if contains "NodePort" .Values.service.type }}
+
+  export NODE_PORT=$(kubectl get --namespace {{ .Release.Namespace }} -o jsonpath="{.spec.ports[0].nodePort}" services {{ include "loki.fullname" . }})
+  export NODE_IP=$(kubectl get nodes --namespace {{ .Release.Namespace }} -o jsonpath="{.items[0].status.addresses[0].address}")
+  echo http://$NODE_IP:$NODE_PORT
+
+{{- else if contains "LoadBalancer" .Values.service.type }}
+
+  NOTE: It may take a few minutes for the LoadBalancer IP to be available.
+        You can watch the status by running 'kubectl get --namespace {{ .Release.Namespace }} svc -w {{ include "loki.fullname" . }}'
+
+  export SERVICE_IP=$(kubectl get svc --namespace {{ .Release.Namespace }} {{ include "loki.fullname" . }} --template "{{"{{ range (index .status.loadBalancer.ingress 0) }}{{.}}{{ end }}"}}")
+  echo http://$SERVICE_IP:{{ .Values.service.port }}
+
+{{- else if contains "ClusterIP" .Values.service.type }}
+
+  kubectl port-forward --namespace {{ .Release.Namespace }} svc/{{ include "loki.fullname" . }} 3100:{{ .Values.service.port }}
+
+  Then access Loki at: http://localhost:3100
+
+{{- end }}
+
+2. Check Loki status:
+
+  kubectl exec -it --namespace {{ .Release.Namespace }} {{ include "loki.fullname" . }}-0 -- wget -qO- http://localhost:3100/ready
+
+3. Configuration:
+
+  - Storage type: {{ .Values.loki.storage.type }}
+  - Replication factor: {{ .Values.loki.replicationFactor }}
+  - Replicas: {{ .Values.replicaCount }}
+
+{{- if eq .Values.loki.storage.type "s3" }}
+
+4. S3 Storage Configuration:
+
+  - Endpoint: {{ .Values.loki.storage.s3.endpoint }}
+  - Bucket: {{ .Values.loki.storage.s3.bucketNames }}
+  {{- if .Values.loki.storage.s3.region }}
+  - Region: {{ .Values.loki.storage.s3.region }}
+  {{- end }}
+
+{{- end }}
+
+5. Integration with Grafana:
+
+  Add Loki as a data source in Grafana:
+
+  URL: http://{{ include "loki.fullname" . }}.{{ .Release.Namespace }}.svc.cluster.local:{{ .Values.service.port }}
+
+6. Send logs to Loki using Promtail:
+
+  Configure Promtail to send logs to:
+  http://{{ include "loki.fullname" . }}.{{ .Release.Namespace }}.svc.cluster.local:{{ .Values.service.port }}/loki/api/v1/push
+
+For more information, visit:
+  - Loki Documentation: https://grafana.com/docs/loki/latest/
+  - LogQL Query Language: https://grafana.com/docs/loki/latest/logql/

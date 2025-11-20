@@ -145,6 +145,14 @@ charts:
     keywords: [grafana, monitoring, metrics, visualization, dashboard, observability]
     description: Grafana metrics visualization and dashboarding platform
 
+  loki:
+    name: Loki
+    path: charts/loki
+    category: application
+    tags: [Logging, Observability, Monitoring]
+    keywords: [loki, logging, logs, observability, grafana, promtail]
+    description: Loki log aggregation system with Grafana integration
+
   # Infrastructure Charts (Dev/Test - Consider Operators for Production)
   redis:
     name: Redis

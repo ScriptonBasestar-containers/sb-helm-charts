@@ -1,0 +1,122 @@
+# Default values for loki.
+
+# Number of Loki instances
+replicaCount: 1
+
+image:
+  repository: grafana/loki
+  pullPolicy: IfNotPresent
+  # Overrides the image tag whose default is the chart appVersion
+  tag: ""
+
+imagePullSecrets: []
+nameOverride: ""
+fullnameOverride: ""
+
+# Loki configuration
+loki:
+  # Use an existing ConfigMap for Loki configuration
+  existingConfigMap: ""
+
+  # Use an existing Secret for S3 credentials
+  existingSecret: ""
+
+  # Authentication configuration
+  auth:
+    enabled: false
+
+  # Storage configuration
+  storage:
+    # Storage type: filesystem or s3
+    type: "filesystem"
+
+    # S3 storage configuration (only used if type is "s3")
+    s3:
+      endpoint: ""
+      bucketNames: ""
+      region: ""
+      accessKeyId: ""
+      secretAccessKey: ""
+      s3ForcePathStyle: true
+
+  # Replication factor for the ring
+  replicationFactor: 1
+
+  # Limits configuration
+  limits:
+    # Ingestion rate limit in MB
+    ingestionRateMB: 4
+    # Ingestion burst size in MB
+    ingestionBurstSizeMB: 6
+
+  # Additional Loki configuration
+  # This will be merged with the generated config
+  config: {}
+
+  # Extra environment variables
+  extraEnv: []
+  # - name: CUSTOM_VAR
+  #   value: "custom_value"
+
+serviceAccount:
+  # Specifies whether a service account should be created
+  create: true
+  # Annotations to add to the service account
+  annotations: {}
+  # The name of the service account to use.
+  # If not set and create is true, a name is generated using the fullname template
+  name: ""
+
+podAnnotations: {}
+
+podSecurityContext:
+  fsGroup: 10001
+  runAsUser: 10001
+  runAsNonRoot: true
+
+securityContext:
+  capabilities:
+    drop:
+    - ALL
+  readOnlyRootFilesystem: true
+  runAsNonRoot: true
+  runAsUser: 10001
+
+service:
+  type: ClusterIP
+  port: 3100
+  annotations: {}
+
+resources:
+  limits:
+    cpu: 1000m
+    memory: 1Gi
+  requests:
+    cpu: 100m
+    memory: 256Mi
+
+livenessProbe:
+  initialDelaySeconds: 30
+  periodSeconds: 10
+  timeoutSeconds: 5
+  failureThreshold: 3
+
+readinessProbe:
+  initialDelaySeconds: 30
+  periodSeconds: 10
+  timeoutSeconds: 5
+  failureThreshold: 3
+
+# Persistence configuration
+persistence:
+  enabled: true
+  # storageClass: "-"
+  annotations: {}
+  accessMode: ReadWriteOnce
+  size: 10Gi
+
+nodeSelector: {}
+
+tolerations: []
+
+affinity: {}

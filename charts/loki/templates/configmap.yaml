@@ -1,0 +1,68 @@
+{{- if not .Values.loki.existingConfigMap }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "loki.configMapName" . }}
+  labels:
+    {{- include "loki.labels" . | nindent 4 }}
+data:
+  loki.yaml: |
+    auth_enabled: {{ .Values.loki.auth.enabled }}
+
+    server:
+      http_listen_port: 3100
+      grpc_listen_port: 9095
+
+    common:
+      path_prefix: /loki
+      storage:
+        {{- if eq .Values.loki.storage.type "filesystem" }}
+        filesystem:
+          chunks_directory: /loki/chunks
+          rules_directory: /loki/rules
+        {{- else if eq .Values.loki.storage.type "s3" }}
+        s3:
+          endpoint: {{ .Values.loki.storage.s3.endpoint }}
+          bucketnames: {{ .Values.loki.storage.s3.bucketNames }}
+          {{- if .Values.loki.storage.s3.region }}
+          region: {{ .Values.loki.storage.s3.region }}
+          {{- end }}
+          s3forcepathstyle: {{ .Values.loki.storage.s3.s3ForcePathStyle }}
+        {{- end }}
+      replication_factor: {{ .Values.loki.replicationFactor }}
+      ring:
+        kvstore:
+          store: memberlist
+
+    memberlist:
+      join_members:
+        - {{ include "loki.memberlistServiceName" . }}:7946
+
+    schema_config:
+      configs:
+        - from: 2023-01-01
+          store: boltdb-shipper
+          object_store: {{ .Values.loki.storage.type }}
+          schema: v11
+          index:
+            prefix: index_
+            period: 24h
+
+    limits_config:
+      enforce_metric_name: false
+      reject_old_samples: true
+      reject_old_samples_max_age: 168h
+      max_cache_freshness_per_query: 10m
+      split_queries_by_interval: 15m
+      ingestion_rate_mb: {{ .Values.loki.limits.ingestionRateMB }}
+      ingestion_burst_size_mb: {{ .Values.loki.limits.ingestionBurstSizeMB }}
+
+    compactor:
+      working_directory: /loki/compactor
+      shared_store: {{ .Values.loki.storage.type }}
+      compaction_interval: 10m
+
+    {{- with .Values.loki.config }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
+{{- end }}
