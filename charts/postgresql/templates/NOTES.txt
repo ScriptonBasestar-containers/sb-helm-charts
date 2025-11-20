@@ -1,0 +1,106 @@
+1. Get the PostgreSQL password:
+
+{{- if .Values.postgresql.existingSecret }}
+  Your PostgreSQL password is stored in the existing secret: {{ .Values.postgresql.existingSecret }}
+{{- else }}
+  export POSTGRES_PASSWORD=$(kubectl get secret --namespace {{ .Release.Namespace }} {{ include "postgresql.secretName" . }} -o jsonpath="{.data.postgres-password}" | base64 -d)
+  echo "PostgreSQL Password: $POSTGRES_PASSWORD"
+{{- end }}
+
+{{- if .Values.postgresql.replication.enabled }}
+
+  Replication Password:
+  export REPLICATION_PASSWORD=$(kubectl get secret --namespace {{ .Release.Namespace }} {{ include "postgresql.secretName" . }} -o jsonpath="{.data.replication-password}" | base64 -d)
+  echo "Replication Password: $REPLICATION_PASSWORD"
+{{- end }}
+
+2. Connect to PostgreSQL:
+
+  a. From inside the cluster:
+
+     psql -h {{ include "postgresql.primaryServiceName" . }}.{{ .Release.Namespace }}.svc.cluster.local -U {{ .Values.postgresql.username }} -d {{ .Values.postgresql.database }}
+
+  b. From your local machine (port-forward):
+
+     kubectl port-forward --namespace {{ .Release.Namespace }} svc/{{ include "postgresql.primaryServiceName" . }} 5432:5432
+
+     Then connect using:
+     PGPASSWORD="$POSTGRES_PASSWORD" psql -h 127.0.0.1 -U {{ .Values.postgresql.username }} -d {{ .Values.postgresql.database }}
+
+{{- if .Values.postgresql.replication.enabled }}
+
+3. Replication Status:
+
+{{- if gt (int .Values.replicaCount) 1 }}
+  This deployment has {{ .Values.replicaCount }} replicas with replication enabled.
+
+  To check replication status:
+
+  # On master (pod 0):
+  kubectl exec -it {{ include "postgresql.fullname" . }}-0 -n {{ .Release.Namespace }} -- \
+    psql -U {{ .Values.postgresql.username }} -d {{ .Values.postgresql.database }} -c "SELECT * FROM pg_stat_replication;"
+
+  # On replica:
+  kubectl exec -it {{ include "postgresql.fullname" . }}-1 -n {{ .Release.Namespace }} -- \
+    psql -U {{ .Values.postgresql.username }} -d {{ .Values.postgresql.database }} -c "SELECT * FROM pg_stat_wal_receiver;"
+{{- else }}
+  ⚠️  WARNING: Replication is enabled but replicaCount is 1.
+  To enable actual replication, increase replicaCount to 2 or more:
+    helm upgrade {{ .Release.Name }} {{ .Chart.Name }} --set replicaCount=2
+{{- end }}
+{{- end }}
+
+4. Database Information:
+
+  Database: {{ .Values.postgresql.database }}
+  User:     {{ .Values.postgresql.username }}
+  Service:  {{ include "postgresql.primaryServiceName" . }}.{{ .Release.Namespace }}.svc.cluster.local:{{ .Values.service.port }}
+{{- if .Values.postgresql.replication.enabled }}
+  Headless: {{ include "postgresql.headlessServiceName" . }}.{{ .Release.Namespace }}.svc.cluster.local:{{ .Values.service.port }}
+{{- end }}
+
+5. Configuration Files:
+
+{{- if .Values.postgresql.existingConfigMap }}
+  Using existing ConfigMap: {{ .Values.postgresql.existingConfigMap }}
+{{- else }}
+  ConfigMap: {{ include "postgresql.configMapName" . }}
+
+  To view postgresql.conf:
+  kubectl get configmap {{ include "postgresql.configMapName" . }} -n {{ .Release.Namespace }} -o jsonpath='{.data.postgresql\.conf}'
+
+  To view pg_hba.conf:
+  kubectl get configmap {{ include "postgresql.configMapName" . }} -n {{ .Release.Namespace }} -o jsonpath='{.data.pg_hba\.conf}'
+{{- end }}
+
+{{- if not .Values.postgresql.password }}
+
+⚠️  PRODUCTION WARNING:
+  PostgreSQL password was auto-generated. For production deployments:
+  1. Set a strong password: --set postgresql.password='your-strong-password'
+  2. Store passwords in a secure secret management system
+  3. Consider using .Values.postgresql.existingSecret
+{{- end }}
+
+{{- if and .Values.postgresql.replication.enabled (not .Values.postgresql.replication.password) }}
+  Replication password was auto-generated.
+  For production: --set postgresql.replication.password='your-strong-password'
+{{- end }}
+
+6. Useful Commands:
+
+  # View logs
+  kubectl logs -f {{ include "postgresql.fullname" . }}-0 -n {{ .Release.Namespace }}
+
+  # Execute psql shell
+  kubectl exec -it {{ include "postgresql.fullname" . }}-0 -n {{ .Release.Namespace }} -- psql -U {{ .Values.postgresql.username }} -d {{ .Values.postgresql.database }}
+
+  # Backup database
+  kubectl exec {{ include "postgresql.fullname" . }}-0 -n {{ .Release.Namespace }} -- \
+    pg_dump -U {{ .Values.postgresql.username }} {{ .Values.postgresql.database }} > backup.sql
+
+  # Check disk usage
+  kubectl exec {{ include "postgresql.fullname" . }}-0 -n {{ .Release.Namespace }} -- \
+    psql -U {{ .Values.postgresql.username }} -d {{ .Values.postgresql.database }} -c "SELECT pg_database_size('{{ .Values.postgresql.database }}');"
+
+For more information, see the chart README.md

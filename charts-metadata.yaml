@@ -158,6 +158,15 @@ charts:
     description: High-performance S3-compatible object storage (StatefulSet, distributed mode, erasure coding)
     production_note: "For production HA, consider MinIO Operator for advanced features"
 
+  postgresql:
+    name: PostgreSQL
+    path: charts/postgresql
+    category: infrastructure
+    tags: [Database, SQL, Relational]
+    keywords: [postgresql, postgres, database, sql, replication, backup]
+    description: PostgreSQL relational database with replication support (StatefulSet, primary-replica mode)
+    production_note: "For production HA, consider PostgreSQL Operator (Zalando, Crunchy Data, CloudNativePG)"
+
   elasticsearch:
     name: Elasticsearch
     path: charts/elasticsearch

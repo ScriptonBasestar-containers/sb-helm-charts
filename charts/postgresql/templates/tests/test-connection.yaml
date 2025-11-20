@@ -1,0 +1,39 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: "{{ include "postgresql.fullname" . }}-test-connection"
+  labels:
+    {{- include "postgresql.labels" . | nindent 4 }}
+  annotations:
+    "helm.sh/hook": test
+    "helm.sh/hook-delete-policy": before-hook-creation,hook-succeeded
+spec:
+  containers:
+    - name: psql
+      image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
+      command:
+        - sh
+        - -c
+        - |
+          until pg_isready -h {{ include "postgresql.primaryServiceName" . }} -p {{ .Values.service.port }} -U {{ .Values.postgresql.username }}; do
+            echo "Waiting for PostgreSQL to be ready..."
+            sleep 2
+          done
+          echo "PostgreSQL is ready!"
+
+          # Test connection with authentication
+          PGPASSWORD="$POSTGRES_PASSWORD" psql \
+            -h {{ include "postgresql.primaryServiceName" . }} \
+            -p {{ .Values.service.port }} \
+            -U {{ .Values.postgresql.username }} \
+            -d {{ .Values.postgresql.database }} \
+            -c "SELECT version();"
+
+          echo "Connection test successful!"
+      env:
+        - name: POSTGRES_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: {{ include "postgresql.secretName" . }}
+              key: postgres-password
+  restartPolicy: Never

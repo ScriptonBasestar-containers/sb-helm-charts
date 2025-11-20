@@ -1,0 +1,186 @@
+# Default values for postgresql.
+# This is a YAML-formatted file.
+# Declare variables to be passed into your templates.
+
+# Number of PostgreSQL replicas
+# For replication: set to 2+ and enable postgresql.replication
+replicaCount: 1
+
+image:
+  repository: postgres
+  pullPolicy: IfNotPresent
+  # Overrides the image tag whose default is the chart appVersion.
+  tag: ""
+
+imagePullSecrets: []
+nameOverride: ""
+fullnameOverride: ""
+
+# PostgreSQL configuration
+postgresql:
+  # Database name
+  database: "postgres"
+
+  # Database user
+  username: "postgres"
+
+  # Database password (auto-generated if empty)
+  # WARNING: Set this for production deployments
+  password: ""
+
+  # Data directory inside container
+  dataDir: "/var/lib/postgresql/data"
+
+  # PostgreSQL configuration parameters
+  # Connection Settings
+  maxConnections: 100
+
+  # Memory Settings
+  sharedBuffers: "128MB"
+  effectiveCacheSize: "4GB"
+  workMem: "4MB"
+  maintenanceWorkMem: "64MB"
+
+  # WAL Settings
+  walLevel: "replica"
+  maxWalSenders: 10
+  maxReplicationSlots: 10
+
+  # Additional postgresql.conf settings
+  # Example:
+  # config:
+  #   max_parallel_workers: "8"
+  #   checkpoint_timeout: "15min"
+  config: {}
+
+  # Replication configuration
+  replication:
+    enabled: false
+    user: "replicator"
+    # Replication password (auto-generated if empty)
+    password: ""
+
+  # Custom initialization scripts
+  # Will be mounted to /docker-entrypoint-initdb.d/
+  # Example:
+  # initdbScripts:
+  #   init.sql: |
+  #     CREATE DATABASE myapp;
+  #     CREATE USER myapp WITH PASSWORD 'secret';
+  #     GRANT ALL PRIVILEGES ON DATABASE myapp TO myapp;
+  initdbScripts: {}
+
+  # Use existing ConfigMap for postgresql.conf and pg_hba.conf
+  existingConfigMap: ""
+
+  # Use existing Secret for passwords
+  existingSecret: ""
+
+  # Extra environment variables
+  extraEnv: []
+  #  - name: POSTGRES_INITDB_ARGS
+  #    value: "--encoding=UTF8"
+
+  # Extra volumes
+  extraVolumes: []
+  #  - name: custom-config
+  #    configMap:
+  #      name: my-custom-config
+
+  # Extra volume mounts
+  extraVolumeMounts: []
+  #  - name: custom-config
+  #    mountPath: /etc/custom
+
+  # Custom arguments for PostgreSQL
+  # Default: -c config_file=/etc/postgresql/postgresql.conf -c hba_file=/etc/postgresql/pg_hba.conf
+  args: []
+
+# Service configuration
+service:
+  type: ClusterIP
+  port: 5432
+  # NodePort (only if type is NodePort)
+  nodePort: ""
+  # LoadBalancer IP (only if type is LoadBalancer)
+  loadBalancerIP: ""
+  loadBalancerSourceRanges: []
+  # ClusterIP (only if type is ClusterIP)
+  clusterIP: ""
+  annotations: {}
+  labels: {}
+
+# Persistence configuration
+persistence:
+  enabled: true
+  # storageClass: "-" for no storageClass, or specify a class
+  storageClass: ""
+  accessMode: ReadWriteOnce
+  size: 10Gi
+  annotations: {}
+
+# ServiceAccount configuration
+serviceAccount:
+  # Specifies whether a service account should be created
+  create: true
+  # Annotations to add to the service account
+  annotations: {}
+  # The name of the service account to use.
+  # If not set and create is true, a name is generated using the fullname template
+  name: ""
+
+# Pod annotations
+podAnnotations: {}
+
+# Pod security context
+podSecurityContext:
+  fsGroup: 999
+  runAsUser: 999
+  runAsNonRoot: true
+
+# Container security context
+securityContext:
+  capabilities:
+    drop:
+    - ALL
+  readOnlyRootFilesystem: false
+  allowPrivilegeEscalation: false
+
+# Resource limits and requests
+resources:
+  limits:
+    cpu: 1000m
+    memory: 2Gi
+  requests:
+    cpu: 250m
+    memory: 512Mi
+
+# Liveness probe configuration
+livenessProbe:
+  initialDelaySeconds: 30
+  periodSeconds: 10
+  timeoutSeconds: 5
+  failureThreshold: 6
+
+# Readiness probe configuration
+readinessProbe:
+  initialDelaySeconds: 5
+  periodSeconds: 10
+  timeoutSeconds: 5
+  failureThreshold: 3
+
+# Startup probe configuration
+startupProbe:
+  initialDelaySeconds: 0
+  periodSeconds: 10
+  timeoutSeconds: 5
+  failureThreshold: 30
+
+# Node selector
+nodeSelector: {}
+
+# Tolerations
+tolerations: []
+
+# Affinity
+affinity: {}

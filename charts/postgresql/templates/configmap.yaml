@@ -1,0 +1,46 @@
+{{- if not .Values.postgresql.existingConfigMap }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "postgresql.configMapName" . }}
+  labels:
+    {{- include "postgresql.labels" . | nindent 4 }}
+data:
+  postgresql.conf: |
+    # Connection Settings
+    listen_addresses = '*'
+    port = 5432
+    max_connections = {{ .Values.postgresql.maxConnections }}
+
+    # Memory Settings
+    shared_buffers = {{ .Values.postgresql.sharedBuffers }}
+    effective_cache_size = {{ .Values.postgresql.effectiveCacheSize }}
+    work_mem = {{ .Values.postgresql.workMem }}
+    maintenance_work_mem = {{ .Values.postgresql.maintenanceWorkMem }}
+
+    # WAL Settings
+    wal_level = {{ .Values.postgresql.walLevel }}
+    max_wal_senders = {{ .Values.postgresql.maxWalSenders }}
+    max_replication_slots = {{ .Values.postgresql.maxReplicationSlots }}
+
+    # Logging
+    logging_collector = on
+    log_directory = 'log'
+    log_filename = 'postgresql-%Y-%m-%d_%H%M%S.log'
+    log_rotation_size = 100MB
+    log_line_prefix = '%t [%p]: [%l-1] user=%u,db=%d,app=%a,client=%h '
+
+    {{- range $key, $value := .Values.postgresql.config }}
+    {{ $key }} = {{ $value }}
+    {{- end }}
+
+  pg_hba.conf: |
+    # TYPE  DATABASE        USER            ADDRESS                 METHOD
+    local   all             all                                     trust
+    host    all             all             127.0.0.1/32            trust
+    host    all             all             ::1/128                 trust
+    host    all             all             0.0.0.0/0               md5
+    {{- if .Values.postgresql.replication.enabled }}
+    host    replication     {{ .Values.postgresql.replication.user }}    0.0.0.0/0               md5
+    {{- end }}
+{{- end }}

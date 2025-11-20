@@ -1,0 +1,200 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: {{ include "postgresql.fullname" . }}
+  labels:
+    {{- include "postgresql.labels" . | nindent 4 }}
+spec:
+  serviceName: {{ include "postgresql.headlessServiceName" . }}
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      {{- include "postgresql.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      annotations:
+        checksum/config: {{ include (print $.Template.BasePath "/configmap.yaml") . | sha256sum }}
+        checksum/secret: {{ include (print $.Template.BasePath "/secret.yaml") . | sha256sum }}
+        {{- with .Values.podAnnotations }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+      labels:
+        {{- include "postgresql.selectorLabels" . | nindent 8 }}
+        {{- if .Values.postgresql.replication.enabled }}
+        {{- if eq (toString .Values.replicaCount) "1" }}
+        role: master
+        {{- end }}
+        {{- end }}
+    spec:
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      serviceAccountName: {{ include "postgresql.serviceAccountName" . }}
+      securityContext:
+        {{- toYaml .Values.podSecurityContext | nindent 8 }}
+      initContainers:
+        {{- if .Values.postgresql.initdbScripts }}
+        - name: copy-initdb-scripts
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          command:
+            - sh
+            - -c
+            - |
+              cp /initdb-scripts/* /docker-entrypoint-initdb.d/
+              chmod -R 755 /docker-entrypoint-initdb.d
+          volumeMounts:
+            - name: initdb-scripts
+              mountPath: /initdb-scripts
+            - name: initdb-workdir
+              mountPath: /docker-entrypoint-initdb.d
+        {{- end }}
+      containers:
+        - name: postgresql
+          securityContext:
+            {{- toYaml .Values.securityContext | nindent 12 }}
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          env:
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "postgresql.secretName" . }}
+                  key: postgres-password
+            - name: POSTGRES_DB
+              value: {{ .Values.postgresql.database | quote }}
+            - name: POSTGRES_USER
+              value: {{ .Values.postgresql.username | quote }}
+            - name: PGDATA
+              value: {{ .Values.postgresql.dataDir | quote }}
+            {{- if .Values.postgresql.replication.enabled }}
+            - name: POSTGRES_REPLICATION_MODE
+              value: {{ ternary "master" "slave" (eq (toString .Values.replicaCount) "1") | quote }}
+            - name: POSTGRES_REPLICATION_USER
+              value: {{ .Values.postgresql.replication.user | quote }}
+            - name: POSTGRES_REPLICATION_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "postgresql.secretName" . }}
+                  key: replication-password
+            {{- if gt (int .Values.replicaCount) 1 }}
+            - name: POSTGRES_MASTER_SERVICE
+              value: {{ include "postgresql.primaryServiceName" . }}
+            {{- end }}
+            {{- end }}
+            {{- if .Values.postgresql.extraEnv }}
+            {{- toYaml .Values.postgresql.extraEnv | nindent 12 }}
+            {{- end }}
+          ports:
+            - name: postgresql
+              containerPort: 5432
+              protocol: TCP
+          livenessProbe:
+            exec:
+              command:
+                - /bin/sh
+                - -c
+                - pg_isready -U {{ .Values.postgresql.username }} -d {{ .Values.postgresql.database }}
+            initialDelaySeconds: {{ .Values.livenessProbe.initialDelaySeconds }}
+            periodSeconds: {{ .Values.livenessProbe.periodSeconds }}
+            timeoutSeconds: {{ .Values.livenessProbe.timeoutSeconds }}
+            failureThreshold: {{ .Values.livenessProbe.failureThreshold }}
+          readinessProbe:
+            exec:
+              command:
+                - /bin/sh
+                - -c
+                - pg_isready -U {{ .Values.postgresql.username }} -d {{ .Values.postgresql.database }}
+            initialDelaySeconds: {{ .Values.readinessProbe.initialDelaySeconds }}
+            periodSeconds: {{ .Values.readinessProbe.periodSeconds }}
+            timeoutSeconds: {{ .Values.readinessProbe.timeoutSeconds }}
+            failureThreshold: {{ .Values.readinessProbe.failureThreshold }}
+          startupProbe:
+            exec:
+              command:
+                - /bin/sh
+                - -c
+                - pg_isready -U {{ .Values.postgresql.username }} -d {{ .Values.postgresql.database }}
+            initialDelaySeconds: {{ .Values.startupProbe.initialDelaySeconds }}
+            periodSeconds: {{ .Values.startupProbe.periodSeconds }}
+            timeoutSeconds: {{ .Values.startupProbe.timeoutSeconds }}
+            failureThreshold: {{ .Values.startupProbe.failureThreshold }}
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+          volumeMounts:
+            - name: data
+              mountPath: {{ .Values.postgresql.dataDir }}
+            {{- if not .Values.postgresql.existingConfigMap }}
+            - name: config
+              mountPath: /etc/postgresql/postgresql.conf
+              subPath: postgresql.conf
+            - name: config
+              mountPath: /etc/postgresql/pg_hba.conf
+              subPath: pg_hba.conf
+            {{- end }}
+            {{- if .Values.postgresql.initdbScripts }}
+            - name: initdb-workdir
+              mountPath: /docker-entrypoint-initdb.d
+            {{- end }}
+            {{- if .Values.postgresql.extraVolumeMounts }}
+            {{- toYaml .Values.postgresql.extraVolumeMounts | nindent 12 }}
+            {{- end }}
+          {{- if .Values.postgresql.args }}
+          args:
+            {{- toYaml .Values.postgresql.args | nindent 12 }}
+          {{- else }}
+          args:
+            - -c
+            - config_file=/etc/postgresql/postgresql.conf
+            - -c
+            - hba_file=/etc/postgresql/pg_hba.conf
+          {{- end }}
+      volumes:
+        {{- if not .Values.postgresql.existingConfigMap }}
+        - name: config
+          configMap:
+            name: {{ include "postgresql.configMapName" . }}
+        {{- end }}
+        {{- if .Values.postgresql.initdbScripts }}
+        - name: initdb-scripts
+          configMap:
+            name: {{ include "postgresql.fullname" . }}-initdb
+        - name: initdb-workdir
+          emptyDir: {}
+        {{- end }}
+        {{- if .Values.postgresql.extraVolumes }}
+        {{- toYaml .Values.postgresql.extraVolumes | nindent 8 }}
+        {{- end }}
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+  volumeClaimTemplates:
+    - metadata:
+        name: data
+        {{- with .Values.persistence.annotations }}
+        annotations:
+          {{- toYaml . | nindent 10 }}
+        {{- end }}
+      spec:
+        accessModes:
+          - {{ .Values.persistence.accessMode }}
+        {{- if .Values.persistence.storageClass }}
+        {{- if eq .Values.persistence.storageClass "-" }}
+        storageClassName: ""
+        {{- else }}
+        storageClassName: {{ .Values.persistence.storageClass }}
+        {{- end }}
+        {{- end }}
+        resources:
+          requests:
+            storage: {{ .Values.persistence.size }}
