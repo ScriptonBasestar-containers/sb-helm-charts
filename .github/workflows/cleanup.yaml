@@ -1,5 +1,5 @@
 name: Cleanup Deployment
-concurrency: 
+concurrency:
     group: no-group
     cancel-in-progress: true
 
@@ -23,7 +23,7 @@ jobs:
   cleanup-releases:
     runs-on: ubuntu-latest
     permissions: write-all
-    
+
     steps:
       - uses: dev-drprasad/delete-older-releases@v0.3.4
         with:
