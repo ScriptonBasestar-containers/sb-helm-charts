@@ -133,6 +133,8 @@ The metadata file serves multiple purposes:
 - **airflow**: Apache Airflow workflow orchestration (KubernetesExecutor, PostgreSQL, Git-sync, remote logging)
 - **browserless-chrome**: Headless browser for crawling
 - **devpi**: Python package index
+- **grafana**: Grafana metrics visualization and dashboarding platform (Deployment, SQLite/PostgreSQL/MySQL)
+- **harbor**: Private container registry with vulnerability scanning and image signing
 - **immich**: AI-powered photo and video management
 - **jellyfin**: Media server with hardware transcoding support
 - **keycloak**: IAM solution (StatefulSet, PostgreSQL, clustering, realm management)
@@ -520,6 +522,35 @@ make -f make/ops/mysql.mk mysql-cli CMD="SELECT VERSION();"
 make -f make/ops/mysql.mk mysql-ping
 make -f make/ops/mysql.mk mysql-version
 make -f make/ops/mysql.mk mysql-restart
+```
+
+### Grafana Specific Commands
+
+```bash
+# Access and credentials
+make -f make/ops/grafana.mk grafana-get-password
+make -f make/ops/grafana.mk grafana-port-forward
+make -f make/ops/grafana.mk grafana-shell
+make -f make/ops/grafana.mk grafana-logs
+
+# Data sources
+make -f make/ops/grafana.mk grafana-add-prometheus URL=http://prometheus:9090
+make -f make/ops/grafana.mk grafana-add-loki URL=http://loki:3100
+make -f make/ops/grafana.mk grafana-list-datasources
+
+# Dashboards
+make -f make/ops/grafana.mk grafana-list-dashboards
+make -f make/ops/grafana.mk grafana-export-dashboard UID=dashboard-uid
+make -f make/ops/grafana.mk grafana-import-dashboard FILE=dashboard.json
+
+# Database operations
+make -f make/ops/grafana.mk grafana-db-backup
+make -f make/ops/grafana.mk grafana-db-restore FILE=backup.tar.gz
+
+# Operations
+make -f make/ops/grafana.mk grafana-reset-password PASSWORD=newpass
+make -f make/ops/grafana.mk grafana-restart
+make -f make/ops/grafana.mk grafana-api CMD='/api/health'
 ```
 
 ### MinIO Specific Commands

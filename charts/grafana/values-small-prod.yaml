@@ -1,0 +1,95 @@
+# Small Production values for Grafana
+replicaCount: 1  # Grafana is stateful, single replica recommended
+
+image:
+  repository: grafana/grafana
+  pullPolicy: IfNotPresent
+  tag: "10.2.3"
+
+grafana:
+  adminUser: "admin"
+  adminPassword: ""  # REQUIRED: Set via --set
+
+  security:
+    disableGravatar: true
+    cookieSecure: true
+
+  users:
+    allowSignUp: false
+    allowOrgCreate: false
+
+  auth:
+    anonymous:
+      enabled: false
+
+  analytics:
+    checkForUpdates: true
+
+  log:
+    level: "info"
+
+# External PostgreSQL recommended for production
+database:
+  external:
+    enabled: true
+    type: "postgres"
+    host: "postgresql"
+    port: 5432
+    database: "grafana"
+    username: "grafana"
+    password: ""  # REQUIRED: Set via --set
+
+service:
+  type: ClusterIP
+  port: 80
+  annotations:
+    prometheus.io/scrape: "true"
+    prometheus.io/port: "3000"
+
+ingress:
+  enabled: true
+  className: "nginx"
+  annotations:
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
+  hosts:
+    - grafana.example.com
+  tls:
+    - secretName: grafana-tls
+      hosts:
+        - grafana.example.com
+
+persistence:
+  enabled: true
+  storageClass: "fast-ssd"
+  size: 20Gi
+
+podAnnotations:
+  prometheus.io/scrape: "true"
+  prometheus.io/port: "3000"
+
+resources:
+  limits:
+    cpu: 2000m
+    memory: 2Gi
+  requests:
+    cpu: 500m
+    memory: 1Gi
+
+livenessProbe:
+  initialDelaySeconds: 30
+  failureThreshold: 10
+
+readinessProbe:
+  initialDelaySeconds: 10
+  failureThreshold: 3
+
+nodeSelector:
+  node-role.kubernetes.io/monitoring: "true"
+
+tolerations:
+  - key: "monitoring"
+    operator: "Equal"
+    value: "true"
+    effect: "NoSchedule"
+
+affinity: {}

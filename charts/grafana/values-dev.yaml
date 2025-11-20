@@ -1,0 +1,65 @@
+# Development values for Grafana
+replicaCount: 1
+
+image:
+  repository: grafana/grafana
+  pullPolicy: IfNotPresent
+  tag: ""
+
+grafana:
+  adminUser: "admin"
+  adminPassword: "admin"  # Simple password for dev
+  domain: "localhost"
+
+  security:
+    disableGravatar: true
+    cookieSecure: false
+
+  users:
+    allowSignUp: true
+    allowOrgCreate: true
+
+  auth:
+    anonymous:
+      enabled: true  # Allow anonymous access in dev
+
+  analytics:
+    checkForUpdates: false
+
+  log:
+    level: "debug"
+
+database:
+  external:
+    enabled: false  # Use SQLite in dev
+
+service:
+  type: ClusterIP
+  port: 80
+
+ingress:
+  enabled: false
+
+persistence:
+  enabled: true
+  size: 5Gi
+
+resources:
+  limits:
+    cpu: 500m
+    memory: 512Mi
+  requests:
+    cpu: 100m
+    memory: 256Mi
+
+livenessProbe:
+  initialDelaySeconds: 20
+  failureThreshold: 5
+
+readinessProbe:
+  initialDelaySeconds: 5
+  failureThreshold: 3
+
+nodeSelector: {}
+tolerations: []
+affinity: {}
