@@ -175,6 +175,15 @@ charts:
     description: PostgreSQL relational database with replication support (StatefulSet, primary-replica mode)
     production_note: "For production HA, consider PostgreSQL Operator (Zalando, Crunchy Data, CloudNativePG)"
 
+  mysql:
+    name: MySQL
+    path: charts/mysql
+    category: infrastructure
+    tags: [Database, SQL, Relational]
+    keywords: [mysql, mariadb, database, sql, replication]
+    description: MySQL relational database with replication support (StatefulSet, primary-replica mode)
+    production_note: "For production HA, consider MySQL Operator (Oracle, Percona, Vitess)"
+
   elasticsearch:
     name: Elasticsearch
     path: charts/elasticsearch

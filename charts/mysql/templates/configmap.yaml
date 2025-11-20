@@ -1,0 +1,43 @@
+{{- if not .Values.mysql.existingConfigMap }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "mysql.configMapName" . }}
+  labels:
+    {{- include "mysql.labels" . | nindent 4 }}
+data:
+  my.cnf: |
+    [mysqld]
+    # General
+    port = 3306
+    bind-address = 0.0.0.0
+    
+    # Character set
+    character-set-server = utf8mb4
+    collation-server = utf8mb4_unicode_ci
+    
+    # Connection limits
+    max_connections = {{ .Values.mysql.maxConnections }}
+    
+    # Buffer settings
+    innodb_buffer_pool_size = {{ .Values.mysql.innodbBufferPoolSize }}
+    innodb_log_file_size = {{ .Values.mysql.innodbLogFileSize }}
+    
+    # Replication
+    {{- if .Values.mysql.replication.enabled }}
+    server-id = {{ .Values.mysql.replication.serverId | default 1 }}
+    log-bin = mysql-bin
+    binlog-format = ROW
+    sync-binlog = 1
+    {{- end }}
+    
+    # Logging
+    log-error = /var/log/mysql/error.log
+    slow-query-log = 1
+    slow-query-log-file = /var/log/mysql/slow.log
+    long-query-time = 2
+    
+    {{- range $key, $value := .Values.mysql.config }}
+    {{ $key }} = {{ $value }}
+    {{- end }}
+{{- end }}

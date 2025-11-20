@@ -1,0 +1,30 @@
+1. Get the MySQL root password:
+
+{{- if .Values.mysql.existingSecret }}
+  Your MySQL password is stored in: {{ .Values.mysql.existingSecret }}
+{{- else }}
+  export MYSQL_ROOT_PASSWORD=$(kubectl get secret --namespace {{ .Release.Namespace }} {{ include "mysql.secretName" . }} -o jsonpath="{.data.mysql-root-password}" | base64 -d)
+{{- end }}
+
+2. Connect to MySQL:
+
+  a. From inside the cluster:
+
+     mysql -h {{ include "mysql.primaryServiceName" . }}.{{ .Release.Namespace }}.svc.cluster.local -u root -p${MYSQL_ROOT_PASSWORD}
+
+  b. Port-forward:
+
+     kubectl port-forward --namespace {{ .Release.Namespace }} svc/{{ include "mysql.primaryServiceName" . }} 3306:3306
+     mysql -h 127.0.0.1 -u root -p
+
+3. Database Information:
+
+  Database: {{ .Values.mysql.database }}
+  User:     {{ .Values.mysql.username }}
+  Service:  {{ include "mysql.primaryServiceName" . }}.{{ .Release.Namespace }}.svc.cluster.local:{{ .Values.service.port }}
+
+{{- if not .Values.mysql.password }}
+
+⚠️  WARNING: MySQL password was auto-generated.
+  For production: --set mysql.password='your-strong-password'
+{{- end }}

@@ -1,0 +1,110 @@
+# Default values for mysql.
+replicaCount: 1
+
+image:
+  repository: mysql
+  pullPolicy: IfNotPresent
+  tag: ""
+
+imagePullSecrets: []
+nameOverride: ""
+fullnameOverride: ""
+
+# MySQL configuration
+mysql:
+  database: "mysql"
+  username: "mysql"
+  password: ""  # Auto-generated if empty
+  
+  # Connection limits
+  maxConnections: 100
+  
+  # Buffer settings
+  innodbBufferPoolSize: "128M"
+  innodbLogFileSize: "48M"
+  
+  # Replication
+  replication:
+    enabled: false
+    user: "replicator"
+    password: ""
+    serverId: 1
+  
+  # Custom configuration
+  config: {}
+  
+  # Existing ConfigMap/Secret
+  existingConfigMap: ""
+  existingSecret: ""
+  
+  # Extra environment variables
+  extraEnv: []
+
+# Service configuration
+service:
+  type: ClusterIP
+  port: 3306
+  nodePort: ""
+  annotations: {}
+
+# Persistence
+persistence:
+  enabled: true
+  storageClass: ""
+  accessMode: ReadWriteOnce
+  size: 10Gi
+  annotations: {}
+
+# ServiceAccount
+serviceAccount:
+  create: true
+  annotations: {}
+  name: ""
+
+# Pod annotations
+podAnnotations: {}
+
+# Pod security context
+podSecurityContext:
+  fsGroup: 999
+  runAsUser: 999
+  runAsNonRoot: true
+
+# Container security context
+securityContext:
+  capabilities:
+    drop:
+    - ALL
+  readOnlyRootFilesystem: false
+  allowPrivilegeEscalation: false
+
+# Resource limits
+resources:
+  limits:
+    cpu: 1000m
+    memory: 1Gi
+  requests:
+    cpu: 250m
+    memory: 512Mi
+
+# Health probes
+livenessProbe:
+  initialDelaySeconds: 30
+  periodSeconds: 10
+  timeoutSeconds: 5
+  failureThreshold: 6
+
+readinessProbe:
+  initialDelaySeconds: 10
+  periodSeconds: 10
+  timeoutSeconds: 5
+  failureThreshold: 3
+
+# Node selector
+nodeSelector: {}
+
+# Tolerations
+tolerations: []
+
+# Affinity
+affinity: {}

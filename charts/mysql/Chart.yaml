@@ -1,0 +1,19 @@
+apiVersion: v2
+name: mysql
+description: MySQL relational database with replication support
+type: application
+version: 0.1.0
+appVersion: "8.0.35"
+keywords:
+  - mysql
+  - mariadb
+  - database
+  - sql
+  - replication
+home: https://github.com/scriptonbasestar-container/sb-helm-charts
+sources:
+  - https://github.com/scriptonbasestar-container/sb-helm-charts/tree/master/charts/mysql
+  - https://github.com/mysql/mysql-server
+maintainers:
+  - name: ScriptonBasestar
+icon: https://www.mysql.com/common/logos/logo-mysql-170x115.png
