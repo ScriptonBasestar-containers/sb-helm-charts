@@ -1,0 +1,76 @@
+# Development Environment Profile
+# Local MLflow with SQLite and local artifact storage
+#
+# Usage:
+#   helm install my-mlflow charts/mlflow -f charts/mlflow/values-dev.yaml
+
+replicaCount: 1
+
+image:
+  repository: python
+  pullPolicy: IfNotPresent
+  tag: "3.11-slim"
+
+# MLflow configuration
+mlflow:
+  serveArtifacts: false
+  extraEnv: []
+
+# Use SQLite for development
+postgresql:
+  external:
+    enabled: false
+
+# Use local storage for artifacts
+minio:
+  external:
+    enabled: false
+
+# Local persistence
+persistence:
+  sqlite:
+    enabled: true
+    storageClass: ""
+    accessMode: ReadWriteOnce
+    size: 1Gi
+
+  artifacts:
+    enabled: true
+    storageClass: ""
+    accessMode: ReadWriteOnce
+    size: 5Gi
+
+# Service
+service:
+  type: ClusterIP
+  port: 5000
+
+# Ingress disabled for dev
+ingress:
+  enabled: false
+
+# ServiceAccount
+serviceAccount:
+  create: true
+
+# Reduced resources for development
+resources:
+  limits:
+    cpu: 500m
+    memory: 512Mi
+  requests:
+    cpu: 100m
+    memory: 256Mi
+
+# Security
+podSecurityContext:
+  fsGroup: 1000
+  runAsUser: 1000
+  runAsNonRoot: true
+
+securityContext:
+  capabilities:
+    drop:
+    - ALL
+  readOnlyRootFilesystem: false
+  allowPrivilegeEscalation: false

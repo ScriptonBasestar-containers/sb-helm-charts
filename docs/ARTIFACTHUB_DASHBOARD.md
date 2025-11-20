@@ -1,7 +1,7 @@
 # Artifact Hub Statistics Dashboard
 
 <!-- AUTO-GENERATED FILE - DO NOT EDIT MANUALLY -->
-<!-- Generated: 2025-11-20 14:44:18 -->
+<!-- Generated: 2025-11-20 14:53:03 -->
 <!-- To update, run: make generate-artifacthub-dashboard -->
 
 > **Note**: This dashboard is automatically generated from `charts-metadata.yaml`.
@@ -17,8 +17,8 @@
 
 ## Quick Statistics
 
-- **Total Charts**: 21
-- **Application Charts**: 14
+- **Total Charts**: 22
+- **Application Charts**: 15
 - **Infrastructure Charts**: 7
 
 ## Table of Contents
@@ -123,6 +123,22 @@
 **Keywords**: keycloak, identity, access-management, authentication, authorization (+2 more)
 
 **Local Documentation**: [charts/keycloak/README.md](../charts/keycloak/README.md)
+
+---
+
+### MLflow
+
+[![Artifact Hub](https://img.shields.io/endpoint?url=https://artifacthub.io/badge/repository/sb-helm-charts)](https://artifacthub.io/packages/helm/sb-helm-charts/mlflow)
+
+**Description**: MLflow experiment tracking and model registry platform (Deployment, PostgreSQL, MinIO)
+
+**Artifact Hub Package**: https://artifacthub.io/packages/helm/sb-helm-charts/mlflow
+
+**Tags**: ML, MLOps, AI
+
+**Keywords**: mlflow, machine-learning, ml, experiment-tracking, model-registry (+1 more)
+
+**Local Documentation**: [charts/mlflow/README.md](../charts/mlflow/README.md)
 
 ---
 

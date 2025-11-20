@@ -1,0 +1,109 @@
+# Production Environment Profile
+# MLflow with PostgreSQL and MinIO/S3
+#
+# Usage:
+#   helm install my-mlflow charts/mlflow \
+#     -f charts/mlflow/values-prod.yaml \
+#     --set postgresql.external.password='<DB_PASSWORD>' \
+#     --set minio.external.accessKey='<MINIO_ACCESS_KEY>' \
+#     --set minio.external.secretKey='<MINIO_SECRET_KEY>'
+
+replicaCount: 2  # HA
+
+image:
+  repository: python
+  pullPolicy: IfNotPresent
+  tag: "3.11-slim"
+
+# MLflow configuration
+mlflow:
+  serveArtifacts: true  # Enable artifact proxy
+
+# External PostgreSQL (required)
+postgresql:
+  external:
+    enabled: true
+    host: "postgresql.default.svc.cluster.local"
+    port: 5432
+    database: "mlflow"
+    username: "mlflow"
+    password: ""  # SET THIS VIA --set
+
+# External MinIO/S3 (required)
+minio:
+  external:
+    enabled: true
+    endpoint: "http://minio.default.svc.cluster.local:9000"
+    accessKey: ""  # SET THIS VIA --set
+    secretKey: ""  # SET THIS VIA --set
+    bucket: "mlflow"
+    ignoreTLS: "true"
+
+# No local persistence needed
+persistence:
+  sqlite:
+    enabled: false
+
+  artifacts:
+    enabled: false
+
+# Service
+service:
+  type: ClusterIP
+  port: 5000
+
+# Ingress configuration
+ingress:
+  enabled: true
+  className: "nginx"
+  annotations:
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
+  hosts:
+    - host: mlflow.example.com
+      paths:
+        - path: /
+          pathType: Prefix
+  tls:
+    - secretName: mlflow-tls
+      hosts:
+        - mlflow.example.com
+
+# ServiceAccount
+serviceAccount:
+  create: true
+
+# Production resources
+resources:
+  limits:
+    cpu: 2000m
+    memory: 2Gi
+  requests:
+    cpu: 500m
+    memory: 512Mi
+
+# Security
+podSecurityContext:
+  fsGroup: 1000
+  runAsUser: 1000
+  runAsNonRoot: true
+
+securityContext:
+  capabilities:
+    drop:
+    - ALL
+  readOnlyRootFilesystem: false
+  allowPrivilegeEscalation: false
+
+# Anti-affinity
+affinity:
+  podAntiAffinity:
+    preferredDuringSchedulingIgnoredDuringExecution:
+      - weight: 100
+        podAffinityTerm:
+          labelSelector:
+            matchExpressions:
+              - key: app.kubernetes.io/name
+                operator: In
+                values:
+                  - mlflow
+          topologyKey: kubernetes.io/hostname

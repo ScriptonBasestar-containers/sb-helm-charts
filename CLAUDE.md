@@ -136,6 +136,7 @@ The metadata file serves multiple purposes:
 - **immich**: AI-powered photo and video management
 - **jellyfin**: Media server with hardware transcoding support
 - **keycloak**: IAM solution (StatefulSet, PostgreSQL, clustering, realm management)
+- **mlflow**: MLflow experiment tracking and model registry platform (Deployment, PostgreSQL, MinIO)
 - **nextcloud**: Nextcloud with LinuxServer.io image (Deployment, PostgreSQL, config-based)
 - **paperless-ngx**: Document management system with OCR (4 PVC architecture)
 - **rsshub**: RSS aggregator (well-maintained external chart available)
