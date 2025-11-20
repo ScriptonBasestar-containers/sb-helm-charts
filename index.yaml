@@ -1,5 +1,31 @@
 apiVersion: v1
 entries:
+  airflow:
+  - apiVersion: v2
+    appVersion: 2.8.1
+    created: "2025-11-20T04:29:04.308365197Z"
+    description: Opinionated Apache Airflow chart with KubernetesExecutor for workflow
+      orchestration
+    digest: 075dc9f99362d9678a08e337d1c035e71a637acd7dd02159bef774423786da50
+    home: https://github.com/scriptonbasestar-container/sb-helm-charts
+    icon: https://airflow.apache.org/images/feature-image.png
+    keywords:
+    - airflow
+    - workflow
+    - orchestration
+    - data-pipeline
+    - scheduler
+    - dag
+    maintainers:
+    - name: ScriptonBasestar
+    name: airflow
+    sources:
+    - https://github.com/scriptonbasestar-container/sb-helm-charts/tree/master/charts/airflow
+    - https://github.com/apache/airflow
+    type: application
+    urls:
+    - https://github.com/ScriptonBasestar-containers/sb-helm-charts/releases/download/airflow-0.1.0/airflow-0.1.0.tgz
+    version: 0.1.0
   browserless-chrome:
   - annotations:
       artifacthub.io/changes: |
@@ -137,6 +163,32 @@ entries:
     type: application
     urls:
     - https://github.com/ScriptonBasestar-containers/sb-helm-charts/releases/download/devpi-0.1.0/devpi-0.1.0.tgz
+    version: 0.1.0
+  elasticsearch:
+  - apiVersion: v2
+    appVersion: 8.11.0
+    created: "2025-11-20T04:29:04.439529794Z"
+    description: Opinionated Elasticsearch + Kibana chart for small to medium workloads
+    digest: 07759f25c0c29c0f5c494b20d6db941063e3af6bd4bf5ac278a7d54cde0eb095
+    home: https://www.elastic.co/elasticsearch/
+    icon: https://raw.githubusercontent.com/elastic/elasticsearch/main/docs/reference/images/logo-elastic-search-color-64.svg
+    keywords:
+    - elasticsearch
+    - kibana
+    - logging
+    - search
+    - analytics
+    - elk
+    maintainers:
+    - name: ScriptonBasestar
+      url: https://github.com/scriptonbasestar-container
+    name: elasticsearch
+    sources:
+    - https://github.com/scriptonbasestar-container/sb-helm-charts/tree/master/charts/elasticsearch
+    - https://github.com/elastic/elasticsearch
+    type: application
+    urls:
+    - https://github.com/ScriptonBasestar-containers/sb-helm-charts/releases/download/elasticsearch-0.1.0/elasticsearch-0.1.0.tgz
     version: 0.1.0
   immich:
   - annotations:
@@ -571,6 +623,52 @@ entries:
     urls:
     - https://github.com/ScriptonBasestar-containers/sb-helm-charts/releases/download/memcached-0.1.0/memcached-0.1.0.tgz
     version: 0.1.0
+  minio:
+  - annotations:
+      artifacthub.io/changes: |
+        - kind: added
+          description: Initial MinIO chart with distributed mode support
+        - kind: added
+          description: StatefulSet-based deployment with multi-drive erasure coding
+        - kind: added
+          description: Mode selector for standalone and distributed deployments
+      artifacthub.io/license: BSD-3-Clause
+      artifacthub.io/links: |
+        - name: Chart Source
+          url: https://github.com/scriptonbasestar-container/sb-helm-charts/tree/master/charts/minio
+        - name: MinIO Documentation
+          url: https://min.io/docs/minio/linux/index.html
+        - name: MinIO Console Guide
+          url: https://min.io/docs/minio/linux/administration/minio-console.html
+      artifacthub.io/prerelease: "false"
+      artifacthub.io/recommendations: |
+        - url: https://github.com/scriptonbasestar-container/sb-helm-charts/blob/master/docs/SCENARIO_VALUES_GUIDE.md
+    apiVersion: v2
+    appVersion: RELEASE.2024-10-02T17-50-41Z
+    created: "2025-11-20T04:29:04.742517805Z"
+    description: High-performance S3-compatible object storage with distributed architecture
+    digest: 47df46f8f255c26561a5e0bf85337bcfcc4de83742622d92b6fcd39b12290c1f
+    home: https://min.io/
+    icon: https://min.io/resources/img/logo.svg
+    keywords:
+    - minio
+    - object-storage
+    - s3
+    - aws-s3-compatible
+    - distributed-storage
+    - erasure-coding
+    maintainers:
+    - email: archmagece@users.noreply.github.com
+      name: archmagece
+    name: minio
+    sources:
+    - https://github.com/scriptonbasestar-container/sb-helm-charts
+    - https://github.com/minio/minio
+    - https://hub.docker.com/r/minio/minio
+    type: application
+    urls:
+    - https://github.com/ScriptonBasestar-containers/sb-helm-charts/releases/download/minio-0.3.0/minio-0.3.0.tgz
+    version: 0.3.0
   nextcloud:
   - annotations:
       artifacthub.io/changes: |
@@ -1826,4 +1924,4 @@ entries:
     urls:
     - https://github.com/ScriptonBasestar-containers/sb-helm-charts/releases/download/wordpress-0.1.0/wordpress-0.1.0.tgz
     version: 0.1.0
-generated: "2025-11-19T06:00:05.032315653Z"
+generated: "2025-11-20T04:29:05.066221603Z"
