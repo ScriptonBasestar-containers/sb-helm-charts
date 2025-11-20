@@ -1,0 +1,75 @@
+1. Get the Kafka broker list:
+
+  Brokers: {{ include "kafka.brokerList" . }}
+
+2. Connect to Kafka:
+
+  a. From inside the cluster:
+
+     Bootstrap servers: {{ include "kafka.fullname" . }}.{{ .Release.Namespace }}.svc.cluster.local:{{ .Values.service.port }}
+
+  b. From your local machine (port-forward):
+
+     kubectl port-forward --namespace {{ .Release.Namespace }} svc/{{ include "kafka.fullname" . }} 9092:9092
+
+     Then use:
+     Bootstrap servers: localhost:9092
+
+{{- if .Values.kafkaUI.enabled }}
+
+3. Access Kafka UI:
+
+{{- if .Values.kafkaUI.ingress.enabled }}
+  {{- range .Values.kafkaUI.ingress.hosts }}
+  http{{ if $.Values.kafkaUI.ingress.tls }}s{{ end }}://{{ .host }}
+  {{- end }}
+{{- else }}
+  Port-forward to access Kafka UI:
+  kubectl port-forward --namespace {{ .Release.Namespace }} svc/{{ include "kafka.uiServiceName" . }} 8080:{{ .Values.kafkaUI.service.port }}
+
+  Then open: http://localhost:8080
+{{- end }}
+{{- end }}
+
+4. Test Kafka:
+
+  # Create a topic
+  kubectl exec -it {{ include "kafka.fullname" . }}-0 -n {{ .Release.Namespace }} -- \
+    kafka-topics.sh --create --topic test --bootstrap-server localhost:9092 --partitions 1 --replication-factor 1
+
+  # List topics
+  kubectl exec -it {{ include "kafka.fullname" . }}-0 -n {{ .Release.Namespace }} -- \
+    kafka-topics.sh --list --bootstrap-server localhost:9092
+
+  # Produce a message
+  kubectl exec -it {{ include "kafka.fullname" . }}-0 -n {{ .Release.Namespace }} -- \
+    kafka-console-producer.sh --topic test --bootstrap-server localhost:9092
+
+  # Consume messages
+  kubectl exec -it {{ include "kafka.fullname" . }}-0 -n {{ .Release.Namespace }} -- \
+    kafka-console-consumer.sh --topic test --from-beginning --bootstrap-server localhost:9092
+
+5. Kafka Information:
+
+  Replicas: {{ .Values.replicaCount }}
+  Process Roles: {{ .Values.kafka.processRoles }}
+  Cluster ID: {{ include "kafka.clusterId" . }}
+  Service: {{ include "kafka.fullname" . }}.{{ .Release.Namespace }}.svc.cluster.local:{{ .Values.service.port }}
+  Headless: {{ include "kafka.headlessServiceName" . }}.{{ .Release.Namespace }}.svc.cluster.local:9092
+
+{{- if eq (toString .Values.replicaCount) "1" }}
+
+⚠️  SINGLE BROKER WARNING:
+  Running with 1 broker is suitable for development only.
+  For production, increase replicaCount to 3 or more:
+    helm upgrade {{ .Release.Name }} {{ .Chart.Name }} --set replicaCount=3
+{{- end }}
+
+{{- if .Values.kafka.autoCreateTopicsEnable }}
+
+⚠️  AUTO-CREATE TOPICS ENABLED:
+  Auto topic creation is enabled. For production, disable it:
+    helm upgrade {{ .Release.Name }} {{ .Chart.Name }} --set kafka.autoCreateTopicsEnable=false
+{{- end }}
+
+For more information, see the chart README.md

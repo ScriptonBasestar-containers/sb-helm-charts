@@ -175,3 +175,12 @@ charts:
     keywords: [elasticsearch, kibana, logging, search, analytics, elk]
     description: Opinionated Elasticsearch + Kibana for small to medium workloads (StatefulSet, simple operations)
     production_note: "For large-scale production, consider Elastic Cloud on Kubernetes (ECK) Operator"
+
+  kafka:
+    name: Apache Kafka
+    path: charts/kafka
+    category: infrastructure
+    tags: [Message-Queue, Streaming, Event-Driven]
+    keywords: [kafka, streaming, message-broker, event-streaming, kraft, pub-sub]
+    description: Apache Kafka streaming platform with KRaft mode and management UI (StatefulSet, no Zookeeper)
+    production_note: "For production clustering, consider Strimzi Kafka Operator"

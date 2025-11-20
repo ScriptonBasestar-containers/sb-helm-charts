@@ -1,0 +1,62 @@
+{{- if not .Values.kafka.existingConfigMap }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "kafka.configMapName" . }}
+  labels:
+    {{- include "kafka.labels" . | nindent 4 }}
+data:
+  server.properties: |
+    # KRaft mode configuration
+    process.roles={{ .Values.kafka.processRoles }}
+    controller.quorum.voters={{ .Values.kafka.controllerQuorumVoters }}
+
+    # Cluster ID
+    cluster.id={{ include "kafka.clusterId" . }}
+
+    # Listeners
+    listeners={{ .Values.kafka.listeners }}
+    advertised.listeners={{ .Values.kafka.advertisedListeners }}
+    listener.security.protocol.map={{ .Values.kafka.listenerSecurityProtocolMap }}
+    inter.broker.listener.name={{ .Values.kafka.interBrokerListenerName }}
+    controller.listener.names={{ .Values.kafka.controllerListenerNames }}
+
+    # Log directories
+    log.dirs={{ .Values.kafka.logDirs }}
+
+    # Topic defaults
+    num.partitions={{ .Values.kafka.numPartitions }}
+    default.replication.factor={{ .Values.kafka.defaultReplicationFactor }}
+    min.insync.replicas={{ .Values.kafka.minInsyncReplicas }}
+    auto.create.topics.enable={{ .Values.kafka.autoCreateTopicsEnable }}
+
+    # Log retention
+    log.retention.hours={{ .Values.kafka.logRetentionHours }}
+    log.retention.bytes={{ .Values.kafka.logRetentionBytes }}
+    log.segment.bytes={{ .Values.kafka.logSegmentBytes }}
+    log.cleanup.policy={{ .Values.kafka.logCleanupPolicy }}
+
+    # Performance tuning
+    num.network.threads={{ .Values.kafka.numNetworkThreads }}
+    num.io.threads={{ .Values.kafka.numIoThreads }}
+    socket.send.buffer.bytes={{ .Values.kafka.socketSendBufferBytes }}
+    socket.receive.buffer.bytes={{ .Values.kafka.socketReceiveBufferBytes }}
+    socket.request.max.bytes={{ .Values.kafka.socketRequestMaxBytes }}
+
+    # Replication
+    replica.fetch.max.bytes={{ .Values.kafka.replicaFetchMaxBytes }}
+    replica.socket.timeout.ms={{ .Values.kafka.replicaSocketTimeoutMs }}
+
+    # ZooKeeper (not used in KRaft mode, but kept for compatibility)
+    # zookeeper.connect=
+
+    {{- if .Values.kafka.sasl.enabled }}
+    # SASL configuration
+    sasl.enabled.mechanisms={{ .Values.kafka.sasl.mechanisms }}
+    sasl.mechanism.inter.broker.protocol={{ .Values.kafka.sasl.interBrokerProtocol }}
+    {{- end }}
+
+    {{- range $key, $value := .Values.kafka.config }}
+    {{ $key }}={{ $value }}
+    {{- end }}
+{{- end }}

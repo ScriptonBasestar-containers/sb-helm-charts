@@ -1,0 +1,20 @@
+apiVersion: v2
+name: kafka
+description: Apache Kafka streaming platform with KRaft mode and management UI
+type: application
+version: 0.1.0
+appVersion: "3.6.1"
+keywords:
+  - kafka
+  - streaming
+  - message-broker
+  - event-streaming
+  - kraft
+  - pub-sub
+home: https://github.com/scriptonbasestar-container/sb-helm-charts
+sources:
+  - https://github.com/scriptonbasestar-container/sb-helm-charts/tree/master/charts/kafka
+  - https://github.com/apache/kafka
+maintainers:
+  - name: ScriptonBasestar
+icon: https://kafka.apache.org/images/apache-kafka.png

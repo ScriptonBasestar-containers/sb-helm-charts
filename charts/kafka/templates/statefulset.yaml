@@ -1,0 +1,179 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: {{ include "kafka.fullname" . }}
+  labels:
+    {{- include "kafka.labels" . | nindent 4 }}
+spec:
+  serviceName: {{ include "kafka.headlessServiceName" . }}
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      {{- include "kafka.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      annotations:
+        checksum/config: {{ include (print $.Template.BasePath "/configmap.yaml") . | sha256sum }}
+        {{- with .Values.podAnnotations }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+      labels:
+        {{- include "kafka.selectorLabels" . | nindent 8 }}
+    spec:
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      serviceAccountName: {{ include "kafka.serviceAccountName" . }}
+      securityContext:
+        {{- toYaml .Values.podSecurityContext | nindent 8 }}
+      containers:
+        - name: kafka
+          securityContext:
+            {{- toYaml .Values.securityContext | nindent 12 }}
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          env:
+            # KRaft configuration
+            - name: KAFKA_ENABLE_KRAFT
+              value: "yes"
+            - name: KAFKA_CFG_PROCESS_ROLES
+              value: {{ .Values.kafka.processRoles | quote }}
+            - name: KAFKA_CFG_NODE_ID
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+            - name: KAFKA_KRAFT_CLUSTER_ID
+              value: {{ include "kafka.clusterId" . | quote }}
+            - name: KAFKA_CFG_CONTROLLER_QUORUM_VOTERS
+              value: {{ .Values.kafka.controllerQuorumVoters | quote }}
+
+            # Listeners
+            - name: KAFKA_CFG_LISTENERS
+              value: {{ .Values.kafka.listeners | quote }}
+            - name: KAFKA_CFG_ADVERTISED_LISTENERS
+              value: {{ .Values.kafka.advertisedListeners | quote }}
+            - name: KAFKA_CFG_LISTENER_SECURITY_PROTOCOL_MAP
+              value: {{ .Values.kafka.listenerSecurityProtocolMap | quote }}
+            - name: KAFKA_CFG_CONTROLLER_LISTENER_NAMES
+              value: {{ .Values.kafka.controllerListenerNames | quote }}
+            - name: KAFKA_CFG_INTER_BROKER_LISTENER_NAME
+              value: {{ .Values.kafka.interBrokerListenerName | quote }}
+
+            # Log configuration
+            - name: KAFKA_CFG_LOG_DIRS
+              value: {{ .Values.kafka.logDirs | quote }}
+            - name: KAFKA_CFG_NUM_PARTITIONS
+              value: {{ .Values.kafka.numPartitions | quote }}
+            - name: KAFKA_CFG_DEFAULT_REPLICATION_FACTOR
+              value: {{ .Values.kafka.defaultReplicationFactor | quote }}
+            - name: KAFKA_CFG_MIN_INSYNC_REPLICAS
+              value: {{ .Values.kafka.minInsyncReplicas | quote }}
+            - name: KAFKA_CFG_AUTO_CREATE_TOPICS_ENABLE
+              value: {{ .Values.kafka.autoCreateTopicsEnable | quote }}
+
+            # Log retention
+            - name: KAFKA_CFG_LOG_RETENTION_HOURS
+              value: {{ .Values.kafka.logRetentionHours | quote }}
+            - name: KAFKA_CFG_LOG_RETENTION_BYTES
+              value: {{ .Values.kafka.logRetentionBytes | quote }}
+
+            {{- if .Values.kafka.sasl.enabled }}
+            # SASL configuration
+            - name: KAFKA_CFG_SASL_ENABLED_MECHANISMS
+              value: {{ .Values.kafka.sasl.mechanisms | quote }}
+            - name: KAFKA_CFG_SASL_MECHANISM_INTER_BROKER_PROTOCOL
+              value: {{ .Values.kafka.sasl.interBrokerProtocol | quote }}
+            {{- if not .Values.kafka.existingSecret }}
+            - name: KAFKA_CLIENT_USERS
+              value: {{ .Values.kafka.sasl.username | quote }}
+            - name: KAFKA_CLIENT_PASSWORDS
+              value: {{ .Values.kafka.sasl.password | quote }}
+            {{- end }}
+            {{- end }}
+
+            {{- with .Values.kafka.extraEnv }}
+            {{- toYaml . | nindent 12 }}
+            {{- end }}
+          ports:
+            - name: kafka
+              containerPort: 9092
+              protocol: TCP
+            - name: controller
+              containerPort: 9093
+              protocol: TCP
+          livenessProbe:
+            tcpSocket:
+              port: kafka
+            initialDelaySeconds: {{ .Values.livenessProbe.initialDelaySeconds }}
+            periodSeconds: {{ .Values.livenessProbe.periodSeconds }}
+            timeoutSeconds: {{ .Values.livenessProbe.timeoutSeconds }}
+            failureThreshold: {{ .Values.livenessProbe.failureThreshold }}
+          readinessProbe:
+            tcpSocket:
+              port: kafka
+            initialDelaySeconds: {{ .Values.readinessProbe.initialDelaySeconds }}
+            periodSeconds: {{ .Values.readinessProbe.periodSeconds }}
+            timeoutSeconds: {{ .Values.readinessProbe.timeoutSeconds }}
+            failureThreshold: {{ .Values.readinessProbe.failureThreshold }}
+          startupProbe:
+            tcpSocket:
+              port: kafka
+            initialDelaySeconds: {{ .Values.startupProbe.initialDelaySeconds }}
+            periodSeconds: {{ .Values.startupProbe.periodSeconds }}
+            timeoutSeconds: {{ .Values.startupProbe.timeoutSeconds }}
+            failureThreshold: {{ .Values.startupProbe.failureThreshold }}
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+          volumeMounts:
+            - name: data
+              mountPath: {{ .Values.kafka.logDirs }}
+            {{- if not .Values.kafka.existingConfigMap }}
+            - name: config
+              mountPath: /opt/bitnami/kafka/config/server.properties
+              subPath: server.properties
+            {{- end }}
+            {{- with .Values.kafka.extraVolumeMounts }}
+            {{- toYaml . | nindent 12 }}
+            {{- end }}
+      volumes:
+        {{- if not .Values.kafka.existingConfigMap }}
+        - name: config
+          configMap:
+            name: {{ include "kafka.configMapName" . }}
+        {{- end }}
+        {{- with .Values.kafka.extraVolumes }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+  volumeClaimTemplates:
+    - metadata:
+        name: data
+        {{- with .Values.persistence.annotations }}
+        annotations:
+          {{- toYaml . | nindent 10 }}
+        {{- end }}
+      spec:
+        accessModes:
+          - {{ .Values.persistence.accessMode }}
+        {{- if .Values.persistence.storageClass }}
+        {{- if eq .Values.persistence.storageClass "-" }}
+        storageClassName: ""
+        {{- else }}
+        storageClassName: {{ .Values.persistence.storageClass }}
+        {{- end }}
+        {{- end }}
+        resources:
+          requests:
+            storage: {{ .Values.persistence.size }}

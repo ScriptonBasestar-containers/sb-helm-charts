@@ -1,0 +1,60 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: "{{ include "kafka.fullname" . }}-test-connection"
+  labels:
+    {{- include "kafka.labels" . | nindent 4 }}
+  annotations:
+    "helm.sh/hook": test
+    "helm.sh/hook-delete-policy": before-hook-creation,hook-succeeded
+spec:
+  containers:
+    - name: kafka-test
+      image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
+      command:
+        - sh
+        - -c
+        - |
+          echo "Testing Kafka connectivity..."
+
+          # Wait for Kafka to be ready
+          echo "Waiting for Kafka broker to be ready..."
+          timeout=60
+          until kafka-broker-api-versions.sh --bootstrap-server {{ include "kafka.fullname" . }}:{{ .Values.service.port }} 2>/dev/null | grep -q ApiVersion; do
+            timeout=$((timeout - 1))
+            if [ $timeout -le 0 ]; then
+              echo "Timeout waiting for Kafka broker"
+              exit 1
+            fi
+            echo "Waiting... ($timeout seconds left)"
+            sleep 1
+          done
+
+          echo "Kafka broker is ready!"
+
+          # Create test topic
+          echo "Creating test topic..."
+          kafka-topics.sh --create \
+            --topic test-connection \
+            --bootstrap-server {{ include "kafka.fullname" . }}:{{ .Values.service.port }} \
+            --partitions 1 \
+            --replication-factor 1 \
+            --if-not-exists
+
+          # Produce a test message
+          echo "Producing test message..."
+          echo "test-message" | kafka-console-producer.sh \
+            --topic test-connection \
+            --bootstrap-server {{ include "kafka.fullname" . }}:{{ .Values.service.port }}
+
+          # Consume the test message
+          echo "Consuming test message..."
+          kafka-console-consumer.sh \
+            --topic test-connection \
+            --bootstrap-server {{ include "kafka.fullname" . }}:{{ .Values.service.port }} \
+            --from-beginning \
+            --max-messages 1 \
+            --timeout-ms 10000
+
+          echo "Connection test successful!"
+  restartPolicy: Never

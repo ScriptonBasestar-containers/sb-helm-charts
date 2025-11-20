@@ -1,0 +1,214 @@
+# Default values for kafka.
+# This is a YAML-formatted file.
+# Declare variables to be passed into your templates.
+
+# Number of Kafka brokers
+replicaCount: 1
+
+image:
+  repository: bitnami/kafka
+  pullPolicy: IfNotPresent
+  # Overrides the image tag whose default is the chart appVersion.
+  tag: ""
+
+imagePullSecrets: []
+nameOverride: ""
+fullnameOverride: ""
+
+# Kafka configuration
+kafka:
+  # KRaft cluster ID (auto-generated if empty)
+  clusterId: ""
+
+  # Process roles: broker, controller, or broker,controller (combined mode)
+  processRoles: "broker,controller"
+
+  # Controller quorum voters (for KRaft mode)
+  # Format: id1@host1:port1,id2@host2:port2,...
+  # Will be auto-generated based on replicaCount if empty
+  controllerQuorumVoters: "0@kafka-0.kafka-headless.default.svc.cluster.local:9093"
+
+  # Listeners configuration
+  listeners: "PLAINTEXT://:9092,CONTROLLER://:9093"
+  advertisedListeners: "PLAINTEXT://kafka-0.kafka-headless.default.svc.cluster.local:9092"
+  listenerSecurityProtocolMap: "CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT"
+  controllerListenerNames: "CONTROLLER"
+  interBrokerListenerName: "PLAINTEXT"
+
+  # Log directories
+  logDirs: "/bitnami/kafka/data"
+
+  # Topic defaults
+  numPartitions: 1
+  defaultReplicationFactor: 1
+  minInsyncReplicas: 1
+  autoCreateTopicsEnable: true
+
+  # Log retention
+  logRetentionHours: 168  # 7 days
+  logRetentionBytes: -1  # unlimited
+  logSegmentBytes: 1073741824  # 1GB
+  logCleanupPolicy: "delete"
+
+  # Performance tuning
+  numNetworkThreads: 3
+  numIoThreads: 8
+  socketSendBufferBytes: 102400
+  socketReceiveBufferBytes: 102400
+  socketRequestMaxBytes: 104857600  # 100MB
+
+  # Replication
+  replicaFetchMaxBytes: 1048576  # 1MB
+  replicaSocketTimeoutMs: 30000
+
+  # SASL authentication
+  sasl:
+    enabled: false
+    mechanisms: "PLAIN"
+    interBrokerProtocol: "PLAIN"
+    username: "admin"
+    password: ""  # Set this for production
+
+  # Additional kafka configuration
+  # Example:
+  # config:
+  #   compression.type: "gzip"
+  #   message.max.bytes: "1000000"
+  config: {}
+
+  # Use existing ConfigMap for Kafka configuration
+  existingConfigMap: ""
+
+  # Use existing Secret for credentials
+  existingSecret: ""
+
+  # Extra environment variables
+  extraEnv: []
+  #  - name: KAFKA_HEAP_OPTS
+  #    value: "-Xmx1G -Xms1G"
+
+  # Extra volumes
+  extraVolumes: []
+
+  # Extra volume mounts
+  extraVolumeMounts: []
+
+# Kafka UI configuration
+kafkaUI:
+  enabled: true
+  replicaCount: 1
+
+  image:
+    repository: provectuslabs/kafka-ui
+    tag: "latest"
+    pullPolicy: IfNotPresent
+
+  service:
+    type: ClusterIP
+    port: 8080
+
+  ingress:
+    enabled: false
+    className: ""
+    annotations: {}
+      # kubernetes.io/ingress.class: nginx
+      # kubernetes.io/tls-acme: "true"
+    hosts:
+      - host: kafka-ui.local
+        paths:
+          - path: /
+            pathType: Prefix
+    tls: []
+    #  - secretName: kafka-ui-tls
+    #    hosts:
+    #      - kafka-ui.local
+
+  resources:
+    limits:
+      cpu: 500m
+      memory: 512Mi
+    requests:
+      cpu: 100m
+      memory: 256Mi
+
+  extraEnv: []
+
+# Service configuration
+service:
+  type: ClusterIP
+  port: 9092
+  nodePort: ""
+  loadBalancerIP: ""
+  clusterIP: ""
+  annotations: {}
+  labels: {}
+
+# Persistence configuration
+persistence:
+  enabled: true
+  storageClass: ""
+  accessMode: ReadWriteOnce
+  size: 10Gi
+  annotations: {}
+
+# ServiceAccount configuration
+serviceAccount:
+  create: true
+  annotations: {}
+  name: ""
+
+# Pod annotations
+podAnnotations: {}
+
+# Pod security context
+podSecurityContext:
+  fsGroup: 1001
+  runAsUser: 1001
+  runAsNonRoot: true
+
+# Container security context
+securityContext:
+  capabilities:
+    drop:
+    - ALL
+  readOnlyRootFilesystem: false
+  allowPrivilegeEscalation: false
+
+# Resource limits and requests
+resources:
+  limits:
+    cpu: 1000m
+    memory: 2Gi
+  requests:
+    cpu: 250m
+    memory: 512Mi
+
+# Liveness probe configuration
+livenessProbe:
+  initialDelaySeconds: 60
+  periodSeconds: 10
+  timeoutSeconds: 5
+  failureThreshold: 6
+
+# Readiness probe configuration
+readinessProbe:
+  initialDelaySeconds: 30
+  periodSeconds: 10
+  timeoutSeconds: 5
+  failureThreshold: 3
+
+# Startup probe configuration
+startupProbe:
+  initialDelaySeconds: 0
+  periodSeconds: 10
+  timeoutSeconds: 5
+  failureThreshold: 30
+
+# Node selector
+nodeSelector: {}
+
+# Tolerations
+tolerations: []
+
+# Affinity
+affinity: {}
