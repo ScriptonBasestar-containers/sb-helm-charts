@@ -1,0 +1,43 @@
+{{- if and (not .Values.postgresql.external.enabled) .Values.persistence.sqlite.enabled }}
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ include "mlflow.fullname" . }}-sqlite
+  labels:
+    {{- include "mlflow.labels" . | nindent 4 }}
+spec:
+  accessModes:
+    - {{ .Values.persistence.sqlite.accessMode }}
+  {{- if .Values.persistence.sqlite.storageClass }}
+  {{- if eq .Values.persistence.sqlite.storageClass "-" }}
+  storageClassName: ""
+  {{- else }}
+  storageClassName: {{ .Values.persistence.sqlite.storageClass }}
+  {{- end }}
+  {{- end }}
+  resources:
+    requests:
+      storage: {{ .Values.persistence.sqlite.size }}
+{{- end }}
+---
+{{- if and (not .Values.minio.external.enabled) .Values.persistence.artifacts.enabled }}
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ include "mlflow.fullname" . }}-artifacts
+  labels:
+    {{- include "mlflow.labels" . | nindent 4 }}
+spec:
+  accessModes:
+    - {{ .Values.persistence.artifacts.accessMode }}
+  {{- if .Values.persistence.artifacts.storageClass }}
+  {{- if eq .Values.persistence.artifacts.storageClass "-" }}
+  storageClassName: ""
+  {{- else }}
+  storageClassName: {{ .Values.persistence.artifacts.storageClass }}
+  {{- end }}
+  {{- end }}
+  resources:
+    requests:
+      storage: {{ .Values.persistence.artifacts.size }}
+{{- end }}

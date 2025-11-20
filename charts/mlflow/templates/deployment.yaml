@@ -1,0 +1,144 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "mlflow.fullname" . }}
+  labels:
+    {{- include "mlflow.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      {{- include "mlflow.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      annotations:
+        checksum/config: {{ include (print $.Template.BasePath "/configmap.yaml") . | sha256sum | default "no-config" }}
+        {{- with .Values.podAnnotations }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+      labels:
+        {{- include "mlflow.selectorLabels" . | nindent 8 }}
+    spec:
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      serviceAccountName: {{ include "mlflow.serviceAccountName" . }}
+      securityContext:
+        {{- toYaml .Values.podSecurityContext | nindent 8 }}
+      {{- if .Values.postgresql.external.enabled }}
+      initContainers:
+        - name: wait-for-postgres
+          image: postgres:16-alpine
+          command:
+            - sh
+            - -c
+            - |
+              until pg_isready -h {{ .Values.postgresql.external.host }} -p {{ .Values.postgresql.external.port }} -U {{ .Values.postgresql.external.username }}; do
+                echo "Waiting for PostgreSQL..."
+                sleep 2
+              done
+          env:
+            - name: PGPASSWORD
+              value: {{ .Values.postgresql.external.password | quote }}
+      {{- end }}
+      containers:
+        - name: mlflow
+          securityContext:
+            {{- toYaml .Values.securityContext | nindent 12 }}
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          command:
+            - mlflow
+            - server
+            - --host
+            - "0.0.0.0"
+            - --port
+            - "5000"
+            - --backend-store-uri
+            - {{ include "mlflow.backendStoreUri" . | quote }}
+            - --default-artifact-root
+            - {{ include "mlflow.artifactStoreUri" . | quote }}
+            {{- if .Values.mlflow.serveArtifacts }}
+            - --serve-artifacts
+            {{- end }}
+          env:
+            {{- if .Values.minio.external.enabled }}
+            - name: AWS_ACCESS_KEY_ID
+              value: {{ .Values.minio.external.accessKey | quote }}
+            - name: AWS_SECRET_ACCESS_KEY
+              value: {{ .Values.minio.external.secretKey | quote }}
+            - name: MLFLOW_S3_ENDPOINT_URL
+              value: {{ .Values.minio.external.endpoint | quote }}
+            - name: MLFLOW_S3_IGNORE_TLS
+              value: {{ .Values.minio.external.ignoreTLS | quote }}
+            {{- end }}
+            {{- with .Values.mlflow.extraEnv }}
+            {{- toYaml . | nindent 12 }}
+            {{- end }}
+          ports:
+            - name: http
+              containerPort: 5000
+              protocol: TCP
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: {{ .Values.livenessProbe.initialDelaySeconds }}
+            periodSeconds: {{ .Values.livenessProbe.periodSeconds }}
+            timeoutSeconds: {{ .Values.livenessProbe.timeoutSeconds }}
+            failureThreshold: {{ .Values.livenessProbe.failureThreshold }}
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: {{ .Values.readinessProbe.initialDelaySeconds }}
+            periodSeconds: {{ .Values.readinessProbe.periodSeconds }}
+            timeoutSeconds: {{ .Values.readinessProbe.timeoutSeconds }}
+            failureThreshold: {{ .Values.readinessProbe.failureThreshold }}
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+          {{- if or (not .Values.postgresql.external.enabled) (not .Values.minio.external.enabled) }}
+          volumeMounts:
+            {{- if not .Values.postgresql.external.enabled }}
+            - name: sqlite-data
+              mountPath: /mlflow
+            {{- end }}
+            {{- if not .Values.minio.external.enabled }}
+            - name: artifact-data
+              mountPath: /mlflow/artifacts
+            {{- end }}
+          {{- end }}
+      {{- if or (not .Values.postgresql.external.enabled) (not .Values.minio.external.enabled) }}
+      volumes:
+        {{- if not .Values.postgresql.external.enabled }}
+        - name: sqlite-data
+          {{- if .Values.persistence.sqlite.enabled }}
+          persistentVolumeClaim:
+            claimName: {{ include "mlflow.fullname" . }}-sqlite
+          {{- else }}
+          emptyDir: {}
+          {{- end }}
+        {{- end }}
+        {{- if not .Values.minio.external.enabled }}
+        - name: artifact-data
+          {{- if .Values.persistence.artifacts.enabled }}
+          persistentVolumeClaim:
+            claimName: {{ include "mlflow.fullname" . }}-artifacts
+          {{- else }}
+          emptyDir: {}
+          {{- end }}
+        {{- end }}
+      {{- end }}
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}

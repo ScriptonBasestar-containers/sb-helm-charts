@@ -1,0 +1,33 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: "{{ include "mlflow.fullname" . }}-test-connection"
+  labels:
+    {{- include "mlflow.labels" . | nindent 4 }}
+  annotations:
+    "helm.sh/hook": test
+    "helm.sh/hook-delete-policy": before-hook-creation,hook-succeeded
+spec:
+  containers:
+    - name: wget
+      image: busybox
+      command:
+        - sh
+        - -c
+        - |
+          echo "Testing MLflow tracking server connectivity..."
+          
+          # Wait for service to be ready
+          timeout=60
+          until wget -qO- http://{{ include "mlflow.fullname" . }}:{{ .Values.service.port }}/health 2>/dev/null; do
+            timeout=$((timeout - 1))
+            if [ $timeout -le 0 ]; then
+              echo "Timeout waiting for MLflow server"
+              exit 1
+            fi
+            echo "Waiting... ($timeout seconds left)"
+            sleep 1
+          done
+          
+          echo "MLflow tracking server is healthy!"
+  restartPolicy: Never

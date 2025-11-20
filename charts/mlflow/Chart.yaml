@@ -1,0 +1,20 @@
+apiVersion: v2
+name: mlflow
+description: MLflow experiment tracking and model registry platform
+type: application
+version: 0.1.0
+appVersion: "2.9.2"
+keywords:
+  - mlflow
+  - machine-learning
+  - ml
+  - experiment-tracking
+  - model-registry
+  - mlops
+home: https://github.com/scriptonbasestar-container/sb-helm-charts
+sources:
+  - https://github.com/scriptonbasestar-container/sb-helm-charts/tree/master/charts/mlflow
+  - https://github.com/mlflow/mlflow
+maintainers:
+  - name: ScriptonBasestar
+icon: https://mlflow.org/img/mlflow-logo.svg

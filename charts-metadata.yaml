@@ -25,6 +25,14 @@ charts:
     keywords: [jellyfin, media-server, streaming, plex-alternative, transcoding, gpu-acceleration]
     description: Media server with hardware transcoding support
 
+  mlflow:
+    name: MLflow
+    path: charts/mlflow
+    category: application
+    tags: [ML, MLOps, AI]
+    keywords: [mlflow, machine-learning, ml, experiment-tracking, model-registry, mlops]
+    description: MLflow experiment tracking and model registry platform (Deployment, PostgreSQL, MinIO)
+
   immich:
     name: Immich
     path: charts/immich

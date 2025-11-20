@@ -1,0 +1,143 @@
+# Default values for mlflow.
+# This is a YAML-formatted file.
+
+replicaCount: 1
+
+image:
+  repository: python
+  pullPolicy: IfNotPresent
+  tag: "3.11-slim"
+
+imagePullSecrets: []
+nameOverride: ""
+fullnameOverride: ""
+
+# MLflow configuration
+mlflow:
+  # Serve artifacts via tracking server
+  serveArtifacts: false
+
+  # Additional environment variables
+  extraEnv: []
+  #  - name: MLFLOW_TRACKING_USERNAME
+  #    value: "admin"
+
+  # Custom configuration
+  config: {}
+
+# PostgreSQL backend store configuration
+postgresql:
+  # External PostgreSQL (required for production)
+  external:
+    enabled: false
+    host: ""
+    port: 5432
+    database: "mlflow"
+    username: "mlflow"
+    password: ""  # Required if enabled
+
+# MinIO artifact store configuration
+minio:
+  # External MinIO/S3 (required for production)
+  external:
+    enabled: false
+    endpoint: "http://minio:9000"
+    accessKey: ""
+    secretKey: ""
+    bucket: "mlflow"
+    ignoreTLS: "true"
+
+# Persistence for local storage (when not using external services)
+persistence:
+  # SQLite database (used when postgresql.external.enabled=false)
+  sqlite:
+    enabled: true
+    storageClass: ""
+    accessMode: ReadWriteOnce
+    size: 1Gi
+
+  # Local artifacts (used when minio.external.enabled=false)
+  artifacts:
+    enabled: true
+    storageClass: ""
+    accessMode: ReadWriteOnce
+    size: 10Gi
+
+# Service configuration
+service:
+  type: ClusterIP
+  port: 5000
+  nodePort: ""
+  annotations: {}
+
+# Ingress configuration
+ingress:
+  enabled: false
+  className: ""
+  annotations: {}
+    # kubernetes.io/ingress.class: nginx
+    # kubernetes.io/tls-acme: "true"
+  hosts:
+    - host: mlflow.local
+      paths:
+        - path: /
+          pathType: Prefix
+  tls: []
+  #  - secretName: mlflow-tls
+  #    hosts:
+  #      - mlflow.local
+
+# ServiceAccount configuration
+serviceAccount:
+  create: true
+  annotations: {}
+  name: ""
+
+# Pod annotations
+podAnnotations: {}
+
+# Pod security context
+podSecurityContext:
+  fsGroup: 1000
+  runAsUser: 1000
+  runAsNonRoot: true
+
+# Container security context
+securityContext:
+  capabilities:
+    drop:
+    - ALL
+  readOnlyRootFilesystem: false
+  allowPrivilegeEscalation: false
+
+# Resource limits and requests
+resources:
+  limits:
+    cpu: 1000m
+    memory: 1Gi
+  requests:
+    cpu: 100m
+    memory: 256Mi
+
+# Liveness probe
+livenessProbe:
+  initialDelaySeconds: 30
+  periodSeconds: 10
+  timeoutSeconds: 5
+  failureThreshold: 3
+
+# Readiness probe
+readinessProbe:
+  initialDelaySeconds: 10
+  periodSeconds: 10
+  timeoutSeconds: 5
+  failureThreshold: 3
+
+# Node selector
+nodeSelector: {}
+
+# Tolerations
+tolerations: []
+
+# Affinity
+affinity: {}

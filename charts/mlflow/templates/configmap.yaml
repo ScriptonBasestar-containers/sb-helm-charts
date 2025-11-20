@@ -1,0 +1,12 @@
+{{- if .Values.mlflow.config }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "mlflow.fullname" . }}-config
+  labels:
+    {{- include "mlflow.labels" . | nindent 4 }}
+data:
+  {{- range $key, $value := .Values.mlflow.config }}
+  {{ $key }}: {{ $value | quote }}
+  {{- end }}
+{{- end }}

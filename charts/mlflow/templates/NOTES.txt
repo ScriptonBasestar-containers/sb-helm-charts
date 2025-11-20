@@ -1,0 +1,67 @@
+1. Get the MLflow tracking server URL:
+
+{{- if .Values.ingress.enabled }}
+{{- range .Values.ingress.hosts }}
+  http{{ if $.Values.ingress.tls }}s{{ end }}://{{ .host }}
+{{- end }}
+{{- else if eq .Values.service.type "LoadBalancer" }}
+  export SERVICE_IP=$(kubectl get svc --namespace {{ .Release.Namespace }} {{ include "mlflow.fullname" . }} -o jsonpath='{.status.loadBalancer.ingress[0].ip}')
+  echo "http://$SERVICE_IP:{{ .Values.service.port }}"
+{{- else if eq .Values.service.type "NodePort" }}
+  export NODE_PORT=$(kubectl get --namespace {{ .Release.Namespace }} -o jsonpath="{.spec.ports[0].nodePort}" services {{ include "mlflow.fullname" . }})
+  export NODE_IP=$(kubectl get nodes --namespace {{ .Release.Namespace }} -o jsonpath="{.items[0].status.addresses[0].address}")
+  echo "http://$NODE_IP:$NODE_PORT"
+{{- else }}
+  kubectl port-forward --namespace {{ .Release.Namespace }} svc/{{ include "mlflow.fullname" . }} 5000:{{ .Values.service.port }}
+  echo "http://127.0.0.1:5000"
+{{- end }}
+
+2. MLflow Configuration:
+
+  Backend Store: {{ include "mlflow.backendStoreUri" . }}
+  Artifact Store: {{ include "mlflow.artifactStoreUri" . }}
+
+{{- if .Values.postgresql.external.enabled }}
+3. PostgreSQL Backend:
+  Host: {{ .Values.postgresql.external.host }}
+  Database: {{ .Values.postgresql.external.database }}
+  User: {{ .Values.postgresql.external.username }}
+{{- end }}
+
+{{- if .Values.minio.external.enabled }}
+4. MinIO Artifact Store:
+  Endpoint: {{ .Values.minio.external.endpoint }}
+  Bucket: {{ .Values.minio.external.bucket }}
+{{- end }}
+
+{{- if not .Values.postgresql.external.enabled }}
+
+⚠️  DEVELOPMENT MODE:
+  Using SQLite backend. For production, configure external PostgreSQL:
+    --set postgresql.external.enabled=true
+    --set postgresql.external.host=postgres
+    --set postgresql.external.password='<password>'
+{{- end }}
+
+{{- if not .Values.minio.external.enabled }}
+
+⚠️  LOCAL ARTIFACTS:
+  Artifacts stored locally in PVC. For production, configure MinIO/S3:
+    --set minio.external.enabled=true
+    --set minio.external.endpoint='http://minio:9000'
+    --set minio.external.accessKey='<key>'
+    --set minio.external.secretKey='<secret>'
+{{- end }}
+
+5. Python Client Usage:
+
+  import mlflow
+  mlflow.set_tracking_uri("http://{{ include "mlflow.fullname" . }}.{{ .Release.Namespace }}.svc.cluster.local:{{ .Values.service.port }}")
+  
+  # Log metrics
+  with mlflow.start_run():
+      mlflow.log_param("param1", 5)
+      mlflow.log_metric("accuracy", 0.95)
+      mlflow.log_artifact("model.pkl")
+
+For more information, see the chart README.md
