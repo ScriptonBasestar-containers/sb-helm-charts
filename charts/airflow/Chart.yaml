@@ -1,0 +1,20 @@
+apiVersion: v2
+name: airflow
+description: Opinionated Apache Airflow chart with KubernetesExecutor for workflow orchestration
+type: application
+version: 0.1.0
+appVersion: "2.8.1"
+keywords:
+  - airflow
+  - workflow
+  - orchestration
+  - data-pipeline
+  - scheduler
+  - dag
+home: https://github.com/scriptonbasestar-container/sb-helm-charts
+sources:
+  - https://github.com/scriptonbasestar-container/sb-helm-charts/tree/master/charts/airflow
+  - https://github.com/apache/airflow
+maintainers:
+  - name: ScriptonBasestar
+icon: https://airflow.apache.org/images/feature-image.png

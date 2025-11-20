@@ -97,6 +97,14 @@ charts:
     keywords: [rsshub, rss, feed, aggregator, social-media, news, content-aggregation]
     description: RSS aggregator (well-maintained external chart available)
 
+  airflow:
+    name: Apache Airflow
+    path: charts/airflow
+    category: application
+    tags: [Workflow, Orchestration, Data-Pipeline]
+    keywords: [airflow, workflow, orchestration, data-pipeline, scheduler, dag]
+    description: Opinionated Apache Airflow chart with KubernetesExecutor for workflow orchestration
+
   browserless-chrome:
     name: Browserless Chrome
     path: charts/browserless-chrome

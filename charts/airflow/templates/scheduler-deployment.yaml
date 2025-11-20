@@ -1,0 +1,174 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "airflow.fullname" . }}-scheduler
+  labels:
+    {{- $component := "scheduler" -}}
+    {{- include "airflow.componentLabels" (merge (dict "component" $component) .) | nindent 4 }}
+spec:
+  replicas: {{ .Values.scheduler.replicaCount }}
+  selector:
+    matchLabels:
+      {{- include "airflow.componentSelectorLabels" (merge (dict "component" $component) .) | nindent 6 }}
+  template:
+    metadata:
+      annotations:
+        checksum/config: {{ include (print $.Template.BasePath "/airflow-configmap.yaml") . | sha256sum }}
+        checksum/secret: {{ include (print $.Template.BasePath "/airflow-secret.yaml") . | sha256sum }}
+        {{- with .Values.scheduler.podAnnotations }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+      labels:
+        {{- include "airflow.componentSelectorLabels" (merge (dict "component" $component) .) | nindent 8 }}
+        {{- with .Values.scheduler.podLabels }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+    spec:
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      serviceAccountName: {{ include "airflow.serviceAccountName" . }}
+      securityContext:
+        {{- toYaml .Values.scheduler.podSecurityContext | nindent 8 }}
+      initContainers:
+        - name: wait-for-db-migrations
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          command:
+            - bash
+            - -c
+            - |
+              until airflow db check; do
+                echo "Waiting for database migrations..."
+                sleep 5
+              done
+          env:
+            - name: AIRFLOW__DATABASE__SQL_ALCHEMY_CONN
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "airflow.secretName" . }}
+                  key: postgresql-url
+            - name: AIRFLOW__CORE__FERNET_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "airflow.secretName" . }}
+                  key: fernet-key
+          volumeMounts:
+            - name: config
+              mountPath: /opt/airflow/airflow.cfg
+              subPath: airflow.cfg
+              readOnly: true
+      containers:
+        - name: scheduler
+          securityContext:
+            {{- toYaml .Values.scheduler.securityContext | nindent 12 }}
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          command:
+            - airflow
+            - scheduler
+          env:
+            - name: AIRFLOW__DATABASE__SQL_ALCHEMY_CONN
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "airflow.secretName" . }}
+                  key: postgresql-url
+            - name: AIRFLOW__CORE__FERNET_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "airflow.secretName" . }}
+                  key: fernet-key
+            {{- with .Values.scheduler.extraEnv }}
+            {{- toYaml . | nindent 12 }}
+            {{- end }}
+          {{- with .Values.scheduler.extraEnvFrom }}
+          envFrom:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          livenessProbe:
+            exec:
+              command:
+                - sh
+                - -c
+                - |
+                  CONNECTION_CHECK_MAX_COUNT=0 airflow jobs check --job-type SchedulerJob --hostname $(hostname)
+            initialDelaySeconds: {{ .Values.scheduler.livenessProbe.initialDelaySeconds }}
+            periodSeconds: {{ .Values.scheduler.livenessProbe.periodSeconds }}
+            timeoutSeconds: {{ .Values.scheduler.livenessProbe.timeoutSeconds }}
+            failureThreshold: {{ .Values.scheduler.livenessProbe.failureThreshold }}
+          resources:
+            {{- toYaml .Values.scheduler.resources | nindent 12 }}
+          volumeMounts:
+            - name: config
+              mountPath: /opt/airflow/airflow.cfg
+              subPath: airflow.cfg
+              readOnly: true
+            - name: logs
+              mountPath: /opt/airflow/logs
+            - name: dags
+              mountPath: /opt/airflow/dags
+              {{- if .Values.dags.gitSync.enabled }}
+              readOnly: true
+              {{- end }}
+            {{- with .Values.scheduler.extraVolumeMounts }}
+            {{- toYaml . | nindent 12 }}
+            {{- end }}
+      {{- if .Values.dags.gitSync.enabled }}
+        - name: git-sync
+          image: "{{ .Values.dags.gitSync.image.repository }}:{{ .Values.dags.gitSync.image.tag }}"
+          imagePullPolicy: {{ .Values.dags.gitSync.image.pullPolicy }}
+          env:
+            - name: GIT_SYNC_REPO
+              value: {{ .Values.dags.gitSync.repo | quote }}
+            - name: GIT_SYNC_BRANCH
+              value: {{ .Values.dags.gitSync.branch | quote }}
+            - name: GIT_SYNC_ROOT
+              value: /opt/airflow/dags
+            - name: GIT_SYNC_DEST
+              value: repo
+            - name: GIT_SYNC_WAIT
+              value: {{ .Values.dags.gitSync.wait | quote }}
+            {{- if .Values.dags.gitSync.subPath }}
+            - name: GIT_SYNC_SUBMODULES
+              value: "recursive"
+            {{- end }}
+          volumeMounts:
+            - name: dags
+              mountPath: /opt/airflow/dags
+          resources:
+            {{- toYaml .Values.dags.gitSync.resources | nindent 12 }}
+      {{- end }}
+      volumes:
+        - name: config
+          configMap:
+            name: {{ include "airflow.configMapName" . }}
+        - name: logs
+          {{- if .Values.logs.persistence.enabled }}
+          persistentVolumeClaim:
+            claimName: {{ include "airflow.fullname" . }}-logs
+          {{- else }}
+          emptyDir: {}
+          {{- end }}
+        - name: dags
+          {{- if .Values.dags.persistence.enabled }}
+          persistentVolumeClaim:
+            claimName: {{ include "airflow.fullname" . }}-dags
+          {{- else }}
+          emptyDir: {}
+          {{- end }}
+        {{- with .Values.scheduler.extraVolumes }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+      {{- with .Values.scheduler.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.scheduler.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.scheduler.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}

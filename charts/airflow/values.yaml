@@ -1,0 +1,302 @@
+# Default values for airflow
+# This is a YAML-formatted file for development/testing use
+# For production deployments, see values-dev.yaml or values-small-prod.yaml
+
+# ==================================================================================
+# DEPLOYMENT SCENARIOS
+# ==================================================================================
+# This file contains default values for development/testing.
+# For production-ready configurations, see:
+# - values-dev.yaml: Development environment with minimal resources
+# - values-small-prod.yaml: Small production deployment with HA
+# See: charts/airflow/README.md for complete documentation
+# ==================================================================================
+
+# Airflow configuration
+airflow:
+  # Executor type (KubernetesExecutor or LocalExecutor)
+  executor: KubernetesExecutor
+
+  # Load example DAGs (set to false for production)
+  loadExamples: false
+
+  # Load default connections
+  loadDefaultConnections: true
+
+  # Parallelism settings
+  parallelism: 32
+  maxActiveTasksPerDag: 16
+  maxActiveRunsPerDag: 16
+
+  # Scheduler settings
+  schedulerHeartbeatSec: 5
+
+  # Webserver settings
+  exposeConfig: false
+  enableProxyFix: true
+
+  # Remote logging (S3/MinIO)
+  remoteLogging:
+    enabled: false
+    remoteBaseLogFolder: "s3://airflow-logs"
+    remoteLogConnId: "aws_default"
+
+  # Admin user configuration
+  admin:
+    username: "admin"
+    firstname: "Admin"
+    lastname: "User"
+    email: "admin@example.com"
+    password: ""  # Required - set via --set or create secret manually
+
+  # Fernet key for encrypting connections (auto-generated if not set)
+  fernetKey: ""
+
+  # Webserver secret key (auto-generated if not set)
+  webserverSecretKey: ""
+
+  # Use existing secret for credentials (optional)
+  existingSecret: ""
+
+  # Use existing ConfigMap (optional)
+  existingConfigMap: ""
+
+  # ConfigMap annotations (for tools like reloader)
+  configMapAnnotations: {}
+
+  # Secret annotations (for tools like external-secrets)
+  secretAnnotations: {}
+
+  # Additional Airflow configuration
+  # Will be merged into airflow.cfg
+  config: {}
+    # example_key: example_value
+
+# PostgreSQL configuration
+postgresql:
+  # External PostgreSQL (recommended for production)
+  external:
+    enabled: true
+    host: "postgresql.default.svc.cluster.local"
+    port: 5432
+    database: "airflow"
+    username: "airflow"
+    password: ""  # Required if external.enabled=true
+
+# DAGs configuration
+dags:
+  # Persistence for DAGs (if not using git-sync)
+  persistence:
+    enabled: false
+    existingClaim: ""
+    storageClass: ""
+    accessMode: ReadWriteMany
+    size: 1Gi
+    annotations: {}
+
+  # Git-sync sidecar for DAG synchronization
+  gitSync:
+    enabled: false
+    repo: "https://github.com/apache/airflow.git"
+    branch: "main"
+    subPath: ""
+    wait: 60
+    image:
+      repository: registry.k8s.io/git-sync/git-sync
+      tag: v4.0.0
+      pullPolicy: IfNotPresent
+    resources:
+      limits:
+        cpu: 100m
+        memory: 128Mi
+      requests:
+        cpu: 50m
+        memory: 64Mi
+
+# Logs configuration
+logs:
+  persistence:
+    enabled: true
+    existingClaim: ""
+    storageClass: ""
+    accessMode: ReadWriteOnce
+    size: 10Gi
+    annotations: {}
+
+# Webserver configuration
+webserver:
+  replicaCount: 1
+
+  podAnnotations: {}
+  podLabels: {}
+
+  podSecurityContext:
+    fsGroup: 50000
+    runAsUser: 50000
+    runAsGroup: 50000
+
+  securityContext:
+    runAsNonRoot: true
+    runAsUser: 50000
+    capabilities:
+      drop:
+        - ALL
+
+  service:
+    type: ClusterIP
+    port: 8080
+    clusterIP: ""
+    annotations: {}
+    loadBalancerIP: ""
+    loadBalancerSourceRanges: []
+    externalTrafficPolicy: ""
+    nodePort: ""
+
+  resources:
+    limits:
+      cpu: 1000m
+      memory: 1Gi
+    requests:
+      cpu: 500m
+      memory: 512Mi
+
+  livenessProbe:
+    initialDelaySeconds: 60
+    periodSeconds: 30
+    timeoutSeconds: 10
+    failureThreshold: 5
+
+  readinessProbe:
+    initialDelaySeconds: 30
+    periodSeconds: 10
+    timeoutSeconds: 5
+    failureThreshold: 5
+
+  extraEnv: []
+  extraEnvFrom: []
+  extraVolumes: []
+  extraVolumeMounts: []
+
+  nodeSelector: {}
+  tolerations: []
+  affinity: {}
+
+# Scheduler configuration
+scheduler:
+  replicaCount: 1
+
+  podAnnotations: {}
+  podLabels: {}
+
+  podSecurityContext:
+    fsGroup: 50000
+    runAsUser: 50000
+    runAsGroup: 50000
+
+  securityContext:
+    runAsNonRoot: true
+    runAsUser: 50000
+    capabilities:
+      drop:
+        - ALL
+
+  resources:
+    limits:
+      cpu: 1000m
+      memory: 1Gi
+    requests:
+      cpu: 500m
+      memory: 512Mi
+
+  livenessProbe:
+    initialDelaySeconds: 60
+    periodSeconds: 60
+    timeoutSeconds: 20
+    failureThreshold: 5
+
+  extraEnv: []
+  extraEnvFrom: []
+  extraVolumes: []
+  extraVolumeMounts: []
+
+  nodeSelector: {}
+  tolerations: []
+  affinity: {}
+
+# Triggerer configuration
+triggerer:
+  enabled: true
+  replicaCount: 1
+
+  podAnnotations: {}
+  podLabels: {}
+
+  podSecurityContext:
+    fsGroup: 50000
+    runAsUser: 50000
+    runAsGroup: 50000
+
+  securityContext:
+    runAsNonRoot: true
+    runAsUser: 50000
+    capabilities:
+      drop:
+        - ALL
+
+  resources:
+    limits:
+      cpu: 500m
+      memory: 512Mi
+    requests:
+      cpu: 250m
+      memory: 256Mi
+
+  livenessProbe:
+    initialDelaySeconds: 60
+    periodSeconds: 60
+    timeoutSeconds: 20
+    failureThreshold: 5
+
+  extraEnv: []
+  extraEnvFrom: []
+  extraVolumes: []
+  extraVolumeMounts: []
+
+  nodeSelector: {}
+  tolerations: []
+  affinity: {}
+
+# Ingress configuration
+ingress:
+  enabled: false
+  className: ""
+  annotations: {}
+    # cert-manager.io/cluster-issuer: letsencrypt-prod
+    # nginx.ingress.kubernetes.io/proxy-body-size: "0"
+  hosts:
+    - host: airflow.example.com
+      paths:
+        - path: /
+          pathType: Prefix
+  tls: []
+    # - secretName: airflow-tls
+    #   hosts:
+    #     - airflow.example.com
+
+# Image configuration
+image:
+  repository: apache/airflow
+  pullPolicy: IfNotPresent
+  # Overrides the image tag whose default is the chart appVersion
+  tag: ""
+
+imagePullSecrets: []
+nameOverride: ""
+fullnameOverride: ""
+
+# ServiceAccount configuration
+serviceAccount:
+  create: true
+  automount: true
+  annotations: {}
+  name: ""

@@ -1,0 +1,25 @@
+{{- if and .Values.logs.persistence.enabled (not .Values.logs.persistence.existingClaim) }}
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ include "airflow.fullname" . }}-logs
+  labels:
+    {{- include "airflow.labels" . | nindent 4 }}
+  {{- with .Values.logs.persistence.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  accessModes:
+    - {{ .Values.logs.persistence.accessMode }}
+  {{- if .Values.logs.persistence.storageClass }}
+  {{- if (eq "-" .Values.logs.persistence.storageClass) }}
+  storageClassName: ""
+  {{- else }}
+  storageClassName: {{ .Values.logs.persistence.storageClass | quote }}
+  {{- end }}
+  {{- end }}
+  resources:
+    requests:
+      storage: {{ .Values.logs.persistence.size | quote }}
+{{- end }}

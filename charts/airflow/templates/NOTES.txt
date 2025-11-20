@@ -1,0 +1,165 @@
+===============================================================================
+Apache Airflow has been successfully installed!
+===============================================================================
+
+Deployment Configuration:
+- Executor: {{ .Values.airflow.executor }}
+- Webserver Replicas: {{ .Values.webserver.replicaCount }}
+- Scheduler Replicas: {{ .Values.scheduler.replicaCount }}
+{{- if .Values.triggerer.enabled }}
+- Triggerer Replicas: {{ .Values.triggerer.replicaCount }}
+{{- end }}
+
+-------------------------------------------------------------------------------
+1. CREDENTIALS
+-------------------------------------------------------------------------------
+
+{{- if .Values.airflow.admin.password }}
+Admin User:
+  Username: {{ .Values.airflow.admin.username }}
+  Password: (retrieve with command below)
+
+  kubectl get secret {{ include "airflow.secretName" . }} -o jsonpath='{.data.admin-password}' | base64 -d
+
+{{- else }}
+⚠️  WARNING: Admin password is NOT set
+Set airflow.admin.password in values.yaml or via --set for production.
+{{- end }}
+
+-------------------------------------------------------------------------------
+2. ACCESS AIRFLOW WEB UI
+-------------------------------------------------------------------------------
+
+{{- if .Values.ingress.enabled }}
+Airflow Web UI (Ingress):
+{{- range .Values.ingress.hosts }}
+  {{- $host := .host }}
+  {{- range .paths }}
+  {{ if $.Values.ingress.tls }}https{{ else }}http{{ end }}://{{ $host }}{{ .path }}
+  {{- end }}
+{{- end }}
+{{- else }}
+Airflow Web UI (Port Forward):
+  kubectl port-forward svc/{{ include "airflow.fullname" . }}-webserver 8080:8080
+  Access at: http://localhost:8080
+{{- end }}
+
+{{- if .Values.airflow.admin.username }}
+Login with:
+  Username: {{ .Values.airflow.admin.username }}
+  Password: (use command from section 1)
+{{- end }}
+
+-------------------------------------------------------------------------------
+3. STATUS & HEALTH
+-------------------------------------------------------------------------------
+
+Check Webserver pods:
+  kubectl get pods -l app.kubernetes.io/component=webserver
+
+Check Scheduler pods:
+  kubectl get pods -l app.kubernetes.io/component=scheduler
+
+{{- if .Values.triggerer.enabled }}
+Check Triggerer pods:
+  kubectl get pods -l app.kubernetes.io/component=triggerer
+{{- end }}
+
+View Webserver logs:
+  kubectl logs -f -l app.kubernetes.io/component=webserver
+
+View Scheduler logs:
+  kubectl logs -f -l app.kubernetes.io/component=scheduler
+
+{{- if .Values.triggerer.enabled }}
+View Triggerer logs:
+  kubectl logs -f -l app.kubernetes.io/component=triggerer
+{{- end }}
+
+-------------------------------------------------------------------------------
+4. DAG MANAGEMENT
+-------------------------------------------------------------------------------
+
+{{- if .Values.dags.gitSync.enabled }}
+DAGs are synchronized from Git:
+  Repository: {{ .Values.dags.gitSync.repo }}
+  Branch: {{ .Values.dags.gitSync.branch }}
+  Sync interval: {{ .Values.dags.gitSync.wait }}s
+{{- else if .Values.dags.persistence.enabled }}
+DAGs are stored in PersistentVolume:
+  PVC: {{ include "airflow.fullname" . }}-dags
+
+To upload DAGs:
+  kubectl cp your_dag.py {{ include "airflow.fullname" . }}-webserver-0:/opt/airflow/dags/
+{{- else }}
+DAGs are stored in emptyDir (ephemeral):
+  ⚠️  DAGs will be lost on pod restart
+  For production, enable dags.persistence or dags.gitSync
+{{- end }}
+
+Check DAGs:
+  kubectl exec -it {{ include "airflow.fullname" . }}-webserver-0 -- airflow dags list
+
+Trigger a DAG:
+  kubectl exec -it {{ include "airflow.fullname" . }}-webserver-0 -- airflow dags trigger <dag_id>
+
+-------------------------------------------------------------------------------
+5. DATABASE
+-------------------------------------------------------------------------------
+
+{{- if .Values.postgresql.external.enabled }}
+Using external PostgreSQL:
+  Host: {{ .Values.postgresql.external.host }}
+  Database: {{ .Values.postgresql.external.database }}
+
+Check database connection:
+  kubectl exec -it {{ include "airflow.fullname" . }}-webserver-0 -- airflow db check
+{{- else }}
+⚠️  Using embedded database (not recommended for production)
+For production, configure postgresql.external settings.
+{{- end }}
+
+-------------------------------------------------------------------------------
+6. NEXT STEPS
+-------------------------------------------------------------------------------
+
+{{- if not .Values.airflow.admin.password }}
+⚠️  SECURITY WARNING: Set admin password for production:
+  - Set airflow.admin.password in values.yaml
+  - Or use --set airflow.admin.password=<your-password>
+{{- end }}
+
+{{- if not .Values.postgresql.external.enabled }}
+⚠️  DATABASE WARNING: Configure external PostgreSQL for production:
+  - Set postgresql.external.enabled=true
+  - Provide postgresql.external.host, database, username, password
+{{- end }}
+
+{{- if eq .Values.airflow.executor "LocalExecutor" }}
+📝 For scalability, consider using KubernetesExecutor:
+  - Set airflow.executor=KubernetesExecutor
+{{- end }}
+
+{{- if not .Values.dags.persistence.enabled }}
+{{- if not .Values.dags.gitSync.enabled }}
+📝 For persistent DAGs:
+  - Enable dags.persistence.enabled=true for PVC
+  - Or enable dags.gitSync for Git synchronization
+{{- end }}
+{{- end }}
+
+1. Create your DAG files in /opt/airflow/dags
+2. Monitor DAGs in the web UI
+3. Set up connections and variables via UI or CLI
+{{- if .Values.airflow.remoteLogging.enabled }}
+4. Logs will be sent to: {{ .Values.airflow.remoteLogging.remoteBaseLogFolder }}
+{{- else }}
+4. Configure remote logging (S3/MinIO) for production
+{{- end }}
+5. Set up backups for PostgreSQL database
+
+Documentation:
+  - Airflow: https://airflow.apache.org/docs/
+  - Chart README: https://github.com/scriptonbasestar-container/sb-helm-charts/tree/master/charts/airflow
+
+===============================================================================

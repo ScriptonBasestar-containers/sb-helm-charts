@@ -1,0 +1,139 @@
+{{- if .Values.triggerer.enabled }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "airflow.fullname" . }}-triggerer
+  labels:
+    {{- $component := "triggerer" -}}
+    {{- include "airflow.componentLabels" (merge (dict "component" $component) .) | nindent 4 }}
+spec:
+  replicas: {{ .Values.triggerer.replicaCount }}
+  selector:
+    matchLabels:
+      {{- include "airflow.componentSelectorLabels" (merge (dict "component" $component) .) | nindent 6 }}
+  template:
+    metadata:
+      annotations:
+        checksum/config: {{ include (print $.Template.BasePath "/airflow-configmap.yaml") . | sha256sum }}
+        checksum/secret: {{ include (print $.Template.BasePath "/airflow-secret.yaml") . | sha256sum }}
+        {{- with .Values.triggerer.podAnnotations }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+      labels:
+        {{- include "airflow.componentSelectorLabels" (merge (dict "component" $component) .) | nindent 8 }}
+        {{- with .Values.triggerer.podLabels }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+    spec:
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      serviceAccountName: {{ include "airflow.serviceAccountName" . }}
+      securityContext:
+        {{- toYaml .Values.triggerer.podSecurityContext | nindent 8 }}
+      initContainers:
+        - name: wait-for-db-migrations
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          command:
+            - bash
+            - -c
+            - |
+              until airflow db check; do
+                echo "Waiting for database migrations..."
+                sleep 5
+              done
+          env:
+            - name: AIRFLOW__DATABASE__SQL_ALCHEMY_CONN
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "airflow.secretName" . }}
+                  key: postgresql-url
+            - name: AIRFLOW__CORE__FERNET_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "airflow.secretName" . }}
+                  key: fernet-key
+          volumeMounts:
+            - name: config
+              mountPath: /opt/airflow/airflow.cfg
+              subPath: airflow.cfg
+              readOnly: true
+      containers:
+        - name: triggerer
+          securityContext:
+            {{- toYaml .Values.triggerer.securityContext | nindent 12 }}
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          command:
+            - airflow
+            - triggerer
+          env:
+            - name: AIRFLOW__DATABASE__SQL_ALCHEMY_CONN
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "airflow.secretName" . }}
+                  key: postgresql-url
+            - name: AIRFLOW__CORE__FERNET_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "airflow.secretName" . }}
+                  key: fernet-key
+            {{- with .Values.triggerer.extraEnv }}
+            {{- toYaml . | nindent 12 }}
+            {{- end }}
+          {{- with .Values.triggerer.extraEnvFrom }}
+          envFrom:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          livenessProbe:
+            exec:
+              command:
+                - sh
+                - -c
+                - |
+                  CONNECTION_CHECK_MAX_COUNT=0 airflow jobs check --job-type TriggererJob --hostname $(hostname)
+            initialDelaySeconds: {{ .Values.triggerer.livenessProbe.initialDelaySeconds }}
+            periodSeconds: {{ .Values.triggerer.livenessProbe.periodSeconds }}
+            timeoutSeconds: {{ .Values.triggerer.livenessProbe.timeoutSeconds }}
+            failureThreshold: {{ .Values.triggerer.livenessProbe.failureThreshold }}
+          resources:
+            {{- toYaml .Values.triggerer.resources | nindent 12 }}
+          volumeMounts:
+            - name: config
+              mountPath: /opt/airflow/airflow.cfg
+              subPath: airflow.cfg
+              readOnly: true
+            - name: logs
+              mountPath: /opt/airflow/logs
+            {{- with .Values.triggerer.extraVolumeMounts }}
+            {{- toYaml . | nindent 12 }}
+            {{- end }}
+      volumes:
+        - name: config
+          configMap:
+            name: {{ include "airflow.configMapName" . }}
+        - name: logs
+          {{- if .Values.logs.persistence.enabled }}
+          persistentVolumeClaim:
+            claimName: {{ include "airflow.fullname" . }}-logs
+          {{- else }}
+          emptyDir: {}
+          {{- end }}
+        {{- with .Values.triggerer.extraVolumes }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+      {{- with .Values.triggerer.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.triggerer.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.triggerer.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+{{- end }}
