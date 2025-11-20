@@ -1,0 +1,112 @@
+# Development values for MySQL
+# Optimized for local testing and development environments
+
+replicaCount: 1
+
+image:
+  repository: mysql
+  pullPolicy: IfNotPresent
+  tag: ""
+
+imagePullSecrets: []
+nameOverride: ""
+fullnameOverride: ""
+
+# MySQL configuration
+mysql:
+  database: "testdb"
+  username: "testuser"
+  password: "testpass"  # In dev, using simple password
+
+  # Connection limits (reduced for dev)
+  maxConnections: 50
+
+  # Buffer settings (reduced for dev)
+  innodbBufferPoolSize: "64M"
+  innodbLogFileSize: "24M"
+
+  # Replication disabled for single-node dev
+  replication:
+    enabled: false
+    user: "replicator"
+    password: ""
+    serverId: 1
+
+  # Custom configuration
+  config: {}
+
+  # Existing ConfigMap/Secret
+  existingConfigMap: ""
+  existingSecret: ""
+
+  # Extra environment variables
+  extraEnv: []
+
+# Service configuration
+service:
+  type: ClusterIP
+  port: 3306
+  nodePort: ""
+  annotations: {}
+
+# Persistence (reduced for dev)
+persistence:
+  enabled: true
+  storageClass: ""
+  accessMode: ReadWriteOnce
+  size: 5Gi
+  annotations: {}
+
+# ServiceAccount
+serviceAccount:
+  create: true
+  annotations: {}
+  name: ""
+
+# Pod annotations
+podAnnotations: {}
+
+# Pod security context
+podSecurityContext:
+  fsGroup: 999
+  runAsUser: 999
+  runAsNonRoot: true
+
+# Container security context
+securityContext:
+  capabilities:
+    drop:
+    - ALL
+  readOnlyRootFilesystem: false
+  allowPrivilegeEscalation: false
+
+# Resource limits (reduced for dev)
+resources:
+  limits:
+    cpu: 500m
+    memory: 512Mi
+  requests:
+    cpu: 100m
+    memory: 256Mi
+
+# Health probes (faster checks for dev)
+livenessProbe:
+  initialDelaySeconds: 20
+  periodSeconds: 10
+  timeoutSeconds: 5
+  failureThreshold: 3
+
+readinessProbe:
+  initialDelaySeconds: 5
+  periodSeconds: 5
+  timeoutSeconds: 5
+  failureThreshold: 3
+
+# Node selector
+nodeSelector: {}
+
+# Tolerations
+tolerations: []
+
+# Affinity
+affinity: {}

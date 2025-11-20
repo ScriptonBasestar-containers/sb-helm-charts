@@ -1,0 +1,136 @@
+# Small Production values for MySQL
+# Optimized for production HA with 2 replicas (primary + replica)
+
+replicaCount: 2
+
+image:
+  repository: mysql
+  pullPolicy: IfNotPresent
+  tag: "8.0.35"
+
+imagePullSecrets: []
+nameOverride: ""
+fullnameOverride: ""
+
+# MySQL configuration
+mysql:
+  database: "production_db"
+  username: "app_user"
+  password: ""  # REQUIRED: Set via --set or external secret
+
+  # Connection limits
+  maxConnections: 200
+
+  # Buffer settings (production tuned)
+  innodbBufferPoolSize: "512M"
+  innodbLogFileSize: "128M"
+
+  # Replication enabled for HA
+  replication:
+    enabled: true
+    user: "replicator"
+    password: ""  # REQUIRED: Set via --set or external secret
+    serverId: 1
+
+  # Custom configuration
+  config:
+    # Additional production settings can be added here
+    # Example:
+    # max_allowed_packet: "64M"
+    # innodb_flush_log_at_trx_commit: "1"
+
+  # Existing ConfigMap/Secret
+  existingConfigMap: ""
+  existingSecret: ""
+
+  # Extra environment variables
+  extraEnv: []
+
+# Service configuration
+service:
+  type: ClusterIP
+  port: 3306
+  nodePort: ""
+  annotations:
+    prometheus.io/scrape: "true"
+    prometheus.io/port: "9104"  # If using mysqld_exporter sidecar
+
+# Persistence (production storage)
+persistence:
+  enabled: true
+  storageClass: "fast-ssd"  # Use SSD storage class
+  accessMode: ReadWriteOnce
+  size: 50Gi
+  annotations: {}
+
+# ServiceAccount
+serviceAccount:
+  create: true
+  annotations: {}
+  name: ""
+
+# Pod annotations
+podAnnotations:
+  prometheus.io/scrape: "true"
+  prometheus.io/port: "9104"
+
+# Pod security context
+podSecurityContext:
+  fsGroup: 999
+  runAsUser: 999
+  runAsNonRoot: true
+
+# Container security context
+securityContext:
+  capabilities:
+    drop:
+    - ALL
+  readOnlyRootFilesystem: false
+  allowPrivilegeEscalation: false
+
+# Resource limits (production)
+resources:
+  limits:
+    cpu: 2000m
+    memory: 2Gi
+  requests:
+    cpu: 500m
+    memory: 1Gi
+
+# Health probes (production settings)
+livenessProbe:
+  initialDelaySeconds: 30
+  periodSeconds: 10
+  timeoutSeconds: 5
+  failureThreshold: 6
+
+readinessProbe:
+  initialDelaySeconds: 10
+  periodSeconds: 10
+  timeoutSeconds: 5
+  failureThreshold: 3
+
+# Node selector
+nodeSelector:
+  node-role.kubernetes.io/database: "true"
+
+# Tolerations
+tolerations:
+  - key: "database"
+    operator: "Equal"
+    value: "true"
+    effect: "NoSchedule"
+
+# Affinity (anti-affinity for HA)
+affinity:
+  podAntiAffinity:
+    preferredDuringSchedulingIgnoredDuringExecution:
+      - weight: 100
+        podAffinityTerm:
+          labelSelector:
+            matchExpressions:
+              - key: app.kubernetes.io/name
+                operator: In
+                values:
+                  - mysql
+          topologyKey: kubernetes.io/hostname

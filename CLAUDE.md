@@ -156,6 +156,8 @@ The metadata file serves multiple purposes:
   - ⚠️ For production, consider [Memcached Operator](https://github.com/ianlewis/memcached-operator)
 - **minio**: High-performance S3-compatible object storage (StatefulSet, distributed mode, erasure coding)
   - ⚠️ For production HA, consider [MinIO Operator](https://github.com/minio/operator) for advanced features
+- **mysql**: MySQL relational database with replication support (StatefulSet, master-replica mode)
+  - ⚠️ For production HA, consider MySQL Operator ([Oracle](https://github.com/mysql/mysql-operator), [Percona](https://github.com/percona/percona-server-mysql-operator), [Vitess](https://vitess.io/))
 - **postgresql**: PostgreSQL relational database with replication support (StatefulSet, primary-replica mode)
   - ⚠️ For production HA, consider PostgreSQL Operator ([Zalando](https://github.com/zalando/postgres-operator), [Crunchy Data](https://github.com/CrunchyData/postgres-operator), [CloudNativePG](https://cloudnative-pg.io/))
 - **rabbitmq**: Message broker with management UI (Deployment, no database, AMQP + Prometheus metrics)
@@ -470,6 +472,52 @@ make -f make/ops/memcached.mk mc-shell
 
 # Port forward to memcached
 make -f make/ops/memcached.mk mc-port-forward
+```
+
+### MySQL Specific Commands
+
+```bash
+# Basic operations
+make -f make/ops/mysql.mk mysql-shell
+make -f make/ops/mysql.mk mysql-logs
+make -f make/ops/mysql.mk mysql-port-forward
+
+# Database operations
+make -f make/ops/mysql.mk mysql-backup
+make -f make/ops/mysql.mk mysql-restore FILE=backup.sql.gz
+make -f make/ops/mysql.mk mysql-create-db DB=mydb
+make -f make/ops/mysql.mk mysql-list-dbs
+make -f make/ops/mysql.mk mysql-db-size
+
+# User management
+make -f make/ops/mysql.mk mysql-create-user USER=myuser PASSWORD=mypass
+make -f make/ops/mysql.mk mysql-grant-privileges USER=myuser DB=mydb
+make -f make/ops/mysql.mk mysql-list-users
+make -f make/ops/mysql.mk mysql-show-grants USER=myuser
+
+# Replication (Master-Replica)
+make -f make/ops/mysql.mk mysql-replication-info
+make -f make/ops/mysql.mk mysql-master-status POD=mysql-0
+make -f make/ops/mysql.mk mysql-replica-status POD=mysql-1
+make -f make/ops/mysql.mk mysql-replica-lag
+
+# Performance & monitoring
+make -f make/ops/mysql.mk mysql-status
+make -f make/ops/mysql.mk mysql-processlist
+make -f make/ops/mysql.mk mysql-variables
+make -f make/ops/mysql.mk mysql-innodb-status
+
+# Maintenance
+make -f make/ops/mysql.mk mysql-optimize DB=mydb
+make -f make/ops/mysql.mk mysql-check DB=mydb
+make -f make/ops/mysql.mk mysql-repair DB=mydb
+make -f make/ops/mysql.mk mysql-analyze DB=mydb
+
+# CLI commands
+make -f make/ops/mysql.mk mysql-cli CMD="SELECT VERSION();"
+make -f make/ops/mysql.mk mysql-ping
+make -f make/ops/mysql.mk mysql-version
+make -f make/ops/mysql.mk mysql-restart
 ```
 
 ### MinIO Specific Commands
