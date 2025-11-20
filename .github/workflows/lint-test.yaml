@@ -58,7 +58,7 @@ jobs:
         if: steps.list-changed.outputs.changed == 'true'
         run: |
           ct install --config ct.yaml \
-            --helm-extra-set-args "--set=postgresql.external.password=test123 --set=redis.external.password=test123 --set=minio.rootPassword=test123 --set=airflow.admin.password=test123"
+            --helm-extra-set-args "--set=postgresql.external.password=test123 --set=postgresql.password=test123 --set=redis.external.password=test123 --set=minio.rootPassword=test123 --set=airflow.admin.password=test123"
 
   helm-lint:
     runs-on: ubuntu-22.04
@@ -76,6 +76,7 @@ jobs:
           - minio
           - nextcloud
           - paperless-ngx
+          - postgresql
           - rabbitmq
           - redis
           - rsshub
@@ -103,6 +104,7 @@ jobs:
           helm lint charts/${{ matrix.chart }} \
             -f charts/${{ matrix.chart }}/values-example.yaml \
             --set postgresql.external.password=test123 \
+            --set postgresql.password=test123 \
             --set redis.external.password=test123 \
             --set minio.rootPassword=test123 || true
 
@@ -112,6 +114,7 @@ jobs:
           helm lint charts/${{ matrix.chart }} \
             -f charts/${{ matrix.chart }}/values-homeserver.yaml \
             --set postgresql.external.password=test123 \
+            --set postgresql.password=test123 \
             --set redis.external.password=test123 \
             --set minio.rootPassword=test123 || true
 
@@ -124,6 +127,7 @@ jobs:
               echo "Testing $scenario scenario..." >> $GITHUB_STEP_SUMMARY
               if helm lint charts/${{ matrix.chart }} -f "$values_file" \
                 --set postgresql.external.password=test123 \
+                --set postgresql.password=test123 \
                 --set redis.external.password=test123 \
                 --set rabbitmq.admin.password=test123 \
                 --set minio.rootPassword=test123; then
@@ -134,6 +138,7 @@ jobs:
 
               if helm template test-release charts/${{ matrix.chart }} -f "$values_file" \
                 --set postgresql.external.password=test123 \
+                --set postgresql.password=test123 \
                 --set redis.external.password=test123 \
                 --set rabbitmq.admin.password=test123 \
                 --set minio.rootPassword=test123 \
@@ -151,6 +156,7 @@ jobs:
         run: |
           helm template test-release charts/${{ matrix.chart }} \
             --set postgresql.external.password=test123 \
+            --set postgresql.password=test123 \
             --set redis.external.password=test123 \
             --set minio.rootPassword=test123 \
             --dry-run > /dev/null

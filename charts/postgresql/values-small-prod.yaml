@@ -1,0 +1,174 @@
+# Small Production Environment Profile
+# PostgreSQL with primary-replica replication for HA
+#
+# Usage:
+#   helm install my-postgres charts/postgresql \
+#     -f charts/postgresql/values-small-prod.yaml \
+#     --set postgresql.password='<STRONG_PASSWORD>' \
+#     --set postgresql.replication.password='<REPL_PASSWORD>'
+#
+# WARNING: Do NOT use default passwords in production!
+
+# Primary + 2 replicas for HA
+replicaCount: 2
+
+image:
+  repository: postgres
+  pullPolicy: IfNotPresent
+  tag: "16.1"
+
+# PostgreSQL configuration for production
+postgresql:
+  database: "production"
+  username: "produser"
+  password: ""  # SET THIS VIA --set OR EXTERNAL SECRET
+
+  # Production memory settings (adjust based on node size)
+  maxConnections: 100
+  sharedBuffers: "256MB"  # ~25% of available RAM
+  effectiveCacheSize: "2GB"  # ~75% of available RAM
+  workMem: "8MB"  # shared_buffers / max_connections
+  maintenanceWorkMem: "128MB"
+
+  # WAL settings for replication
+  walLevel: "replica"
+  maxWalSenders: 10
+  maxReplicationSlots: 10
+
+  # Production-optimized settings
+  config:
+    # Performance
+    random_page_cost: "1.1"  # For SSD storage
+    effective_io_concurrency: "200"  # For SSD
+    max_worker_processes: "4"
+    max_parallel_workers_per_gather: "2"
+    max_parallel_workers: "4"
+    max_parallel_maintenance_workers: "2"
+
+    # WAL and Checkpointing
+    wal_buffers: "16MB"
+    checkpoint_completion_target: "0.9"
+    max_wal_size: "4GB"
+    min_wal_size: "1GB"
+
+    # Logging (production-safe)
+    log_statement: "ddl"  # Log DDL only
+    log_duration: "off"
+    log_connections: "on"
+    log_disconnections: "on"
+    log_lock_waits: "on"
+    log_temp_files: "0"
+    log_autovacuum_min_duration: "0"
+
+    # Autovacuum
+    autovacuum: "on"
+    autovacuum_max_workers: "3"
+    autovacuum_naptime: "1min"
+
+    # Query tuning
+    default_statistics_target: "100"
+
+  # Enable replication for HA
+  replication:
+    enabled: true
+    user: "replicator"
+    password: ""  # SET THIS VIA --set OR EXTERNAL SECRET
+
+  # Example: Database initialization
+  # initdbScripts:
+  #   01-init.sql: |
+  #     CREATE EXTENSION IF NOT EXISTS pg_stat_statements;
+  #     CREATE EXTENSION IF NOT EXISTS pgcrypto;
+
+# Production storage with SSD
+persistence:
+  enabled: true
+  storageClass: "fast-ssd"  # Use your SSD storageClass
+  accessMode: ReadWriteOnce
+  size: 50Gi
+  annotations: {}
+
+# Service configuration
+service:
+  type: ClusterIP
+  port: 5432
+  annotations: {}
+
+# ServiceAccount
+serviceAccount:
+  create: true
+  annotations: {}
+
+# Production resource limits
+# Adjust based on your node capacity
+resources:
+  limits:
+    cpu: 2000m
+    memory: 4Gi
+  requests:
+    cpu: 500m
+    memory: 1Gi
+
+# Production health probes
+livenessProbe:
+  initialDelaySeconds: 30
+  periodSeconds: 10
+  timeoutSeconds: 5
+  failureThreshold: 6
+
+readinessProbe:
+  initialDelaySeconds: 10
+  periodSeconds: 10
+  timeoutSeconds: 5
+  failureThreshold: 3
+
+startupProbe:
+  initialDelaySeconds: 0
+  periodSeconds: 10
+  timeoutSeconds: 5
+  failureThreshold: 30
+
+# Pod security context
+podSecurityContext:
+  fsGroup: 999
+  runAsUser: 999
+  runAsNonRoot: true
+
+# Container security context
+securityContext:
+  capabilities:
+    drop:
+    - ALL
+  readOnlyRootFilesystem: false
+  allowPrivilegeEscalation: false
+
+# Pod annotations for Prometheus monitoring
+podAnnotations:
+  prometheus.io/scrape: "false"  # Enable if using postgres_exporter sidecar
+  # prometheus.io/port: "9187"
+  # prometheus.io/path: "/metrics"
+
+# Anti-affinity to spread replicas across nodes
+affinity:
+  podAntiAffinity:
+    preferredDuringSchedulingIgnoredDuringExecution:
+      - weight: 100
+        podAffinityTerm:
+          labelSelector:
+            matchExpressions:
+              - key: app.kubernetes.io/name
+                operator: In
+                values:
+                  - postgresql
+          topologyKey: kubernetes.io/hostname
+
+# Tolerations for dedicated database nodes (optional)
+# tolerations:
+#   - key: "dedicated"
+#     operator: "Equal"
+#     value: "database"
+#     effect: "NoSchedule"
+
+# Node selector for dedicated database nodes (optional)
+# nodeSelector:
+#   workload: database

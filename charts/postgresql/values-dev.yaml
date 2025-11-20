@@ -1,0 +1,114 @@
+# Development Environment Profile
+# Single-node PostgreSQL for local development and testing
+#
+# Usage:
+#   helm install my-postgres charts/postgresql -f charts/postgresql/values-dev.yaml
+
+# Single replica for development
+replicaCount: 1
+
+image:
+  repository: postgres
+  pullPolicy: IfNotPresent
+  tag: "16.1"
+
+# PostgreSQL configuration optimized for development
+postgresql:
+  database: "devdb"
+  username: "devuser"
+  password: "devpass123"  # Change for your environment
+
+  # Reduced memory settings for development
+  maxConnections: 50
+  sharedBuffers: "64MB"
+  effectiveCacheSize: "512MB"
+  workMem: "2MB"
+  maintenanceWorkMem: "32MB"
+
+  # WAL settings (minimal for dev)
+  walLevel: "replica"
+  maxWalSenders: 3
+  maxReplicationSlots: 3
+
+  # Additional development-friendly settings
+  config:
+    log_statement: "all"  # Log all statements for debugging
+    log_duration: "on"
+    log_connections: "on"
+    log_disconnections: "on"
+    autovacuum: "on"
+    shared_preload_libraries: ""  # Add extensions if needed
+
+  # Replication disabled for single-node dev
+  replication:
+    enabled: false
+
+  # Example initialization scripts
+  # Uncomment to create additional databases/users
+  # initdbScripts:
+  #   01-init.sql: |
+  #     CREATE DATABASE app1;
+  #     CREATE USER app1user WITH PASSWORD 'app1pass';
+  #     GRANT ALL PRIVILEGES ON DATABASE app1 TO app1user;
+  #   02-init.sql: |
+  #     CREATE DATABASE app2;
+  #     CREATE USER app2user WITH PASSWORD 'app2pass';
+  #     GRANT ALL PRIVILEGES ON DATABASE app2 TO app2user;
+
+# Smaller storage for development
+persistence:
+  enabled: true
+  storageClass: ""  # Use cluster default
+  accessMode: ReadWriteOnce
+  size: 5Gi
+
+# Service configuration
+service:
+  type: ClusterIP
+  port: 5432
+
+# ServiceAccount
+serviceAccount:
+  create: true
+
+# Reduced resources for development
+resources:
+  limits:
+    cpu: 500m
+    memory: 512Mi
+  requests:
+    cpu: 100m
+    memory: 256Mi
+
+# Faster probes for quick iteration
+livenessProbe:
+  initialDelaySeconds: 15
+  periodSeconds: 10
+  timeoutSeconds: 3
+  failureThreshold: 3
+
+readinessProbe:
+  initialDelaySeconds: 5
+  periodSeconds: 5
+  timeoutSeconds: 3
+  failureThreshold: 2
+
+startupProbe:
+  initialDelaySeconds: 0
+  periodSeconds: 5
+  timeoutSeconds: 3
+  failureThreshold: 20
+
+# Pod security context
+podSecurityContext:
+  fsGroup: 999
+  runAsUser: 999
+  runAsNonRoot: true
+
+# Container security context
+securityContext:
+  capabilities:
+    drop:
+    - ALL
+  readOnlyRootFilesystem: false
+  allowPrivilegeEscalation: false

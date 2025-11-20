@@ -149,15 +149,17 @@ The metadata file serves multiple purposes:
 
 - **elasticsearch**: Distributed search and analytics engine (StatefulSet, Kibana, cluster mode, S3 snapshots)
   - ⚠️ For large-scale production, consider [Elastic Cloud on Kubernetes (ECK) Operator](https://www.elastic.co/guide/en/cloud-on-k8s/current/index.html)
+- **memcached**: High-performance distributed memory caching system (Deployment, no database)
+  - ⚠️ For production, consider [Memcached Operator](https://github.com/ianlewis/memcached-operator)
+- **minio**: High-performance S3-compatible object storage (StatefulSet, distributed mode, erasure coding)
+  - ⚠️ For production HA, consider [MinIO Operator](https://github.com/minio/operator) for advanced features
+- **postgresql**: PostgreSQL relational database with replication support (StatefulSet, primary-replica mode)
+  - ⚠️ For production HA, consider PostgreSQL Operator ([Zalando](https://github.com/zalando/postgres-operator), [Crunchy Data](https://github.com/CrunchyData/postgres-operator), [CloudNativePG](https://cloudnative-pg.io/))
+- **rabbitmq**: Message broker with management UI (Deployment, no database, AMQP + Prometheus metrics)
+  - ⚠️ For production clustering, consider [RabbitMQ Cluster Operator](https://github.com/rabbitmq/cluster-operator)
 - **redis**: In-memory data store (StatefulSet, no external database, full redis.conf support)
   - ⚠️ For production HA, consider [Spotahome Redis Operator](https://github.com/spotahome/redis-operator)
   - See [docs/03-redis-operator-migration.md](docs/03-redis-operator-migration.md)
-- **memcached**: High-performance distributed memory caching system (Deployment, no database)
-  - ⚠️ For production, consider [Memcached Operator](https://github.com/ianlewis/memcached-operator)
-- **rabbitmq**: Message broker with management UI (Deployment, no database, AMQP + Prometheus metrics)
-  - ⚠️ For production clustering, consider [RabbitMQ Cluster Operator](https://github.com/rabbitmq/cluster-operator)
-- **minio**: High-performance S3-compatible object storage (StatefulSet, distributed mode, erasure coding)
-  - ⚠️ For production HA, consider [MinIO Operator](https://github.com/minio/operator) for advanced features
 
 ## Common Development Commands
 
@@ -507,6 +509,63 @@ make -f make/ops/minio.mk minio-disk-usage
 
 # Version info
 make -f make/ops/minio.mk minio-version
+```
+
+### PostgreSQL Specific Commands
+
+```bash
+# Connection and shell
+make -f make/ops/postgresql.mk pg-shell
+make -f make/ops/postgresql.mk pg-bash
+make -f make/ops/postgresql.mk pg-logs
+
+# Connection test
+make -f make/ops/postgresql.mk pg-ping
+make -f make/ops/postgresql.mk pg-version
+
+# Database management
+make -f make/ops/postgresql.mk pg-list-databases
+make -f make/ops/postgresql.mk pg-list-tables
+make -f make/ops/postgresql.mk pg-list-users
+make -f make/ops/postgresql.mk pg-database-size
+make -f make/ops/postgresql.mk pg-all-databases-size
+
+# Statistics and monitoring
+make -f make/ops/postgresql.mk pg-stats
+make -f make/ops/postgresql.mk pg-activity           # Active connections and queries
+make -f make/ops/postgresql.mk pg-connections        # Connection count
+make -f make/ops/postgresql.mk pg-locks              # Current locks
+make -f make/ops/postgresql.mk pg-slow-queries       # Slow queries (requires pg_stat_statements)
+
+# Replication management
+make -f make/ops/postgresql.mk pg-replication-status # Replication status from master
+make -f make/ops/postgresql.mk pg-replication-lag    # Replication lag
+make -f make/ops/postgresql.mk pg-recovery-status    # Recovery status (for replicas)
+make -f make/ops/postgresql.mk pg-wal-status         # WAL status
+
+# Backup and restore
+make -f make/ops/postgresql.mk pg-backup             # Backup single database
+make -f make/ops/postgresql.mk pg-backup-all         # Backup all databases
+make -f make/ops/postgresql.mk pg-restore FILE=path/to/backup.sql
+
+# Maintenance
+make -f make/ops/postgresql.mk pg-vacuum             # Run VACUUM
+make -f make/ops/postgresql.mk pg-vacuum-analyze     # Run VACUUM ANALYZE
+make -f make/ops/postgresql.mk pg-vacuum-full        # Run VACUUM FULL (locks tables)
+make -f make/ops/postgresql.mk pg-analyze            # Run ANALYZE
+make -f make/ops/postgresql.mk pg-reindex TABLE=table_name
+
+# Configuration
+make -f make/ops/postgresql.mk pg-config             # Show all configuration
+make -f make/ops/postgresql.mk pg-config-get PARAM=max_connections
+make -f make/ops/postgresql.mk pg-reload             # Reload configuration
+
+# Utilities
+make -f make/ops/postgresql.mk pg-port-forward       # Port forward to localhost:5432
+make -f make/ops/postgresql.mk pg-restart            # Restart StatefulSet
+make -f make/ops/postgresql.mk pg-scale REPLICAS=2   # Scale replicas
+make -f make/ops/postgresql.mk pg-get-password       # Get postgres password
+make -f make/ops/postgresql.mk pg-get-replication-password # Get replication password
 ```
 
 ### Redis Specific Commands

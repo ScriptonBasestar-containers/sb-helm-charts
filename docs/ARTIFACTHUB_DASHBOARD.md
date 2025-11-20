@@ -1,7 +1,7 @@
 # Artifact Hub Statistics Dashboard
 
 <!-- AUTO-GENERATED FILE - DO NOT EDIT MANUALLY -->
-<!-- Generated: 2025-11-20 11:34:39 -->
+<!-- Generated: 2025-11-20 13:42:13 -->
 <!-- To update, run: make generate-artifacthub-dashboard -->
 
 > **Note**: This dashboard is automatically generated from `charts-metadata.yaml`.
@@ -17,9 +17,9 @@
 
 ## Quick Statistics
 
-- **Total Charts**: 19
+- **Total Charts**: 20
 - **Application Charts**: 14
-- **Infrastructure Charts**: 5
+- **Infrastructure Charts**: 6
 
 ## Table of Contents
 
@@ -307,6 +307,24 @@
 > ⚠️ **Production Note**: For production HA, consider MinIO Operator for advanced features
 
 **Local Documentation**: [charts/minio/README.md](../charts/minio/README.md)
+
+---
+
+### PostgreSQL
+
+[![Artifact Hub](https://img.shields.io/endpoint?url=https://artifacthub.io/badge/repository/sb-helm-charts)](https://artifacthub.io/packages/helm/sb-helm-charts/postgresql)
+
+**Description**: PostgreSQL relational database with replication support (StatefulSet, primary-replica mode)
+
+**Artifact Hub Package**: https://artifacthub.io/packages/helm/sb-helm-charts/postgresql
+
+**Tags**: Database, SQL, Relational
+
+**Keywords**: postgresql, postgres, database, sql, replication (+1 more)
+
+> ⚠️ **Production Note**: For production HA, consider PostgreSQL Operator (Zalando, Crunchy Data, CloudNativePG)
+
+**Local Documentation**: [charts/postgresql/README.md](../charts/postgresql/README.md)
 
 ---
 
