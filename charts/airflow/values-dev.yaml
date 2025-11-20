@@ -1,0 +1,166 @@
+# Apache Airflow - Development Environment Configuration
+# Optimized for: Local development, testing, and learning
+# Mode: LocalExecutor (single scheduler)
+# Resources: Minimal (500m-1000m CPU, 512Mi-1Gi RAM)
+# Security: Minimal (set password for testing)
+
+airflow:
+  # LocalExecutor for simple single-machine setup
+  executor: LocalExecutor
+
+  # Load example DAGs for learning
+  loadExamples: true
+  loadDefaultConnections: true
+
+  # Lower parallelism for dev
+  parallelism: 16
+  maxActiveTasksPerDag: 8
+  maxActiveRunsPerDag: 8
+
+  schedulerHeartbeatSec: 5
+
+  # Dev-friendly settings
+  exposeConfig: true
+  enableProxyFix: true
+
+  # No remote logging for dev
+  remoteLogging:
+    enabled: false
+
+  # Simple admin user
+  admin:
+    username: "admin"
+    firstname: "Admin"
+    lastname: "User"
+    email: "admin@localhost"
+    password: "admin"  # Change this for your environment
+
+  # Auto-generated keys (fine for dev)
+  fernetKey: ""
+  webserverSecretKey: ""
+
+# PostgreSQL configuration
+postgresql:
+  external:
+    enabled: true
+    host: "postgresql.default.svc.cluster.local"
+    port: 5432
+    database: "airflow"
+    username: "airflow"
+    password: "airflow"  # Change this
+
+# DAGs configuration - use PVC for easy upload
+dags:
+  persistence:
+    enabled: true
+    storageClass: ""
+    accessMode: ReadWriteMany
+    size: 1Gi
+
+  # Git-sync disabled for dev (manual DAG upload)
+  gitSync:
+    enabled: false
+
+# Logs configuration - smaller PVC
+logs:
+  persistence:
+    enabled: true
+    storageClass: ""
+    accessMode: ReadWriteOnce
+    size: 5Gi
+
+# Webserver configuration - minimal resources
+webserver:
+  replicaCount: 1
+
+  podSecurityContext:
+    fsGroup: 50000
+    runAsUser: 50000
+    runAsGroup: 50000
+
+  securityContext:
+    runAsNonRoot: true
+    runAsUser: 50000
+    capabilities:
+      drop:
+        - ALL
+
+  service:
+    type: ClusterIP
+    port: 8080
+
+  resources:
+    limits:
+      cpu: 1000m
+      memory: 1Gi
+    requests:
+      cpu: 250m
+      memory: 256Mi
+
+  livenessProbe:
+    initialDelaySeconds: 30
+    periodSeconds: 30
+    timeoutSeconds: 10
+    failureThreshold: 5
+
+  readinessProbe:
+    initialDelaySeconds: 15
+    periodSeconds: 10
+    timeoutSeconds: 5
+    failureThreshold: 5
+
+# Scheduler configuration - minimal resources
+scheduler:
+  replicaCount: 1
+
+  podSecurityContext:
+    fsGroup: 50000
+    runAsUser: 50000
+    runAsGroup: 50000
+
+  securityContext:
+    runAsNonRoot: true
+    runAsUser: 50000
+    capabilities:
+      drop:
+        - ALL
+
+  resources:
+    limits:
+      cpu: 1000m
+      memory: 1Gi
+    requests:
+      cpu: 250m
+      memory: 256Mi
+
+  livenessProbe:
+    initialDelaySeconds: 30
+    periodSeconds: 60
+    timeoutSeconds: 20
+    failureThreshold: 5
+
+# Triggerer configuration - disabled for dev (not needed with LocalExecutor)
+triggerer:
+  enabled: false
+
+# Ingress disabled (use port-forward)
+ingress:
+  enabled: false
+
+# Image configuration
+image:
+  repository: apache/airflow
+  pullPolicy: IfNotPresent
+  tag: ""
+
+# ServiceAccount
+serviceAccount:
+  create: true
+  automount: true
+
+# Dev labels
+podLabels:
+  environment: "development"
+
+podAnnotations:
+  description: "Development Airflow instance"

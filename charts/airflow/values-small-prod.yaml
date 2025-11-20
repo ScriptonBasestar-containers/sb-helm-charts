@@ -1,0 +1,272 @@
+# Apache Airflow - Small Production Configuration
+# Optimized for: Small production deployments with HA
+# Mode: KubernetesExecutor (scalable task execution)
+# Resources: Production (1-2 CPU, 1-2Gi RAM per component)
+# Security: Enabled (password required, TLS recommended)
+
+airflow:
+  # KubernetesExecutor for scalable task execution
+  executor: KubernetesExecutor
+
+  # No example DAGs in production
+  loadExamples: false
+  loadDefaultConnections: true
+
+  # Production parallelism
+  parallelism: 32
+  maxActiveTasksPerDag: 16
+  maxActiveRunsPerDag: 16
+
+  schedulerHeartbeatSec: 5
+
+  # Production security
+  exposeConfig: false
+  enableProxyFix: true
+
+  # Remote logging to S3/MinIO
+  remoteLogging:
+    enabled: true
+    remoteBaseLogFolder: "s3://airflow-logs"
+    remoteLogConnId: "aws_default"
+
+  # REQUIRED: Set admin password
+  admin:
+    username: "admin"
+    firstname: "Admin"
+    lastname: "User"
+    email: "admin@example.com"
+    password: ""  # SET THIS VIA --set or create secret manually
+
+  # REQUIRED: Set fernet key for production
+  fernetKey: ""  # Generate with: python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"
+
+  # REQUIRED: Set webserver secret key
+  webserverSecretKey: ""  # Generate with: openssl rand -hex 32
+
+# PostgreSQL configuration
+postgresql:
+  external:
+    enabled: true
+    host: "postgresql-prod.default.svc.cluster.local"
+    port: 5432
+    database: "airflow"
+    username: "airflow"
+    password: ""  # SET THIS VIA --set or create secret manually
+
+# DAGs configuration - Git-sync recommended for production
+dags:
+  persistence:
+    enabled: false  # Not needed with git-sync
+
+  # Git-sync for DAG synchronization
+  gitSync:
+    enabled: true
+    repo: "https://github.com/your-org/airflow-dags.git"
+    branch: "main"
+    subPath: "dags"  # If DAGs are in subdirectory
+    wait: 60
+    image:
+      repository: registry.k8s.io/git-sync/git-sync
+      tag: v4.0.0
+      pullPolicy: IfNotPresent
+    resources:
+      limits:
+        cpu: 100m
+        memory: 128Mi
+      requests:
+        cpu: 50m
+        memory: 64Mi
+
+# Logs configuration - production size
+logs:
+  persistence:
+    enabled: true
+    storageClass: "fast-ssd"
+    accessMode: ReadWriteOnce
+    size: 50Gi
+
+# Webserver configuration - production resources
+webserver:
+  replicaCount: 2  # HA
+
+  podAnnotations:
+    prometheus.io/scrape: "true"
+    prometheus.io/port: "8080"
+
+  podLabels:
+    environment: "production"
+
+  podSecurityContext:
+    fsGroup: 50000
+    runAsUser: 50000
+    runAsGroup: 50000
+    fsGroupChangePolicy: "OnRootMismatch"
+
+  securityContext:
+    runAsNonRoot: true
+    runAsUser: 50000
+    capabilities:
+      drop:
+        - ALL
+
+  service:
+    type: ClusterIP
+    port: 8080
+    annotations:
+      prometheus.io/scrape: "true"
+      prometheus.io/port: "8080"
+
+  resources:
+    limits:
+      cpu: 2000m
+      memory: 2Gi
+    requests:
+      cpu: 1000m
+      memory: 1Gi
+
+  livenessProbe:
+    initialDelaySeconds: 60
+    periodSeconds: 30
+    timeoutSeconds: 10
+    failureThreshold: 5
+
+  readinessProbe:
+    initialDelaySeconds: 30
+    periodSeconds: 10
+    timeoutSeconds: 5
+    failureThreshold: 5
+
+  # Anti-affinity for HA
+  affinity:
+    podAntiAffinity:
+      preferredDuringSchedulingIgnoredDuringExecution:
+        - weight: 100
+          podAffinityTerm:
+            labelSelector:
+              matchExpressions:
+                - key: app.kubernetes.io/component
+                  operator: In
+                  values:
+                    - webserver
+            topologyKey: kubernetes.io/hostname
+
+# Scheduler configuration - production resources
+scheduler:
+  replicaCount: 2  # HA (Airflow 2.x supports multiple schedulers)
+
+  podAnnotations:
+    prometheus.io/scrape: "true"
+    prometheus.io/port: "8080"
+
+  podLabels:
+    environment: "production"
+
+  podSecurityContext:
+    fsGroup: 50000
+    runAsUser: 50000
+    runAsGroup: 50000
+    fsGroupChangePolicy: "OnRootMismatch"
+
+  securityContext:
+    runAsNonRoot: true
+    runAsUser: 50000
+    capabilities:
+      drop:
+        - ALL
+
+  resources:
+    limits:
+      cpu: 2000m
+      memory: 2Gi
+    requests:
+      cpu: 1000m
+      memory: 1Gi
+
+  livenessProbe:
+    initialDelaySeconds: 60
+    periodSeconds: 60
+    timeoutSeconds: 20
+    failureThreshold: 5
+
+  # Anti-affinity for HA
+  affinity:
+    podAntiAffinity:
+      preferredDuringSchedulingIgnoredDuringExecution:
+        - weight: 100
+          podAffinityTerm:
+            labelSelector:
+              matchExpressions:
+                - key: app.kubernetes.io/component
+                  operator: In
+                  values:
+                    - scheduler
+            topologyKey: kubernetes.io/hostname
+
+# Triggerer configuration - production resources
+triggerer:
+  enabled: true
+  replicaCount: 1
+
+  podAnnotations:
+    prometheus.io/scrape: "true"
+    prometheus.io/port: "8080"
+
+  podLabels:
+    environment: "production"
+
+  podSecurityContext:
+    fsGroup: 50000
+    runAsUser: 50000
+    runAsGroup: 50000
+    fsGroupChangePolicy: "OnRootMismatch"
+
+  securityContext:
+    runAsNonRoot: true
+    runAsUser: 50000
+    capabilities:
+      drop:
+        - ALL
+
+  resources:
+    limits:
+      cpu: 1000m
+      memory: 1Gi
+    requests:
+      cpu: 500m
+      memory: 512Mi
+
+  livenessProbe:
+    initialDelaySeconds: 60
+    periodSeconds: 60
+    timeoutSeconds: 20
+    failureThreshold: 5
+
+# Production Ingress with TLS
+ingress:
+  enabled: true
+  className: "nginx"
+  annotations:
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
+    nginx.ingress.kubernetes.io/proxy-body-size: "0"
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+  hosts:
+    - host: airflow.example.com
+      paths:
+        - path: /
+          pathType: Prefix
+  tls:
+    - secretName: airflow-tls
+      hosts:
+        - airflow.example.com
+
+# Image configuration
+image:
+  repository: apache/airflow
+  pullPolicy: IfNotPresent
+  tag: ""
+
+# ServiceAccount
+serviceAccount:
+  create: true
+  automount: true
+  annotations: {}

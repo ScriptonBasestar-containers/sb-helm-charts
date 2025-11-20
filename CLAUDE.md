@@ -130,19 +130,20 @@ The metadata file serves multiple purposes:
 
 ### Application Charts (Self-Hosted)
 
-- **keycloak**: IAM solution (StatefulSet, PostgreSQL, clustering, realm management)
-- **wordpress**: WordPress CMS (Deployment, MySQL, Apache)
-- **nextcloud**: Nextcloud with LinuxServer.io image (Deployment, PostgreSQL, config-based)
-- **wireguard**: VPN solution (Deployment, no database, UDP service, NET_ADMIN capabilities)
-- **rustfs**: High-performance S3-compatible object storage (StatefulSet, tiered storage, clustering)
-- **rsshub**: RSS aggregator (well-maintained external chart available)
+- **airflow**: Apache Airflow workflow orchestration (KubernetesExecutor, PostgreSQL, Git-sync, remote logging)
 - **browserless-chrome**: Headless browser for crawling
 - **devpi**: Python package index
-- **jellyfin**: Media server with hardware transcoding support
-- **vaultwarden**: Bitwarden-compatible password manager
 - **immich**: AI-powered photo and video management
+- **jellyfin**: Media server with hardware transcoding support
+- **keycloak**: IAM solution (StatefulSet, PostgreSQL, clustering, realm management)
+- **nextcloud**: Nextcloud with LinuxServer.io image (Deployment, PostgreSQL, config-based)
 - **paperless-ngx**: Document management system with OCR (4 PVC architecture)
+- **rsshub**: RSS aggregator (well-maintained external chart available)
+- **rustfs**: High-performance S3-compatible object storage (StatefulSet, tiered storage, clustering)
 - **uptime-kuma**: Self-hosted monitoring tool with beautiful UI and 90+ notification services
+- **vaultwarden**: Bitwarden-compatible password manager
+- **wireguard**: VPN solution (Deployment, no database, UDP service, NET_ADMIN capabilities)
+- **wordpress**: WordPress CMS (Deployment, MySQL, Apache)
 
 ### Infrastructure Charts (Dev/Test - Consider Operators for Production)
 
@@ -216,6 +217,54 @@ make -f make/ops/{chart}.mk template
 make -f make/ops/{chart}.mk install
 make -f make/ops/{chart}.mk upgrade
 make -f make/ops/{chart}.mk uninstall
+```
+
+### Airflow Specific Commands
+
+```bash
+# Get admin password
+make -f make/ops/airflow.mk airflow-get-password
+
+# Port forward webserver
+make -f make/ops/airflow.mk airflow-port-forward
+
+# Check health
+make -f make/ops/airflow.mk airflow-health
+make -f make/ops/airflow.mk airflow-version
+
+# DAG management
+make -f make/ops/airflow.mk airflow-dag-list
+make -f make/ops/airflow.mk airflow-dag-trigger DAG=example_dag
+make -f make/ops/airflow.mk airflow-dag-trigger DAG=example_dag CONF='{"key":"value"}'
+make -f make/ops/airflow.mk airflow-dag-pause DAG=example_dag
+make -f make/ops/airflow.mk airflow-dag-unpause DAG=example_dag
+make -f make/ops/airflow.mk airflow-dag-state DAG=example_dag
+make -f make/ops/airflow.mk airflow-task-list DAG=example_dag
+
+# Connections and variables
+make -f make/ops/airflow.mk airflow-connections-list
+make -f make/ops/airflow.mk airflow-connections-add CONN_ID=my_db CONN_TYPE=postgres CONN_URI='postgresql://...'
+make -f make/ops/airflow.mk airflow-variables-list
+make -f make/ops/airflow.mk airflow-variables-set KEY=api_key VALUE=secret
+
+# User management
+make -f make/ops/airflow.mk airflow-users-list
+make -f make/ops/airflow.mk airflow-users-create USERNAME=dev PASSWORD=pass EMAIL=dev@example.com ROLE=User
+
+# Database
+make -f make/ops/airflow.mk airflow-db-check
+
+# Logs and shell
+make -f make/ops/airflow.mk airflow-webserver-logs
+make -f make/ops/airflow.mk airflow-scheduler-logs
+make -f make/ops/airflow.mk airflow-webserver-logs-all
+make -f make/ops/airflow.mk airflow-webserver-shell
+make -f make/ops/airflow.mk airflow-scheduler-shell
+
+# Operations
+make -f make/ops/airflow.mk airflow-webserver-restart
+make -f make/ops/airflow.mk airflow-scheduler-restart
+make -f make/ops/airflow.mk airflow-status
 ```
 
 ### WordPress Specific Commands

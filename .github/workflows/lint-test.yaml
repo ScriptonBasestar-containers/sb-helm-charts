@@ -58,13 +58,14 @@ jobs:
         if: steps.list-changed.outputs.changed == 'true'
         run: |
           ct install --config ct.yaml \
-            --helm-extra-set-args "--set=postgresql.external.password=test123 --set=redis.external.password=test123 --set=minio.rootPassword=test123"
+            --helm-extra-set-args "--set=postgresql.external.password=test123 --set=redis.external.password=test123 --set=minio.rootPassword=test123 --set=airflow.admin.password=test123"
 
   helm-lint:
     runs-on: ubuntu-22.04
     strategy:
       matrix:
         chart:
+          - airflow
           - browserless-chrome
           - devpi
           - elasticsearch

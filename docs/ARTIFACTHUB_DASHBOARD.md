@@ -1,7 +1,7 @@
 # Artifact Hub Statistics Dashboard
 
 <!-- AUTO-GENERATED FILE - DO NOT EDIT MANUALLY -->
-<!-- Generated: 2025-11-19 17:36:37 -->
+<!-- Generated: 2025-11-20 11:34:39 -->
 <!-- To update, run: make generate-artifacthub-dashboard -->
 
 > **Note**: This dashboard is automatically generated from `charts-metadata.yaml`.
@@ -17,8 +17,8 @@
 
 ## Quick Statistics
 
-- **Total Charts**: 18
-- **Application Charts**: 13
+- **Total Charts**: 19
+- **Application Charts**: 14
 - **Infrastructure Charts**: 5
 
 ## Table of Contents
@@ -29,6 +29,22 @@
 ---
 
 ## Application Charts
+
+### Apache Airflow
+
+[![Artifact Hub](https://img.shields.io/endpoint?url=https://artifacthub.io/badge/repository/sb-helm-charts)](https://artifacthub.io/packages/helm/sb-helm-charts/airflow)
+
+**Description**: Opinionated Apache Airflow chart with KubernetesExecutor for workflow orchestration
+
+**Artifact Hub Package**: https://artifacthub.io/packages/helm/sb-helm-charts/airflow
+
+**Tags**: Workflow, Orchestration, Data-Pipeline
+
+**Keywords**: airflow, workflow, orchestration, data-pipeline, scheduler (+1 more)
+
+**Local Documentation**: [charts/airflow/README.md](../charts/airflow/README.md)
+
+---
 
 ### Browserless Chrome
 
@@ -402,4 +418,4 @@ Once published, you can add Artifact Hub badges to your READMEs:
 
 ---
 
-**Last Updated**: 2025-11-19
+**Last Updated**: 2025-11-20
