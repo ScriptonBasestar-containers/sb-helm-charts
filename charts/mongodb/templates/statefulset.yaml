@@ -1,0 +1,204 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: {{ include "mongodb.fullname" . }}
+  labels:
+    {{- include "mongodb.labels" . | nindent 4 }}
+spec:
+  serviceName: {{ include "mongodb.headlessServiceName" . }}
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      {{- include "mongodb.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      annotations:
+        checksum/config: {{ include (print $.Template.BasePath "/configmap.yaml") . | sha256sum }}
+        checksum/secret: {{ include (print $.Template.BasePath "/secret.yaml") . | sha256sum }}
+        {{- with .Values.podAnnotations }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+      labels:
+        {{- include "mongodb.selectorLabels" . | nindent 8 }}
+    spec:
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      serviceAccountName: {{ include "mongodb.serviceAccountName" . }}
+      securityContext:
+        {{- toYaml .Values.podSecurityContext | nindent 8 }}
+      {{- if .Values.mongodb.replicaSet.enabled }}
+      initContainers:
+        - name: setup-replica-set
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
+          command:
+            - bash
+            - -c
+            - |
+              # Wait for MongoDB to be ready
+              until mongosh --quiet --eval "db.adminCommand('ping')" > /dev/null 2>&1; do
+                echo "Waiting for MongoDB to be ready..."
+                sleep 2
+              done
+
+              # Check if already initialized
+              RS_STATUS=$(mongosh --quiet --eval "rs.status().ok" 2>/dev/null || echo "0")
+
+              if [ "$RS_STATUS" = "0" ]; then
+                echo "Initializing replica set..."
+
+                # Get pod ordinal
+                ORDINAL=${HOSTNAME##*-}
+
+                # Only initialize from first pod
+                if [ "$ORDINAL" = "0" ]; then
+                  # Build replica set config
+                  RS_CONFIG="rs.initiate({ _id: '{{ include "mongodb.replicaSetName" . }}', members: ["
+                  {{- $replicas := int .Values.replicaCount }}
+                  {{- $fullname := include "mongodb.fullname" . }}
+                  {{- $headlessService := include "mongodb.headlessServiceName" . }}
+                  {{- $namespace := .Release.Namespace }}
+                  {{- range $i := until $replicas }}
+                  {{- if gt $i 0 }},{{ end }}
+                  RS_CONFIG="${RS_CONFIG}{ _id: {{ $i }}, host: '{{ $fullname }}-{{ $i }}.{{ $headlessService }}.{{ $namespace }}.svc.cluster.local:27017' }"
+                  {{- end }}
+                  RS_CONFIG="${RS_CONFIG}] })"
+
+                  # Initialize replica set
+                  mongosh --quiet --eval "$RS_CONFIG"
+
+                  echo "Replica set initialized successfully"
+                else
+                  echo "Skipping initialization (not primary pod)"
+                fi
+              else
+                echo "Replica set already initialized"
+              fi
+          env:
+            - name: MONGO_INITDB_ROOT_USERNAME
+              value: "root"
+            - name: MONGO_INITDB_ROOT_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "mongodb.secretName" . }}
+                  key: mongodb-root-password
+          volumeMounts:
+            - name: data
+              mountPath: /data/db
+      {{- end }}
+      containers:
+        - name: mongodb
+          securityContext:
+            {{- toYaml .Values.securityContext | nindent 12 }}
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          command:
+            - mongod
+            - --config
+            - /etc/mongo/mongod.conf
+            {{- if .Values.mongodb.replicaSet.enabled }}
+            - --keyFile
+            - /etc/mongo-keyfile/mongodb-replica-set-key
+            {{- end }}
+          env:
+            - name: MONGO_INITDB_ROOT_USERNAME
+              value: "root"
+            - name: MONGO_INITDB_ROOT_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "mongodb.secretName" . }}
+                  key: mongodb-root-password
+            - name: MONGO_INITDB_DATABASE
+              value: {{ .Values.mongodb.database | quote }}
+            {{- with .Values.mongodb.extraEnv }}
+            {{- toYaml . | nindent 12 }}
+            {{- end }}
+          ports:
+            - name: mongodb
+              containerPort: 27017
+              protocol: TCP
+          livenessProbe:
+            exec:
+              command:
+                - mongosh
+                - --quiet
+                - --eval
+                - "db.adminCommand('ping')"
+            initialDelaySeconds: {{ .Values.livenessProbe.initialDelaySeconds }}
+            periodSeconds: {{ .Values.livenessProbe.periodSeconds }}
+            timeoutSeconds: {{ .Values.livenessProbe.timeoutSeconds }}
+            failureThreshold: {{ .Values.livenessProbe.failureThreshold }}
+          readinessProbe:
+            exec:
+              command:
+                - mongosh
+                - --quiet
+                - --eval
+                - "db.adminCommand('ping')"
+            initialDelaySeconds: {{ .Values.readinessProbe.initialDelaySeconds }}
+            periodSeconds: {{ .Values.readinessProbe.periodSeconds }}
+            timeoutSeconds: {{ .Values.readinessProbe.timeoutSeconds }}
+            failureThreshold: {{ .Values.readinessProbe.failureThreshold }}
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+          volumeMounts:
+            - name: data
+              mountPath: /data/db
+            {{- if not .Values.mongodb.existingConfigMap }}
+            - name: config
+              mountPath: /etc/mongo/mongod.conf
+              subPath: mongod.conf
+            {{- end }}
+            {{- if .Values.mongodb.replicaSet.enabled }}
+            - name: keyfile
+              mountPath: /etc/mongo-keyfile
+              readOnly: true
+            {{- end }}
+      volumes:
+        {{- if not .Values.mongodb.existingConfigMap }}
+        - name: config
+          configMap:
+            name: {{ include "mongodb.configMapName" . }}
+        {{- end }}
+        {{- if .Values.mongodb.replicaSet.enabled }}
+        - name: keyfile
+          secret:
+            secretName: {{ include "mongodb.secretName" . }}
+            defaultMode: 0400
+            items:
+              - key: mongodb-replica-set-key
+                path: mongodb-replica-set-key
+        {{- end }}
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+  volumeClaimTemplates:
+    - metadata:
+        name: data
+        {{- with .Values.persistence.annotations }}
+        annotations:
+          {{- toYaml . | nindent 10 }}
+        {{- end }}
+      spec:
+        accessModes:
+          - {{ .Values.persistence.accessMode }}
+        {{- if .Values.persistence.storageClass }}
+        {{- if eq .Values.persistence.storageClass "-" }}
+        storageClassName: ""
+        {{- else }}
+        storageClassName: {{ .Values.persistence.storageClass }}
+        {{- end }}
+        {{- end }}
+        resources:
+          requests:
+            storage: {{ .Values.persistence.size }}

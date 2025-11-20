@@ -1,0 +1,44 @@
+1. Get the MongoDB root password:
+
+{{- if .Values.mongodb.existingSecret }}
+  Your MongoDB password is stored in: {{ .Values.mongodb.existingSecret }}
+{{- else }}
+  export MONGODB_ROOT_PASSWORD=$(kubectl get secret --namespace {{ .Release.Namespace }} {{ include "mongodb.secretName" . }} -o jsonpath="{.data.mongodb-root-password}" | base64 -d)
+{{- end }}
+
+2. Connect to MongoDB:
+
+  a. From inside the cluster:
+
+{{- if .Values.mongodb.replicaSet.enabled }}
+     mongosh "mongodb://{{ include "mongodb.replicaSetMembers" . }}/{{ .Values.mongodb.database }}?replicaSet={{ include "mongodb.replicaSetName" . }}" --username root --password $MONGODB_ROOT_PASSWORD
+{{- else }}
+     mongosh mongodb://{{ include "mongodb.primaryServiceName" . }}.{{ .Release.Namespace }}.svc.cluster.local:{{ .Values.service.port }}/{{ .Values.mongodb.database }} --username root --password $MONGODB_ROOT_PASSWORD
+{{- end }}
+
+  b. Port-forward:
+
+     kubectl port-forward --namespace {{ .Release.Namespace }} svc/{{ include "mongodb.primaryServiceName" . }} 27017:27017
+     mongosh mongodb://127.0.0.1:27017/{{ .Values.mongodb.database }} --username root --password $MONGODB_ROOT_PASSWORD
+
+3. Database Information:
+
+  Database: {{ .Values.mongodb.database }}
+{{- if .Values.mongodb.replicaSet.enabled }}
+  Replica Set: {{ include "mongodb.replicaSetName" . }}
+  Members: {{ .Values.replicaCount }}
+{{- end }}
+  Service:  {{ include "mongodb.primaryServiceName" . }}.{{ .Release.Namespace }}.svc.cluster.local:{{ .Values.service.port }}
+  Connection URI: {{ include "mongodb.connectionUri" . }}
+
+{{- if not .Values.mongodb.rootPassword }}
+
+⚠️  WARNING: MongoDB root password was auto-generated.
+  For production: --set mongodb.rootPassword='your-strong-password'
+{{- end }}
+
+{{- if and .Values.mongodb.replicaSet.enabled (not .Values.mongodb.replicaSet.key) }}
+
+⚠️  WARNING: Replica set key was auto-generated.
+  For production: --set mongodb.replicaSet.key='your-32-char-key'
+{{- end }}

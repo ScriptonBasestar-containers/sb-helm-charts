@@ -184,6 +184,15 @@ charts:
     description: MySQL relational database with replication support (StatefulSet, primary-replica mode)
     production_note: "For production HA, consider MySQL Operator (Oracle, Percona, Vitess)"
 
+  mongodb:
+    name: MongoDB
+    path: charts/mongodb
+    category: infrastructure
+    tags: [Database, NoSQL, Document]
+    keywords: [mongodb, nosql, database, document, replicaset, sharding]
+    description: MongoDB NoSQL database with replica set support (StatefulSet, replica set mode)
+    production_note: "For production HA, consider MongoDB Operator (Community, Enterprise, Percona)"
+
   elasticsearch:
     name: Elasticsearch
     path: charts/elasticsearch

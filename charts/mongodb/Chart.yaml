@@ -1,0 +1,20 @@
+apiVersion: v2
+name: mongodb
+description: MongoDB NoSQL database with replica set support
+type: application
+version: 0.1.0
+appVersion: "7.0.14"
+keywords:
+  - mongodb
+  - database
+  - nosql
+  - document
+  - replicaset
+  - sharding
+home: https://github.com/scriptonbasestar-container/sb-helm-charts
+sources:
+  - https://github.com/scriptonbasestar-container/sb-helm-charts/tree/master/charts/mongodb
+  - https://github.com/mongodb/mongo
+maintainers:
+  - name: ScriptonBasestar
+    email: scriptonbasestar@gmail.com
