@@ -25,7 +25,7 @@
 ![Workflow](https://img.shields.io/badge/tag-Workflow-orange.svg)
 ![Orchestration](https://img.shields.io/badge/tag-Orchestration-orange.svg)
 ![Data-Pipeline](https://img.shields.io/badge/tag-Data-Pipeline-orange.svg)
-![Chart Version](https://img.shields.io/badge/chart-0.1.0-blue.svg) ![App Version](https://img.shields.io/badge/app-2.8.1-green.svg)
+![Chart Version](https://img.shields.io/badge/chart-0.3.0-blue.svg) ![App Version](https://img.shields.io/badge/app-2.8.1-green.svg)
 
 **Description**: Opinionated Apache Airflow chart with KubernetesExecutor for workflow orchestration
 
@@ -97,7 +97,7 @@ helm install my-devpi sb-charts/devpi
 ![Monitoring](https://img.shields.io/badge/tag-Monitoring-orange.svg)
 ![Visualization](https://img.shields.io/badge/tag-Visualization-orange.svg)
 ![Observability](https://img.shields.io/badge/tag-Observability-orange.svg)
-![Chart Version](https://img.shields.io/badge/chart-0.1.0-blue.svg) ![App Version](https://img.shields.io/badge/app-10.2.3-green.svg)
+![Chart Version](https://img.shields.io/badge/chart-0.3.0-blue.svg) ![App Version](https://img.shields.io/badge/app-10.2.3-green.svg)
 
 **Description**: Grafana metrics visualization and dashboarding platform
 
@@ -121,7 +121,7 @@ helm install my-grafana sb-charts/grafana
 ![Registry](https://img.shields.io/badge/tag-Registry-orange.svg)
 ![Container](https://img.shields.io/badge/tag-Container-orange.svg)
 ![Security](https://img.shields.io/badge/tag-Security-orange.svg)
-![Chart Version](https://img.shields.io/badge/chart-0.1.0-blue.svg) ![App Version](https://img.shields.io/badge/app-2.11.1-green.svg)
+![Chart Version](https://img.shields.io/badge/chart-0.2.0-blue.svg) ![App Version](https://img.shields.io/badge/app-2.11.1-green.svg)
 
 **Description**: Private container registry with vulnerability scanning and image signing
 
@@ -217,7 +217,7 @@ helm install my-keycloak sb-charts/keycloak
 ![Logging](https://img.shields.io/badge/tag-Logging-orange.svg)
 ![Observability](https://img.shields.io/badge/tag-Observability-orange.svg)
 ![Monitoring](https://img.shields.io/badge/tag-Monitoring-orange.svg)
-![Chart Version](https://img.shields.io/badge/chart-0.1.0-blue.svg) ![App Version](https://img.shields.io/badge/app-2.9.3-green.svg)
+![Chart Version](https://img.shields.io/badge/chart-0.3.0-blue.svg) ![App Version](https://img.shields.io/badge/app-2.9.3-green.svg)
 
 **Description**: Loki log aggregation system with Grafana integration
 
@@ -241,7 +241,7 @@ helm install my-loki sb-charts/loki
 ![ML](https://img.shields.io/badge/tag-ML-orange.svg)
 ![MLOps](https://img.shields.io/badge/tag-MLOps-orange.svg)
 ![AI](https://img.shields.io/badge/tag-AI-orange.svg)
-![Chart Version](https://img.shields.io/badge/chart-0.1.0-blue.svg) ![App Version](https://img.shields.io/badge/app-2.9.2-green.svg)
+![Chart Version](https://img.shields.io/badge/chart-0.3.0-blue.svg) ![App Version](https://img.shields.io/badge/app-2.9.2-green.svg)
 
 **Description**: MLflow experiment tracking and model registry platform (Deployment, PostgreSQL, MinIO)
 
@@ -456,7 +456,7 @@ helm install my-wordpress sb-charts/wordpress
 ![Message-Queue](https://img.shields.io/badge/tag-Message-Queue-orange.svg)
 ![Streaming](https://img.shields.io/badge/tag-Streaming-orange.svg)
 ![Event-Driven](https://img.shields.io/badge/tag-Event-Driven-orange.svg)
-![Chart Version](https://img.shields.io/badge/chart-0.1.0-blue.svg) ![App Version](https://img.shields.io/badge/app-3.6.1-green.svg)
+![Chart Version](https://img.shields.io/badge/chart-0.3.0-blue.svg) ![App Version](https://img.shields.io/badge/app-3.6.1-green.svg)
 
 **Description**: Apache Kafka streaming platform with KRaft mode and management UI (StatefulSet, no Zookeeper)
 
@@ -482,7 +482,7 @@ helm install my-kafka sb-charts/kafka
 ![Logging](https://img.shields.io/badge/tag-Logging-orange.svg)
 ![Search](https://img.shields.io/badge/tag-Search-orange.svg)
 ![Analytics](https://img.shields.io/badge/tag-Analytics-orange.svg)
-![Chart Version](https://img.shields.io/badge/chart-0.1.0-blue.svg) ![App Version](https://img.shields.io/badge/app-8.11.0-green.svg)
+![Chart Version](https://img.shields.io/badge/chart-0.3.0-blue.svg) ![App Version](https://img.shields.io/badge/app-8.11.0-green.svg)
 
 **Description**: Opinionated Elasticsearch + Kibana for small to medium workloads (StatefulSet, simple operations)
 
@@ -560,7 +560,7 @@ helm install my-minio sb-charts/minio
 ![Database](https://img.shields.io/badge/tag-Database-orange.svg)
 ![NoSQL](https://img.shields.io/badge/tag-NoSQL-orange.svg)
 ![Document](https://img.shields.io/badge/tag-Document-orange.svg)
-![Chart Version](https://img.shields.io/badge/chart-0.1.0-blue.svg) ![App Version](https://img.shields.io/badge/app-7.0.14-green.svg)
+![Chart Version](https://img.shields.io/badge/chart-0.3.0-blue.svg) ![App Version](https://img.shields.io/badge/app-7.0.14-green.svg)
 
 **Description**: MongoDB NoSQL database with replica set support (StatefulSet, replica set mode)
 
@@ -586,7 +586,7 @@ helm install my-mongodb sb-charts/mongodb
 ![Database](https://img.shields.io/badge/tag-Database-orange.svg)
 ![SQL](https://img.shields.io/badge/tag-SQL-orange.svg)
 ![Relational](https://img.shields.io/badge/tag-Relational-orange.svg)
-![Chart Version](https://img.shields.io/badge/chart-0.1.0-blue.svg) ![App Version](https://img.shields.io/badge/app-8.0.35-green.svg)
+![Chart Version](https://img.shields.io/badge/chart-0.3.0-blue.svg) ![App Version](https://img.shields.io/badge/app-8.0.35-green.svg)
 
 **Description**: MySQL relational database with replication support (StatefulSet, primary-replica mode)
 
@@ -612,7 +612,7 @@ helm install my-mysql sb-charts/mysql
 ![Database](https://img.shields.io/badge/tag-Database-orange.svg)
 ![SQL](https://img.shields.io/badge/tag-SQL-orange.svg)
 ![Relational](https://img.shields.io/badge/tag-Relational-orange.svg)
-![Chart Version](https://img.shields.io/badge/chart-0.1.0-blue.svg) ![App Version](https://img.shields.io/badge/app-16.1-green.svg)
+![Chart Version](https://img.shields.io/badge/chart-0.3.0-blue.svg) ![App Version](https://img.shields.io/badge/app-16.1-green.svg)
 
 **Description**: PostgreSQL relational database with replication support (StatefulSet, primary-replica mode)
 

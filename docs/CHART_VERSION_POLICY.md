@@ -208,35 +208,55 @@ appVersion: "7.4.1"  # App version unchanged
 
 ## Current Repository Status
 
+**Total Charts**: 27
+**Mature (0.3.x)**: 26 charts
+**Stable (0.2.x)**: 1 chart
+
 ### Mature Charts (0.3.x)
 
-Production-ready charts with advanced features and stable APIs:
+Production-ready charts with comprehensive features, operational commands, and complete documentation:
 
-| Chart | Version | Status | Notes |
-|-------|---------|--------|-------|
-| keycloak | 0.3.0 | Mature | PostgreSQL SSL, Redis SSL, clustering |
-| wireguard | 0.3.0 | Mature | No database, NET_ADMIN capabilities |
-| memcached | 0.3.0 | Mature | Simple cache, production-ready |
-| rabbitmq | 0.3.0 | Mature | Message broker with management UI |
-| browserless-chrome | 0.3.0 | Mature | Headless browser service |
-| devpi | 0.3.0 | Mature | Python package index |
-| rsshub | 0.3.0 | Mature | RSS aggregator |
+#### Application Charts (16)
+| Chart | Version | Notes |
+|-------|---------|-------|
+| airflow | 0.3.0 | KubernetesExecutor, PostgreSQL, Git-sync, 40+ ops commands |
+| browserless-chrome | 0.3.0 | Headless browser for crawling |
+| devpi | 0.3.0 | Python package index |
+| grafana | 0.3.0 | Multi-DB support (SQLite/PostgreSQL/MySQL), data sources |
+| immich | 0.3.0 | AI-powered photo management |
+| jellyfin | 0.3.0 | Media server with hardware transcoding |
+| keycloak | 0.3.0 | IAM with PostgreSQL SSL, Redis SSL, clustering |
+| loki | 0.3.0 | Log aggregation with S3 storage, memberlist clustering |
+| mlflow | 0.3.0 | Experiment tracking with PostgreSQL, MinIO |
+| nextcloud | 0.3.0 | Cloud storage with PostgreSQL, Redis |
+| paperless-ngx | 0.3.0 | Document management with OCR, 4 PVC architecture |
+| rsshub | 0.3.0 | RSS aggregator |
+| rustfs | 0.3.0 | S3-compatible object storage |
+| uptime-kuma | 0.3.0 | Monitoring tool with 90+ notification services |
+| vaultwarden | 0.3.0 | Bitwarden-compatible password manager |
+| wireguard | 0.3.0 | VPN solution, no database required |
+| wordpress | 0.3.0 | WordPress CMS with MySQL |
+
+#### Infrastructure Charts (10)
+| Chart | Version | Notes |
+|-------|---------|-------|
+| elasticsearch | 0.3.0 | Cluster mode, Kibana, S3 snapshots, 30+ ops commands |
+| kafka | 0.3.0 | KRaft mode (no Zookeeper), management UI, 40+ ops commands |
+| memcached | 0.3.3 | High-performance distributed cache |
+| minio | 0.3.0 | Distributed S3-compatible storage, erasure coding |
+| mongodb | 0.3.0 | Replica set with auto-init, 40+ ops commands |
+| mysql | 0.3.0 | Master-replica replication, 30+ ops commands |
+| postgresql | 0.3.0 | Primary-replica replication, 40+ ops commands |
+| rabbitmq | 0.3.1 | Message broker with management UI, AMQP metrics |
+| redis | 0.3.3 | Master-slave replication, full redis.conf support |
 
 ### Stable Charts (0.2.x)
 
-Charts with established patterns, ready for production use:
+Development and testing charts with simplified implementations:
 
-| Chart | Version | Status | Path to 0.3.0 |
-|-------|---------|--------|---------------|
-| redis | 0.2.0 | Stable | Master-slave replication, needs HA testing |
-| rustfs | 0.2.0 | Stable | S3-compatible storage, needs clustering validation |
-| wordpress | 0.2.0 | Stable | CMS with MySQL, needs advanced features |
-| nextcloud | 0.2.0 | Stable | Cloud storage, needs production validation |
-| uptime-kuma | 0.2.0 | Stable | Monitoring tool, needs HA testing |
-| paperless-ngx | 0.2.0 | Stable | Document management, needs backup automation |
-| immich | 0.2.0 | Stable | Photo management, needs ML worker optimization |
-| jellyfin | 0.2.0 | Stable | Media server, needs GPU acceleration validation |
-| vaultwarden | 0.2.0 | Stable | Password manager, needs security audit |
+| Chart | Version | Status | Notes |
+|-------|---------|--------|-------|
+| harbor | 0.2.0 | Dev/Test | Simplified (Core + Registry only). Use official chart for production |
 
 ## Version Increment Checklist
 
