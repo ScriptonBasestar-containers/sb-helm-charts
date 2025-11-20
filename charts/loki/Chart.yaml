@@ -2,7 +2,7 @@ apiVersion: v2
 name: loki
 description: Loki log aggregation system with Grafana integration
 type: application
-version: 0.1.0
+version: 0.3.0
 appVersion: "2.9.3"
 keywords:
   - loki

@@ -7,7 +7,7 @@ sources:
   - https://github.com/scriptonbasestar-container/sb-helm-charts/tree/master/charts/elasticsearch
   - https://github.com/elastic/elasticsearch
 type: application
-version: 0.1.0
+version: 0.3.0
 appVersion: "8.11.0"
 keywords:
   - elasticsearch

@@ -2,7 +2,7 @@ apiVersion: v2
 name: grafana
 description: Grafana metrics visualization and dashboarding platform
 type: application
-version: 0.1.0
+version: 0.3.0
 appVersion: "10.2.3"
 keywords:
   - grafana

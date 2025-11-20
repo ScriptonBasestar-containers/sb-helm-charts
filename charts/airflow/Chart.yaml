@@ -2,7 +2,7 @@ apiVersion: v2
 name: airflow
 description: Opinionated Apache Airflow chart with KubernetesExecutor for workflow orchestration
 type: application
-version: 0.1.0
+version: 0.3.0
 appVersion: "2.8.1"
 keywords:
   - airflow

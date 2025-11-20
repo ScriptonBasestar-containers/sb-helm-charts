@@ -2,7 +2,7 @@ apiVersion: v2
 name: mlflow
 description: MLflow experiment tracking and model registry platform
 type: application
-version: 0.1.0
+version: 0.3.0
 appVersion: "2.9.2"
 keywords:
   - mlflow
