@@ -156,6 +156,8 @@ The metadata file serves multiple purposes:
   - ⚠️ For production, consider [Memcached Operator](https://github.com/ianlewis/memcached-operator)
 - **minio**: High-performance S3-compatible object storage (StatefulSet, distributed mode, erasure coding)
   - ⚠️ For production HA, consider [MinIO Operator](https://github.com/minio/operator) for advanced features
+- **mongodb**: MongoDB NoSQL database with replica set support (StatefulSet, replica set mode)
+  - ⚠️ For production HA, consider MongoDB Operator ([Community](https://github.com/mongodb/mongodb-kubernetes-operator), [Enterprise](https://www.mongodb.com/docs/kubernetes-operator/), [Percona](https://github.com/percona/percona-server-mongodb-operator))
 - **mysql**: MySQL relational database with replication support (StatefulSet, master-replica mode)
   - ⚠️ For production HA, consider MySQL Operator ([Oracle](https://github.com/mysql/mysql-operator), [Percona](https://github.com/percona/percona-server-mysql-operator), [Vitess](https://vitess.io/))
 - **postgresql**: PostgreSQL relational database with replication support (StatefulSet, primary-replica mode)
@@ -560,6 +562,50 @@ make -f make/ops/minio.mk minio-disk-usage
 
 # Version info
 make -f make/ops/minio.mk minio-version
+```
+
+### MongoDB Specific Commands
+
+```bash
+# Basic operations
+make -f make/ops/mongodb.mk mongo-shell
+make -f make/ops/mongodb.mk mongo-bash
+make -f make/ops/mongodb.mk mongo-logs
+make -f make/ops/mongodb.mk mongo-port-forward
+
+# Database operations
+make -f make/ops/mongodb.mk mongo-backup
+make -f make/ops/mongodb.mk mongo-restore FILE=backup.gz
+make -f make/ops/mongodb.mk mongo-list-dbs
+make -f make/ops/mongodb.mk mongo-list-collections DB=mydb
+make -f make/ops/mongodb.mk mongo-db-stats DB=mydb
+
+# Replica set operations
+make -f make/ops/mongodb.mk mongo-rs-status
+make -f make/ops/mongodb.mk mongo-rs-config
+make -f make/ops/mongodb.mk mongo-rs-stepdown
+make -f make/ops/mongodb.mk mongo-rs-add-member HOST=mongodb-3:27017
+make -f make/ops/mongodb.mk mongo-rs-remove-member HOST=mongodb-3:27017
+
+# User management
+make -f make/ops/mongodb.mk mongo-create-user DB=mydb USER=user PASSWORD=pass ROLE=readWrite
+make -f make/ops/mongodb.mk mongo-list-users DB=mydb
+make -f make/ops/mongodb.mk mongo-grant-role DB=mydb USER=user ROLE=dbAdmin
+
+# Performance & monitoring
+make -f make/ops/mongodb.mk mongo-server-status
+make -f make/ops/mongodb.mk mongo-current-ops
+make -f make/ops/mongodb.mk mongo-top
+
+# Maintenance
+make -f make/ops/mongodb.mk mongo-compact DB=mydb COLLECTION=mycol
+make -f make/ops/mongodb.mk mongo-reindex DB=mydb COLLECTION=mycol
+make -f make/ops/mongodb.mk mongo-validate DB=mydb COLLECTION=mycol
+
+# CLI commands
+make -f make/ops/mongodb.mk mongo-cli CMD="db.version()"
+make -f make/ops/mongodb.mk mongo-ping
+make -f make/ops/mongodb.mk mongo-restart
 ```
 
 ### PostgreSQL Specific Commands

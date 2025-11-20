@@ -1,0 +1,141 @@
+# Small Production values for MongoDB
+# Optimized for production HA with 3-member replica set
+
+replicaCount: 3  # Odd number recommended for replica sets
+
+image:
+  repository: mongo
+  pullPolicy: IfNotPresent
+  tag: "7.0.14"
+
+imagePullSecrets: []
+nameOverride: ""
+fullnameOverride: ""
+
+# MongoDB configuration
+mongodb:
+  database: "production_db"
+  rootPassword: ""  # REQUIRED: Set via --set or external secret
+
+  # Authentication
+  auth:
+    enabled: true
+
+  # WiredTiger storage engine (production tuned)
+  wiredTiger:
+    cacheSizeGB: 1.5
+
+  # Profiling
+  profiling:
+    mode: "slowOp"
+    slowOpThresholdMs: 100
+
+  # System log
+  systemLog:
+    verbosity: 0
+
+  # Replica set enabled for HA
+  replicaSet:
+    enabled: true
+    name: "rs0"
+    key: ""  # REQUIRED: Set via --set or external secret (32 chars)
+
+  # Custom configuration
+  config:
+    # Additional production settings
+    # setParameter:
+    #   enableLocalhostAuthBypass: false
+
+  # Existing ConfigMap/Secret
+  existingConfigMap: ""
+  existingSecret: ""
+
+  # Extra environment variables
+  extraEnv: []
+
+# Service configuration
+service:
+  type: ClusterIP
+  port: 27017
+  nodePort: ""
+  annotations:
+    prometheus.io/scrape: "true"
+    prometheus.io/port: "27017"
+
+# Persistence (production storage)
+persistence:
+  enabled: true
+  storageClass: "fast-ssd"  # Use SSD storage class
+  accessMode: ReadWriteOnce
+  size: 50Gi
+  annotations: {}
+
+# ServiceAccount
+serviceAccount:
+  create: true
+  annotations: {}
+  name: ""
+
+# Pod annotations
+podAnnotations:
+  prometheus.io/scrape: "true"
+  prometheus.io/port: "27017"
+
+# Pod security context
+podSecurityContext:
+  fsGroup: 999
+  runAsUser: 999
+  runAsNonRoot: true
+
+# Container security context
+securityContext:
+  capabilities:
+    drop:
+    - ALL
+  readOnlyRootFilesystem: false
+  allowPrivilegeEscalation: false
+
+# Resource limits (production)
+resources:
+  limits:
+    cpu: 2000m
+    memory: 4Gi
+  requests:
+    cpu: 500m
+    memory: 2Gi
+
+# Health probes (production settings)
+livenessProbe:
+  initialDelaySeconds: 30
+  periodSeconds: 10
+  timeoutSeconds: 5
+  failureThreshold: 6
+
+readinessProbe:
+  initialDelaySeconds: 10
+  periodSeconds: 10
+  timeoutSeconds: 5
+  failureThreshold: 3
+
+# Node selector
+nodeSelector:
+  node-role.kubernetes.io/database: "true"
+
+# Tolerations
+tolerations:
+  - key: "database"
+    operator: "Equal"
+    value: "true"
+    effect: "NoSchedule"
+
+# Affinity (anti-affinity for replica set members)
+affinity:
+  podAntiAffinity:
+    requiredDuringSchedulingIgnoredDuringExecution:
+      - labelSelector:
+          matchExpressions:
+            - key: app.kubernetes.io/name
+              operator: In
+              values:
+                - mongodb
+        topologyKey: kubernetes.io/hostname

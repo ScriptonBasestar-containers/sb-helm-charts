@@ -1,0 +1,120 @@
+# Development values for MongoDB
+# Optimized for local testing and development environments
+
+replicaCount: 1
+
+image:
+  repository: mongo
+  pullPolicy: IfNotPresent
+  tag: ""
+
+imagePullSecrets: []
+nameOverride: ""
+fullnameOverride: ""
+
+# MongoDB configuration
+mongodb:
+  database: "testdb"
+  rootPassword: "devpassword"  # In dev, using simple password
+
+  # Authentication
+  auth:
+    enabled: true
+
+  # WiredTiger storage engine (reduced for dev)
+  wiredTiger:
+    cacheSizeGB: 0.25
+
+  # Profiling
+  profiling:
+    mode: "slowOp"
+    slowOpThresholdMs: 100
+
+  # System log
+  systemLog:
+    verbosity: 0
+
+  # Replica set disabled for single-node dev
+  replicaSet:
+    enabled: false
+    name: "rs0"
+    key: ""
+
+  # Custom configuration
+  config: {}
+
+  # Existing ConfigMap/Secret
+  existingConfigMap: ""
+  existingSecret: ""
+
+  # Extra environment variables
+  extraEnv: []
+
+# Service configuration
+service:
+  type: ClusterIP
+  port: 27017
+  nodePort: ""
+  annotations: {}
+
+# Persistence (reduced for dev)
+persistence:
+  enabled: true
+  storageClass: ""
+  accessMode: ReadWriteOnce
+  size: 5Gi
+  annotations: {}
+
+# ServiceAccount
+serviceAccount:
+  create: true
+  annotations: {}
+  name: ""
+
+# Pod annotations
+podAnnotations: {}
+
+# Pod security context
+podSecurityContext:
+  fsGroup: 999
+  runAsUser: 999
+  runAsNonRoot: true
+
+# Container security context
+securityContext:
+  capabilities:
+    drop:
+    - ALL
+  readOnlyRootFilesystem: false
+  allowPrivilegeEscalation: false
+
+# Resource limits (reduced for dev)
+resources:
+  limits:
+    cpu: 500m
+    memory: 512Mi
+  requests:
+    cpu: 100m
+    memory: 256Mi
+
+# Health probes (faster checks for dev)
+livenessProbe:
+  initialDelaySeconds: 20
+  periodSeconds: 10
+  timeoutSeconds: 5
+  failureThreshold: 3
+
+readinessProbe:
+  initialDelaySeconds: 5
+  periodSeconds: 5
+  timeoutSeconds: 5
+  failureThreshold: 3
+
+# Node selector
+nodeSelector: {}
+
+# Tolerations
+tolerations: []
+
+# Affinity
+affinity: {}
