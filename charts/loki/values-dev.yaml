@@ -1,0 +1,77 @@
+# Development values for loki
+# This configuration is optimized for local development and testing
+
+replicaCount: 1
+
+image:
+  repository: grafana/loki
+  pullPolicy: IfNotPresent
+  tag: "2.9.3"
+
+loki:
+  auth:
+    enabled: false
+
+  # Use filesystem storage for development
+  storage:
+    type: "filesystem"
+
+  replicationFactor: 1
+
+  # Relaxed limits for development
+  limits:
+    ingestionRateMB: 10
+    ingestionBurstSizeMB: 20
+
+serviceAccount:
+  create: true
+
+podSecurityContext:
+  fsGroup: 10001
+  runAsUser: 10001
+  runAsNonRoot: true
+
+securityContext:
+  capabilities:
+    drop:
+    - ALL
+  readOnlyRootFilesystem: true
+  runAsNonRoot: true
+  runAsUser: 10001
+
+service:
+  type: ClusterIP
+  port: 3100
+
+# Reduced resources for development
+resources:
+  limits:
+    cpu: 500m
+    memory: 512Mi
+  requests:
+    cpu: 100m
+    memory: 128Mi
+
+livenessProbe:
+  initialDelaySeconds: 30
+  periodSeconds: 10
+  timeoutSeconds: 5
+  failureThreshold: 3
+
+readinessProbe:
+  initialDelaySeconds: 30
+  periodSeconds: 10
+  timeoutSeconds: 5
+  failureThreshold: 3
+
+persistence:
+  enabled: true
+  accessMode: ReadWriteOnce
+  size: 5Gi
+  # storageClass: "standard"
+
+nodeSelector: {}
+
+tolerations: []
+
+affinity: {}

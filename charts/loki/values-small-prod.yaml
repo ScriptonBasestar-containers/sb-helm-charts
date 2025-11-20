@@ -1,0 +1,97 @@
+# Small production values for loki
+# This configuration is optimized for small production deployments with HA
+
+replicaCount: 3
+
+image:
+  repository: grafana/loki
+  pullPolicy: IfNotPresent
+  tag: "2.9.3"
+
+loki:
+  auth:
+    enabled: false
+
+  # S3 storage for production
+  # Replace with your S3-compatible storage details
+  storage:
+    type: "s3"
+    s3:
+      endpoint: "s3.amazonaws.com"
+      bucketNames: "loki-chunks"
+      region: "us-east-1"
+      # Set these via environment or existing secret
+      accessKeyId: ""
+      secretAccessKey: ""
+      s3ForcePathStyle: false
+
+  # Replication factor for HA
+  replicationFactor: 3
+
+  # Production limits
+  limits:
+    ingestionRateMB: 8
+    ingestionBurstSizeMB: 12
+
+serviceAccount:
+  create: true
+
+podSecurityContext:
+  fsGroup: 10001
+  runAsUser: 10001
+  runAsNonRoot: true
+
+securityContext:
+  capabilities:
+    drop:
+    - ALL
+  readOnlyRootFilesystem: true
+  runAsNonRoot: true
+  runAsUser: 10001
+
+service:
+  type: ClusterIP
+  port: 3100
+
+# Production resources
+resources:
+  limits:
+    cpu: 2000m
+    memory: 2Gi
+  requests:
+    cpu: 500m
+    memory: 1Gi
+
+livenessProbe:
+  initialDelaySeconds: 45
+  periodSeconds: 15
+  timeoutSeconds: 5
+  failureThreshold: 3
+
+readinessProbe:
+  initialDelaySeconds: 45
+  periodSeconds: 15
+  timeoutSeconds: 5
+  failureThreshold: 3
+
+persistence:
+  enabled: true
+  accessMode: ReadWriteOnce
+  size: 50Gi
+  storageClass: "fast-ssd"
+
+# Anti-affinity to spread pods across nodes
+nodeSelector: {}
+
+tolerations: []
+
+affinity:
+  podAntiAffinity:
+    requiredDuringSchedulingIgnoredDuringExecution:
+      - labelSelector:
+          matchExpressions:
+            - key: app.kubernetes.io/name
+              operator: In
+              values:
+                - loki
+        topologyKey: kubernetes.io/hostname

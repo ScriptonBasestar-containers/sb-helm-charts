@@ -138,6 +138,7 @@ The metadata file serves multiple purposes:
 - **immich**: AI-powered photo and video management
 - **jellyfin**: Media server with hardware transcoding support
 - **keycloak**: IAM solution (StatefulSet, PostgreSQL, clustering, realm management)
+- **loki**: Loki log aggregation system with Grafana integration (StatefulSet, filesystem/S3 storage, memberlist)
 - **mlflow**: MLflow experiment tracking and model registry platform (Deployment, PostgreSQL, MinIO)
 - **nextcloud**: Nextcloud with LinuxServer.io image (Deployment, PostgreSQL, config-based)
 - **paperless-ngx**: Document management system with OCR (4 PVC architecture)
@@ -551,6 +552,46 @@ make -f make/ops/grafana.mk grafana-db-restore FILE=backup.tar.gz
 make -f make/ops/grafana.mk grafana-reset-password PASSWORD=newpass
 make -f make/ops/grafana.mk grafana-restart
 make -f make/ops/grafana.mk grafana-api CMD='/api/health'
+```
+
+### Loki Specific Commands
+
+```bash
+# Basic operations
+make -f make/ops/loki.mk loki-logs
+make -f make/ops/loki.mk loki-logs-all
+make -f make/ops/loki.mk loki-shell
+make -f make/ops/loki.mk loki-port-forward          # HTTP (3100)
+make -f make/ops/loki.mk loki-port-forward-grpc     # gRPC (9095)
+
+# Health and status
+make -f make/ops/loki.mk loki-ready
+make -f make/ops/loki.mk loki-health
+make -f make/ops/loki.mk loki-metrics
+make -f make/ops/loki.mk loki-version
+make -f make/ops/loki.mk loki-config
+
+# Ring and clustering
+make -f make/ops/loki.mk loki-ring-status
+make -f make/ops/loki.mk loki-memberlist-status
+
+# Query and logs
+make -f make/ops/loki.mk loki-query QUERY='{job="app"}' TIME=5m
+make -f make/ops/loki.mk loki-labels
+make -f make/ops/loki.mk loki-label-values LABEL=job
+make -f make/ops/loki.mk loki-tail QUERY='{job="app"}'
+
+# Data management
+make -f make/ops/loki.mk loki-flush-index
+make -f make/ops/loki.mk loki-check-storage
+
+# Testing and integration
+make -f make/ops/loki.mk loki-test-push
+make -f make/ops/loki.mk loki-grafana-datasource
+
+# Scaling
+make -f make/ops/loki.mk loki-scale REPLICAS=3
+make -f make/ops/loki.mk loki-restart
 ```
 
 ### MinIO Specific Commands
