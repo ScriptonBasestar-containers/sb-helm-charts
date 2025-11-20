@@ -1,0 +1,37 @@
+⚠️  IMPORTANT: This is a simplified Harbor chart for development/testing.
+
+For production use, please consider the official Harbor Helm chart:
+  https://github.com/goharbor/harbor-helm
+
+This chart requires external PostgreSQL and Redis.
+
+1. Get the Harbor admin password:
+
+  export HARBOR_ADMIN_PASSWORD=$(kubectl get secret --namespace {{ .Release.Namespace }} {{ include "harbor.secretName" . }} -o jsonpath="{.data.HARBOR_ADMIN_PASSWORD}" | base64 -d)
+
+2. Access Harbor:
+
+{{- if .Values.ingress.enabled }}
+  Harbor URL: {{ include "harbor.externalURL" . }}
+{{- else }}
+  kubectl port-forward --namespace {{ .Release.Namespace }} svc/{{ include "harbor.core" . }} 8080:80
+  Harbor URL: http://localhost:8080
+{{- end }}
+
+3. Login credentials:
+
+  Username: admin
+  Password: $HARBOR_ADMIN_PASSWORD
+
+4. Database Information:
+
+  PostgreSQL: {{ .Values.postgresql.external.host }}:{{ .Values.postgresql.external.port }}/{{ .Values.postgresql.external.database }}
+  Redis:      {{ .Values.redis.external.host }}:{{ .Values.redis.external.port }}
+
+⚠️  Production Recommendations:
+
+  1. Use the official Harbor Helm chart for production deployments
+  2. Enable HTTPS/TLS for secure communication
+  3. Configure vulnerability scanning with Trivy
+  4. Set up backup for PostgreSQL database
+  5. Use S3-compatible storage for scalability

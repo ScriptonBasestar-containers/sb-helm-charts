@@ -1,0 +1,121 @@
+# Default values for harbor
+# NOTE: Harbor is a complex application. For production use, consider the official Harbor Helm chart:
+# https://github.com/goharbor/harbor-helm
+
+# Core component
+core:
+  replicaCount: 1
+  image:
+    repository: goharbor/harbor-core
+    pullPolicy: IfNotPresent
+    tag: "v2.11.1"
+  resources:
+    limits:
+      cpu: 1000m
+      memory: 1Gi
+    requests:
+      cpu: 100m
+      memory: 256Mi
+  livenessProbe:
+    initialDelaySeconds: 300
+    periodSeconds: 10
+  readinessProbe:
+    initialDelaySeconds: 20
+    periodSeconds: 10
+
+# Registry component
+registry:
+  replicaCount: 1
+  image:
+    repository: goharbor/registry-photon
+    pullPolicy: IfNotPresent
+    tag: "v2.11.1"
+  resources:
+    limits:
+      cpu: 1000m
+      memory: 1Gi
+    requests:
+      cpu: 100m
+      memory: 256Mi
+  livenessProbe:
+    initialDelaySeconds: 30
+    periodSeconds: 10
+  readinessProbe:
+    initialDelaySeconds: 10
+    periodSeconds: 10
+
+# Harbor configuration
+harbor:
+  adminPassword: "Harbor12345"  # CHANGE THIS IN PRODUCTION
+  secretKey: ""  # Auto-generated if empty
+  externalURL: ""  # Auto-generated from ingress if empty
+  existingConfigMap: ""
+  existingSecret: ""
+
+# External PostgreSQL (REQUIRED)
+postgresql:
+  enabled: false
+  external:
+    enabled: true
+    host: "postgresql"
+    port: 5432
+    database: "harbor"
+    username: "harbor"
+    password: "CHANGEME"  # REQUIRED
+
+# External Redis (REQUIRED)
+redis:
+  enabled: false
+  external:
+    enabled: true
+    host: "redis"
+    port: 6379
+    password: ""  # Optional
+
+# Service
+service:
+  type: ClusterIP
+  port: 80
+
+# Ingress
+ingress:
+  enabled: false
+  className: ""
+  annotations: {}
+  hosts:
+    - harbor.local
+  tls: []
+
+# Persistence
+persistence:
+  enabled: true
+  storageClass: ""
+  accessMode: ReadWriteOnce
+  size: 50Gi
+
+# ServiceAccount
+serviceAccount:
+  create: true
+  annotations: {}
+  name: ""
+
+# Security
+podSecurityContext:
+  fsGroup: 10000
+  runAsUser: 10000
+  runAsNonRoot: true
+
+securityContext:
+  capabilities:
+    drop:
+    - ALL
+  readOnlyRootFilesystem: false
+  allowPrivilegeEscalation: false
+
+# Pod annotations
+podAnnotations: {}
+
+# Node selection
+nodeSelector: {}
+tolerations: []
+affinity: {}

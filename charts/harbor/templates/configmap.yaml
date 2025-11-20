@@ -1,0 +1,24 @@
+{{- if not .Values.harbor.existingConfigMap }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "harbor.configMapName" . }}
+  labels:
+    {{- include "harbor.labels" . | nindent 4 }}
+data:
+  # Core configuration
+  PORT: "8080"
+  EXT_ENDPOINT: {{ include "harbor.externalURL" . | quote }}
+  DATABASE_TYPE: "postgresql"
+  POSTGRESQL_HOST: {{ .Values.postgresql.external.host | quote }}
+  POSTGRESQL_PORT: {{ .Values.postgresql.external.port | quote }}
+  POSTGRESQL_DATABASE: {{ .Values.postgresql.external.database | quote }}
+  POSTGRESQL_USERNAME: {{ .Values.postgresql.external.username | quote }}
+  POSTGRESQL_SSLMODE: "disable"
+  REDIS_HOST: {{ .Values.redis.external.host | quote }}
+  REDIS_PORT: {{ .Values.redis.external.port | quote }}
+  REGISTRY_URL: "http://{{ include "harbor.registry" . }}:5000"
+  TOKEN_SERVICE_URL: "http://{{ include "harbor.core" . }}:8080/service/token"
+  CORE_URL: "http://{{ include "harbor.core" . }}:8080"
+  JOBSERVICE_URL: "http://{{ include "harbor.jobservice" . }}:8080"
+{{- end }}

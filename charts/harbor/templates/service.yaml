@@ -1,0 +1,35 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "harbor.core" . }}
+  labels:
+    {{- include "harbor.labels" . | nindent 4 }}
+    {{- include "harbor.componentLabels" "core" | nindent 4 }}
+spec:
+  type: {{ .Values.service.type }}
+  ports:
+    - port: {{ .Values.service.port }}
+      targetPort: http
+      protocol: TCP
+      name: http
+  selector:
+    {{- include "harbor.selectorLabels" . | nindent 4 }}
+    {{- include "harbor.componentLabels" "core" | nindent 4 }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "harbor.registry" . }}
+  labels:
+    {{- include "harbor.labels" . | nindent 4 }}
+    {{- include "harbor.componentLabels" "registry" | nindent 4 }}
+spec:
+  type: ClusterIP
+  ports:
+    - port: 5000
+      targetPort: registry
+      protocol: TCP
+      name: registry
+  selector:
+    {{- include "harbor.selectorLabels" . | nindent 4 }}
+    {{- include "harbor.componentLabels" "registry" | nindent 4 }}

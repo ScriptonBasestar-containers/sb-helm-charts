@@ -129,6 +129,14 @@ charts:
     keywords: [devpi, python, pypi, package-index, private-registry, package-mirror]
     description: Python package index
 
+  harbor:
+    name: Harbor
+    path: charts/harbor
+    category: application
+    tags: [Registry, Container, Security]
+    keywords: [harbor, registry, docker, container, security, vulnerability-scanning]
+    description: Private container registry with vulnerability scanning and image signing
+
   # Infrastructure Charts (Dev/Test - Consider Operators for Production)
   redis:
     name: Redis
