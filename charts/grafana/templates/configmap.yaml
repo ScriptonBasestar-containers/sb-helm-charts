@@ -1,0 +1,55 @@
+{{- if not .Values.grafana.existingConfigMap }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "grafana.configMapName" . }}
+  labels:
+    {{- include "grafana.labels" . | nindent 4 }}
+data:
+  grafana.ini: |
+    [server]
+    protocol = http
+    http_port = 3000
+    domain = {{ .Values.grafana.domain | default "localhost" }}
+    root_url = {{ include "grafana.externalUrl" . }}
+
+    [database]
+    type = {{ .Values.database.external.enabled | ternary .Values.database.external.type "sqlite3" }}
+    {{- if .Values.database.external.enabled }}
+    host = {{ .Values.database.external.host }}:{{ .Values.database.external.port }}
+    name = {{ .Values.database.external.database }}
+    user = {{ .Values.database.external.username }}
+    {{- end }}
+
+    [security]
+    admin_user = {{ .Values.grafana.adminUser }}
+    disable_gravatar = {{ .Values.grafana.security.disableGravatar }}
+    cookie_secure = {{ .Values.grafana.security.cookieSecure }}
+
+    [users]
+    allow_sign_up = {{ .Values.grafana.users.allowSignUp }}
+    allow_org_create = {{ .Values.grafana.users.allowOrgCreate }}
+    auto_assign_org = {{ .Values.grafana.users.autoAssignOrg }}
+    auto_assign_org_role = {{ .Values.grafana.users.autoAssignOrgRole }}
+
+    [auth.anonymous]
+    enabled = {{ .Values.grafana.auth.anonymous.enabled }}
+
+    [analytics]
+    reporting_enabled = false
+    check_for_updates = {{ .Values.grafana.analytics.checkForUpdates }}
+
+    [log]
+    mode = console
+    level = {{ .Values.grafana.log.level }}
+
+    [paths]
+    data = /var/lib/grafana
+    logs = /var/log/grafana
+    plugins = /var/lib/grafana/plugins
+    provisioning = /etc/grafana/provisioning
+
+    {{- with .Values.grafana.config }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
+{{- end }}

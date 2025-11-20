@@ -1,0 +1,45 @@
+1. Get the Grafana admin password:
+
+{{- if .Values.grafana.existingSecret }}
+  Your Grafana password is stored in: {{ .Values.grafana.existingSecret }}
+{{- else }}
+  export GRAFANA_ADMIN_PASSWORD=$(kubectl get secret --namespace {{ .Release.Namespace }} {{ include "grafana.secretName" . }} -o jsonpath="{.data.admin-password}" | base64 -d)
+{{- end }}
+
+2. Access Grafana:
+
+{{- if .Values.ingress.enabled }}
+  Grafana URL: {{ include "grafana.externalUrl" . }}
+{{- else }}
+  kubectl port-forward --namespace {{ .Release.Namespace }} svc/{{ include "grafana.fullname" . }} 3000:{{ .Values.service.port }}
+  Grafana URL: http://localhost:3000
+{{- end }}
+
+3. Login credentials:
+
+  Username: {{ .Values.grafana.adminUser }}
+  Password: $GRAFANA_ADMIN_PASSWORD
+
+4. Database Information:
+
+{{- if .Values.database.external.enabled }}
+  Type: {{ .Values.database.external.type }}
+  Host: {{ .Values.database.external.host }}:{{ .Values.database.external.port }}
+  Database: {{ .Values.database.external.database }}
+{{- else }}
+  Type: SQLite (local file)
+  Path: /var/lib/grafana/grafana.db
+{{- end }}
+
+{{- if not .Values.grafana.adminPassword }}
+
+⚠️  WARNING: Grafana admin password was auto-generated.
+  For production: --set grafana.adminPassword='your-strong-password'
+{{- end }}
+
+5. Next Steps:
+
+  - Add data sources (Prometheus, Loki, etc.)
+  - Import dashboards from https://grafana.com/grafana/dashboards/
+  - Configure alerting rules
+  - Set up SMTP for email notifications

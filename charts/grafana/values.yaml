@@ -1,0 +1,148 @@
+# Default values for grafana.
+replicaCount: 1
+
+image:
+  repository: grafana/grafana
+  pullPolicy: IfNotPresent
+  tag: ""
+
+imagePullSecrets: []
+nameOverride: ""
+fullnameOverride: ""
+
+# Grafana configuration
+grafana:
+  adminUser: "admin"
+  adminPassword: ""  # Auto-generated if empty
+  secretKey: ""  # Auto-generated if empty
+  domain: "localhost"
+  externalUrl: ""  # Auto-generated from ingress if empty
+
+  # Security settings
+  security:
+    disableGravatar: false
+    cookieSecure: false
+
+  # User settings
+  users:
+    allowSignUp: false
+    allowOrgCreate: false
+    autoAssignOrg: true
+    autoAssignOrgRole: "Viewer"
+
+  # Anonymous auth
+  auth:
+    anonymous:
+      enabled: false
+
+  # Analytics
+  analytics:
+    checkForUpdates: true
+
+  # Logging
+  log:
+    level: "info"  # debug, info, warn, error, critical
+
+  # Custom configuration (merged into grafana.ini)
+  config: {}
+
+  # Existing ConfigMap/Secret
+  existingConfigMap: ""
+  existingSecret: ""
+
+  # Extra environment variables
+  extraEnv: []
+
+# Database configuration
+database:
+  external:
+    enabled: false  # Use external database (PostgreSQL/MySQL)
+    type: "postgres"  # postgres or mysql
+    host: ""
+    port: 5432
+    database: "grafana"
+    username: "grafana"
+    password: ""
+
+# Service configuration
+service:
+  type: ClusterIP
+  port: 80
+  nodePort: ""
+  annotations: {}
+
+# Ingress configuration
+ingress:
+  enabled: false
+  className: ""
+  annotations: {}
+    # kubernetes.io/ingress.class: nginx
+    # cert-manager.io/cluster-issuer: letsencrypt-prod
+  hosts:
+    - grafana.local
+  tls: []
+  #  - secretName: grafana-tls
+  #    hosts:
+  #      - grafana.local
+
+# Persistence
+persistence:
+  enabled: true
+  storageClass: ""
+  accessMode: ReadWriteOnce
+  size: 10Gi
+  annotations: {}
+
+# ServiceAccount
+serviceAccount:
+  create: true
+  annotations: {}
+  name: ""
+
+# Pod annotations
+podAnnotations: {}
+
+# Pod security context
+podSecurityContext:
+  fsGroup: 472
+  runAsUser: 472
+  runAsNonRoot: true
+
+# Container security context
+securityContext:
+  capabilities:
+    drop:
+    - ALL
+  readOnlyRootFilesystem: false
+  allowPrivilegeEscalation: false
+
+# Resource limits
+resources:
+  limits:
+    cpu: 1000m
+    memory: 1Gi
+  requests:
+    cpu: 100m
+    memory: 256Mi
+
+# Health probes
+livenessProbe:
+  initialDelaySeconds: 30
+  periodSeconds: 10
+  timeoutSeconds: 5
+  failureThreshold: 10
+
+readinessProbe:
+  initialDelaySeconds: 10
+  periodSeconds: 10
+  timeoutSeconds: 5
+  failureThreshold: 3
+
+# Node selector
+nodeSelector: {}
+
+# Tolerations
+tolerations: []
+
+# Affinity
+affinity: {}

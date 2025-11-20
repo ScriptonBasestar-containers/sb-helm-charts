@@ -137,6 +137,14 @@ charts:
     keywords: [harbor, registry, docker, container, security, vulnerability-scanning]
     description: Private container registry with vulnerability scanning and image signing
 
+  grafana:
+    name: Grafana
+    path: charts/grafana
+    category: application
+    tags: [Monitoring, Visualization, Observability]
+    keywords: [grafana, monitoring, metrics, visualization, dashboard, observability]
+    description: Grafana metrics visualization and dashboarding platform
+
   # Infrastructure Charts (Dev/Test - Consider Operators for Production)
   redis:
     name: Redis
