@@ -7,6 +7,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- **MinIO v0.3.0** (2025-11-19): Object storage server compatible with Amazon S3 APIs
+  - Standalone and distributed deployment modes
+  - Multi-tenancy with bucket and user management
+  - S3 integration guide for application charts
+  - Home server and production values profiles
+- **Elasticsearch v0.1.0** (2025-11-19): Distributed search and analytics engine with Kibana
+  - Full-text search capabilities
+  - Development and small production profiles
+  - Integrated Kibana dashboard
+  - REST API support
+- **Airflow v0.1.0** (2025-11-20): Workflow orchestration platform with KubernetesExecutor
+  - DAG-based workflow management
+  - Scheduler, webserver, and triggerer components
+  - Remote logging support (S3/MinIO)
+  - Development and small production profiles
+
 ### Security
 - **Redis v0.3.1** (2025-11-17): Fixed password exposure in readiness probe using REDISCLI_AUTH environment variable
 - **Redis v0.3.1** (2025-11-17): Fixed password exposure in metrics exporter command-line arguments
