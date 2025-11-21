@@ -165,6 +165,8 @@ The metadata file serves multiple purposes:
   - ⚠️ For production HA, consider MySQL Operator ([Oracle](https://github.com/mysql/mysql-operator), [Percona](https://github.com/percona/percona-server-mysql-operator), [Vitess](https://vitess.io/))
 - **postgresql**: PostgreSQL relational database with replication support (StatefulSet, primary-replica mode)
   - ⚠️ For production HA, consider PostgreSQL Operator ([Zalando](https://github.com/zalando/postgres-operator), [Crunchy Data](https://github.com/CrunchyData/postgres-operator), [CloudNativePG](https://cloudnative-pg.io/))
+- **prometheus**: Prometheus monitoring system and time series database (StatefulSet, Kubernetes SD, TSDB)
+  - ⚠️ For large-scale production with advanced features, consider [Prometheus Operator](https://github.com/prometheus-operator/prometheus-operator)
 - **rabbitmq**: Message broker with management UI (Deployment, no database, AMQP + Prometheus metrics)
   - ⚠️ For production clustering, consider [RabbitMQ Cluster Operator](https://github.com/rabbitmq/cluster-operator)
 - **redis**: In-memory data store (StatefulSet, no external database, full redis.conf support)
@@ -592,6 +594,54 @@ make -f make/ops/loki.mk loki-grafana-datasource
 # Scaling
 make -f make/ops/loki.mk loki-scale REPLICAS=3
 make -f make/ops/loki.mk loki-restart
+```
+
+### Prometheus Specific Commands
+
+```bash
+# Basic operations
+make -f make/ops/prometheus.mk prom-logs
+make -f make/ops/prometheus.mk prom-logs-all
+make -f make/ops/prometheus.mk prom-shell
+make -f make/ops/prometheus.mk prom-port-forward
+
+# Health and status
+make -f make/ops/prometheus.mk prom-ready
+make -f make/ops/prometheus.mk prom-healthy
+make -f make/ops/prometheus.mk prom-version
+make -f make/ops/prometheus.mk prom-config
+make -f make/ops/prometheus.mk prom-config-check
+
+# Targets and service discovery
+make -f make/ops/prometheus.mk prom-targets
+make -f make/ops/prometheus.mk prom-targets-active
+make -f make/ops/prometheus.mk prom-sd
+
+# Metrics and queries
+make -f make/ops/prometheus.mk prom-query QUERY='up'
+make -f make/ops/prometheus.mk prom-query-range QUERY='up' START='-1h' END='now'
+make -f make/ops/prometheus.mk prom-labels
+make -f make/ops/prometheus.mk prom-label-values LABEL=job
+make -f make/ops/prometheus.mk prom-series MATCH='{job="prometheus"}'
+
+# TSDB and storage
+make -f make/ops/prometheus.mk prom-tsdb-status
+make -f make/ops/prometheus.mk prom-tsdb-snapshot
+make -f make/ops/prometheus.mk prom-check-storage
+
+# Configuration reload
+make -f make/ops/prometheus.mk prom-reload
+
+# Rules and alerts
+make -f make/ops/prometheus.mk prom-rules
+make -f make/ops/prometheus.mk prom-alerts
+
+# Testing
+make -f make/ops/prometheus.mk prom-test-query
+
+# Scaling
+make -f make/ops/prometheus.mk prom-scale REPLICAS=2
+make -f make/ops/prometheus.mk prom-restart
 ```
 
 ### MinIO Specific Commands
