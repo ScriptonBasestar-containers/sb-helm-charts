@@ -1,0 +1,123 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "pgadmin.fullname" . }}
+  labels:
+    {{- include "pgadmin.labels" . | nindent 4 }}
+spec:
+  {{- if not .Values.autoscaling.enabled }}
+  replicas: {{ .Values.replicaCount }}
+  {{- end }}
+  selector:
+    matchLabels:
+      {{- include "pgadmin.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      annotations:
+        checksum/config: {{ include (print $.Template.BasePath "/configmap.yaml") . | sha256sum }}
+        checksum/secret: {{ include (print $.Template.BasePath "/secret.yaml") . | sha256sum }}
+        {{- with .Values.podAnnotations }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+      labels:
+        {{- include "pgadmin.selectorLabels" . | nindent 8 }}
+    spec:
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      serviceAccountName: {{ include "pgadmin.serviceAccountName" . }}
+      securityContext:
+        {{- toYaml .Values.podSecurityContext | nindent 8 }}
+      containers:
+      - name: pgadmin
+        securityContext:
+          {{- toYaml .Values.securityContext | nindent 10 }}
+        image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+        imagePullPolicy: {{ .Values.image.pullPolicy }}
+        env:
+        - name: PGADMIN_DEFAULT_EMAIL
+          value: {{ .Values.pgadmin.defaultEmail | quote }}
+        - name: PGADMIN_DEFAULT_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: {{ include "pgadmin.fullname" . }}
+              key: password
+        - name: PGADMIN_SERVER_JSON_FILE
+          value: "/pgadmin4/servers.json"
+        - name: PGADMIN_CONFIG_SERVER_MODE
+          value: {{ .Values.pgadmin.serverMode | quote }}
+        - name: PGADMIN_CONFIG_ENHANCED_COOKIE_PROTECTION
+          value: {{ .Values.pgadmin.enhancedCookieProtection | quote }}
+        - name: PGADMIN_CONFIG_SESSION_EXPIRATION_TIME
+          value: {{ .Values.pgadmin.sessionTimeout | quote }}
+        - name: PGADMIN_CONFIG_MFA_SUPPORTED_METHODS
+          value: {{ .Values.pgadmin.mfaSupported | quote }}
+        - name: PGADMIN_CONFIG_PASSWORD_LENGTH_MIN
+          value: {{ .Values.pgadmin.passwordLengthMin | quote }}
+        - name: PGADMIN_CONFIG_SQLITE_PATH
+          value: {{ .Values.pgadmin.configDatabaseUri | quote }}
+        - name: PGADMIN_CONFIG_STORAGE_DIR
+          value: {{ .Values.pgadmin.storagePath | quote }}
+        - name: PGADMIN_CONFIG_CONSOLE_LOG_LEVEL
+          value: {{ .Values.pgadmin.consoleLogLevel | quote }}
+        {{- with .Values.pgadmin.extraEnv }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+        ports:
+        - name: http
+          containerPort: 80
+          protocol: TCP
+        {{- if .Values.livenessProbe.enabled }}
+        livenessProbe:
+          {{- toYaml .Values.livenessProbe.httpGet | nindent 10 }}
+          initialDelaySeconds: {{ .Values.livenessProbe.initialDelaySeconds }}
+          periodSeconds: {{ .Values.livenessProbe.periodSeconds }}
+          timeoutSeconds: {{ .Values.livenessProbe.timeoutSeconds }}
+          successThreshold: {{ .Values.livenessProbe.successThreshold }}
+          failureThreshold: {{ .Values.livenessProbe.failureThreshold }}
+        {{- end }}
+        {{- if .Values.readinessProbe.enabled }}
+        readinessProbe:
+          {{- toYaml .Values.readinessProbe.httpGet | nindent 10 }}
+          initialDelaySeconds: {{ .Values.readinessProbe.initialDelaySeconds }}
+          periodSeconds: {{ .Values.readinessProbe.periodSeconds }}
+          timeoutSeconds: {{ .Values.readinessProbe.timeoutSeconds }}
+          successThreshold: {{ .Values.readinessProbe.successThreshold }}
+          failureThreshold: {{ .Values.readinessProbe.failureThreshold }}
+        {{- end }}
+        resources:
+          {{- toYaml .Values.resources | nindent 10 }}
+        volumeMounts:
+        - name: data
+          mountPath: /var/lib/pgadmin
+        {{- if .Values.servers.enabled }}
+        - name: servers-config
+          mountPath: /pgadmin4/servers.json
+          subPath: servers.json
+        {{- end }}
+      volumes:
+      - name: data
+        {{- if .Values.persistence.enabled }}
+        persistentVolumeClaim:
+          claimName: {{ .Values.persistence.existingClaim | default (include "pgadmin.fullname" .) }}
+        {{- else }}
+        emptyDir: {}
+        {{- end }}
+      {{- if .Values.servers.enabled }}
+      - name: servers-config
+        configMap:
+          name: {{ include "pgadmin.fullname" . }}-servers
+      {{- end }}
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}

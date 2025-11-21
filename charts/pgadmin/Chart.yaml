@@ -1,0 +1,19 @@
+apiVersion: v2
+name: pgadmin
+description: pgAdmin is a web-based PostgreSQL administration and management tool
+type: application
+version: 0.3.0
+appVersion: "8.13"
+keywords:
+  - postgresql
+  - database
+  - admin
+  - gui
+  - management
+home: https://github.com/scriptonbasestar-container/sb-helm-charts
+sources:
+  - https://github.com/scriptonbasestar-container/sb-helm-charts/tree/master/charts/pgadmin
+  - https://www.pgadmin.org/
+maintainers:
+  - name: ScriptonBasestar
+    email: scriptonbasestar@gmail.com

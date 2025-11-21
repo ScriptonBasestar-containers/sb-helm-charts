@@ -1,0 +1,63 @@
+1. Get the pgAdmin URL by running:
+
+{{- if .Values.ingress.enabled }}
+{{- range $host := .Values.ingress.hosts }}
+  http{{ if $.Values.ingress.tls }}s{{ end }}://{{ $host.host }}{{ (index $host.paths 0).path }}
+{{- end }}
+{{- else if contains "NodePort" .Values.service.type }}
+  export NODE_PORT=$(kubectl get --namespace {{ .Release.Namespace }} -o jsonpath="{.spec.ports[0].nodePort}" services {{ include "pgadmin.fullname" . }})
+  export NODE_IP=$(kubectl get nodes --namespace {{ .Release.Namespace }} -o jsonpath="{.items[0].status.addresses[0].address}")
+  echo http://$NODE_IP:$NODE_PORT
+{{- else if contains "LoadBalancer" .Values.service.type }}
+     NOTE: It may take a few minutes for the LoadBalancer IP to be available.
+           You can watch the status by running 'kubectl get --namespace {{ .Release.Namespace }} svc -w {{ include "pgadmin.fullname" . }}'
+  export SERVICE_IP=$(kubectl get svc --namespace {{ .Release.Namespace }} {{ include "pgadmin.fullname" . }} --template "{{"{{ range (index .status.loadBalancer.ingress 0) }}{{.}}{{ end }}"}}")
+  echo http://$SERVICE_IP:{{ .Values.service.port }}
+{{- else if contains "ClusterIP" .Values.service.type }}
+  kubectl port-forward --namespace {{ .Release.Namespace }} svc/{{ include "pgadmin.fullname" . }} 8080:{{ .Values.service.port }}
+  echo "Visit http://127.0.0.1:8080 to use pgAdmin"
+{{- end }}
+
+2. Login credentials:
+   Email:    {{ .Values.pgadmin.defaultEmail }}
+   Password: Run the following command to get the password:
+             kubectl get secret --namespace {{ .Release.Namespace }} {{ include "pgadmin.fullname" . }} -o jsonpath="{.data.password}" | base64 -d
+
+{{- if .Values.servers.enabled }}
+
+3. Pre-configured servers:
+   {{ len .Values.servers.config }} PostgreSQL server(s) have been pre-configured.
+   You can view them in the Server panel after logging in.
+{{- else }}
+
+3. Add PostgreSQL servers:
+   After logging in, click "Add New Server" to connect to your PostgreSQL databases.
+
+   Example configuration:
+   - General > Name: My Database
+   - Connection > Host: postgresql.default.svc.cluster.local
+   - Connection > Port: 5432
+   - Connection > Maintenance DB: postgres
+   - Connection > Username: postgres
+{{- end }}
+
+4. Data persistence:
+{{- if .Values.persistence.enabled }}
+   Data is persisted to PVC: {{ .Values.persistence.existingClaim | default (include "pgadmin.fullname" .) }}
+   - Size: {{ .Values.persistence.size }}
+   - Access Mode: {{ .Values.persistence.accessMode }}
+{{- else }}
+   WARNING: Persistence is disabled. All data will be lost when the pod restarts.
+   Enable persistence by setting 'persistence.enabled=true' in values.yaml
+{{- end }}
+
+5. Security recommendations:
+   - Change the default password immediately after first login
+   - Enable MFA for production deployments
+   - Use HTTPS (configure Ingress with TLS)
+   - Review and configure network policies if needed
+   - Consider using read-only database accounts for query-only users
+
+For more information, visit:
+- pgAdmin documentation: https://www.pgadmin.org/docs/
+- Chart repository: {{ index .Chart.Sources 0 }}

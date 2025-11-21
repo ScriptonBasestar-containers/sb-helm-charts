@@ -145,6 +145,14 @@ charts:
     keywords: [grafana, monitoring, metrics, visualization, dashboard, observability]
     description: Grafana metrics visualization and dashboarding platform
 
+  pgadmin:
+    name: pgAdmin
+    path: charts/pgadmin
+    category: application
+    tags: [Database, PostgreSQL, Admin-Tool]
+    keywords: [postgresql, database, admin, gui, management]
+    description: pgAdmin is a web-based PostgreSQL administration and management tool
+
   loki:
     name: Loki
     path: charts/loki
