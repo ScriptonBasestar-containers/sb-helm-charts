@@ -1,0 +1,82 @@
+Thank you for installing {{ .Chart.Name }}!
+
+Your Prometheus deployment is ready.
+
+1. Get the application URL:
+
+{{- if contains "NodePort" .Values.service.type }}
+
+  export NODE_PORT=$(kubectl get --namespace {{ .Release.Namespace }} -o jsonpath="{.spec.ports[0].nodePort}" services {{ include "prometheus.fullname" . }})
+  export NODE_IP=$(kubectl get nodes --namespace {{ .Release.Namespace }} -o jsonpath="{.items[0].status.addresses[0].address}")
+  echo http://$NODE_IP:$NODE_PORT
+
+{{- else if contains "LoadBalancer" .Values.service.type }}
+
+  NOTE: It may take a few minutes for the LoadBalancer IP to be available.
+        You can watch the status by running 'kubectl get --namespace {{ .Release.Namespace }} svc -w {{ include "prometheus.fullname" . }}'
+
+  export SERVICE_IP=$(kubectl get svc --namespace {{ .Release.Namespace }} {{ include "prometheus.fullname" . }} --template "{{"{{ range (index .status.loadBalancer.ingress 0) }}{{.}}{{ end }}"}}")
+  echo http://$SERVICE_IP:{{ .Values.service.port }}
+
+{{- else if contains "ClusterIP" .Values.service.type }}
+
+  kubectl port-forward --namespace {{ .Release.Namespace }} svc/{{ include "prometheus.fullname" . }} 9090:{{ .Values.service.port }}
+
+  Then access Prometheus at: http://localhost:9090
+
+{{- end }}
+
+2. Configuration:
+
+  - Scrape interval: {{ .Values.prometheus.global.scrapeInterval }}
+  - Retention time: {{ .Values.prometheus.retention.time }}
+  {{- if ne .Values.prometheus.retention.size "0" }}
+  - Retention size: {{ .Values.prometheus.retention.size }}
+  {{- end }}
+  - Replicas: {{ .Values.replicaCount }}
+  {{- if .Values.prometheus.kubernetesSD.enabled }}
+  - Kubernetes service discovery: Enabled
+  {{- end }}
+
+3. Check Prometheus status:
+
+  kubectl exec -it --namespace {{ .Release.Namespace }} {{ include "prometheus.fullname" . }}-0 -- promtool check config /etc/prometheus/prometheus.yml
+
+4. Targets:
+
+  View scrape targets in Prometheus UI:
+  http://localhost:9090/targets
+
+5. Integration with Grafana:
+
+  Add Prometheus as a data source in Grafana:
+
+  URL: http://{{ include "prometheus.fullname" . }}.{{ .Release.Namespace }}.svc.cluster.local:{{ .Values.service.port }}
+
+6. Query examples:
+
+  # CPU usage
+  rate(container_cpu_usage_seconds_total[5m])
+
+  # Memory usage
+  container_memory_usage_bytes
+
+  # HTTP request rate
+  rate(http_requests_total[5m])
+
+{{- if .Values.prometheus.kubernetesSD.enabled }}
+
+7. Scraping metrics from your applications:
+
+  Add these annotations to your Pod or Service:
+
+  annotations:
+    prometheus.io/scrape: "true"
+    prometheus.io/port: "8080"        # Your metrics port
+    prometheus.io/path: "/metrics"    # Your metrics path (optional, default: /metrics)
+
+{{- end }}
+
+For more information, visit:
+  - Prometheus Documentation: https://prometheus.io/docs/
+  - PromQL Query Language: https://prometheus.io/docs/prometheus/latest/querying/basics/

@@ -1,0 +1,131 @@
+{{- if not .Values.prometheus.existingConfigMap }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "prometheus.configMapName" . }}
+  labels:
+    {{- include "prometheus.labels" . | nindent 4 }}
+data:
+  prometheus.yml: |
+    global:
+      scrape_interval: {{ .Values.prometheus.global.scrapeInterval }}
+      evaluation_interval: {{ .Values.prometheus.global.evaluationInterval }}
+      external_labels:
+        cluster: {{ .Values.prometheus.global.externalLabels.cluster }}
+        {{- with .Values.prometheus.global.externalLabels.custom }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+
+    {{- if .Values.prometheus.alerting.enabled }}
+    alerting:
+      alertmanagers:
+        - static_configs:
+            - targets:
+              {{- range .Values.prometheus.alerting.alertmanagers }}
+              - {{ . }}
+              {{- end }}
+    {{- end }}
+
+    {{- if .Values.prometheus.ruleFiles }}
+    rule_files:
+      {{- range .Values.prometheus.ruleFiles }}
+      - {{ . }}
+      {{- end }}
+    {{- end }}
+
+    scrape_configs:
+      # Prometheus self-monitoring
+      - job_name: 'prometheus'
+        static_configs:
+          - targets: ['localhost:9090']
+
+      {{- if .Values.prometheus.kubernetesSD.enabled }}
+      # Kubernetes service discovery for pods
+      - job_name: 'kubernetes-pods'
+        kubernetes_sd_configs:
+          - role: pod
+        relabel_configs:
+          # Only scrape pods with prometheus.io/scrape: "true" annotation
+          - source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_scrape]
+            action: keep
+            regex: true
+          # Use pod name as instance label
+          - source_labels: [__meta_kubernetes_pod_name]
+            target_label: pod
+          # Use namespace as namespace label
+          - source_labels: [__meta_kubernetes_namespace]
+            target_label: namespace
+          # Use prometheus.io/port annotation if exists
+          - source_labels: [__address__, __meta_kubernetes_pod_annotation_prometheus_io_port]
+            action: replace
+            regex: ([^:]+)(?::\d+)?;(\d+)
+            replacement: $1:$2
+            target_label: __address__
+          # Use prometheus.io/path annotation if exists
+          - source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_path]
+            action: replace
+            target_label: __metrics_path__
+            regex: (.+)
+
+      # Kubernetes service discovery for services
+      - job_name: 'kubernetes-services'
+        kubernetes_sd_configs:
+          - role: service
+        metrics_path: /metrics
+        relabel_configs:
+          # Only scrape services with prometheus.io/scrape: "true" annotation
+          - source_labels: [__meta_kubernetes_service_annotation_prometheus_io_scrape]
+            action: keep
+            regex: true
+          # Use service name as job label
+          - source_labels: [__meta_kubernetes_service_name]
+            target_label: job
+          # Use namespace as namespace label
+          - source_labels: [__meta_kubernetes_namespace]
+            target_label: namespace
+          # Use prometheus.io/port annotation if exists
+          - source_labels: [__address__, __meta_kubernetes_service_annotation_prometheus_io_port]
+            action: replace
+            regex: ([^:]+)(?::\d+)?;(\d+)
+            replacement: $1:$2
+            target_label: __address__
+          # Use prometheus.io/path annotation if exists
+          - source_labels: [__meta_kubernetes_service_annotation_prometheus_io_path]
+            action: replace
+            target_label: __metrics_path__
+            regex: (.+)
+
+      # Kubernetes API server
+      - job_name: 'kubernetes-apiservers'
+        kubernetes_sd_configs:
+          - role: endpoints
+        scheme: https
+        tls_config:
+          ca_file: /var/run/secrets/kubernetes.io/serviceaccount/ca.crt
+        bearer_token_file: /var/run/secrets/kubernetes.io/serviceaccount/token
+        relabel_configs:
+          - source_labels: [__meta_kubernetes_namespace, __meta_kubernetes_service_name, __meta_kubernetes_endpoint_port_name]
+            action: keep
+            regex: default;kubernetes;https
+
+      # Kubernetes nodes
+      - job_name: 'kubernetes-nodes'
+        kubernetes_sd_configs:
+          - role: node
+        scheme: https
+        tls_config:
+          ca_file: /var/run/secrets/kubernetes.io/serviceaccount/ca.crt
+        bearer_token_file: /var/run/secrets/kubernetes.io/serviceaccount/token
+        relabel_configs:
+          - action: labelmap
+            regex: __meta_kubernetes_node_label_(.+)
+      {{- end }}
+
+      {{- with .Values.prometheus.additionalScrapeConfigs }}
+      {{- toYaml . | nindent 6 }}
+      {{- end }}
+
+    {{- with .Values.prometheus.config }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
+{{- end }}
