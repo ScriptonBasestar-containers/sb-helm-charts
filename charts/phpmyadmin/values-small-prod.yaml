@@ -1,0 +1,164 @@
+# Small production configuration for phpMyAdmin
+# Suitable for small teams managing multiple MySQL/MariaDB databases
+
+replicaCount: 2
+
+image:
+  repository: phpmyadmin
+  tag: "5.2.1"
+  pullPolicy: IfNotPresent
+
+phpmyadmin:
+  # Disable arbitrary server for security
+  arbitraryServerConnection: false
+  allowArbitraryServer: false
+  
+  # Pre-configured servers (recommended for production)
+  servers:
+    enabled: true
+    config:
+      - host: "mysql-prod.database.svc.cluster.local"
+        port: 3306
+        verbose: "Production MySQL"
+        ssl: true
+      - host: "mysql-staging.database.svc.cluster.local"
+        port: 3306
+        verbose: "Staging MySQL"
+        ssl: false
+  
+  uploadLimit: "128M"
+  maxExecutionTime: 600
+  memoryLimit: "512M"
+  
+  hideDatabases:
+    - information_schema
+    - performance_schema
+    - mysql
+    - sys
+  
+  configurationStorage:
+    enabled: true
+    database: "phpmyadmin"
+
+serviceAccount:
+  create: true
+
+podAnnotations:
+  prometheus.io/scrape: "false"
+
+podSecurityContext:
+  fsGroup: 33
+  runAsUser: 33
+  runAsNonRoot: true
+
+securityContext:
+  allowPrivilegeEscalation: false
+  capabilities:
+    drop:
+    - ALL
+  readOnlyRootFilesystem: false
+  runAsNonRoot: true
+  runAsUser: 33
+
+service:
+  type: ClusterIP
+  port: 80
+
+ingress:
+  enabled: true
+  className: "nginx"
+  annotations:
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/proxy-body-size: "128m"
+    nginx.ingress.kubernetes.io/affinity: "cookie"
+    nginx.ingress.kubernetes.io/session-cookie-name: "pma-session"
+  hosts:
+    - host: phpmyadmin.example.com
+      paths:
+        - path: /
+          pathType: Prefix
+  tls:
+    - secretName: phpmyadmin-tls
+      hosts:
+        - phpmyadmin.example.com
+
+persistence:
+  enabled: true
+  storageClass: "standard"
+  size: 1Gi
+  annotations:
+    backup.velero.io/backup-volumes: "data"
+
+resources:
+  limits:
+    cpu: 1000m
+    memory: 1Gi
+  requests:
+    cpu: 200m
+    memory: 256Mi
+
+podDisruptionBudget:
+  enabled: true
+  minAvailable: 1
+
+affinity:
+  podAntiAffinity:
+    preferredDuringSchedulingIgnoredDuringExecution:
+      - weight: 100
+        podAffinityTerm:
+          labelSelector:
+            matchExpressions:
+              - key: app.kubernetes.io/name
+                operator: In
+                values:
+                  - phpmyadmin
+          topologyKey: kubernetes.io/hostname
+
+readinessProbe:
+  enabled: true
+  initialDelaySeconds: 30
+  periodSeconds: 10
+
+livenessProbe:
+  enabled: true
+  initialDelaySeconds: 60
+  periodSeconds: 20
+
+networkPolicy:
+  enabled: true
+  policyTypes:
+    - Ingress
+    - Egress
+  ingress:
+    - from:
+      - namespaceSelector:
+          matchLabels:
+            name: ingress-nginx
+      ports:
+      - protocol: TCP
+        port: 80
+  egress:
+    - to:
+      - namespaceSelector: {}
+        podSelector:
+          matchLabels:
+            k8s-app: kube-dns
+      ports:
+      - protocol: UDP
+        port: 53
+    - to:
+      - namespaceSelector:
+          matchLabels:
+            name: database
+      ports:
+      - protocol: TCP
+        port: 3306
+    - to:
+      - namespaceSelector: {}
+      ports:
+      - protocol: TCP
+        port: 443
+
+serviceMonitor:
+  enabled: false

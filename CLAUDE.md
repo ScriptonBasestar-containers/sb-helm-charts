@@ -143,6 +143,7 @@ The metadata file serves multiple purposes:
 - **nextcloud**: Nextcloud with LinuxServer.io image (Deployment, PostgreSQL, config-based)
 - **paperless-ngx**: Document management system with OCR (4 PVC architecture)
 - **pgadmin**: pgAdmin web-based PostgreSQL administration tool (Deployment, multi-server support, pre-configuration)
+- **phpmyadmin**: phpMyAdmin web-based MySQL/MariaDB administration tool (Deployment, multi-server support, pre-configuration)
 - **rsshub**: RSS aggregator (well-maintained external chart available)
 - **rustfs**: High-performance S3-compatible object storage (StatefulSet, tiered storage, clustering)
 - **uptime-kuma**: Self-hosted monitoring tool with beautiful UI and 90+ notification services
@@ -633,6 +634,18 @@ make -f make/ops/pgadmin.mk pgadmin-shell
 
 # Operations
 make -f make/ops/pgadmin.mk pgadmin-restart
+```
+
+### phpMyAdmin Specific Commands
+
+```bash
+# Access
+make -f make/ops/phpmyadmin.mk phpmyadmin-port-forward
+
+# Operations
+make -f make/ops/phpmyadmin.mk phpmyadmin-logs
+make -f make/ops/phpmyadmin.mk phpmyadmin-shell
+make -f make/ops/phpmyadmin.mk phpmyadmin-restart
 ```
 
 ### Loki Specific Commands
