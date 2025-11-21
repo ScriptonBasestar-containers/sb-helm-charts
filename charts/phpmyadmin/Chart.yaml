@@ -1,0 +1,20 @@
+apiVersion: v2
+name: phpmyadmin
+description: phpMyAdmin is a web-based MySQL and MariaDB administration tool
+type: application
+version: 0.3.0
+appVersion: "5.2.1"
+keywords:
+  - mysql
+  - mariadb
+  - database
+  - admin
+  - gui
+  - management
+home: https://github.com/scriptonbasestar-container/sb-helm-charts
+sources:
+  - https://github.com/scriptonbasestar-container/sb-helm-charts/tree/master/charts/phpmyadmin
+  - https://www.phpmyadmin.net/
+maintainers:
+  - name: ScriptonBasestar
+    email: scriptonbasestar@gmail.com

@@ -1,0 +1,198 @@
+replicaCount: 1
+
+image:
+  repository: phpmyadmin
+  tag: "5.2.1"
+  pullPolicy: IfNotPresent
+
+imagePullSecrets: []
+nameOverride: ""
+fullnameOverride: ""
+
+# phpMyAdmin configuration
+phpmyadmin:
+  # MySQL/MariaDB connection settings
+  # Option 1: Single host (default)
+  host: ""  # e.g., "mysql.default.svc.cluster.local"
+  port: 3306
+
+  # Option 2: Multiple hosts (arbitrary server connection)
+  arbitraryServerConnection: false
+  allowArbitraryServer: false  # Security: only enable if needed
+
+  # Option 3: Pre-configured servers
+  servers:
+    enabled: false
+    config: []
+    # Example:
+    # - host: "mysql-prod.default.svc.cluster.local"
+    #   port: 3306
+    #   verbose: "Production MySQL"
+    #   ssl: false
+    # - host: "mysql-staging.default.svc.cluster.local"
+    #   port: 3306
+    #   verbose: "Staging MySQL"
+    #   ssl: true
+
+  # Upload/import settings
+  uploadLimit: "128M"
+  maxExecutionTime: 600
+  memoryLimit: "512M"
+
+  # Hide databases from listing
+  hideDatabases: []
+  # - information_schema
+  # - performance_schema
+  # - mysql
+  # - sys
+
+  # Blowfish secret for cookie encryption (auto-generated if empty)
+  blowfishSecret: ""
+
+  # Configuration storage (pmadb)
+  configurationStorage:
+    enabled: false
+    database: "phpmyadmin"
+    # Tables will be auto-created if enabled
+
+  # Extra environment variables
+  extraEnv: []
+  # - name: PMA_CONFIG_KEY
+  #   value: "value"
+
+serviceAccount:
+  create: true
+  annotations: {}
+  name: ""
+
+podAnnotations: {}
+
+podSecurityContext:
+  fsGroup: 33  # www-data
+  runAsUser: 33
+  runAsNonRoot: true
+
+securityContext:
+  allowPrivilegeEscalation: false
+  capabilities:
+    drop:
+    - ALL
+  readOnlyRootFilesystem: false  # phpMyAdmin needs write access for sessions
+  runAsNonRoot: true
+  runAsUser: 33
+
+service:
+  type: ClusterIP
+  port: 80
+  targetPort: 80
+  annotations: {}
+
+ingress:
+  enabled: false
+  className: ""
+  annotations: {}
+    # kubernetes.io/ingress.class: nginx
+    # cert-manager.io/cluster-issuer: letsencrypt-prod
+    # nginx.ingress.kubernetes.io/proxy-body-size: "128m"
+  hosts:
+    - host: phpmyadmin.example.com
+      paths:
+        - path: /
+          pathType: Prefix
+  tls: []
+  #  - secretName: phpmyadmin-tls
+  #    hosts:
+  #      - phpmyadmin.example.com
+
+persistence:
+  enabled: true
+  storageClass: ""
+  accessMode: ReadWriteOnce
+  size: 500Mi
+  annotations: {}
+  # existingClaim: ""
+
+resources:
+  limits:
+    cpu: 500m
+    memory: 512Mi
+  requests:
+    cpu: 100m
+    memory: 128Mi
+
+autoscaling:
+  enabled: false
+  minReplicas: 1
+  maxReplicas: 3
+  targetCPUUtilizationPercentage: 80
+  targetMemoryUtilizationPercentage: 80
+
+nodeSelector: {}
+
+tolerations: []
+
+affinity: {}
+
+# Readiness probe configuration
+readinessProbe:
+  enabled: true
+  httpGet:
+    path: /
+    port: 80
+  initialDelaySeconds: 30
+  periodSeconds: 10
+  timeoutSeconds: 5
+  successThreshold: 1
+  failureThreshold: 3
+
+# Liveness probe configuration
+livenessProbe:
+  enabled: true
+  httpGet:
+    path: /
+    port: 80
+  initialDelaySeconds: 60
+  periodSeconds: 20
+  timeoutSeconds: 5
+  successThreshold: 1
+  failureThreshold: 3
+
+# Network policy
+networkPolicy:
+  enabled: false
+  policyTypes:
+    - Ingress
+    - Egress
+  ingress:
+    - from:
+      - namespaceSelector: {}
+      ports:
+      - protocol: TCP
+        port: 80
+  egress:
+    # Allow DNS
+    - to:
+      - namespaceSelector: {}
+      ports:
+      - protocol: UDP
+        port: 53
+    # Allow MySQL/MariaDB connections
+    - to:
+      - namespaceSelector: {}
+      ports:
+      - protocol: TCP
+        port: 3306
+
+# ServiceMonitor for Prometheus Operator
+serviceMonitor:
+  enabled: false
+  interval: 30s
+  scrapeTimeout: 10s
+  labels: {}
+  relabelings: []
+
+# Pod disruption budget
+podDisruptionBudget:
+  enabled: false
+  minAvailable: 1
+  # maxUnavailable: 1

@@ -1,0 +1,11 @@
+{{- if or .Values.phpmyadmin.servers.enabled .Values.phpmyadmin.configurationStorage.enabled .Values.phpmyadmin.hideDatabases }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "phpmyadmin.fullname" . }}
+  labels:
+    {{- include "phpmyadmin.labels" . | nindent 4 }}
+data:
+  config.user.inc.php: |
+    {{- include "phpmyadmin.serversConfig" . | nindent 4 }}
+{{- end }}

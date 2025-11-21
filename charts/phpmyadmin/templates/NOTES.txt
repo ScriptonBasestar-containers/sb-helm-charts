@@ -1,0 +1,79 @@
+1. Get the phpMyAdmin URL by running:
+
+{{- if .Values.ingress.enabled }}
+{{- range $host := .Values.ingress.hosts }}
+  http{{ if $.Values.ingress.tls }}s{{ end }}://{{ $host.host }}{{ (index $host.paths 0).path }}
+{{- end }}
+{{- else if contains "NodePort" .Values.service.type }}
+  export NODE_PORT=$(kubectl get --namespace {{ .Release.Namespace }} -o jsonpath="{.spec.ports[0].nodePort}" services {{ include "phpmyadmin.fullname" . }})
+  export NODE_IP=$(kubectl get nodes --namespace {{ .Release.Namespace }} -o jsonpath="{.items[0].status.addresses[0].address}")
+  echo http://$NODE_IP:$NODE_PORT
+{{- else if contains "LoadBalancer" .Values.service.type }}
+     NOTE: It may take a few minutes for the LoadBalancer IP to be available.
+           You can watch the status by running 'kubectl get --namespace {{ .Release.Namespace }} svc -w {{ include "phpmyadmin.fullname" . }}'
+  export SERVICE_IP=$(kubectl get svc --namespace {{ .Release.Namespace }} {{ include "phpmyadmin.fullname" . }} --template "{{"{{ range (index .status.loadBalancer.ingress 0) }}{{.}}{{ end }}"}}")
+  echo http://$SERVICE_IP:{{ .Values.service.port }}
+{{- else if contains "ClusterIP" .Values.service.type }}
+  kubectl port-forward --namespace {{ .Release.Namespace }} svc/{{ include "phpmyadmin.fullname" . }} 8080:{{ .Values.service.port }}
+  echo "Visit http://127.0.0.1:8080 to use phpMyAdmin"
+{{- end }}
+
+2. MySQL/MariaDB Connection:
+{{- if .Values.phpmyadmin.servers.enabled }}
+   {{ len .Values.phpmyadmin.servers.config }} server(s) have been pre-configured.
+   Select a server from the dropdown and login with your database credentials.
+{{- else if .Values.phpmyadmin.arbitraryServerConnection }}
+   Arbitrary server connection is enabled.
+   - Server: Enter your MySQL/MariaDB host
+   - Username: Your database username
+   - Password: Your database password
+{{- else }}
+   Default server: {{ .Values.phpmyadmin.host }}:{{ .Values.phpmyadmin.port }}
+   - Username: Your database username (e.g., root)
+   - Password: Your database password
+{{- end }}
+
+3. Upload/Import limits:
+   - Max upload size: {{ .Values.phpmyadmin.uploadLimit }}
+   - Max execution time: {{ .Values.phpmyadmin.maxExecutionTime }}s
+   - Memory limit: {{ .Values.phpmyadmin.memoryLimit }}
+
+{{- if .Values.persistence.enabled }}
+
+4. Data persistence:
+   Session data is persisted to PVC: {{ .Values.persistence.existingClaim | default (include "phpmyadmin.fullname" .) }}
+   - Size: {{ .Values.persistence.size }}
+   - Access Mode: {{ .Values.persistence.accessMode }}
+{{- else }}
+
+4. Data persistence:
+   WARNING: Persistence is disabled. Session data will be lost when the pod restarts.
+   Enable persistence by setting 'persistence.enabled=true' in values.yaml
+{{- end }}
+
+5. Security recommendations:
+   - Use HTTPS (configure Ingress with TLS)
+   - Restrict network access using NetworkPolicy
+   - Use read-only database accounts where possible
+   - Never expose phpMyAdmin to the public internet without authentication
+   - Consider using IP whitelisting in Ingress annotations
+   - Regularly update the phpMyAdmin image for security patches
+
+{{- if not .Values.phpmyadmin.blowfishSecret }}
+
+6. Blowfish secret:
+   A random blowfish secret has been generated for cookie encryption.
+   To use a custom secret, set 'phpmyadmin.blowfishSecret' in values.yaml
+{{- end }}
+
+{{- if .Values.phpmyadmin.configurationStorage.enabled }}
+
+7. Configuration storage:
+   phpMyAdmin configuration storage is enabled.
+   Make sure the '{{ .Values.phpmyadmin.configurationStorage.database }}' database exists
+   and the tables are created. See phpMyAdmin documentation for setup.
+{{- end }}
+
+For more information, visit:
+- phpMyAdmin documentation: https://docs.phpmyadmin.net/
+- Chart repository: {{ index .Chart.Sources 0 }}

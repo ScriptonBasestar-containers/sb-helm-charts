@@ -153,6 +153,14 @@ charts:
     keywords: [postgresql, database, admin, gui, management]
     description: pgAdmin is a web-based PostgreSQL administration and management tool
 
+  phpmyadmin:
+    name: phpMyAdmin
+    path: charts/phpmyadmin
+    category: application
+    tags: [Database, MySQL, Admin-Tool]
+    keywords: [mysql, mariadb, database, admin, gui, management]
+    description: phpMyAdmin is a web-based MySQL and MariaDB administration tool
+
   loki:
     name: Loki
     path: charts/loki

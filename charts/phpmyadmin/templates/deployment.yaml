@@ -1,0 +1,121 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "phpmyadmin.fullname" . }}
+  labels:
+    {{- include "phpmyadmin.labels" . | nindent 4 }}
+spec:
+  {{- if not .Values.autoscaling.enabled }}
+  replicas: {{ .Values.replicaCount }}
+  {{- end }}
+  selector:
+    matchLabels:
+      {{- include "phpmyadmin.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      annotations:
+        checksum/config: {{ include (print $.Template.BasePath "/configmap.yaml") . | sha256sum }}
+        checksum/secret: {{ include (print $.Template.BasePath "/secret.yaml") . | sha256sum }}
+        {{- with .Values.podAnnotations }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+      labels:
+        {{- include "phpmyadmin.selectorLabels" . | nindent 8 }}
+    spec:
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      serviceAccountName: {{ include "phpmyadmin.serviceAccountName" . }}
+      securityContext:
+        {{- toYaml .Values.podSecurityContext | nindent 8 }}
+      containers:
+      - name: phpmyadmin
+        securityContext:
+          {{- toYaml .Values.securityContext | nindent 10 }}
+        image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+        imagePullPolicy: {{ .Values.image.pullPolicy }}
+        env:
+        {{- if .Values.phpmyadmin.servers.enabled }}
+        - name: PMA_ABSOLUTE_URI
+          value: "/"
+        {{- else if .Values.phpmyadmin.arbitraryServerConnection }}
+        - name: PMA_ARBITRARY
+          value: "1"
+        {{- else }}
+        - name: PMA_HOST
+          value: {{ .Values.phpmyadmin.host | quote }}
+        - name: PMA_PORT
+          value: {{ .Values.phpmyadmin.port | quote }}
+        {{- end }}
+        - name: UPLOAD_LIMIT
+          value: {{ .Values.phpmyadmin.uploadLimit | quote }}
+        - name: MAX_EXECUTION_TIME
+          value: {{ .Values.phpmyadmin.maxExecutionTime | quote }}
+        - name: MEMORY_LIMIT
+          value: {{ .Values.phpmyadmin.memoryLimit | quote }}
+        - name: PMA_BLOWFISH_SECRET
+          valueFrom:
+            secretKeyRef:
+              name: {{ include "phpmyadmin.fullname" . }}
+              key: blowfish-secret
+        {{- with .Values.phpmyadmin.extraEnv }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+        ports:
+        - name: http
+          containerPort: 80
+          protocol: TCP
+        {{- if .Values.livenessProbe.enabled }}
+        livenessProbe:
+          {{- toYaml .Values.livenessProbe.httpGet | nindent 10 }}
+          initialDelaySeconds: {{ .Values.livenessProbe.initialDelaySeconds }}
+          periodSeconds: {{ .Values.livenessProbe.periodSeconds }}
+          timeoutSeconds: {{ .Values.livenessProbe.timeoutSeconds }}
+          successThreshold: {{ .Values.livenessProbe.successThreshold }}
+          failureThreshold: {{ .Values.livenessProbe.failureThreshold }}
+        {{- end }}
+        {{- if .Values.readinessProbe.enabled }}
+        readinessProbe:
+          {{- toYaml .Values.readinessProbe.httpGet | nindent 10 }}
+          initialDelaySeconds: {{ .Values.readinessProbe.initialDelaySeconds }}
+          periodSeconds: {{ .Values.readinessProbe.periodSeconds }}
+          timeoutSeconds: {{ .Values.readinessProbe.timeoutSeconds }}
+          successThreshold: {{ .Values.readinessProbe.successThreshold }}
+          failureThreshold: {{ .Values.readinessProbe.failureThreshold }}
+        {{- end }}
+        resources:
+          {{- toYaml .Values.resources | nindent 10 }}
+        volumeMounts:
+        - name: data
+          mountPath: /sessions
+        {{- if or .Values.phpmyadmin.servers.enabled .Values.phpmyadmin.configurationStorage.enabled .Values.phpmyadmin.hideDatabases }}
+        - name: config
+          mountPath: /etc/phpmyadmin/config.user.inc.php
+          subPath: config.user.inc.php
+        {{- end }}
+      volumes:
+      - name: data
+        {{- if .Values.persistence.enabled }}
+        persistentVolumeClaim:
+          claimName: {{ .Values.persistence.existingClaim | default (include "phpmyadmin.fullname" .) }}
+        {{- else }}
+        emptyDir: {}
+        {{- end }}
+      {{- if or .Values.phpmyadmin.servers.enabled .Values.phpmyadmin.configurationStorage.enabled .Values.phpmyadmin.hideDatabases }}
+      - name: config
+        configMap:
+          name: {{ include "phpmyadmin.fullname" . }}
+      {{- end }}
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
