@@ -1,0 +1,77 @@
+# Development values for node-exporter
+# This configuration is optimized for local development and testing
+
+image:
+  repository: prom/node-exporter
+  pullPolicy: IfNotPresent
+  tag: "v1.7.0"
+
+hostNetwork: true
+hostPID: true
+
+collectors:
+  enabled: true
+  enable: []
+  disable:
+    - ipvs
+
+extraArgs: []
+
+serviceAccount:
+  create: true
+
+podSecurityContext:
+  runAsUser: 65534
+  runAsNonRoot: true
+  fsGroup: 65534
+
+securityContext:
+  readOnlyRootFilesystem: true
+  allowPrivilegeEscalation: false
+  capabilities:
+    drop:
+      - ALL
+
+service:
+  type: ClusterIP
+  port: 9100
+  annotations:
+    prometheus.io/scrape: "true"
+    prometheus.io/port: "9100"
+
+serviceMonitor:
+  enabled: false
+
+# Reduced resources for development
+resources:
+  limits:
+    cpu: 200m
+    memory: 128Mi
+  requests:
+    cpu: 50m
+    memory: 32Mi
+
+livenessProbe:
+  initialDelaySeconds: 10
+  periodSeconds: 10
+  timeoutSeconds: 1
+  failureThreshold: 3
+
+readinessProbe:
+  initialDelaySeconds: 10
+  periodSeconds: 10
+  timeoutSeconds: 1
+  failureThreshold: 3
+
+updateStrategy:
+  type: RollingUpdate
+  rollingUpdate:
+    maxUnavailable: 1
+
+nodeSelector: {}
+
+tolerations:
+  - effect: NoSchedule
+    operator: Exists
+
+affinity: {}

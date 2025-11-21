@@ -1,0 +1,99 @@
+# Small production values for node-exporter
+# This configuration is optimized for production deployments
+
+image:
+  repository: prom/node-exporter
+  pullPolicy: IfNotPresent
+  tag: "v1.7.0"
+
+hostNetwork: true
+hostPID: true
+
+collectors:
+  enabled: true
+  # Enable additional collectors for production monitoring
+  enable:
+    - processes  # Process metrics
+  disable:
+    - ipvs  # Disable if not using IPVS
+
+# Exclude common mount points and filesystem types
+extraArgs:
+  - --collector.filesystem.mount-points-exclude=^/(dev|proc|sys|var/lib/docker/.+|var/lib/kubelet/.+)($|/)
+  - --collector.filesystem.fs-types-exclude=^(autofs|binfmt_misc|bpf|cgroup2?|configfs|debugfs|devpts|devtmpfs|fusectl|hugetlbfs|iso9660|mqueue|nsfs|overlay|proc|procfs|pstore|rpc_pipefs|securityfs|selinuxfs|squashfs|sysfs|tracefs)$
+
+serviceAccount:
+  create: true
+
+podSecurityContext:
+  runAsUser: 65534
+  runAsNonRoot: true
+  fsGroup: 65534
+
+securityContext:
+  readOnlyRootFilesystem: true
+  allowPrivilegeEscalation: false
+  capabilities:
+    drop:
+      - ALL
+
+service:
+  type: ClusterIP
+  port: 9100
+  annotations:
+    prometheus.io/scrape: "true"
+    prometheus.io/port: "9100"
+
+# Enable ServiceMonitor for Prometheus Operator
+serviceMonitor:
+  enabled: true
+  interval: 30s
+  scrapeTimeout: 10s
+  labels:
+    prometheus: kube-prometheus
+  # Drop high-cardinality labels
+  metricRelabelings:
+    - sourceLabels: [__name__]
+      regex: 'node_cpu_.*'
+      action: drop
+      # Optionally drop specific high-cardinality CPU metrics
+
+# Production resources
+resources:
+  limits:
+    cpu: 500m
+    memory: 256Mi
+  requests:
+    cpu: 200m
+    memory: 128Mi
+
+livenessProbe:
+  initialDelaySeconds: 10
+  periodSeconds: 10
+  timeoutSeconds: 1
+  failureThreshold: 5
+
+readinessProbe:
+  initialDelaySeconds: 10
+  periodSeconds: 10
+  timeoutSeconds: 1
+  failureThreshold: 5
+
+updateStrategy:
+  type: RollingUpdate
+  rollingUpdate:
+    maxUnavailable: 1
+
+nodeSelector: {}
+
+# Tolerate all taints to ensure metrics are collected from all nodes
+tolerations:
+  - effect: NoSchedule
+    operator: Exists
+  - effect: NoExecute
+    operator: Exists
+
+affinity: {}
+
+# Use high priority to ensure Node Exporter runs even under resource pressure
+priorityClassName: "system-node-critical"

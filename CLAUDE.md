@@ -163,6 +163,7 @@ The metadata file serves multiple purposes:
   - ⚠️ For production HA, consider MongoDB Operator ([Community](https://github.com/mongodb/mongodb-kubernetes-operator), [Enterprise](https://www.mongodb.com/docs/kubernetes-operator/), [Percona](https://github.com/percona/percona-server-mongodb-operator))
 - **mysql**: MySQL relational database with replication support (StatefulSet, master-replica mode)
   - ⚠️ For production HA, consider MySQL Operator ([Oracle](https://github.com/mysql/mysql-operator), [Percona](https://github.com/percona/percona-server-mysql-operator), [Vitess](https://vitess.io/))
+- **node-exporter**: Prometheus Node Exporter for hardware and OS metrics (DaemonSet, hostNetwork/hostPID, ServiceMonitor)
 - **postgresql**: PostgreSQL relational database with replication support (StatefulSet, primary-replica mode)
   - ⚠️ For production HA, consider PostgreSQL Operator ([Zalando](https://github.com/zalando/postgres-operator), [Crunchy Data](https://github.com/CrunchyData/postgres-operator), [CloudNativePG](https://cloudnative-pg.io/))
 - **prometheus**: Prometheus monitoring system and time series database (StatefulSet, Kubernetes SD, TSDB)
@@ -674,6 +675,40 @@ make -f make/ops/promtail.mk promtail-debug
 
 # Operations
 make -f make/ops/promtail.mk promtail-restart
+```
+
+### Node Exporter Specific Commands
+
+```bash
+# Basic operations
+make -f make/ops/node-exporter.mk ne-logs
+make -f make/ops/node-exporter.mk ne-logs-node NODE=node-name
+make -f make/ops/node-exporter.mk ne-shell
+make -f make/ops/node-exporter.mk ne-shell-node NODE=node-name
+
+# Health and status
+make -f make/ops/node-exporter.mk ne-status
+make -f make/ops/node-exporter.mk ne-version
+make -f make/ops/node-exporter.mk ne-metrics
+make -f make/ops/node-exporter.mk ne-metrics-node NODE=node-name
+
+# Node operations
+make -f make/ops/node-exporter.mk ne-list-nodes
+make -f make/ops/node-exporter.mk ne-pod-on-node NODE=node-name
+
+# Metrics queries
+make -f make/ops/node-exporter.mk ne-cpu-metrics
+make -f make/ops/node-exporter.mk ne-memory-metrics
+make -f make/ops/node-exporter.mk ne-disk-metrics
+make -f make/ops/node-exporter.mk ne-network-metrics
+make -f make/ops/node-exporter.mk ne-load-metrics
+
+# Port forward
+make -f make/ops/node-exporter.mk ne-port-forward
+make -f make/ops/node-exporter.mk ne-port-forward-node NODE=node-name
+
+# Operations
+make -f make/ops/node-exporter.mk ne-restart
 ```
 
 ### MinIO Specific Commands
