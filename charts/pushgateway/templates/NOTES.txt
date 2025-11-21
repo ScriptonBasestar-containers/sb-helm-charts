@@ -1,0 +1,68 @@
+1. Get the Pushgateway URL by running:
+
+{{- if .Values.ingress.enabled }}
+{{- range $host := .Values.ingress.hosts }}
+  http{{ if $.Values.ingress.tls }}s{{ end }}://{{ $host.host }}{{ (index $host.paths 0).path }}
+{{- end }}
+{{- else if contains "NodePort" .Values.service.type }}
+  export NODE_PORT=$(kubectl get --namespace {{ .Release.Namespace }} -o jsonpath="{.spec.ports[0].nodePort}" services {{ include "pushgateway.fullname" . }})
+  export NODE_IP=$(kubectl get nodes --namespace {{ .Release.Namespace }} -o jsonpath="{.items[0].status.addresses[0].address}")
+  echo http://$NODE_IP:$NODE_PORT
+{{- else if contains "LoadBalancer" .Values.service.type }}
+     NOTE: It may take a few minutes for the LoadBalancer IP to be available.
+           You can watch the status by running 'kubectl get --namespace {{ .Release.Namespace }} svc -w {{ include "pushgateway.fullname" . }}'
+  export SERVICE_IP=$(kubectl get svc --namespace {{ .Release.Namespace }} {{ include "pushgateway.fullname" . }} --template "{{"{{ range (index .status.loadBalancer.ingress 0) }}{{.}}{{ end }}"}}")
+  echo http://$SERVICE_IP:{{ .Values.service.port }}
+{{- else if contains "ClusterIP" .Values.service.type }}
+  kubectl port-forward --namespace {{ .Release.Namespace }} svc/{{ include "pushgateway.fullname" . }} 9091:{{ .Values.service.port }}
+  echo "Visit http://127.0.0.1:9091 to use Pushgateway"
+{{- end }}
+
+2. Push metrics to Pushgateway:
+
+   # Using curl
+   echo "some_metric 3.14" | curl --data-binary @- http://{{ include "pushgateway.fullname" . }}.{{ .Release.Namespace }}.svc.cluster.local:{{ .Values.service.port }}/metrics/job/some_job
+
+   # Using Prometheus client library (Python example)
+   from prometheus_client import CollectorRegistry, Gauge, push_to_gateway
+   registry = CollectorRegistry()
+   g = Gauge('job_last_success_unixtime', 'Last time a batch job successfully finished', registry=registry)
+   g.set_to_current_time()
+   push_to_gateway('{{ include "pushgateway.fullname" . }}.{{ .Release.Namespace }}.svc.cluster.local:{{ .Values.service.port }}', job='batch_job', registry=registry)
+
+3. Configure Prometheus to scrape Pushgateway:
+
+   scrape_configs:
+     - job_name: 'pushgateway'
+       honor_labels: true
+       static_configs:
+         - targets: ['{{ include "pushgateway.fullname" . }}.{{ .Release.Namespace }}.svc.cluster.local:{{ .Values.service.port }}']
+
+{{- if .Values.serviceMonitor.enabled }}
+
+4. ServiceMonitor is enabled. Prometheus Operator will automatically discover and scrape this Pushgateway instance.
+{{- end }}
+
+{{- if .Values.persistence.enabled }}
+
+5. Persistence is enabled:
+   Metrics are persisted to PVC: {{ .Values.persistence.existingClaim | default (include "pushgateway.fullname" .) }}
+   - Size: {{ .Values.persistence.size }}
+   - Access Mode: {{ .Values.persistence.accessMode }}
+{{- else }}
+
+5. Persistence is disabled:
+   WARNING: Metrics will be lost when the pod restarts.
+   Enable persistence by setting 'persistence.enabled=true' for production use.
+{{- end }}
+
+6. Security recommendations:
+   - Use authentication/authorization (consider using Ingress with OAuth proxy)
+   - Restrict network access using NetworkPolicy
+   - Never expose Pushgateway directly to the public internet
+   - Use labels to identify metric sources
+   - Set up alerts for stale metrics
+
+For more information, visit:
+- Pushgateway documentation: https://prometheus.io/docs/practices/pushing/
+- Chart repository: {{ index .Chart.Sources 0 }}

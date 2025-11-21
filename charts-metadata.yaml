@@ -1,301 +1,609 @@
-# Chart Metadata
-# This file contains metadata for all charts in the repository
-# Used for search, categorization, and documentation generation
-#
-# When adding or modifying charts:
-# 1. Update this file with chart metadata (name, path, tags, keywords)
-# 2. Ensure Chart.yaml has matching keywords
-# 3. Update CLAUDE.md Available Charts section if needed
-
 charts:
-  # Application Charts (Self-Hosted)
   uptime-kuma:
     name: Uptime Kuma
     path: charts/uptime-kuma
     category: application
-    tags: [Monitoring, Alerting, Status-Page]
-    keywords: [uptime-kuma, monitoring, uptime, status-page, alerting, self-hosted, notifications, health-check]
-    description: Self-hosted monitoring tool with beautiful UI and 90+ notification services
-
+    tags:
+    - Monitoring
+    - Alerting
+    - Status-Page
+    keywords:
+    - uptime-kuma
+    - monitoring
+    - uptime
+    - status-page
+    - alerting
+    - self-hosted
+    - notifications
+    - health-check
+    description: Self-hosted monitoring tool with beautiful UI and 90+ notification
+      services
   jellyfin:
     name: Jellyfin
     path: charts/jellyfin
     category: application
-    tags: [Media, Streaming, HomeLab]
-    keywords: [jellyfin, media-server, streaming, plex-alternative, transcoding, gpu-acceleration]
+    tags:
+    - Media
+    - Streaming
+    - HomeLab
+    keywords:
+    - jellyfin
+    - media-server
+    - streaming
+    - plex-alternative
+    - transcoding
+    - gpu-acceleration
     description: Media server with hardware transcoding support
-
   mlflow:
     name: MLflow
     path: charts/mlflow
     category: application
-    tags: [ML, MLOps, AI]
-    keywords: [mlflow, machine-learning, ml, experiment-tracking, model-registry, mlops]
-    description: MLflow experiment tracking and model registry platform (Deployment, PostgreSQL, MinIO)
-
+    tags:
+    - ML
+    - MLOps
+    - AI
+    keywords:
+    - mlflow
+    - machine-learning
+    - ml
+    - experiment-tracking
+    - model-registry
+    - mlops
+    description: MLflow experiment tracking and model registry platform (Deployment,
+      PostgreSQL, MinIO)
   immich:
     name: Immich
     path: charts/immich
     category: application
-    tags: [Photo, Media, AI]
-    keywords: [immich, photos, media, gallery, ai, machine-learning]
+    tags:
+    - Photo
+    - Media
+    - AI
+    keywords:
+    - immich
+    - photos
+    - media
+    - gallery
+    - ai
+    - machine-learning
     description: AI-powered photo and video management
-
   paperless-ngx:
     name: Paperless-ngx
     path: charts/paperless-ngx
     category: application
-    tags: [Document, Productivity]
-    keywords: [paperless, document-management, ocr, dms]
+    tags:
+    - Document
+    - Productivity
+    keywords:
+    - paperless
+    - document-management
+    - ocr
+    - dms
     description: Document management system with OCR (4 PVC architecture)
-
   vaultwarden:
     name: Vaultwarden
     path: charts/vaultwarden
     category: application
-    tags: [Password, Security]
-    keywords: [vaultwarden, bitwarden, password-manager, secrets, security]
+    tags:
+    - Password
+    - Security
+    keywords:
+    - vaultwarden
+    - bitwarden
+    - password-manager
+    - secrets
+    - security
     description: Bitwarden-compatible password manager
-
   keycloak:
     name: Keycloak
     path: charts/keycloak
     category: application
-    tags: [IAM, Security, SSO]
-    keywords: [keycloak, identity, access-management, authentication, authorization, sso, iam]
+    tags:
+    - IAM
+    - Security
+    - SSO
+    keywords:
+    - keycloak
+    - identity
+    - access-management
+    - authentication
+    - authorization
+    - sso
+    - iam
     description: IAM solution (StatefulSet, PostgreSQL, clustering, realm management)
-
   wireguard:
     name: WireGuard
     path: charts/wireguard
     category: application
-    tags: [VPN, Security, Networking]
-    keywords: [wireguard, vpn, network, security, tunnel]
+    tags:
+    - VPN
+    - Security
+    - Networking
+    keywords:
+    - wireguard
+    - vpn
+    - network
+    - security
+    - tunnel
     description: VPN solution (Deployment, no database, UDP service, NET_ADMIN capabilities)
-
   wordpress:
     name: WordPress
     path: charts/wordpress
     category: application
-    tags: [CMS, Web, Publishing]
-    keywords: [wordpress, blog, cms, php, content-management, website, publishing]
+    tags:
+    - CMS
+    - Web
+    - Publishing
+    keywords:
+    - wordpress
+    - blog
+    - cms
+    - php
+    - content-management
+    - website
+    - publishing
     description: WordPress CMS (Deployment, MySQL, Apache)
-
   nextcloud:
     name: Nextcloud
     path: charts/nextcloud
     category: application
-    tags: [CMS, Productivity, Collaboration]
-    keywords: [nextcloud, cloud-storage, file-sync, collaboration, productivity, self-hosted, calendar, contacts]
+    tags:
+    - CMS
+    - Productivity
+    - Collaboration
+    keywords:
+    - nextcloud
+    - cloud-storage
+    - file-sync
+    - collaboration
+    - productivity
+    - self-hosted
+    - calendar
+    - contacts
     description: Nextcloud with LinuxServer.io image (Deployment, PostgreSQL, config-based)
-
   rustfs:
     name: RustFS
     path: charts/rustfs
     category: application
-    tags: [Storage, S3, Object-Storage]
-    keywords: [rustfs, object-storage, s3, minio-alternative, rust]
-    description: High-performance S3-compatible object storage (StatefulSet, tiered storage, clustering)
-
+    tags:
+    - Storage
+    - S3
+    - Object-Storage
+    keywords:
+    - rustfs
+    - object-storage
+    - s3
+    - minio-alternative
+    - rust
+    description: High-performance S3-compatible object storage (StatefulSet, tiered
+      storage, clustering)
   rsshub:
     name: RSSHub
     path: charts/rsshub
     category: application
-    tags: [RSS, Aggregator]
-    keywords: [rsshub, rss, feed, aggregator, social-media, news, content-aggregation]
+    tags:
+    - RSS
+    - Aggregator
+    keywords:
+    - rsshub
+    - rss
+    - feed
+    - aggregator
+    - social-media
+    - news
+    - content-aggregation
     description: RSS aggregator (well-maintained external chart available)
-
   airflow:
     name: Apache Airflow
     path: charts/airflow
     category: application
-    tags: [Workflow, Orchestration, Data-Pipeline]
-    keywords: [airflow, workflow, orchestration, data-pipeline, scheduler, dag]
-    description: Opinionated Apache Airflow chart with KubernetesExecutor for workflow orchestration
-
+    tags:
+    - Workflow
+    - Orchestration
+    - Data-Pipeline
+    keywords:
+    - airflow
+    - workflow
+    - orchestration
+    - data-pipeline
+    - scheduler
+    - dag
+    description: Opinionated Apache Airflow chart with KubernetesExecutor for workflow
+      orchestration
   browserless-chrome:
     name: Browserless Chrome
     path: charts/browserless-chrome
     category: application
-    tags: [Browser, Automation, Headless]
-    keywords: [browserless, chrome, chromium, headless-browser, web-scraping, automation, puppeteer, playwright]
+    tags:
+    - Browser
+    - Automation
+    - Headless
+    keywords:
+    - browserless
+    - chrome
+    - chromium
+    - headless-browser
+    - web-scraping
+    - automation
+    - puppeteer
+    - playwright
     description: Headless browser for crawling
-
   devpi:
     name: Devpi
     path: charts/devpi
     category: application
-    tags: [Python, Package-Index, Development]
-    keywords: [devpi, python, pypi, package-index, private-registry, package-mirror]
+    tags:
+    - Python
+    - Package-Index
+    - Development
+    keywords:
+    - devpi
+    - python
+    - pypi
+    - package-index
+    - private-registry
+    - package-mirror
     description: Python package index
-
   harbor:
     name: Harbor
     path: charts/harbor
     category: application
-    tags: [Registry, Container, Security]
-    keywords: [harbor, registry, docker, container, security, vulnerability-scanning]
-    description: Private container registry with vulnerability scanning and image signing
-
+    tags:
+    - Registry
+    - Container
+    - Security
+    keywords:
+    - harbor
+    - registry
+    - docker
+    - container
+    - security
+    - vulnerability-scanning
+    description: Private container registry with vulnerability scanning and image
+      signing
   grafana:
     name: Grafana
     path: charts/grafana
     category: application
-    tags: [Monitoring, Visualization, Observability]
-    keywords: [grafana, monitoring, metrics, visualization, dashboard, observability]
+    tags:
+    - Monitoring
+    - Visualization
+    - Observability
+    keywords:
+    - grafana
+    - monitoring
+    - metrics
+    - visualization
+    - dashboard
+    - observability
     description: Grafana metrics visualization and dashboarding platform
-
   pgadmin:
     name: pgAdmin
     path: charts/pgadmin
     category: application
-    tags: [Database, PostgreSQL, Admin-Tool]
-    keywords: [postgresql, database, admin, gui, management]
+    tags:
+    - Database
+    - PostgreSQL
+    - Admin-Tool
+    keywords:
+    - postgresql
+    - database
+    - admin
+    - gui
+    - management
     description: pgAdmin is a web-based PostgreSQL administration and management tool
-
   phpmyadmin:
     name: phpMyAdmin
     path: charts/phpmyadmin
     category: application
-    tags: [Database, MySQL, Admin-Tool]
-    keywords: [mysql, mariadb, database, admin, gui, management]
+    tags:
+    - Database
+    - MySQL
+    - Admin-Tool
+    keywords:
+    - mysql
+    - mariadb
+    - database
+    - admin
+    - gui
+    - management
     description: phpMyAdmin is a web-based MySQL and MariaDB administration tool
-
   loki:
     name: Loki
     path: charts/loki
     category: application
-    tags: [Logging, Observability, Monitoring]
-    keywords: [loki, logging, logs, observability, grafana, promtail]
+    tags:
+    - Logging
+    - Observability
+    - Monitoring
+    keywords:
+    - loki
+    - logging
+    - logs
+    - observability
+    - grafana
+    - promtail
     description: Loki log aggregation system with Grafana integration
-
-  # Infrastructure Charts (Dev/Test - Consider Operators for Production)
   alertmanager:
     name: Alertmanager
     path: charts/alertmanager
     category: infrastructure
-    tags: [Monitoring, Alerting, Observability]
-    keywords: [alertmanager, prometheus, monitoring, alerting, notifications, observability]
-    description: Prometheus Alertmanager for alert routing and notification with high availability support
-
+    tags:
+    - Monitoring
+    - Alerting
+    - Observability
+    keywords:
+    - alertmanager
+    - prometheus
+    - monitoring
+    - alerting
+    - notifications
+    - observability
+    description: Prometheus Alertmanager for alert routing and notification with high
+      availability support
   kube-state-metrics:
     name: Kube State Metrics
     path: charts/kube-state-metrics
     category: infrastructure
-    tags: [Monitoring, Metrics, Kubernetes]
-    keywords: [kube-state-metrics, kubernetes, monitoring, metrics, prometheus, observability]
-    description: Kube State Metrics exposes Kubernetes object state as Prometheus metrics
-
+    tags:
+    - Monitoring
+    - Metrics
+    - Kubernetes
+    keywords:
+    - kube-state-metrics
+    - kubernetes
+    - monitoring
+    - metrics
+    - prometheus
+    - observability
+    description: Kube State Metrics exposes Kubernetes object state as Prometheus
+      metrics
   blackbox-exporter:
     name: Blackbox Exporter
     path: charts/blackbox-exporter
     category: infrastructure
-    tags: [Monitoring, Probing, Health-Check]
-    keywords: [blackbox-exporter, prometheus, monitoring, probing, health-check, observability]
-    description: Blackbox Exporter for probing endpoints over HTTP, HTTPS, DNS, TCP, and ICMP
-
+    tags:
+    - Monitoring
+    - Probing
+    - Health-Check
+    keywords:
+    - blackbox-exporter
+    - prometheus
+    - monitoring
+    - probing
+    - health-check
+    - observability
+    description: Blackbox Exporter for probing endpoints over HTTP, HTTPS, DNS, TCP,
+      and ICMP
   redis:
     name: Redis
     path: charts/redis
     category: infrastructure
-    tags: [Cache, Database, In-Memory]
-    keywords: [redis, cache, database, nosql, key-value, in-memory, data-structure]
-    description: In-memory data store (StatefulSet, no external database, full redis.conf support)
-    production_note: "For production HA, consider Spotahome Redis Operator"
-
+    tags:
+    - Cache
+    - Database
+    - In-Memory
+    keywords:
+    - redis
+    - cache
+    - database
+    - nosql
+    - key-value
+    - in-memory
+    - data-structure
+    description: In-memory data store (StatefulSet, no external database, full redis.conf
+      support)
+    production_note: For production HA, consider Spotahome Redis Operator
   memcached:
     name: Memcached
     path: charts/memcached
     category: infrastructure
-    tags: [Cache, Distributed, In-Memory]
-    keywords: [memcached, cache, memory, performance]
-    description: High-performance distributed memory caching system (Deployment, no database)
-    production_note: "For production, consider Memcached Operator"
-
+    tags:
+    - Cache
+    - Distributed
+    - In-Memory
+    keywords:
+    - memcached
+    - cache
+    - memory
+    - performance
+    description: High-performance distributed memory caching system (Deployment, no
+      database)
+    production_note: For production, consider Memcached Operator
   rabbitmq:
     name: RabbitMQ
     path: charts/rabbitmq
     category: infrastructure
-    tags: [Message-Queue, AMQP, Messaging]
-    keywords: [rabbitmq, message-queue, amqp, messaging, broker, message-broker]
-    description: Message broker with management UI (Deployment, no database, AMQP + Prometheus metrics)
-    production_note: "For production clustering, consider RabbitMQ Cluster Operator"
-
+    tags:
+    - Message-Queue
+    - AMQP
+    - Messaging
+    keywords:
+    - rabbitmq
+    - message-queue
+    - amqp
+    - messaging
+    - broker
+    - message-broker
+    description: Message broker with management UI (Deployment, no database, AMQP
+      + Prometheus metrics)
+    production_note: For production clustering, consider RabbitMQ Cluster Operator
   minio:
     name: MinIO
     path: charts/minio
     category: infrastructure
-    tags: [Storage, S3, Object-Storage]
-    keywords: [minio, object-storage, s3, aws-s3-compatible, distributed-storage, erasure-coding]
-    description: High-performance S3-compatible object storage (StatefulSet, distributed mode, erasure coding)
-    production_note: "For production HA, consider MinIO Operator for advanced features"
-
+    tags:
+    - Storage
+    - S3
+    - Object-Storage
+    keywords:
+    - minio
+    - object-storage
+    - s3
+    - aws-s3-compatible
+    - distributed-storage
+    - erasure-coding
+    description: High-performance S3-compatible object storage (StatefulSet, distributed
+      mode, erasure coding)
+    production_note: For production HA, consider MinIO Operator for advanced features
   postgresql:
     name: PostgreSQL
     path: charts/postgresql
     category: infrastructure
-    tags: [Database, SQL, Relational]
-    keywords: [postgresql, postgres, database, sql, replication, backup]
-    description: PostgreSQL relational database with replication support (StatefulSet, primary-replica mode)
-    production_note: "For production HA, consider PostgreSQL Operator (Zalando, Crunchy Data, CloudNativePG)"
-
+    tags:
+    - Database
+    - SQL
+    - Relational
+    keywords:
+    - postgresql
+    - postgres
+    - database
+    - sql
+    - replication
+    - backup
+    description: PostgreSQL relational database with replication support (StatefulSet,
+      primary-replica mode)
+    production_note: For production HA, consider PostgreSQL Operator (Zalando, Crunchy
+      Data, CloudNativePG)
   prometheus:
     name: Prometheus
     path: charts/prometheus
     category: infrastructure
-    tags: [Monitoring, Metrics, Observability]
-    keywords: [prometheus, monitoring, metrics, timeseries, alerting, observability]
+    tags:
+    - Monitoring
+    - Metrics
+    - Observability
+    keywords:
+    - prometheus
+    - monitoring
+    - metrics
+    - timeseries
+    - alerting
+    - observability
     description: Prometheus monitoring system and time series database for Kubernetes
-    production_note: "For large-scale production with advanced features, consider Prometheus Operator"
-
+    production_note: For large-scale production with advanced features, consider Prometheus
+      Operator
   promtail:
     name: Promtail
     path: charts/promtail
     category: infrastructure
-    tags: [Logging, Log-Collection, Observability]
-    keywords: [promtail, loki, logging, logs, log-collection, observability]
+    tags:
+    - Logging
+    - Log-Collection
+    - Observability
+    keywords:
+    - promtail
+    - loki
+    - logging
+    - logs
+    - log-collection
+    - observability
     description: Promtail log collection agent for Loki with Kubernetes integration
-
   node-exporter:
     name: Node Exporter
     path: charts/node-exporter
     category: infrastructure
-    tags: [Monitoring, Metrics, Hardware]
-    keywords: [node-exporter, prometheus, monitoring, metrics, hardware, system-metrics]
-    description: Prometheus Node Exporter for hardware and OS metrics with Kubernetes integration
-
+    tags:
+    - Monitoring
+    - Metrics
+    - Hardware
+    keywords:
+    - node-exporter
+    - prometheus
+    - monitoring
+    - metrics
+    - hardware
+    - system-metrics
+    description: Prometheus Node Exporter for hardware and OS metrics with Kubernetes
+      integration
   mysql:
     name: MySQL
     path: charts/mysql
     category: infrastructure
-    tags: [Database, SQL, Relational]
-    keywords: [mysql, mariadb, database, sql, replication]
-    description: MySQL relational database with replication support (StatefulSet, primary-replica mode)
-    production_note: "For production HA, consider MySQL Operator (Oracle, Percona, Vitess)"
-
+    tags:
+    - Database
+    - SQL
+    - Relational
+    keywords:
+    - mysql
+    - mariadb
+    - database
+    - sql
+    - replication
+    description: MySQL relational database with replication support (StatefulSet,
+      primary-replica mode)
+    production_note: For production HA, consider MySQL Operator (Oracle, Percona,
+      Vitess)
   mongodb:
     name: MongoDB
     path: charts/mongodb
     category: infrastructure
-    tags: [Database, NoSQL, Document]
-    keywords: [mongodb, nosql, database, document, replicaset, sharding]
-    description: MongoDB NoSQL database with replica set support (StatefulSet, replica set mode)
-    production_note: "For production HA, consider MongoDB Operator (Community, Enterprise, Percona)"
-
+    tags:
+    - Database
+    - NoSQL
+    - Document
+    keywords:
+    - mongodb
+    - nosql
+    - database
+    - document
+    - replicaset
+    - sharding
+    description: MongoDB NoSQL database with replica set support (StatefulSet, replica
+      set mode)
+    production_note: For production HA, consider MongoDB Operator (Community, Enterprise,
+      Percona)
   elasticsearch:
     name: Elasticsearch
     path: charts/elasticsearch
     category: infrastructure
-    tags: [Logging, Search, Analytics]
-    keywords: [elasticsearch, kibana, logging, search, analytics, elk]
-    description: Opinionated Elasticsearch + Kibana for small to medium workloads (StatefulSet, simple operations)
-    production_note: "For large-scale production, consider Elastic Cloud on Kubernetes (ECK) Operator"
-
+    tags:
+    - Logging
+    - Search
+    - Analytics
+    keywords:
+    - elasticsearch
+    - kibana
+    - logging
+    - search
+    - analytics
+    - elk
+    description: Opinionated Elasticsearch + Kibana for small to medium workloads
+      (StatefulSet, simple operations)
+    production_note: For large-scale production, consider Elastic Cloud on Kubernetes
+      (ECK) Operator
   kafka:
     name: Apache Kafka
     path: charts/kafka
     category: infrastructure
-    tags: [Message-Queue, Streaming, Event-Driven]
-    keywords: [kafka, streaming, message-broker, event-streaming, kraft, pub-sub]
-    description: Apache Kafka streaming platform with KRaft mode and management UI (StatefulSet, no Zookeeper)
-    production_note: "For production clustering, consider Strimzi Kafka Operator"
+    tags:
+    - Message-Queue
+    - Streaming
+    - Event-Driven
+    keywords:
+    - kafka
+    - streaming
+    - message-broker
+    - event-streaming
+    - kraft
+    - pub-sub
+    description: Apache Kafka streaming platform with KRaft mode and management UI
+      (StatefulSet, no Zookeeper)
+    production_note: For production clustering, consider Strimzi Kafka Operator
+  pushgateway:
+    name: Prometheus Pushgateway
+    path: charts/pushgateway
+    category: infrastructure
+    tags:
+    - Monitoring
+    - Metrics
+    - Batch-Jobs
+    keywords:
+    - prometheus
+    - pushgateway
+    - monitoring
+    - metrics
+    - batch-jobs
+    - observability
+    description: Prometheus Pushgateway for push-based metrics collection from batch
+      jobs and ephemeral services

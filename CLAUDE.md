@@ -173,6 +173,7 @@ The metadata file serves multiple purposes:
   - ⚠️ For production HA, consider PostgreSQL Operator ([Zalando](https://github.com/zalando/postgres-operator), [Crunchy Data](https://github.com/CrunchyData/postgres-operator), [CloudNativePG](https://cloudnative-pg.io/))
 - **prometheus**: Prometheus monitoring system and time series database (StatefulSet, Kubernetes SD, TSDB)
   - ⚠️ For large-scale production with advanced features, consider [Prometheus Operator](https://github.com/prometheus-operator/prometheus-operator)
+- **pushgateway**: Prometheus Pushgateway for push-based metrics (Deployment, batch jobs, ephemeral services)
 - **promtail**: Promtail log collection agent for Loki (DaemonSet, Kubernetes SD, CRI/Docker parsers)
 - **rabbitmq**: Message broker with management UI (Deployment, no database, AMQP + Prometheus metrics)
   - ⚠️ For production clustering, consider [RabbitMQ Cluster Operator](https://github.com/rabbitmq/cluster-operator)
@@ -734,6 +735,22 @@ make -f make/ops/prometheus.mk prom-test-query
 # Scaling
 make -f make/ops/prometheus.mk prom-scale REPLICAS=2
 make -f make/ops/prometheus.mk prom-restart
+```
+
+### Pushgateway Specific Commands
+
+```bash
+# Access
+make -f make/ops/pushgateway.mk pushgateway-port-forward
+
+# Metrics Management
+make -f make/ops/pushgateway.mk pushgateway-metrics
+make -f make/ops/pushgateway.mk pushgateway-delete-group JOB=batch_job
+
+# Operations
+make -f make/ops/pushgateway.mk pushgateway-health
+make -f make/ops/pushgateway.mk pushgateway-logs
+make -f make/ops/pushgateway.mk pushgateway-restart
 ```
 
 ### Promtail Specific Commands

@@ -1,0 +1,51 @@
+# Small production configuration
+replicaCount: 2
+image:
+  repository: prom/pushgateway
+  tag: "v1.6.2"
+  pullPolicy: IfNotPresent
+pushgateway:
+  persistence:
+    enabled: true
+    file: "/data/metrics.db"
+  logLevel: "info"
+  logFormat: "json"
+serviceAccount:
+  create: true
+podDisruptionBudget:
+  enabled: true
+  minAvailable: 1
+affinity:
+  podAntiAffinity:
+    preferredDuringSchedulingIgnoredDuringExecution:
+      - weight: 100
+        podAffinityTerm:
+          labelSelector:
+            matchExpressions:
+              - key: app.kubernetes.io/name
+                operator: In
+                values:
+                  - pushgateway
+          topologyKey: kubernetes.io/hostname
+resources:
+  limits:
+    cpu: 500m
+    memory: 512Mi
+  requests:
+    cpu: 100m
+    memory: 128Mi
+persistence:
+  enabled: true
+  size: 2Gi
+  storageClass: "standard"
+networkPolicy:
+  enabled: true
+  ingress:
+    - from:
+      - namespaceSelector: {}
+      ports:
+      - protocol: TCP
+        port: 9091
+serviceMonitor:
+  enabled: true
+  interval: 15s

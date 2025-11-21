@@ -1,0 +1,24 @@
+# Development configuration
+replicaCount: 1
+image:
+  repository: prom/pushgateway
+  tag: "v1.6.2"
+  pullPolicy: IfNotPresent
+pushgateway:
+  logLevel: "debug"
+  logFormat: "logfmt"
+serviceAccount:
+  create: true
+resources:
+  limits:
+    cpu: 100m
+    memory: 128Mi
+  requests:
+    cpu: 10m
+    memory: 32Mi
+persistence:
+  enabled: false
+networkPolicy:
+  enabled: false
+serviceMonitor:
+  enabled: false
