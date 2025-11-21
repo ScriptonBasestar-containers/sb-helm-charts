@@ -1,0 +1,81 @@
+{{- if .Values.rbac.create -}}
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: {{ include "kube-state-metrics.fullname" . }}
+  labels:
+    {{- include "kube-state-metrics.labels" . | nindent 4 }}
+rules:
+  # Core API resources
+  - apiGroups: [""]
+    resources:
+      - configmaps
+      - secrets
+      - nodes
+      - pods
+      - services
+      - serviceaccounts
+      - resourcequotas
+      - replicationcontrollers
+      - limitranges
+      - persistentvolumeclaims
+      - persistentvolumes
+      - namespaces
+      - endpoints
+    verbs: ["list", "watch"]
+
+  # Apps API resources
+  - apiGroups: ["apps"]
+    resources:
+      - statefulsets
+      - daemonsets
+      - deployments
+      - replicasets
+    verbs: ["list", "watch"]
+
+  # Batch API resources
+  - apiGroups: ["batch"]
+    resources:
+      - cronjobs
+      - jobs
+    verbs: ["list", "watch"]
+
+  # Autoscaling API resources
+  - apiGroups: ["autoscaling"]
+    resources:
+      - horizontalpodautoscalers
+    verbs: ["list", "watch"]
+
+  # Policy API resources
+  - apiGroups: ["policy"]
+    resources:
+      - poddisruptionbudgets
+    verbs: ["list", "watch"]
+
+  # Networking API resources
+  - apiGroups: ["networking.k8s.io"]
+    resources:
+      - networkpolicies
+      - ingresses
+    verbs: ["list", "watch"]
+
+  # Storage API resources
+  - apiGroups: ["storage.k8s.io"]
+    resources:
+      - storageclasses
+      - volumeattachments
+    verbs: ["list", "watch"]
+
+  # Certificates API resources
+  - apiGroups: ["certificates.k8s.io"]
+    resources:
+      - certificatesigningrequests
+    verbs: ["list", "watch"]
+
+  # Admission API resources
+  - apiGroups: ["admissionregistration.k8s.io"]
+    resources:
+      - mutatingwebhookconfigurations
+      - validatingwebhookconfigurations
+    verbs: ["list", "watch"]
+{{- end }}

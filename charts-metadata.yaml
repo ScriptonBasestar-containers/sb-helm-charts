@@ -162,6 +162,14 @@ charts:
     keywords: [alertmanager, prometheus, monitoring, alerting, notifications, observability]
     description: Prometheus Alertmanager for alert routing and notification with high availability support
 
+  kube-state-metrics:
+    name: Kube State Metrics
+    path: charts/kube-state-metrics
+    category: infrastructure
+    tags: [Monitoring, Metrics, Kubernetes]
+    keywords: [kube-state-metrics, kubernetes, monitoring, metrics, prometheus, observability]
+    description: Kube State Metrics exposes Kubernetes object state as Prometheus metrics
+
   redis:
     name: Redis
     path: charts/redis

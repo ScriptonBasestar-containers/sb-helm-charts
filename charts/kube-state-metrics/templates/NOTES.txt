@@ -1,0 +1,51 @@
+1. Kube State Metrics is now collecting Kubernetes object state metrics
+
+2. Check the status of your deployment:
+  kubectl get deployment --namespace {{ .Release.Namespace }} {{ include "kube-state-metrics.fullname" . }}
+  kubectl get pods --namespace {{ .Release.Namespace }} -l "app.kubernetes.io/name={{ include "kube-state-metrics.name" . }}"
+
+3. Access metrics endpoint:
+  export POD_NAME=$(kubectl get pods --namespace {{ .Release.Namespace }} -l "app.kubernetes.io/name={{ include "kube-state-metrics.name" . }},app.kubernetes.io/instance={{ .Release.Name }}" -o jsonpath="{.items[0].metadata.name}")
+  echo "Visit http://127.0.0.1:8080/metrics to view metrics"
+  kubectl --namespace {{ .Release.Namespace }} port-forward $POD_NAME 8080:8080
+
+4. Example metrics queries:
+  # Number of pods by namespace
+  curl http://localhost:8080/metrics | grep "kube_pod_info"
+
+  # Deployment replica status
+  curl http://localhost:8080/metrics | grep "kube_deployment_status_replicas"
+
+  # Node status
+  curl http://localhost:8080/metrics | grep "kube_node_status_condition"
+
+{{- if .Values.collectors.namespaces }}
+
+5. Monitoring specific namespaces:
+  {{- range .Values.collectors.namespaces }}
+  - {{ . }}
+  {{- end }}
+{{- else }}
+
+5. Monitoring all namespaces (default)
+{{- end }}
+
+{{- if .Values.collectors.resources }}
+
+6. Collecting metrics for specific resources:
+  {{- range .Values.collectors.resources }}
+  - {{ . }}
+  {{- end }}
+{{- else }}
+
+6. Collecting metrics for all available resources (default)
+{{- end }}
+
+{{- if .Values.serviceMonitor.enabled }}
+
+7. ServiceMonitor is enabled. Prometheus Operator will automatically scrape metrics.
+{{- end }}
+
+For more information about available metrics, visit:
+- Kube State Metrics Documentation: https://github.com/kubernetes/kube-state-metrics/tree/main/docs
+- Metrics Reference: https://github.com/kubernetes/kube-state-metrics/tree/main/docs/README.md

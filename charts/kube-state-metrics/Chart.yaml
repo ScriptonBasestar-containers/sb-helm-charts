@@ -1,0 +1,20 @@
+apiVersion: v2
+name: kube-state-metrics
+description: Kube State Metrics exposes Kubernetes object state as Prometheus metrics
+type: application
+version: 0.3.0
+appVersion: "2.10.1"
+keywords:
+  - kube-state-metrics
+  - kubernetes
+  - monitoring
+  - metrics
+  - prometheus
+  - observability
+home: https://github.com/scriptonbasestar-container/sb-helm-charts
+icon: https://raw.githubusercontent.com/kubernetes/kubernetes/master/logo/logo.svg
+sources:
+  - https://github.com/scriptonbasestar-container/sb-helm-charts/tree/master/charts/kube-state-metrics
+  - https://github.com/kubernetes/kube-state-metrics
+maintainers:
+  - name: ScriptonBasestar
