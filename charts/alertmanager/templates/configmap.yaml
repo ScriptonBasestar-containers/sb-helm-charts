@@ -1,0 +1,62 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "alertmanager.fullname" . }}
+  labels:
+    {{- include "alertmanager.labels" . | nindent 4 }}
+data:
+  alertmanager.yml: |
+    global:
+      resolve_timeout: {{ .Values.config.global.resolveTimeout }}
+      {{- if .Values.config.global.smtp }}
+      smtp_from: {{ .Values.config.global.smtp.from | quote }}
+      smtp_smarthost: {{ .Values.config.global.smtp.smarthost | quote }}
+      {{- if .Values.config.global.smtp.authUsername }}
+      smtp_auth_username: {{ .Values.config.global.smtp.authUsername | quote }}
+      {{- end }}
+      {{- if .Values.config.global.smtp.authPassword }}
+      smtp_auth_password: {{ .Values.config.global.smtp.authPassword | quote }}
+      {{- end }}
+      {{- if .Values.config.global.smtp.requireTLS }}
+      smtp_require_tls: {{ .Values.config.global.smtp.requireTLS }}
+      {{- end }}
+      {{- end }}
+      {{- if .Values.config.global.slackApiUrl }}
+      slack_api_url: {{ .Values.config.global.slackApiUrl | quote }}
+      {{- end }}
+      {{- if .Values.config.global.pagerdutyUrl }}
+      pagerduty_url: {{ .Values.config.global.pagerdutyUrl | quote }}
+      {{- end }}
+      {{- if .Values.config.global.opsgenieApiUrl }}
+      opsgenie_api_url: {{ .Values.config.global.opsgenieApiUrl | quote }}
+      {{- end }}
+      {{- if .Values.config.global.wechatApiUrl }}
+      wechat_api_url: {{ .Values.config.global.wechatApiUrl | quote }}
+      {{- end }}
+      {{- if .Values.config.global.victoropsApiUrl }}
+      victorops_api_url: {{ .Values.config.global.victoropsApiUrl | quote }}
+      {{- end }}
+      {{- with .Values.config.global.httpConfig }}
+      http_config:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+
+    {{- if .Values.config.templates }}
+    templates:
+      {{- range .Values.config.templates }}
+      - {{ . | quote }}
+      {{- end }}
+    {{- end }}
+
+    route:
+      {{- toYaml .Values.config.route | nindent 6 }}
+
+    {{- if .Values.config.inhibitRules }}
+    inhibit_rules:
+      {{- toYaml .Values.config.inhibitRules | nindent 6 }}
+    {{- end }}
+
+    {{- if .Values.config.receivers }}
+    receivers:
+      {{- toYaml .Values.config.receivers | nindent 6 }}
+    {{- end }}

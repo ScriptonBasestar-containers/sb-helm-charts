@@ -154,6 +154,14 @@ charts:
     description: Loki log aggregation system with Grafana integration
 
   # Infrastructure Charts (Dev/Test - Consider Operators for Production)
+  alertmanager:
+    name: Alertmanager
+    path: charts/alertmanager
+    category: infrastructure
+    tags: [Monitoring, Alerting, Observability]
+    keywords: [alertmanager, prometheus, monitoring, alerting, notifications, observability]
+    description: Prometheus Alertmanager for alert routing and notification with high availability support
+
   redis:
     name: Redis
     path: charts/redis
