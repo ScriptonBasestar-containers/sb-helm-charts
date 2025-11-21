@@ -1,0 +1,92 @@
+# Development values for blackbox-exporter
+# This configuration is optimized for local development and testing
+
+image:
+  repository: prom/blackbox-exporter
+  pullPolicy: IfNotPresent
+  tag: ""
+
+# Single replica for development
+replicaCount: 1
+
+serviceAccount:
+  create: true
+
+podAnnotations:
+  prometheus.io/scrape: "true"
+  prometheus.io/port: "9115"
+
+podSecurityContext:
+  runAsUser: 65534
+  runAsNonRoot: true
+  fsGroup: 65534
+
+securityContext:
+  readOnlyRootFilesystem: true
+  allowPrivilegeEscalation: false
+  capabilities:
+    drop:
+      - ALL
+
+service:
+  type: ClusterIP
+  port: 9115
+
+# Development: Basic probe modules only
+config:
+  modules:
+    # HTTP probe
+    http_2xx:
+      prober: http
+      timeout: 5s
+      http:
+        valid_http_versions: ["HTTP/1.1", "HTTP/2.0"]
+        method: GET
+        follow_redirects: true
+
+    # HTTPS probe (skip SSL verification for self-signed certs)
+    https_2xx_insecure:
+      prober: http
+      timeout: 5s
+      http:
+        method: GET
+        tls_config:
+          insecure_skip_verify: true
+
+    # TCP probe
+    tcp_connect:
+      prober: tcp
+      timeout: 5s
+
+extraArgs: []
+
+# ServiceMonitor disabled for development
+serviceMonitor:
+  enabled: false
+
+# Reduced resources for development
+resources:
+  limits:
+    cpu: 100m
+    memory: 128Mi
+  requests:
+    cpu: 25m
+    memory: 32Mi
+
+livenessProbe:
+  initialDelaySeconds: 10
+  periodSeconds: 10
+  timeoutSeconds: 1
+  failureThreshold: 3
+
+readinessProbe:
+  initialDelaySeconds: 10
+  periodSeconds: 10
+  timeoutSeconds: 1
+  failureThreshold: 3
+
+nodeSelector: {}
+
+tolerations: []
+
+affinity: {}

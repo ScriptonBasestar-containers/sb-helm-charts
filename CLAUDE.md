@@ -152,6 +152,7 @@ The metadata file serves multiple purposes:
 ### Infrastructure Charts (Dev/Test - Consider Operators for Production)
 
 - **alertmanager**: Prometheus Alertmanager for alert routing and notification (StatefulSet, HA clustering, API v2)
+- **blackbox-exporter**: Blackbox Exporter for probing endpoints (Deployment, HTTP/HTTPS/TCP/DNS/ICMP, SSL verification)
 - **elasticsearch**: Distributed search and analytics engine (StatefulSet, Kibana, cluster mode, S3 snapshots)
   - ⚠️ For large-scale production, consider [Elastic Cloud on Kubernetes (ECK) Operator](https://www.elastic.co/guide/en/cloud-on-k8s/current/index.html)
 - **kafka**: Apache Kafka streaming platform with KRaft mode and management UI (StatefulSet, no Zookeeper)
@@ -785,6 +786,38 @@ make -f make/ops/kube-state-metrics.mk ksm-node-status
 # Port forward
 make -f make/ops/kube-state-metrics.mk ksm-port-forward
 make -f make/ops/kube-state-metrics.mk ksm-port-forward-telemetry
+```
+
+### Blackbox Exporter Specific Commands
+
+```bash
+# Probe testing
+make -f make/ops/blackbox-exporter.mk bbe-probe-http TARGET=https://example.com
+make -f make/ops/blackbox-exporter.mk bbe-probe-https TARGET=https://example.com
+make -f make/ops/blackbox-exporter.mk bbe-probe-tcp TARGET=example.com:443
+make -f make/ops/blackbox-exporter.mk bbe-probe-dns TARGET=8.8.8.8
+make -f make/ops/blackbox-exporter.mk bbe-probe-icmp TARGET=8.8.8.8
+make -f make/ops/blackbox-exporter.mk bbe-probe-custom TARGET=https://api.example.com MODULE=http_2xx
+
+# Module management
+make -f make/ops/blackbox-exporter.mk bbe-list-modules
+make -f make/ops/blackbox-exporter.mk bbe-test-module MODULE=http_2xx
+
+# Basic operations
+make -f make/ops/blackbox-exporter.mk bbe-logs
+make -f make/ops/blackbox-exporter.mk bbe-shell
+make -f make/ops/blackbox-exporter.mk bbe-restart
+make -f make/ops/blackbox-exporter.mk bbe-status
+make -f make/ops/blackbox-exporter.mk bbe-version
+make -f make/ops/blackbox-exporter.mk bbe-health
+make -f make/ops/blackbox-exporter.mk bbe-config
+
+# Metrics
+make -f make/ops/blackbox-exporter.mk bbe-metrics
+make -f make/ops/blackbox-exporter.mk bbe-probe-metrics
+
+# Port forward
+make -f make/ops/blackbox-exporter.mk bbe-port-forward
 ```
 
 ### MinIO Specific Commands
