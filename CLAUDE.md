@@ -151,6 +151,7 @@ The metadata file serves multiple purposes:
 
 ### Infrastructure Charts (Dev/Test - Consider Operators for Production)
 
+- **alertmanager**: Prometheus Alertmanager for alert routing and notification (StatefulSet, HA clustering, API v2)
 - **elasticsearch**: Distributed search and analytics engine (StatefulSet, Kibana, cluster mode, S3 snapshots)
   - ⚠️ For large-scale production, consider [Elastic Cloud on Kubernetes (ECK) Operator](https://www.elastic.co/guide/en/cloud-on-k8s/current/index.html)
 - **kafka**: Apache Kafka streaming platform with KRaft mode and management UI (StatefulSet, no Zookeeper)
@@ -233,6 +234,47 @@ make -f make/ops/{chart}.mk template
 make -f make/ops/{chart}.mk install
 make -f make/ops/{chart}.mk upgrade
 make -f make/ops/{chart}.mk uninstall
+```
+
+### Alertmanager Specific Commands
+
+```bash
+# Basic operations
+make -f make/ops/alertmanager.mk am-logs
+make -f make/ops/alertmanager.mk am-logs-all
+make -f make/ops/alertmanager.mk am-shell
+make -f make/ops/alertmanager.mk am-restart
+
+# Health and status
+make -f make/ops/alertmanager.mk am-status
+make -f make/ops/alertmanager.mk am-version
+make -f make/ops/alertmanager.mk am-health
+make -f make/ops/alertmanager.mk am-ready
+make -f make/ops/alertmanager.mk am-cluster-status
+
+# Configuration
+make -f make/ops/alertmanager.mk am-config
+make -f make/ops/alertmanager.mk am-reload
+make -f make/ops/alertmanager.mk am-validate-config
+
+# Alerts management
+make -f make/ops/alertmanager.mk am-list-alerts
+make -f make/ops/alertmanager.mk am-list-alerts-json
+make -f make/ops/alertmanager.mk am-get-alert FINGERPRINT=abc123
+
+# Silences management
+make -f make/ops/alertmanager.mk am-list-silences
+make -f make/ops/alertmanager.mk am-list-silences-json
+make -f make/ops/alertmanager.mk am-get-silence ID=abc123
+make -f make/ops/alertmanager.mk am-delete-silence ID=abc123
+
+# Receivers and routes
+make -f make/ops/alertmanager.mk am-list-receivers
+make -f make/ops/alertmanager.mk am-test-receiver
+
+# Metrics and monitoring
+make -f make/ops/alertmanager.mk am-metrics
+make -f make/ops/alertmanager.mk am-port-forward
 ```
 
 ### Airflow Specific Commands

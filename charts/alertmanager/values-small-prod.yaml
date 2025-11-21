@@ -1,0 +1,179 @@
+# Small production values for alertmanager
+# This configuration is optimized for production deployments with HA
+
+image:
+  repository: prom/alertmanager
+  pullPolicy: IfNotPresent
+  tag: ""
+
+# High availability with 3 replicas
+replicaCount: 3
+
+serviceAccount:
+  create: true
+
+podSecurityContext:
+  runAsUser: 65534
+  runAsNonRoot: true
+  fsGroup: 65534
+
+securityContext:
+  readOnlyRootFilesystem: true
+  allowPrivilegeEscalation: false
+  capabilities:
+    drop:
+      - ALL
+
+service:
+  type: ClusterIP
+  port: 9093
+  annotations:
+    prometheus.io/scrape: "true"
+    prometheus.io/port: "9093"
+
+# Alertmanager configuration
+alertmanager:
+  # 5 days retention for production
+  retention: "120h"
+
+  extraArgs:
+    - --log.level=info
+    - --cluster.reconnect-timeout=5m
+    - --web.enable-lifecycle
+
+# Alertmanager configuration file
+config:
+  global:
+    resolveTimeout: "5m"
+
+    # Example SMTP configuration (update with your values)
+    smtp: {}
+    #   from: "alertmanager@example.com"
+    #   smarthost: "smtp.example.com:587"
+    #   authUsername: "alertmanager@example.com"
+    #   authPassword: "password"
+    #   requireTLS: true
+
+    # Example Slack configuration (update with your webhook URL)
+    slackApiUrl: ""
+
+  route:
+    groupBy: ['alertname', 'cluster', 'service']
+    groupWait: 10s
+    groupInterval: 10s
+    repeatInterval: 12h
+    receiver: default
+
+    # Route critical alerts to dedicated receiver
+    routes:
+      - match:
+          severity: critical
+        receiver: critical-alerts
+        continue: true
+      - match:
+          severity: warning
+        receiver: warning-alerts
+
+  # Inhibit warning alerts when critical alert is firing
+  inhibitRules:
+    - sourceMatch:
+        severity: critical
+      targetMatch:
+        severity: warning
+      equal: ['alertname', 'cluster', 'service']
+
+  # Notification receivers
+  receivers:
+    - name: default
+      # Default receiver (configure your notification channels)
+      # email_configs:
+      # - to: "team@example.com"
+      # slack_configs:
+      # - channel: "#alerts"
+      #   title: "{{ .GroupLabels.alertname }}"
+      #   text: "{{ range .Alerts }}{{ .Annotations.summary }}\n{{ end }}"
+
+    - name: critical-alerts
+      # Critical alerts receiver
+      # email_configs:
+      # - to: "oncall@example.com"
+      #   headers:
+      #     Subject: "[CRITICAL] {{ .GroupLabels.alertname }}"
+      # slack_configs:
+      # - channel: "#critical-alerts"
+      #   title: "[CRITICAL] {{ .GroupLabels.alertname }}"
+      #   text: "{{ range .Alerts }}{{ .Annotations.description }}\n{{ end }}"
+      # pagerduty_configs:
+      # - service_key: "your-service-key"
+
+    - name: warning-alerts
+      # Warning alerts receiver
+      # slack_configs:
+      # - channel: "#warnings"
+      #   title: "[WARNING] {{ .GroupLabels.alertname }}"
+
+# ServiceMonitor for Prometheus Operator
+serviceMonitor:
+  enabled: true
+  interval: 30s
+  scrapeTimeout: 10s
+  labels:
+    prometheus: kube-prometheus
+
+# PodDisruptionBudget for HA
+podDisruptionBudget:
+  enabled: true
+  minAvailable: 2
+
+# Persistence enabled for production
+persistence:
+  enabled: true
+  storageClass: ""
+  accessModes:
+    - ReadWriteOnce
+  size: 5Gi
+
+# Production resources
+resources:
+  limits:
+    cpu: 500m
+    memory: 512Mi
+  requests:
+    cpu: 100m
+    memory: 128Mi
+
+livenessProbe:
+  initialDelaySeconds: 30
+  periodSeconds: 10
+  timeoutSeconds: 3
+  failureThreshold: 5
+
+readinessProbe:
+  initialDelaySeconds: 10
+  periodSeconds: 10
+  timeoutSeconds: 3
+  failureThreshold: 3
+
+nodeSelector: {}
+
+# Tolerate all taints for critical monitoring infrastructure
+tolerations:
+  - effect: NoSchedule
+    operator: Exists
+
+# Anti-affinity to spread replicas across nodes
+affinity:
+  podAntiAffinity:
+    preferredDuringSchedulingIgnoredDuringExecution:
+      - weight: 100
+        podAffinityTerm:
+          labelSelector:
+            matchExpressions:
+              - key: app.kubernetes.io/name
+                operator: In
+                values:
+                  - alertmanager
+          topologyKey: kubernetes.io/hostname
+
+# Use high priority for critical monitoring
+priorityClassName: "system-cluster-critical"

@@ -1,0 +1,95 @@
+# Development values for alertmanager
+# This configuration is optimized for local development and testing
+
+image:
+  repository: prom/alertmanager
+  pullPolicy: IfNotPresent
+  tag: ""
+
+# Single replica for development
+replicaCount: 1
+
+serviceAccount:
+  create: true
+
+podSecurityContext:
+  runAsUser: 65534
+  runAsNonRoot: true
+  fsGroup: 65534
+
+securityContext:
+  readOnlyRootFilesystem: true
+  allowPrivilegeEscalation: false
+  capabilities:
+    drop:
+      - ALL
+
+service:
+  type: ClusterIP
+  port: 9093
+  annotations:
+    prometheus.io/scrape: "true"
+    prometheus.io/port: "9093"
+
+# Alertmanager configuration
+alertmanager:
+  # Shorter retention for development
+  retention: "24h"
+
+  extraArgs:
+    - --log.level=debug
+
+# Alertmanager configuration file
+config:
+  global:
+    resolveTimeout: "5m"
+
+  route:
+    groupBy: ['alertname']
+    groupWait: 5s
+    groupInterval: 5s
+    repeatInterval: 1h
+    receiver: default
+
+  receivers:
+    - name: default
+      # Log receiver for development (no actual notifications)
+
+# ServiceMonitor disabled for development
+serviceMonitor:
+  enabled: false
+
+# PDB disabled for single replica
+podDisruptionBudget:
+  enabled: false
+
+# Persistence disabled for development
+persistence:
+  enabled: false
+
+# Reduced resources for development
+resources:
+  limits:
+    cpu: 100m
+    memory: 128Mi
+  requests:
+    cpu: 25m
+    memory: 32Mi
+
+livenessProbe:
+  initialDelaySeconds: 10
+  periodSeconds: 10
+  timeoutSeconds: 1
+  failureThreshold: 3
+
+readinessProbe:
+  initialDelaySeconds: 10
+  periodSeconds: 10
+  timeoutSeconds: 1
+  failureThreshold: 3
+
+nodeSelector: {}
+
+tolerations: []
+
+affinity: {}
