@@ -7,6 +7,282 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.0.0] - 2025-11-21
+
+### Overview
+
+First stable release of ScriptonBasestar Helm Charts with 36 production-ready charts.
+
+**Chart Count:**
+- Total: 36 charts (35 production-ready v0.3.x + 1 development v0.2.0)
+- Application Charts: 19 charts
+- Infrastructure Charts: 17 charts
+
+**Major Milestones:**
+- ✅ Complete Prometheus monitoring stack (9 charts)
+- ✅ Full database support (PostgreSQL, MySQL, MongoDB, Redis, Elasticsearch)
+- ✅ Admin tools for all major databases (pgAdmin, phpMyAdmin)
+- ✅ Comprehensive documentation system
+- ✅ Centralized metadata management with automation
+- ✅ Production-ready deployment profiles for all charts
+
+### New Charts in v1.0.0
+
+#### Monitoring & Observability (Infrastructure)
+- **alertmanager** (0.3.0) - Prometheus Alertmanager for alert routing
+  - HA clustering with gossip protocol
+  - API v2 support for alerts and silences
+  - StatefulSet deployment with persistence
+
+- **kube-state-metrics** (0.3.0) - Kubernetes object state metrics
+  - Deployment with ClusterRole permissions
+  - ServiceMonitor for Prometheus Operator
+  - Comprehensive K8s API metrics
+
+- **blackbox-exporter** (0.3.0) - Endpoint probing
+  - HTTP/HTTPS/TCP/DNS/ICMP protocol support
+  - SSL certificate verification
+  - Multi-target probing with modules
+
+- **pushgateway** (0.3.0) - Push-based metrics for batch jobs
+  - Optional file-based persistence
+  - Metrics lifecycle management
+  - Integration examples (curl, Python)
+
+- **prometheus** (0.3.0) - Monitoring system and TSDB
+  - StatefulSet with persistent storage
+  - Kubernetes service discovery
+  - Recording and alerting rules
+
+- **node-exporter** (0.3.0) - Hardware and OS metrics
+  - DaemonSet deployment across all nodes
+  - hostNetwork and hostPID access
+  - 40+ metric collectors
+
+- **promtail** (0.3.0) - Log collection agent
+  - DaemonSet with Kubernetes SD
+  - CRI and Docker log parsers
+  - Loki integration
+
+- **loki** (0.3.0) - Log aggregation system
+  - StatefulSet with memberlist clustering
+  - Filesystem and S3 storage backends
+  - Grafana integration
+
+- **grafana** (0.3.0) - Metrics visualization
+  - SQLite/PostgreSQL/MySQL backend support
+  - Datasource and dashboard provisioning
+  - Multi-user support with RBAC
+
+#### Database Administration (Application)
+- **pgadmin** (0.3.0) - PostgreSQL administration GUI
+  - Multi-server pre-configuration via servers.json
+  - Session affinity for HA deployments
+  - Metadata backup/restore (SQLite)
+  - 20+ operational commands
+
+- **phpmyadmin** (0.3.0) - MySQL/MariaDB administration GUI
+  - Three connection modes (single/arbitrary/pre-configured)
+  - Blowfish encryption for cookies
+  - Configuration storage (pmadb) support
+  - System database hiding
+
+#### Data Processing (Application)
+- **airflow** (0.3.0) - Workflow orchestration platform
+  - KubernetesExecutor for dynamic scaling
+  - Git-sync for DAG management
+  - Remote logging (S3/MinIO)
+  - PostgreSQL backend with HA
+
+- **mlflow** (0.3.0) - ML experiment tracking
+  - PostgreSQL backend for experiments
+  - MinIO artifact storage
+  - REST API and UI
+
+- **elasticsearch** (0.3.0) - Search and analytics engine
+  - StatefulSet with cluster coordination
+  - Kibana integration
+  - S3 snapshot backups
+  - Production note: ECK Operator recommended for large-scale
+
+#### Storage Solutions
+- **minio** (0.3.0) - S3-compatible object storage (Infrastructure)
+  - Distributed mode with erasure coding
+  - StatefulSet deployment
+  - Console UI and S3 API
+  - Production note: MinIO Operator for advanced HA
+
+- **rustfs** (0.3.0) - High-performance S3 storage (Application)
+  - Tiered storage (hot/cold)
+  - StatefulSet clustering
+  - 2.3x faster than MinIO for small files
+
+- **harbor** (0.2.0) - Container registry (Application - Development)
+  - Vulnerability scanning
+  - Image signing support
+  - Status: Missing production features
+
+#### Message Queues (Infrastructure)
+- **rabbitmq** (0.3.1) - AMQP message broker
+  - Management UI with metrics
+  - Prometheus integration
+  - Production note: Cluster Operator for HA
+
+- **kafka** (0.3.0) - Streaming platform
+  - KRaft mode (no Zookeeper)
+  - Management UI
+  - Production note: Strimzi Operator for clustering
+
+#### Databases (Infrastructure)
+- **postgresql** (0.3.0) - Relational database
+  - Primary-replica replication
+  - SSL/TLS support
+  - Production note: Operators for HA (Zalando, Crunchy, CloudNativePG)
+
+- **mysql** (0.3.0) - Relational database
+  - Master-replica replication
+  - StatefulSet deployment
+  - Production note: Operators for HA (Oracle, Percona, Vitess)
+
+- **mongodb** (0.3.0) - NoSQL document database
+  - Replica set mode
+  - StatefulSet deployment
+  - Production note: Operators for HA (Community, Enterprise, Percona)
+
+- **redis** (0.3.3) - In-memory data store
+  - Master-replica replication
+  - Full redis.conf support
+  - Production note: Spotahome Operator for HA
+
+- **memcached** (0.3.3) - Distributed caching
+  - High-performance memory caching
+  - Stats monitoring
+  - Production note: Memcached Operator recommended
+
+#### CMS & Collaboration (Application)
+- **nextcloud** (0.3.0) - Cloud storage platform
+  - 3 PVC architecture (data/config/apps)
+  - PostgreSQL 16 + Redis 8
+  - CalDAV/CardDAV support
+  - occ CLI integration
+
+- **wordpress** (0.3.0) - CMS platform
+  - wp-cli integration
+  - MySQL/MariaDB backend
+  - Apache-based deployment
+  - Homeserver-optimized profile
+
+#### Document Management (Application)
+- **paperless-ngx** (0.3.0) - DMS with OCR
+  - 4 PVC architecture (consume/data/media/export)
+  - Multi-language OCR (100+ languages)
+  - PostgreSQL + Redis backend
+
+#### Media Management (Application)
+- **jellyfin** (0.3.0) - Media server
+  - GPU acceleration (Intel/NVIDIA/AMD)
+  - Hardware transcoding
+  - Multi-format support
+
+- **immich** (0.3.0) - AI-powered photo management
+  - Microservices architecture
+  - Machine learning deployment
+  - Hardware acceleration support
+  - PostgreSQL + Redis backend
+
+#### Monitoring Tools (Application)
+- **uptime-kuma** (0.3.0) - Self-hosted monitoring
+  - 90+ notification services
+  - Multi-protocol monitoring
+  - Beautiful web UI
+  - SQLite/MariaDB backend
+
+#### Security & Identity (Application)
+- **vaultwarden** (0.3.0) - Password manager
+  - Bitwarden-compatible API
+  - SQLite/PostgreSQL/MySQL support
+  - Admin panel management
+
+- **keycloak** (0.3.0) - IAM solution
+  - StatefulSet clustering
+  - PostgreSQL 13+ with SSL/TLS/mTLS
+  - Realm management
+  - SSO support
+
+#### Networking (Application)
+- **wireguard** (0.3.0) - VPN solution
+  - No database dependency
+  - UDP service with NET_ADMIN
+  - Peer configuration management
+
+#### Development Tools (Application)
+- **devpi** (0.3.0) - Python package index
+  - PyPI mirror and private packages
+  - SQLite/PostgreSQL backend
+
+- **browserless-chrome** (0.3.0) - Headless browser
+  - Puppeteer/Playwright support
+  - Screenshot and PDF generation
+
+#### Content Aggregation (Application)
+- **rsshub** (0.3.0) - RSS aggregator
+  - 300+ source adapters
+  - Caching and proxy support
+
+### Features Across All Charts
+
+#### Security
+- Non-root users with dropped capabilities
+- Read-only root filesystem (where applicable)
+- Network policies for ingress/egress
+- Secret management for credentials
+- RBAC with minimal ServiceAccount permissions
+
+#### High Availability
+- PodDisruptionBudget support
+- HorizontalPodAutoscaler support
+- Anti-affinity rules
+- Session affinity for stateful apps
+- Clustering support (where applicable)
+
+#### Observability
+- ServiceMonitor CRDs
+- Application-specific metrics endpoints
+- Structured logging
+- Health check endpoints
+
+#### Deployment Profiles
+- **values-dev.yaml**: Minimal resources, debug logging
+- **values-small-prod.yaml**: HA setup, production resources
+- **values-homeserver.yaml**: Low-resource (selected charts)
+
+#### Documentation
+- Comprehensive README per chart
+- Auto-generated CHARTS.md catalog
+- Artifact Hub dashboard
+- Testing, troubleshooting, production guides
+
+#### Automation
+- Centralized metadata management (charts-metadata.yaml)
+- Keyword sync automation
+- Pre-commit hooks for validation
+- CI/CD workflows
+
+### Breaking Changes
+None - this is the first stable release.
+
+### Migration Guide
+For users deploying pre-release versions:
+1. Review values.yaml changes in each chart's README
+2. Backup data before upgrading
+3. Use `helm upgrade` with `--reuse-values=false`
+4. Test in non-production first
+
+### Known Limitations
+1. **Harbor** (0.2.0): Not production-ready
+2. **Database Charts**: Simple replication - use Operators for production HA
+3. **Message Queue Charts**: Single-instance - use Operators for clustering
+
 ### Added
 - **MinIO v0.3.0** (2025-11-19): Object storage server compatible with Amazon S3 APIs
   - Standalone and distributed deployment modes
@@ -623,7 +899,8 @@ See [Chart Version Policy](docs/CHART_VERSION_POLICY.md) for detailed versioning
 - **Documentation**: https://github.com/scriptonbasestar-container/sb-helm-charts/tree/master/docs
 - **Issues**: https://github.com/scriptonbasestar-container/sb-helm-charts/issues
 
-[Unreleased]: https://github.com/scriptonbasestar-container/sb-helm-charts/compare/v0.3.0...HEAD
+[Unreleased]: https://github.com/scriptonbasestar-container/sb-helm-charts/compare/v1.0.0...HEAD
+[1.0.0]: https://github.com/scriptonbasestar-container/sb-helm-charts/releases/tag/v1.0.0
 [0.3.0]: https://github.com/scriptonbasestar-container/sb-helm-charts/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/scriptonbasestar-container/sb-helm-charts/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/scriptonbasestar-container/sb-helm-charts/releases/tag/v0.1.0

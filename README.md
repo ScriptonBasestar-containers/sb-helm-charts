@@ -75,14 +75,14 @@ Browse the complete chart catalog with detailed information:
 **🏷️ [Artifact Hub Dashboard](docs/ARTIFACTHUB_DASHBOARD.md)** - Publishing status and badges
 
 The catalog includes:
-- **16 charts** organized by category (Application/Infrastructure)
+- **36 charts** organized by category (Application/Infrastructure)
 - Version badges, descriptions, and installation examples
 - Searchable by tags and keywords
 - Auto-generated from `charts-metadata.yaml`
 
 **Quick Overview:**
-- **Application Charts** (13): uptime-kuma, jellyfin, immich, paperless-ngx, vaultwarden, keycloak, wireguard, wordpress, nextcloud, rustfs, rsshub, browserless-chrome, devpi
-- **Infrastructure Charts** (3): redis, memcached, rabbitmq
+- **Application Charts** (19): airflow, browserless-chrome, devpi, grafana, harbor, immich, jellyfin, keycloak, loki, mlflow, nextcloud, paperless-ngx, pgadmin, phpmyadmin, rsshub, rustfs, uptime-kuma, vaultwarden, wireguard, wordpress
+- **Infrastructure Charts** (17): alertmanager, blackbox-exporter, elasticsearch, kafka, kube-state-metrics, memcached, minio, mongodb, mysql, node-exporter, postgresql, prometheus, promtail, pushgateway, rabbitmq, redis
 
 For comprehensive chart documentation, deployment scenarios, and configuration options, see the [full catalog](docs/CHARTS.md).
 
@@ -94,7 +94,7 @@ Charts are available on Artifact Hub for easy discovery and security scanning:
 - **Automated Security Scanning**: Container images are scanned for vulnerabilities
 - **Publishing Status**: See [Artifact Hub Dashboard](docs/ARTIFACTHUB_DASHBOARD.md) for badges and statistics
 
-The repository includes `artifacthub-repo.yml` with metadata for all 16 charts, enabling:
+The repository includes `artifacthub-repo.yml` with metadata for all 36 charts, enabling:
 - Automatic chart discovery
 - Container image security scanning
 - Rich chart documentation with badges and links
@@ -102,23 +102,28 @@ The repository includes `artifacthub-repo.yml` with metadata for all 16 charts, 
 
 ## Recent Changes
 
-**Latest Release: v0.3.0** (2025-11-16)
+**Latest Release: v1.0.0** (2025-11-21)
 
-### What's New in Unreleased
-- **Chart Metadata Management System**: Centralized metadata in `charts-metadata.yaml` with automated validation and sync
-- **Pre-commit Hooks**: Enhanced code quality automation with metadata validation, linting, and auto-fixes
-- **Artifact Hub Integration**: Repository metadata (`artifacthub-repo.yml`) ready for Artifact Hub publishing
-- **CI/CD Automation**: Metadata validation and catalog verification for GitHub Actions (pending deployment)
-- **Documentation**: Auto-generated chart catalog, Artifact Hub dashboard, and comprehensive guides
+### v1.0.0 Highlights - First Stable Release
+- **36 Production-Ready Charts**: 35 charts at v0.3.x + Harbor at v0.2.0 (development)
+- **Complete Monitoring Stack**: 9 charts (Prometheus, Alertmanager, Pushgateway, Node Exporter, Kube State Metrics, Blackbox Exporter, Loki, Promtail, Grafana)
+- **Database Admin Tools**: pgAdmin and phpMyAdmin with multi-server support
+- **Full Database Support**: PostgreSQL, MySQL, MongoDB, Redis, Elasticsearch with replication
+- **Comprehensive Documentation**: Testing guides, troubleshooting, production checklists
+- **Centralized Metadata Management**: Automated validation, sync, and catalog generation
+- **Production Features**: HA, security hardening, observability across all charts
 
-### v0.3.0 Highlights
+### New Charts in v1.0.0
+- **Monitoring**: alertmanager, blackbox-exporter, kube-state-metrics, node-exporter, prometheus, promtail, pushgateway
+- **Database Admin**: pgadmin, phpmyadmin
+- **Data Processing**: airflow, mlflow, elasticsearch
+- **Storage**: kafka, minio, mongodb, mysql, postgresql
+- **Charts Total**: 16 charts (v0.3.0) → 36 charts (v1.0.0)
+
+### v0.3.0 Previous Release
 - **Deployment Scenarios**: Pre-configured values files for Home Server, Startup, and Production environments
-- **Documentation**: Comprehensive [Scenario Values Guide](docs/SCENARIO_VALUES_GUIDE.md) with deployment examples
-- **CI/CD**: Automated scenario file validation in GitHub Actions
-- **Makefile**: New targets for scenario-based deployments (`install-home`, `install-startup`, `install-prod`)
-
-### Chart Updates (v0.3.0)
-9 charts bumped from 0.2.0 → 0.3.0: keycloak, redis, memcached, rabbitmq, wireguard, browserless-chrome, devpi, rsshub, rustfs
+- **Documentation**: Comprehensive [Scenario Values Guide](docs/SCENARIO_VALUES_GUIDE.md)
+- **9 charts promoted**: keycloak, redis, memcached, rabbitmq, wireguard, browserless-chrome, devpi, rsshub, rustfs
 
 ### Full Changelog
 See [CHANGELOG.md](CHANGELOG.md) for complete release notes and version history.
