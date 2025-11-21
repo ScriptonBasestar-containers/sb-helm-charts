@@ -11,6 +11,7 @@ keywords:
   - gui
   - management
 home: https://github.com/scriptonbasestar-container/sb-helm-charts
+icon: https://www.pgadmin.org/static/COMPILED/assets/img/logo-right-128.png
 sources:
   - https://github.com/scriptonbasestar-container/sb-helm-charts/tree/master/charts/pgadmin
   - https://www.pgadmin.org/

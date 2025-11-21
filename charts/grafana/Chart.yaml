@@ -12,6 +12,7 @@ keywords:
   - dashboard
   - observability
 home: https://github.com/scriptonbasestar-container/sb-helm-charts
+icon: https://raw.githubusercontent.com/cncf/artwork/master/projects/grafana/icon/color/grafana-icon-color.svg
 sources:
   - https://github.com/scriptonbasestar-container/sb-helm-charts/tree/master/charts/grafana
   - https://github.com/grafana/grafana

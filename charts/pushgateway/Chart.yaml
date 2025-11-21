@@ -12,6 +12,7 @@ keywords:
   - batch-jobs
   - observability
 home: https://github.com/scriptonbasestar-container/sb-helm-charts
+icon: https://raw.githubusercontent.com/cncf/artwork/master/projects/prometheus/icon/color/prometheus-icon-color.svg
 sources:
   - https://github.com/scriptonbasestar-container/sb-helm-charts/tree/master/charts/pushgateway
   - https://github.com/prometheus/pushgateway

@@ -12,6 +12,7 @@ keywords:
   - grafana
   - promtail
 home: https://github.com/scriptonbasestar-container/sb-helm-charts
+icon: https://raw.githubusercontent.com/cncf/artwork/master/projects/loki/icon/color/loki-icon-color.svg
 sources:
   - https://github.com/scriptonbasestar-container/sb-helm-charts/tree/master/charts/loki
   - https://github.com/grafana/loki

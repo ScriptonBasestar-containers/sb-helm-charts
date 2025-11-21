@@ -12,6 +12,7 @@ keywords:
   - replicaset
   - sharding
 home: https://github.com/scriptonbasestar-container/sb-helm-charts
+icon: https://www.svgrepo.com/show/331488/mongodb.svg
 sources:
   - https://github.com/scriptonbasestar-container/sb-helm-charts/tree/master/charts/mongodb
   - https://github.com/mongodb/mongo

@@ -12,6 +12,7 @@ keywords:
   - security
   - vulnerability-scanning
 home: https://github.com/scriptonbasestar-container/sb-helm-charts
+icon: https://raw.githubusercontent.com/cncf/artwork/master/projects/harbor/icon/color/harbor-icon-color.svg
 sources:
   - https://github.com/scriptonbasestar-container/sb-helm-charts/tree/master/charts/harbor
   - https://github.com/goharbor/harbor

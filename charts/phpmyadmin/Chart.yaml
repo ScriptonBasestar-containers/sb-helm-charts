@@ -12,6 +12,7 @@ keywords:
   - gui
   - management
 home: https://github.com/scriptonbasestar-container/sb-helm-charts
+icon: https://www.phpmyadmin.net/static/images/logo.png
 sources:
   - https://github.com/scriptonbasestar-container/sb-helm-charts/tree/master/charts/phpmyadmin
   - https://www.phpmyadmin.net/
