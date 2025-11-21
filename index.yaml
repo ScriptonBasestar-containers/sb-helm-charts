@@ -3,6 +3,31 @@ entries:
   airflow:
   - apiVersion: v2
     appVersion: 2.8.1
+    created: "2025-11-21T01:42:07.147048927Z"
+    description: Opinionated Apache Airflow chart with KubernetesExecutor for workflow
+      orchestration
+    digest: f4451c503b628f65ae81f1542fbc815a76fd2f5c6569c03882dcb329919c64e4
+    home: https://github.com/scriptonbasestar-container/sb-helm-charts
+    icon: https://airflow.apache.org/images/feature-image.png
+    keywords:
+    - airflow
+    - workflow
+    - orchestration
+    - data-pipeline
+    - scheduler
+    - dag
+    maintainers:
+    - name: ScriptonBasestar
+    name: airflow
+    sources:
+    - https://github.com/scriptonbasestar-container/sb-helm-charts/tree/master/charts/airflow
+    - https://github.com/apache/airflow
+    type: application
+    urls:
+    - https://github.com/ScriptonBasestar-containers/sb-helm-charts/releases/download/airflow-0.3.0/airflow-0.3.0.tgz
+    version: 0.3.0
+  - apiVersion: v2
+    appVersion: 2.8.1
     created: "2025-11-20T04:29:04.308365197Z"
     description: Opinionated Apache Airflow chart with KubernetesExecutor for workflow
       orchestration
@@ -167,6 +192,31 @@ entries:
   elasticsearch:
   - apiVersion: v2
     appVersion: 8.11.0
+    created: "2025-11-21T01:42:07.29001927Z"
+    description: Opinionated Elasticsearch + Kibana chart for small to medium workloads
+    digest: e834385986b8d98e016f9221490b3c5f14675d782820fa29c24f2cdc2fd6d575
+    home: https://www.elastic.co/elasticsearch/
+    icon: https://raw.githubusercontent.com/elastic/elasticsearch/main/docs/reference/images/logo-elastic-search-color-64.svg
+    keywords:
+    - elasticsearch
+    - kibana
+    - logging
+    - search
+    - analytics
+    - elk
+    maintainers:
+    - name: ScriptonBasestar
+      url: https://github.com/scriptonbasestar-container
+    name: elasticsearch
+    sources:
+    - https://github.com/scriptonbasestar-container/sb-helm-charts/tree/master/charts/elasticsearch
+    - https://github.com/elastic/elasticsearch
+    type: application
+    urls:
+    - https://github.com/ScriptonBasestar-containers/sb-helm-charts/releases/download/elasticsearch-0.3.0/elasticsearch-0.3.0.tgz
+    version: 0.3.0
+  - apiVersion: v2
+    appVersion: 8.11.0
     created: "2025-11-20T04:29:04.439529794Z"
     description: Opinionated Elasticsearch + Kibana chart for small to medium workloads
     digest: 07759f25c0c29c0f5c494b20d6db941063e3af6bd4bf5ac278a7d54cde0eb095
@@ -190,6 +240,57 @@ entries:
     urls:
     - https://github.com/ScriptonBasestar-containers/sb-helm-charts/releases/download/elasticsearch-0.1.0/elasticsearch-0.1.0.tgz
     version: 0.1.0
+  grafana:
+  - apiVersion: v2
+    appVersion: 10.2.3
+    created: "2025-11-21T01:42:07.44019642Z"
+    description: Grafana metrics visualization and dashboarding platform
+    digest: e08f6c5fc8c939cca6e715f9324ce42f19365f765154b50b560f37d9934eb866
+    home: https://github.com/scriptonbasestar-container/sb-helm-charts
+    keywords:
+    - grafana
+    - monitoring
+    - metrics
+    - visualization
+    - dashboard
+    - observability
+    maintainers:
+    - email: scriptonbasestar@gmail.com
+      name: ScriptonBasestar
+    name: grafana
+    sources:
+    - https://github.com/scriptonbasestar-container/sb-helm-charts/tree/master/charts/grafana
+    - https://github.com/grafana/grafana
+    type: application
+    urls:
+    - https://github.com/ScriptonBasestar-containers/sb-helm-charts/releases/download/grafana-0.3.0/grafana-0.3.0.tgz
+    version: 0.3.0
+  harbor:
+  - apiVersion: v2
+    appVersion: 2.11.1
+    created: "2025-11-21T01:42:07.555421787Z"
+    description: Private container registry with vulnerability scanning and image
+      signing
+    digest: b5af36429bc98faf338ed0385722e363a15b3c90a5d5b78fd3f0b2392d9b1041
+    home: https://github.com/scriptonbasestar-container/sb-helm-charts
+    keywords:
+    - harbor
+    - registry
+    - docker
+    - container
+    - security
+    - vulnerability-scanning
+    maintainers:
+    - email: scriptonbasestar@gmail.com
+      name: ScriptonBasestar
+    name: harbor
+    sources:
+    - https://github.com/scriptonbasestar-container/sb-helm-charts/tree/master/charts/harbor
+    - https://github.com/goharbor/harbor
+    type: application
+    urls:
+    - https://github.com/ScriptonBasestar-containers/sb-helm-charts/releases/download/harbor-0.2.0/harbor-0.2.0.tgz
+    version: 0.2.0
   immich:
   - annotations:
       artifacthub.io/changes: |
@@ -458,6 +559,31 @@ entries:
     urls:
     - https://github.com/ScriptonBasestar-containers/sb-helm-charts/releases/download/jellyfin-0.1.0/jellyfin-0.1.0.tgz
     version: 0.1.0
+  kafka:
+  - apiVersion: v2
+    appVersion: 3.6.1
+    created: "2025-11-21T01:42:07.711979105Z"
+    description: Apache Kafka streaming platform with KRaft mode and management UI
+    digest: 2747990ed19b5594e70119521228c60a88fb8b0d2abe378afaf6146db6bb66b6
+    home: https://github.com/scriptonbasestar-container/sb-helm-charts
+    icon: https://kafka.apache.org/images/apache-kafka.png
+    keywords:
+    - kafka
+    - streaming
+    - message-broker
+    - event-streaming
+    - kraft
+    - pub-sub
+    maintainers:
+    - name: ScriptonBasestar
+    name: kafka
+    sources:
+    - https://github.com/scriptonbasestar-container/sb-helm-charts/tree/master/charts/kafka
+    - https://github.com/apache/kafka
+    type: application
+    urls:
+    - https://github.com/ScriptonBasestar-containers/sb-helm-charts/releases/download/kafka-0.3.0/kafka-0.3.0.tgz
+    version: 0.3.0
   keycloak:
   - annotations:
       artifacthub.io/license: BSD-3-Clause
@@ -487,6 +613,31 @@ entries:
     type: application
     urls:
     - https://github.com/ScriptonBasestar-containers/sb-helm-charts/releases/download/keycloak-0.3.0/keycloak-0.3.0.tgz
+    version: 0.3.0
+  loki:
+  - apiVersion: v2
+    appVersion: 2.9.3
+    created: "2025-11-21T01:42:07.863714002Z"
+    description: Loki log aggregation system with Grafana integration
+    digest: 739f2ddd92c963f94544b0649a874c0cbaec31d71392df0a1bdfb77e8cf597c6
+    home: https://github.com/scriptonbasestar-container/sb-helm-charts
+    keywords:
+    - loki
+    - logging
+    - logs
+    - observability
+    - grafana
+    - promtail
+    maintainers:
+    - email: scriptonbasestar@gmail.com
+      name: ScriptonBasestar
+    name: loki
+    sources:
+    - https://github.com/scriptonbasestar-container/sb-helm-charts/tree/master/charts/loki
+    - https://github.com/grafana/loki
+    type: application
+    urls:
+    - https://github.com/ScriptonBasestar-containers/sb-helm-charts/releases/download/loki-0.3.0/loki-0.3.0.tgz
     version: 0.3.0
   memcached:
   - annotations:
@@ -668,6 +819,80 @@ entries:
     type: application
     urls:
     - https://github.com/ScriptonBasestar-containers/sb-helm-charts/releases/download/minio-0.3.0/minio-0.3.0.tgz
+    version: 0.3.0
+  mlflow:
+  - apiVersion: v2
+    appVersion: 2.9.2
+    created: "2025-11-21T01:42:08.011168076Z"
+    description: MLflow experiment tracking and model registry platform
+    digest: 7e47411b19753253c66024f3efcedd88737ba544f7b4ae3d77b4150760d554be
+    home: https://github.com/scriptonbasestar-container/sb-helm-charts
+    icon: https://mlflow.org/img/mlflow-logo.svg
+    keywords:
+    - mlflow
+    - machine-learning
+    - ml
+    - experiment-tracking
+    - model-registry
+    - mlops
+    maintainers:
+    - name: ScriptonBasestar
+    name: mlflow
+    sources:
+    - https://github.com/scriptonbasestar-container/sb-helm-charts/tree/master/charts/mlflow
+    - https://github.com/mlflow/mlflow
+    type: application
+    urls:
+    - https://github.com/ScriptonBasestar-containers/sb-helm-charts/releases/download/mlflow-0.3.0/mlflow-0.3.0.tgz
+    version: 0.3.0
+  mongodb:
+  - apiVersion: v2
+    appVersion: 7.0.14
+    created: "2025-11-21T01:42:08.177645836Z"
+    description: MongoDB NoSQL database with replica set support
+    digest: 406c42a281cdc75f775f1bf790098167036c89904af3e0486ce480455f9e6b58
+    home: https://github.com/scriptonbasestar-container/sb-helm-charts
+    keywords:
+    - mongodb
+    - database
+    - nosql
+    - document
+    - replicaset
+    - sharding
+    maintainers:
+    - email: scriptonbasestar@gmail.com
+      name: ScriptonBasestar
+    name: mongodb
+    sources:
+    - https://github.com/scriptonbasestar-container/sb-helm-charts/tree/master/charts/mongodb
+    - https://github.com/mongodb/mongo
+    type: application
+    urls:
+    - https://github.com/ScriptonBasestar-containers/sb-helm-charts/releases/download/mongodb-0.3.0/mongodb-0.3.0.tgz
+    version: 0.3.0
+  mysql:
+  - apiVersion: v2
+    appVersion: 8.0.35
+    created: "2025-11-21T01:42:08.306939268Z"
+    description: MySQL relational database with replication support
+    digest: ed1f9b478140e25cfdea8379bd25b23207eecdfa302a0e10e7b61e221e49759b
+    home: https://github.com/scriptonbasestar-container/sb-helm-charts
+    icon: https://www.mysql.com/common/logos/logo-mysql-170x115.png
+    keywords:
+    - mysql
+    - mariadb
+    - database
+    - sql
+    - replication
+    maintainers:
+    - name: ScriptonBasestar
+    name: mysql
+    sources:
+    - https://github.com/scriptonbasestar-container/sb-helm-charts/tree/master/charts/mysql
+    - https://github.com/mysql/mysql-server
+    type: application
+    urls:
+    - https://github.com/ScriptonBasestar-containers/sb-helm-charts/releases/download/mysql-0.3.0/mysql-0.3.0.tgz
     version: 0.3.0
   nextcloud:
   - annotations:
@@ -905,6 +1130,31 @@ entries:
     urls:
     - https://github.com/ScriptonBasestar-containers/sb-helm-charts/releases/download/paperless-ngx-0.1.0/paperless-ngx-0.1.0.tgz
     version: 0.1.0
+  postgresql:
+  - apiVersion: v2
+    appVersion: "16.1"
+    created: "2025-11-21T01:42:08.452028594Z"
+    description: PostgreSQL relational database with replication support
+    digest: 7c857c87e6d6d5eaaa934ff51ed40eb1d27048aefd15a2be5cdcedc017ead3d8
+    home: https://github.com/scriptonbasestar-container/sb-helm-charts
+    icon: https://www.postgresql.org/media/img/about/press/elephant.png
+    keywords:
+    - postgresql
+    - postgres
+    - database
+    - sql
+    - replication
+    - backup
+    maintainers:
+    - name: ScriptonBasestar
+    name: postgresql
+    sources:
+    - https://github.com/scriptonbasestar-container/sb-helm-charts/tree/master/charts/postgresql
+    - https://github.com/postgres/postgres
+    type: application
+    urls:
+    - https://github.com/ScriptonBasestar-containers/sb-helm-charts/releases/download/postgresql-0.3.0/postgresql-0.3.0.tgz
+    version: 0.3.0
   rabbitmq:
   - annotations:
       artifacthub.io/changes: |
@@ -1924,4 +2174,4 @@ entries:
     urls:
     - https://github.com/ScriptonBasestar-containers/sb-helm-charts/releases/download/wordpress-0.1.0/wordpress-0.1.0.tgz
     version: 0.1.0
-generated: "2025-11-20T04:29:05.066221603Z"
+generated: "2025-11-21T01:42:08.452145523Z"
