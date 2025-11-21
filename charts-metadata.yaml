@@ -216,6 +216,14 @@ charts:
     keywords: [promtail, loki, logging, logs, log-collection, observability]
     description: Promtail log collection agent for Loki with Kubernetes integration
 
+  node-exporter:
+    name: Node Exporter
+    path: charts/node-exporter
+    category: infrastructure
+    tags: [Monitoring, Metrics, Hardware]
+    keywords: [node-exporter, prometheus, monitoring, metrics, hardware, system-metrics]
+    description: Prometheus Node Exporter for hardware and OS metrics with Kubernetes integration
+
   mysql:
     name: MySQL
     path: charts/mysql

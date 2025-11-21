@@ -1,0 +1,90 @@
+Thank you for installing {{ .Chart.Name }}!
+
+Your Node Exporter DaemonSet is ready to collect node metrics.
+
+1. Configuration:
+
+  - Metrics port: {{ .Values.service.port }}
+  - Host network: {{ .Values.hostNetwork }}
+  - Host PID: {{ .Values.hostPID }}
+
+2. Check Node Exporter status:
+
+  kubectl get pods -n {{ .Release.Namespace }} -l app.kubernetes.io/name={{ include "node-exporter.name" . }}
+
+3. View Node Exporter logs:
+
+  kubectl logs -n {{ .Release.Namespace }} -l app.kubernetes.io/name={{ include "node-exporter.name" . }} --tail=100
+
+4. Access metrics:
+
+  # Port-forward to a Node Exporter pod
+  kubectl port-forward -n {{ .Release.Namespace }} $(kubectl get pod -n {{ .Release.Namespace }} -l app.kubernetes.io/name={{ include "node-exporter.name" . }} -o jsonpath="{.items[0].metadata.name}") {{ .Values.service.port }}:{{ .Values.service.port }}
+
+  # View metrics
+  curl http://localhost:{{ .Values.service.port }}/metrics
+
+5. Verify metrics collection:
+
+  # Check if node metrics are available
+  curl http://localhost:{{ .Values.service.port }}/metrics | grep node_
+
+6. Node Exporter runs on nodes:
+
+  kubectl get pods -n {{ .Release.Namespace }} -l app.kubernetes.io/name={{ include "node-exporter.name" . }} -o wide
+
+7. Integration with Prometheus:
+
+{{- if .Values.serviceMonitor.enabled }}
+
+  ServiceMonitor is enabled. Prometheus Operator will automatically discover and scrape Node Exporter.
+
+{{- else }}
+
+  Add the following scrape config to Prometheus:
+
+  scrape_configs:
+    - job_name: 'node-exporter'
+      kubernetes_sd_configs:
+        - role: pod
+      relabel_configs:
+        - source_labels: [__meta_kubernetes_pod_label_app_kubernetes_io_name]
+          action: keep
+          regex: {{ include "node-exporter.name" . }}
+        - source_labels: [__meta_kubernetes_pod_node_name]
+          target_label: node
+
+  Or use Prometheus annotation-based discovery by adding to your Prometheus values:
+
+  service:
+    annotations:
+      prometheus.io/scrape: "true"
+      prometheus.io/port: "{{ .Values.service.port }}"
+
+{{- end }}
+
+8. Common metrics:
+
+  # CPU usage
+  node_cpu_seconds_total
+
+  # Memory usage
+  node_memory_MemAvailable_bytes
+  node_memory_MemTotal_bytes
+
+  # Disk usage
+  node_filesystem_avail_bytes
+  node_filesystem_size_bytes
+
+  # Network traffic
+  node_network_receive_bytes_total
+  node_network_transmit_bytes_total
+
+  # Load average
+  node_load1
+  node_load5
+  node_load15
+
+For more information, visit:
+  - Node Exporter Documentation: https://github.com/prometheus/node_exporter
+  - Prometheus Documentation: https://prometheus.io/docs/
