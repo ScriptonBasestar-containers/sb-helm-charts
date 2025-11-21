@@ -1,0 +1,111 @@
+# Development configuration for pgAdmin
+# Simple setup for local development and testing
+
+replicaCount: 1
+
+image:
+  repository: dpage/pgadmin4
+  tag: "8.13"
+  pullPolicy: IfNotPresent
+
+# pgAdmin configuration
+pgadmin:
+  # Default credentials (CHANGE IN PRODUCTION!)
+  defaultEmail: "admin@dev.local"
+  defaultPassword: "admin"  # WARNING: Change this!
+
+  serverMode: true
+  enhancedCookieProtection: false  # Disabled for easier dev access
+  sessionTimeout: 120  # 2 hours for dev convenience
+  mfaSupported: false
+  passwordLengthMin: 4  # Lower for dev
+  logLevel: "DEBUG"
+  consoleLogLevel: "DEBUG"
+
+# Example: Pre-configure local PostgreSQL server
+servers:
+  enabled: true
+  config:
+    - Name: "Local PostgreSQL"
+      Group: "Development"
+      Host: "postgresql.default.svc.cluster.local"
+      Port: 5432
+      MaintenanceDB: "postgres"
+      Username: "postgres"
+      SSLMode: "prefer"
+      Comment: "Local development PostgreSQL"
+
+serviceAccount:
+  create: true
+
+podAnnotations: {}
+
+podSecurityContext:
+  fsGroup: 5050
+  runAsUser: 5050
+  runAsNonRoot: true
+
+securityContext:
+  allowPrivilegeEscalation: false
+  capabilities:
+    drop:
+    - ALL
+  readOnlyRootFilesystem: false
+  runAsNonRoot: true
+  runAsUser: 5050
+
+service:
+  type: ClusterIP
+  port: 80
+  targetPort: 80
+
+ingress:
+  enabled: false
+
+persistence:
+  enabled: true
+  storageClass: ""
+  accessMode: ReadWriteOnce
+  size: 500Mi  # Smaller for dev
+
+resources:
+  limits:
+    cpu: 300m
+    memory: 256Mi
+  requests:
+    cpu: 50m
+    memory: 64Mi
+
+autoscaling:
+  enabled: false
+
+readinessProbe:
+  enabled: true
+  httpGet:
+    path: /misc/ping
+    port: 80
+  initialDelaySeconds: 15
+  periodSeconds: 10
+  timeoutSeconds: 5
+  successThreshold: 1
+  failureThreshold: 3
+
+livenessProbe:
+  enabled: true
+  httpGet:
+    path: /misc/ping
+    port: 80
+  initialDelaySeconds: 30
+  periodSeconds: 20
+  timeoutSeconds: 5
+  successThreshold: 1
+  failureThreshold: 3
+
+networkPolicy:
+  enabled: false
+
+serviceMonitor:
+  enabled: false
+
+podDisruptionBudget:
+  enabled: false

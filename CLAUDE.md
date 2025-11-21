@@ -142,6 +142,7 @@ The metadata file serves multiple purposes:
 - **mlflow**: MLflow experiment tracking and model registry platform (Deployment, PostgreSQL, MinIO)
 - **nextcloud**: Nextcloud with LinuxServer.io image (Deployment, PostgreSQL, config-based)
 - **paperless-ngx**: Document management system with OCR (4 PVC architecture)
+- **pgadmin**: pgAdmin web-based PostgreSQL administration tool (Deployment, multi-server support, pre-configuration)
 - **rsshub**: RSS aggregator (well-maintained external chart available)
 - **rustfs**: High-performance S3-compatible object storage (StatefulSet, tiered storage, clustering)
 - **uptime-kuma**: Self-hosted monitoring tool with beautiful UI and 90+ notification services
@@ -600,6 +601,38 @@ make -f make/ops/grafana.mk grafana-db-restore FILE=backup.tar.gz
 make -f make/ops/grafana.mk grafana-reset-password PASSWORD=newpass
 make -f make/ops/grafana.mk grafana-restart
 make -f make/ops/grafana.mk grafana-api CMD='/api/health'
+```
+
+### pgAdmin Specific Commands
+
+```bash
+# Access & Credentials
+make -f make/ops/pgadmin.mk pgadmin-get-password
+make -f make/ops/pgadmin.mk pgadmin-port-forward
+
+# Server Management
+make -f make/ops/pgadmin.mk pgadmin-list-servers
+make -f make/ops/pgadmin.mk pgadmin-test-connection HOST=postgresql.default.svc.cluster.local
+
+# User Management
+make -f make/ops/pgadmin.mk pgadmin-list-users
+
+# Configuration
+make -f make/ops/pgadmin.mk pgadmin-get-config
+make -f make/ops/pgadmin.mk pgadmin-export-servers
+
+# Backup & Restore
+make -f make/ops/pgadmin.mk pgadmin-backup-metadata
+make -f make/ops/pgadmin.mk pgadmin-restore-metadata FILE=<file>
+
+# Monitoring
+make -f make/ops/pgadmin.mk pgadmin-health
+make -f make/ops/pgadmin.mk pgadmin-version
+make -f make/ops/pgadmin.mk pgadmin-logs
+make -f make/ops/pgadmin.mk pgadmin-shell
+
+# Operations
+make -f make/ops/pgadmin.mk pgadmin-restart
 ```
 
 ### Loki Specific Commands

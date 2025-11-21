@@ -1,0 +1,223 @@
+# Small production configuration for pgAdmin
+# Suitable for small teams (5-20 users) managing multiple PostgreSQL databases
+
+replicaCount: 2  # HA for availability
+
+image:
+  repository: dpage/pgadmin4
+  tag: "8.13"
+  pullPolicy: IfNotPresent
+
+# pgAdmin configuration
+pgadmin:
+  # REQUIRED: Set via helm install --set pgadmin.defaultEmail=...
+  defaultEmail: ""  # e.g., "dba@company.com"
+  # REQUIRED: Set via helm install --set pgadmin.defaultPassword=...
+  defaultPassword: ""  # MUST be strong password
+
+  serverMode: true
+  enhancedCookieProtection: true
+  sessionTimeout: 30  # 30 minutes for security
+  mfaSupported: true  # Enable 2FA support
+  passwordLengthMin: 12
+  logLevel: "INFO"
+  consoleLogLevel: "WARNING"
+
+  # Extra environment for advanced configuration
+  extraEnv: []
+  # Example: Enable audit logging
+  # - name: PGADMIN_CONFIG_AUDIT_LOGGING
+  #   value: "True"
+
+# Pre-configured servers (recommended for production)
+servers:
+  enabled: true
+  config:
+    # Production databases
+    - Name: "Primary DB"
+      Group: "Production"
+      Host: "postgresql-prod.database.svc.cluster.local"
+      Port: 5432
+      MaintenanceDB: "postgres"
+      Username: "pgadmin_readonly"  # Use read-only account
+      SSLMode: "require"
+      Comment: "Production PostgreSQL - Primary"
+
+    - Name: "Replica DB"
+      Group: "Production"
+      Host: "postgresql-replica.database.svc.cluster.local"
+      Port: 5432
+      MaintenanceDB: "postgres"
+      Username: "pgadmin_readonly"
+      SSLMode: "require"
+      Comment: "Production PostgreSQL - Replica (Read-Only)"
+
+    # Staging environment
+    - Name: "Staging DB"
+      Group: "Staging"
+      Host: "postgresql-staging.database.svc.cluster.local"
+      Port: 5432
+      MaintenanceDB: "postgres"
+      Username: "pgadmin"
+      SSLMode: "prefer"
+      Comment: "Staging PostgreSQL"
+
+serviceAccount:
+  create: true
+  annotations: {}
+
+podAnnotations:
+  prometheus.io/scrape: "false"  # pgAdmin doesn't expose metrics by default
+
+podSecurityContext:
+  fsGroup: 5050
+  runAsUser: 5050
+  runAsNonRoot: true
+
+securityContext:
+  allowPrivilegeEscalation: false
+  capabilities:
+    drop:
+    - ALL
+  readOnlyRootFilesystem: false
+  runAsNonRoot: true
+  runAsUser: 5050
+
+service:
+  type: ClusterIP
+  port: 80
+  targetPort: 80
+  annotations: {}
+
+ingress:
+  enabled: true
+  className: "nginx"
+  annotations:
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/force-ssl-redirect: "true"
+    # Session affinity for multi-replica deployment
+    nginx.ingress.kubernetes.io/affinity: "cookie"
+    nginx.ingress.kubernetes.io/session-cookie-name: "pgadmin-session"
+    nginx.ingress.kubernetes.io/session-cookie-hash: "sha1"
+  hosts:
+    - host: pgadmin.example.com
+      paths:
+        - path: /
+          pathType: Prefix
+  tls:
+    - secretName: pgadmin-tls
+      hosts:
+        - pgadmin.example.com
+
+persistence:
+  enabled: true
+  storageClass: "standard"
+  accessMode: ReadWriteOnce
+  size: 2Gi
+  annotations:
+    backup.velero.io/backup-volumes: "data"
+
+resources:
+  limits:
+    cpu: 1000m
+    memory: 1Gi
+  requests:
+    cpu: 200m
+    memory: 256Mi
+
+autoscaling:
+  enabled: false  # pgAdmin state is stored in SQLite, not suitable for HPA
+
+# Pod disruption budget for HA
+podDisruptionBudget:
+  enabled: true
+  minAvailable: 1
+
+# Anti-affinity to spread pods across nodes
+affinity:
+  podAntiAffinity:
+    preferredDuringSchedulingIgnoredDuringExecution:
+      - weight: 100
+        podAffinityTerm:
+          labelSelector:
+            matchExpressions:
+              - key: app.kubernetes.io/name
+                operator: In
+                values:
+                  - pgadmin
+          topologyKey: kubernetes.io/hostname
+
+readinessProbe:
+  enabled: true
+  httpGet:
+    path: /misc/ping
+    port: 80
+  initialDelaySeconds: 30
+  periodSeconds: 10
+  timeoutSeconds: 5
+  successThreshold: 1
+  failureThreshold: 3
+
+livenessProbe:
+  enabled: true
+  httpGet:
+    path: /misc/ping
+    port: 80
+  initialDelaySeconds: 60
+  periodSeconds: 20
+  timeoutSeconds: 5
+  successThreshold: 1
+  failureThreshold: 3
+
+# Network policy for security
+networkPolicy:
+  enabled: true
+  policyTypes:
+    - Ingress
+    - Egress
+  ingress:
+    # Allow from ingress controller
+    - from:
+      - namespaceSelector:
+          matchLabels:
+            name: ingress-nginx
+      ports:
+      - protocol: TCP
+        port: 80
+  egress:
+    # Allow DNS
+    - to:
+      - namespaceSelector: {}
+        podSelector:
+          matchLabels:
+            k8s-app: kube-dns
+      ports:
+      - protocol: UDP
+        port: 53
+    # Allow PostgreSQL connections
+    - to:
+      - namespaceSelector:
+          matchLabels:
+            name: database
+      ports:
+      - protocol: TCP
+        port: 5432
+    # Allow HTTPS for external resources
+    - to:
+      - namespaceSelector: {}
+      ports:
+      - protocol: TCP
+        port: 443
+
+serviceMonitor:
+  enabled: false  # pgAdmin doesn't expose Prometheus metrics
+
+# Security recommendations:
+# 1. Use strong passwords (--set pgadmin.defaultPassword='...')
+# 2. Enable MFA for all users after first login
+# 3. Use read-only PostgreSQL accounts where possible
+# 4. Enable TLS/SSL for all database connections
+# 5. Regularly review user access and permissions
+# 6. Enable audit logging in production
+# 7. Backup pgAdmin data (contains server configurations)
