@@ -1,0 +1,173 @@
+name: Documentation Improvement
+description: Suggest improvements to documentation
+title: "[Docs]: "
+labels: ["documentation", "triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for helping improve our documentation! Please provide details below.
+
+  - type: dropdown
+    id: doc-type
+    attributes:
+      label: Documentation Type
+      description: What type of documentation needs improvement?
+      options:
+        - Chart README
+        - Project documentation (guides, tutorials)
+        - Code comments
+        - API documentation
+        - Examples
+        - CHANGELOG
+        - Other
+    validations:
+      required: true
+
+  - type: dropdown
+    id: chart
+    attributes:
+      label: Chart Name (if applicable)
+      description: Which chart's documentation needs improvement?
+      options:
+        - airflow
+        - alertmanager
+        - blackbox-exporter
+        - browserless-chrome
+        - devpi
+        - elasticsearch
+        - grafana
+        - harbor
+        - immich
+        - jellyfin
+        - kafka
+        - keycloak
+        - kube-state-metrics
+        - loki
+        - memcached
+        - minio
+        - mlflow
+        - mongodb
+        - mysql
+        - nextcloud
+        - node-exporter
+        - paperless-ngx
+        - pgadmin
+        - phpmyadmin
+        - postgresql
+        - prometheus
+        - promtail
+        - pushgateway
+        - rabbitmq
+        - redis
+        - rsshub
+        - rustfs
+        - uptime-kuma
+        - vaultwarden
+        - wireguard
+        - wordpress
+        - N/A - General documentation
+    validations:
+      required: true
+
+  - type: textarea
+    id: current-state
+    attributes:
+      label: Current Documentation State
+      description: What is currently documented (or missing)?
+      placeholder: Describe what exists now or what is missing...
+    validations:
+      required: true
+
+  - type: textarea
+    id: improvement
+    attributes:
+      label: Suggested Improvement
+      description: What should be added, changed, or removed?
+      placeholder: Describe the improvement in detail...
+    validations:
+      required: true
+
+  - type: dropdown
+    id: issue-type
+    attributes:
+      label: Issue Type
+      description: What kind of documentation issue is this?
+      options:
+        - Missing information
+        - Incorrect information
+        - Outdated information
+        - Unclear/confusing
+        - Typo/grammar
+        - Missing examples
+        - Better organization needed
+        - Other
+    validations:
+      required: true
+
+  - type: textarea
+    id: affected-users
+    attributes:
+      label: Who is Affected?
+      description: Who would benefit from this documentation improvement?
+      placeholder: |
+        - New users trying to install the chart
+        - Users configuring advanced features
+        - Contributors developing charts
+        - ...
+    validations:
+      required: true
+
+  - type: textarea
+    id: proposed-content
+    attributes:
+      label: Proposed Content (if applicable)
+      description: If you have specific content to add or change, provide it here
+      placeholder: |
+        ## New Section
+
+        Content here...
+
+        ```yaml
+        # Example configuration
+        ```
+      render: markdown
+
+  - type: input
+    id: reference
+    attributes:
+      label: Reference Documentation
+      description: Links to official docs, similar projects, or other references
+      placeholder: "https://..."
+
+  - type: dropdown
+    id: priority
+    attributes:
+      label: Priority
+      description: How important is this documentation improvement?
+      options:
+        - Low - Nice to have
+        - Medium - Would help users
+        - High - Critical information missing
+    validations:
+      required: true
+
+  - type: textarea
+    id: additional
+    attributes:
+      label: Additional Context
+      description: Any other context, screenshots, or examples
+      placeholder: Add any other information here...
+
+  - type: checkboxes
+    id: checklist
+    attributes:
+      label: Pre-submission Checklist
+      description: Please confirm the following
+      options:
+        - label: I have searched for existing documentation issues
+          required: true
+        - label: I have checked the latest version of the documentation
+          required: true
+        - label: I am willing to contribute to improving this documentation
+          required: false

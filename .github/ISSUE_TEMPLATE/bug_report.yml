@@ -14,22 +14,42 @@ body:
       label: Chart Name
       description: Which chart is affected?
       options:
-        - keycloak
-        - redis
-        - memcached
-        - rabbitmq
-        - wireguard
+        - airflow
+        - alertmanager
+        - blackbox-exporter
         - browserless-chrome
         - devpi
-        - rsshub
-        - rustfs
-        - nextcloud
-        - wordpress
-        - paperless-ngx
-        - uptime-kuma
+        - elasticsearch
+        - grafana
+        - harbor
         - immich
         - jellyfin
+        - kafka
+        - keycloak
+        - kube-state-metrics
+        - loki
+        - memcached
+        - minio
+        - mlflow
+        - mongodb
+        - mysql
+        - nextcloud
+        - node-exporter
+        - paperless-ngx
+        - pgadmin
+        - phpmyadmin
+        - postgresql
+        - prometheus
+        - promtail
+        - pushgateway
+        - rabbitmq
+        - redis
+        - rsshub
+        - rustfs
+        - uptime-kuma
         - vaultwarden
+        - wireguard
+        - wordpress
         - Other / Multiple charts
     validations:
       required: true

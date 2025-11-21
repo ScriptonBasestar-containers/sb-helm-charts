@@ -1,0 +1,11 @@
+blank_issues_enabled: false
+contact_links:
+  - name: GitHub Discussions
+    url: https://github.com/scriptonbasestar-container/sb-helm-charts/discussions
+    about: Ask questions, share ideas, and discuss with the community
+  - name: Chart Documentation
+    url: https://github.com/scriptonbasestar-container/sb-helm-charts/tree/master/docs
+    about: Browse comprehensive documentation for all charts
+  - name: Chart Catalog
+    url: https://github.com/scriptonbasestar-container/sb-helm-charts/blob/master/docs/CHARTS.md
+    about: View all available charts with installation examples
