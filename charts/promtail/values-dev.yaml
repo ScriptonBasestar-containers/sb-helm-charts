@@ -1,0 +1,96 @@
+# Development values for promtail
+# This configuration is optimized for local development and testing
+
+image:
+  repository: grafana/promtail
+  pullPolicy: IfNotPresent
+  tag: "2.9.3"
+
+promtail:
+  server:
+    httpListenPort: 3101
+    grpcListenPort: 9095
+    logLevel: "debug"  # Verbose logging for development
+
+  client:
+    url: "http://loki:3100/loki/api/v1/push"
+    externalLabels:
+      cluster: "dev"
+      environment: "development"
+
+  kubernetesSD:
+    addPodAnnotations: true  # Enable for development
+    scrapeSystemd: false
+
+  pipelineStages:
+    cri:
+      enabled: true
+    docker:
+      enabled: false
+    custom: []
+
+  additionalScrapeConfigs: []
+
+  mountHostPaths:
+    pods: true
+
+rbac:
+  create: true
+
+serviceAccount:
+  create: true
+
+podSecurityContext:
+  runAsUser: 0
+  runAsGroup: 0
+  fsGroup: 0
+
+securityContext:
+  privileged: true
+  readOnlyRootFilesystem: true
+  allowPrivilegeEscalation: false
+  capabilities:
+    drop:
+      - ALL
+
+service:
+  enabled: true
+  type: ClusterIP
+  port: 3101
+  annotations:
+    prometheus.io/scrape: "true"
+    prometheus.io/port: "3101"
+
+# Reduced resources for development
+resources:
+  limits:
+    cpu: 200m
+    memory: 128Mi
+  requests:
+    cpu: 50m
+    memory: 32Mi
+
+livenessProbe:
+  initialDelaySeconds: 10
+  periodSeconds: 10
+  timeoutSeconds: 1
+  failureThreshold: 3
+
+readinessProbe:
+  initialDelaySeconds: 10
+  periodSeconds: 10
+  timeoutSeconds: 1
+  failureThreshold: 3
+
+updateStrategy:
+  type: RollingUpdate
+  rollingUpdate:
+    maxUnavailable: 1
+
+nodeSelector: {}
+
+tolerations:
+  - effect: NoSchedule
+    operator: Exists
+
+affinity: {}

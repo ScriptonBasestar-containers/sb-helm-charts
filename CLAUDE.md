@@ -167,6 +167,7 @@ The metadata file serves multiple purposes:
   - ⚠️ For production HA, consider PostgreSQL Operator ([Zalando](https://github.com/zalando/postgres-operator), [Crunchy Data](https://github.com/CrunchyData/postgres-operator), [CloudNativePG](https://cloudnative-pg.io/))
 - **prometheus**: Prometheus monitoring system and time series database (StatefulSet, Kubernetes SD, TSDB)
   - ⚠️ For large-scale production with advanced features, consider [Prometheus Operator](https://github.com/prometheus-operator/prometheus-operator)
+- **promtail**: Promtail log collection agent for Loki (DaemonSet, Kubernetes SD, CRI/Docker parsers)
 - **rabbitmq**: Message broker with management UI (Deployment, no database, AMQP + Prometheus metrics)
   - ⚠️ For production clustering, consider [RabbitMQ Cluster Operator](https://github.com/rabbitmq/cluster-operator)
 - **redis**: In-memory data store (StatefulSet, no external database, full redis.conf support)
@@ -642,6 +643,37 @@ make -f make/ops/prometheus.mk prom-test-query
 # Scaling
 make -f make/ops/prometheus.mk prom-scale REPLICAS=2
 make -f make/ops/prometheus.mk prom-restart
+```
+
+### Promtail Specific Commands
+
+```bash
+# Basic operations
+make -f make/ops/promtail.mk promtail-logs
+make -f make/ops/promtail.mk promtail-logs-node NODE=node-name
+make -f make/ops/promtail.mk promtail-shell
+make -f make/ops/promtail.mk promtail-shell-node NODE=node-name
+
+# Health and status
+make -f make/ops/promtail.mk promtail-status
+make -f make/ops/promtail.mk promtail-ready
+make -f make/ops/promtail.mk promtail-version
+make -f make/ops/promtail.mk promtail-config
+make -f make/ops/promtail.mk promtail-targets
+make -f make/ops/promtail.mk promtail-metrics
+
+# Node operations
+make -f make/ops/promtail.mk promtail-list-nodes
+make -f make/ops/promtail.mk promtail-pod-on-node NODE=node-name
+
+# Troubleshooting
+make -f make/ops/promtail.mk promtail-test-loki
+make -f make/ops/promtail.mk promtail-check-positions
+make -f make/ops/promtail.mk promtail-check-logs-path
+make -f make/ops/promtail.mk promtail-debug
+
+# Operations
+make -f make/ops/promtail.mk promtail-restart
 ```
 
 ### MinIO Specific Commands

@@ -1,0 +1,119 @@
+# Small production values for promtail
+# This configuration is optimized for production deployments
+
+image:
+  repository: grafana/promtail
+  pullPolicy: IfNotPresent
+  tag: "2.9.3"
+
+promtail:
+  server:
+    httpListenPort: 3101
+    grpcListenPort: 9095
+    logLevel: "info"
+
+  client:
+    url: "http://loki.monitoring.svc.cluster.local:3100/loki/api/v1/push"
+    # Optional: Use basic auth if Loki requires authentication
+    basicAuth:
+      enabled: false
+      username: ""
+      password: ""
+    externalLabels:
+      cluster: "production"
+      environment: "prod"
+
+  kubernetesSD:
+    addPodAnnotations: false  # Disable to reduce label cardinality
+    scrapeSystemd: false
+
+  pipelineStages:
+    cri:
+      enabled: true
+    docker:
+      enabled: false
+    # Add custom pipeline stages for production
+    custom:
+      # Drop debug logs in production
+      - match:
+          selector: '{level="debug"}'
+          action: drop
+      # Sample info logs (keep 50%)
+      - match:
+          selector: '{level="info"}'
+          action: keep
+          drop_counter_reason: sampling
+        sampling:
+          rate: 0.5
+
+  additionalScrapeConfigs: []
+
+  mountHostPaths:
+    pods: true
+
+rbac:
+  create: true
+
+serviceAccount:
+  create: true
+
+podSecurityContext:
+  runAsUser: 0
+  runAsGroup: 0
+  fsGroup: 0
+
+securityContext:
+  privileged: true
+  readOnlyRootFilesystem: true
+  allowPrivilegeEscalation: false
+  capabilities:
+    drop:
+      - ALL
+
+service:
+  enabled: true
+  type: ClusterIP
+  port: 3101
+  annotations:
+    prometheus.io/scrape: "true"
+    prometheus.io/port: "3101"
+
+# Production resources
+resources:
+  limits:
+    cpu: 500m
+    memory: 256Mi
+  requests:
+    cpu: 200m
+    memory: 128Mi
+
+livenessProbe:
+  initialDelaySeconds: 10
+  periodSeconds: 10
+  timeoutSeconds: 1
+  failureThreshold: 5
+
+readinessProbe:
+  initialDelaySeconds: 10
+  periodSeconds: 10
+  timeoutSeconds: 1
+  failureThreshold: 5
+
+updateStrategy:
+  type: RollingUpdate
+  rollingUpdate:
+    maxUnavailable: 1
+
+nodeSelector: {}
+
+# Tolerate all taints to ensure logs are collected from all nodes
+tolerations:
+  - effect: NoSchedule
+    operator: Exists
+  - effect: NoExecute
+    operator: Exists
+
+affinity: {}
+
+# Use high priority to ensure Promtail runs even under resource pressure
+priorityClassName: "system-node-critical"
