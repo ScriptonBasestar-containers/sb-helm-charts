@@ -51,6 +51,58 @@ entries:
     urls:
     - https://github.com/ScriptonBasestar-containers/sb-helm-charts/releases/download/airflow-0.1.0/airflow-0.1.0.tgz
     version: 0.1.0
+  alertmanager:
+  - apiVersion: v2
+    appVersion: 0.27.0
+    created: "2025-11-21T06:34:55.251973948Z"
+    description: Prometheus Alertmanager for alert routing and notification with high
+      availability support
+    digest: c6bcca032131275c5b8834678f6dfa45da6579785b552e01917a727c4f3d3a94
+    home: https://github.com/scriptonbasestar-container/sb-helm-charts
+    icon: https://raw.githubusercontent.com/prometheus/prometheus/main/documentation/images/prometheus-logo.svg
+    keywords:
+    - alertmanager
+    - prometheus
+    - monitoring
+    - alerting
+    - notifications
+    - observability
+    maintainers:
+    - name: ScriptonBasestar
+    name: alertmanager
+    sources:
+    - https://github.com/scriptonbasestar-container/sb-helm-charts/tree/master/charts/alertmanager
+    - https://github.com/prometheus/alertmanager
+    type: application
+    urls:
+    - https://github.com/ScriptonBasestar-containers/sb-helm-charts/releases/download/alertmanager-0.3.0/alertmanager-0.3.0.tgz
+    version: 0.3.0
+  blackbox-exporter:
+  - apiVersion: v2
+    appVersion: 0.24.0
+    created: "2025-11-21T06:34:55.414633119Z"
+    description: Blackbox Exporter for probing endpoints over HTTP, HTTPS, DNS, TCP,
+      and ICMP
+    digest: 32097c0f33c906a4d3ef3372b6e9f02609942ba08008e36b6f6ff8de0d054858
+    home: https://github.com/scriptonbasestar-container/sb-helm-charts
+    icon: https://raw.githubusercontent.com/prometheus/prometheus/main/documentation/images/prometheus-logo.svg
+    keywords:
+    - blackbox-exporter
+    - prometheus
+    - monitoring
+    - probing
+    - health-check
+    - observability
+    maintainers:
+    - name: ScriptonBasestar
+    name: blackbox-exporter
+    sources:
+    - https://github.com/scriptonbasestar-container/sb-helm-charts/tree/master/charts/blackbox-exporter
+    - https://github.com/prometheus/blackbox_exporter
+    type: application
+    urls:
+    - https://github.com/ScriptonBasestar-containers/sb-helm-charts/releases/download/blackbox-exporter-0.3.0/blackbox-exporter-0.3.0.tgz
+    version: 0.3.0
   browserless-chrome:
   - annotations:
       artifacthub.io/changes: |
@@ -614,6 +666,32 @@ entries:
     urls:
     - https://github.com/ScriptonBasestar-containers/sb-helm-charts/releases/download/keycloak-0.3.0/keycloak-0.3.0.tgz
     version: 0.3.0
+  kube-state-metrics:
+  - apiVersion: v2
+    appVersion: 2.10.1
+    created: "2025-11-21T06:34:55.609933047Z"
+    description: Kube State Metrics exposes Kubernetes object state as Prometheus
+      metrics
+    digest: 5d381c37955193cb033dfea25ac2d72e8666b5ec334921b3ea64902f041a677a
+    home: https://github.com/scriptonbasestar-container/sb-helm-charts
+    icon: https://raw.githubusercontent.com/kubernetes/kubernetes/master/logo/logo.svg
+    keywords:
+    - kube-state-metrics
+    - kubernetes
+    - monitoring
+    - metrics
+    - prometheus
+    - observability
+    maintainers:
+    - name: ScriptonBasestar
+    name: kube-state-metrics
+    sources:
+    - https://github.com/scriptonbasestar-container/sb-helm-charts/tree/master/charts/kube-state-metrics
+    - https://github.com/kubernetes/kube-state-metrics
+    type: application
+    urls:
+    - https://github.com/ScriptonBasestar-containers/sb-helm-charts/releases/download/kube-state-metrics-0.3.0/kube-state-metrics-0.3.0.tgz
+    version: 0.3.0
   loki:
   - apiVersion: v2
     appVersion: 2.9.3
@@ -1009,6 +1087,32 @@ entries:
     urls:
     - https://github.com/ScriptonBasestar-containers/sb-helm-charts/releases/download/nextcloud-0.1.0/nextcloud-0.1.0.tgz
     version: 0.1.0
+  node-exporter:
+  - apiVersion: v2
+    appVersion: 1.7.0
+    created: "2025-11-21T06:34:55.761749679Z"
+    description: Prometheus Node Exporter for hardware and OS metrics with Kubernetes
+      integration
+    digest: b62e19db92612beee7677d90043d3658abd7a9e6f27dfe267d802d9dfc22f7f4
+    home: https://github.com/scriptonbasestar-container/sb-helm-charts
+    icon: https://prometheus.io/assets/prometheus_logo_grey.svg
+    keywords:
+    - node-exporter
+    - prometheus
+    - monitoring
+    - metrics
+    - hardware
+    - system-metrics
+    maintainers:
+    - name: ScriptonBasestar
+    name: node-exporter
+    sources:
+    - https://github.com/scriptonbasestar-container/sb-helm-charts/tree/master/charts/node-exporter
+    - https://github.com/prometheus/node_exporter
+    type: application
+    urls:
+    - https://github.com/ScriptonBasestar-containers/sb-helm-charts/releases/download/node-exporter-0.3.0/node-exporter-0.3.0.tgz
+    version: 0.3.0
   paperless-ngx:
   - annotations:
       artifacthub.io/changes: |
@@ -1130,6 +1234,55 @@ entries:
     urls:
     - https://github.com/ScriptonBasestar-containers/sb-helm-charts/releases/download/paperless-ngx-0.1.0/paperless-ngx-0.1.0.tgz
     version: 0.1.0
+  pgadmin:
+  - apiVersion: v2
+    appVersion: "8.13"
+    created: "2025-11-21T06:34:55.959024519Z"
+    description: pgAdmin is a web-based PostgreSQL administration and management tool
+    digest: 9a1c88090ee0cf78206ef1e3d1457ce7ea5be00952057496dfb42f33454ff569
+    home: https://github.com/scriptonbasestar-container/sb-helm-charts
+    keywords:
+    - postgresql
+    - database
+    - admin
+    - gui
+    - management
+    maintainers:
+    - email: scriptonbasestar@gmail.com
+      name: ScriptonBasestar
+    name: pgadmin
+    sources:
+    - https://github.com/scriptonbasestar-container/sb-helm-charts/tree/master/charts/pgadmin
+    - https://www.pgadmin.org/
+    type: application
+    urls:
+    - https://github.com/ScriptonBasestar-containers/sb-helm-charts/releases/download/pgadmin-0.3.0/pgadmin-0.3.0.tgz
+    version: 0.3.0
+  phpmyadmin:
+  - apiVersion: v2
+    appVersion: 5.2.1
+    created: "2025-11-21T06:34:56.109148087Z"
+    description: phpMyAdmin is a web-based MySQL and MariaDB administration tool
+    digest: 3cb6b7851a9530731192ae87c7171aabaf03201649ba45f93a8ddd3d022f3bf8
+    home: https://github.com/scriptonbasestar-container/sb-helm-charts
+    keywords:
+    - mysql
+    - mariadb
+    - database
+    - admin
+    - gui
+    - management
+    maintainers:
+    - email: scriptonbasestar@gmail.com
+      name: ScriptonBasestar
+    name: phpmyadmin
+    sources:
+    - https://github.com/scriptonbasestar-container/sb-helm-charts/tree/master/charts/phpmyadmin
+    - https://www.phpmyadmin.net/
+    type: application
+    urls:
+    - https://github.com/ScriptonBasestar-containers/sb-helm-charts/releases/download/phpmyadmin-0.3.0/phpmyadmin-0.3.0.tgz
+    version: 0.3.0
   postgresql:
   - apiVersion: v2
     appVersion: "16.1"
@@ -1154,6 +1307,82 @@ entries:
     type: application
     urls:
     - https://github.com/ScriptonBasestar-containers/sb-helm-charts/releases/download/postgresql-0.3.0/postgresql-0.3.0.tgz
+    version: 0.3.0
+  prometheus:
+  - apiVersion: v2
+    appVersion: 2.48.1
+    created: "2025-11-21T06:34:56.262803794Z"
+    description: Prometheus monitoring system and time series database for Kubernetes
+    digest: 9fd9440df1f48cbfbd5c7caa4e35e48ad4c2080c0cc8606d199a7c69c719ec1f
+    home: https://github.com/scriptonbasestar-container/sb-helm-charts
+    icon: https://prometheus.io/assets/prometheus_logo_grey.svg
+    keywords:
+    - prometheus
+    - monitoring
+    - metrics
+    - timeseries
+    - alerting
+    - observability
+    maintainers:
+    - name: ScriptonBasestar
+    name: prometheus
+    sources:
+    - https://github.com/scriptonbasestar-container/sb-helm-charts/tree/master/charts/prometheus
+    - https://github.com/prometheus/prometheus
+    type: application
+    urls:
+    - https://github.com/ScriptonBasestar-containers/sb-helm-charts/releases/download/prometheus-0.3.0/prometheus-0.3.0.tgz
+    version: 0.3.0
+  promtail:
+  - apiVersion: v2
+    appVersion: 2.9.3
+    created: "2025-11-21T06:34:56.411965265Z"
+    description: Promtail log collection agent for Loki with Kubernetes integration
+    digest: 214dbecb8bffdc12917c1f4c469c9573ba1c20182e0638c161667b70335fa42a
+    home: https://github.com/scriptonbasestar-container/sb-helm-charts
+    icon: https://grafana.com/static/img/logos/logo-loki.svg
+    keywords:
+    - promtail
+    - loki
+    - logging
+    - logs
+    - log-collection
+    - observability
+    maintainers:
+    - name: ScriptonBasestar
+    name: promtail
+    sources:
+    - https://github.com/scriptonbasestar-container/sb-helm-charts/tree/master/charts/promtail
+    - https://github.com/grafana/loki/tree/main/clients/cmd/promtail
+    type: application
+    urls:
+    - https://github.com/ScriptonBasestar-containers/sb-helm-charts/releases/download/promtail-0.3.0/promtail-0.3.0.tgz
+    version: 0.3.0
+  pushgateway:
+  - apiVersion: v2
+    appVersion: 1.6.2
+    created: "2025-11-21T06:34:56.566232296Z"
+    description: Prometheus Pushgateway for push-based metrics collection from batch
+      jobs and ephemeral services
+    digest: 0af772b8491891bad30e6a4b0e4102a5b161222fc221e6a34c47ffb740aa084f
+    home: https://github.com/scriptonbasestar-container/sb-helm-charts
+    keywords:
+    - prometheus
+    - pushgateway
+    - monitoring
+    - metrics
+    - batch-jobs
+    - observability
+    maintainers:
+    - email: scriptonbasestar@gmail.com
+      name: ScriptonBasestar
+    name: pushgateway
+    sources:
+    - https://github.com/scriptonbasestar-container/sb-helm-charts/tree/master/charts/pushgateway
+    - https://github.com/prometheus/pushgateway
+    type: application
+    urls:
+    - https://github.com/ScriptonBasestar-containers/sb-helm-charts/releases/download/pushgateway-0.3.0/pushgateway-0.3.0.tgz
     version: 0.3.0
   rabbitmq:
   - annotations:
@@ -2174,4 +2403,4 @@ entries:
     urls:
     - https://github.com/ScriptonBasestar-containers/sb-helm-charts/releases/download/wordpress-0.1.0/wordpress-0.1.0.tgz
     version: 0.1.0
-generated: "2025-11-21T01:42:08.452145523Z"
+generated: "2025-11-21T06:34:56.566335989Z"
