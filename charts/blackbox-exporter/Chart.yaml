@@ -1,0 +1,20 @@
+apiVersion: v2
+name: blackbox-exporter
+description: Blackbox Exporter for probing endpoints over HTTP, HTTPS, DNS, TCP, and ICMP
+type: application
+version: 0.3.0
+appVersion: "0.24.0"
+keywords:
+  - blackbox-exporter
+  - prometheus
+  - monitoring
+  - probing
+  - health-check
+  - observability
+home: https://github.com/scriptonbasestar-container/sb-helm-charts
+icon: https://raw.githubusercontent.com/prometheus/prometheus/main/documentation/images/prometheus-logo.svg
+sources:
+  - https://github.com/scriptonbasestar-container/sb-helm-charts/tree/master/charts/blackbox-exporter
+  - https://github.com/prometheus/blackbox_exporter
+maintainers:
+  - name: ScriptonBasestar

@@ -1,0 +1,61 @@
+1. Blackbox Exporter is now running and ready to probe endpoints
+
+2. Check the status of your deployment:
+  kubectl get deployment --namespace {{ .Release.Namespace }} {{ include "blackbox-exporter.fullname" . }}
+  kubectl get pods --namespace {{ .Release.Namespace }} -l "app.kubernetes.io/name={{ include "blackbox-exporter.name" . }}"
+
+3. Access the Blackbox Exporter:
+  export POD_NAME=$(kubectl get pods --namespace {{ .Release.Namespace }} -l "app.kubernetes.io/name={{ include "blackbox-exporter.name" . }},app.kubernetes.io/instance={{ .Release.Name }}" -o jsonpath="{.items[0].metadata.name}")
+  echo "Visit http://127.0.0.1:9115 to use Blackbox Exporter"
+  kubectl --namespace {{ .Release.Namespace }} port-forward $POD_NAME 9115:9115
+
+4. Test a probe manually:
+  # HTTP probe
+  curl "http://localhost:9115/probe?target=https://example.com&module=http_2xx"
+
+  # HTTPS with SSL verification
+  curl "http://localhost:9115/probe?target=https://example.com&module=https_2xx"
+
+  # TCP connect
+  curl "http://localhost:9115/probe?target=example.com:443&module=tcp_connect"
+
+  # DNS probe
+  curl "http://localhost:9115/probe?target=8.8.8.8&module=dns_udp"
+
+5. Available probe modules:
+  - http_2xx: HTTP probe expecting 2xx status
+  - http_post_2xx: HTTP POST probe
+  - https_2xx: HTTPS probe with SSL verification
+  - tcp_connect: TCP connection probe
+  - icmp: ICMP ping probe
+  - dns_udp: DNS probe over UDP
+  - dns_tcp: DNS probe over TCP
+
+6. Configure Prometheus to scrape probes:
+  Example scrape config for Prometheus:
+
+  scrape_configs:
+    - job_name: 'blackbox-exporter'
+      metrics_path: /probe
+      params:
+        module: [http_2xx]
+      static_configs:
+        - targets:
+          - https://example.com
+          - https://prometheus.io
+      relabel_configs:
+        - source_labels: [__address__]
+          target_label: __param_target
+        - source_labels: [__param_target]
+          target_label: instance
+        - target_label: __address__
+          replacement: {{ include "blackbox-exporter.fullname" . }}.{{ .Release.Namespace }}.svc.cluster.local:9115
+
+{{- if .Values.serviceMonitor.enabled }}
+
+7. ServiceMonitor is enabled. Configure Probe CRDs to define monitoring targets.
+{{- end }}
+
+For more information, visit:
+- Blackbox Exporter Documentation: https://github.com/prometheus/blackbox_exporter
+- Configuration: https://github.com/prometheus/blackbox_exporter/blob/master/CONFIGURATION.md

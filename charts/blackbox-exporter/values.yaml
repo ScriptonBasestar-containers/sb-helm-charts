@@ -1,0 +1,157 @@
+# Default values for blackbox-exporter
+# This is a YAML-formatted file.
+# Declare variables to be passed into your templates.
+
+replicaCount: 1
+
+image:
+  repository: prom/blackbox-exporter
+  pullPolicy: IfNotPresent
+  # Overrides the image tag whose default is the chart appVersion.
+  tag: ""
+
+imagePullSecrets: []
+nameOverride: ""
+fullnameOverride: ""
+
+serviceAccount:
+  # Specifies whether a service account should be created
+  create: true
+  # Annotations to add to the service account
+  annotations: {}
+  # The name of the service account to use.
+  # If not set and create is true, a name is generated using the fullname template
+  name: ""
+
+podAnnotations:
+  prometheus.io/scrape: "true"
+  prometheus.io/port: "9115"
+
+podSecurityContext:
+  runAsUser: 65534
+  runAsNonRoot: true
+  fsGroup: 65534
+
+securityContext:
+  readOnlyRootFilesystem: true
+  allowPrivilegeEscalation: false
+  capabilities:
+    drop:
+      - ALL
+
+service:
+  type: ClusterIP
+  port: 9115
+  annotations: {}
+  # clusterIP: ""
+
+# Blackbox exporter configuration
+config:
+  modules:
+    # HTTP 2xx probe
+    http_2xx:
+      prober: http
+      timeout: 5s
+      http:
+        valid_http_versions: ["HTTP/1.1", "HTTP/2.0"]
+        valid_status_codes: []  # Defaults to 2xx
+        method: GET
+        preferred_ip_protocol: "ip4"
+        follow_redirects: true
+        fail_if_ssl: false
+        fail_if_not_ssl: false
+
+    # HTTP POST probe
+    http_post_2xx:
+      prober: http
+      timeout: 5s
+      http:
+        method: POST
+        headers:
+          Content-Type: application/json
+        body: '{}'
+
+    # HTTPS probe with SSL verification
+    https_2xx:
+      prober: http
+      timeout: 5s
+      http:
+        valid_http_versions: ["HTTP/1.1", "HTTP/2.0"]
+        method: GET
+        tls_config:
+          insecure_skip_verify: false
+        preferred_ip_protocol: "ip4"
+
+    # TCP connect probe
+    tcp_connect:
+      prober: tcp
+      timeout: 5s
+
+    # ICMP ping probe
+    icmp:
+      prober: icmp
+      timeout: 5s
+      icmp:
+        preferred_ip_protocol: "ip4"
+
+    # DNS probe
+    dns_udp:
+      prober: dns
+      timeout: 5s
+      dns:
+        transport_protocol: "udp"
+        preferred_ip_protocol: "ip4"
+        query_name: "example.com"
+        query_type: "A"
+
+    dns_tcp:
+      prober: dns
+      timeout: 5s
+      dns:
+        transport_protocol: "tcp"
+        preferred_ip_protocol: "ip4"
+        query_name: "example.com"
+        query_type: "A"
+
+# Extra command-line arguments
+extraArgs: []
+# - --log.level=debug
+# - --history.limit=100
+
+# ServiceMonitor for Prometheus Operator
+serviceMonitor:
+  enabled: false
+  interval: 60s
+  scrapeTimeout: 30s
+  labels: {}
+  #   prometheus: kube-prometheus
+  metricRelabelings: []
+  relabelings: []
+
+resources:
+  limits:
+    cpu: 200m
+    memory: 256Mi
+  requests:
+    cpu: 50m
+    memory: 64Mi
+
+livenessProbe:
+  initialDelaySeconds: 10
+  periodSeconds: 10
+  timeoutSeconds: 1
+  failureThreshold: 3
+
+readinessProbe:
+  initialDelaySeconds: 10
+  periodSeconds: 10
+  timeoutSeconds: 1
+  failureThreshold: 3
+
+nodeSelector: {}
+
+tolerations: []
+
+affinity: {}
+
+priorityClassName: ""

@@ -170,6 +170,14 @@ charts:
     keywords: [kube-state-metrics, kubernetes, monitoring, metrics, prometheus, observability]
     description: Kube State Metrics exposes Kubernetes object state as Prometheus metrics
 
+  blackbox-exporter:
+    name: Blackbox Exporter
+    path: charts/blackbox-exporter
+    category: infrastructure
+    tags: [Monitoring, Probing, Health-Check]
+    keywords: [blackbox-exporter, prometheus, monitoring, probing, health-check, observability]
+    description: Blackbox Exporter for probing endpoints over HTTP, HTTPS, DNS, TCP, and ICMP
+
   redis:
     name: Redis
     path: charts/redis
