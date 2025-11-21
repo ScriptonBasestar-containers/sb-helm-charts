@@ -1,0 +1,107 @@
+# Small production values for kube-state-metrics
+# This configuration is optimized for production deployments
+
+image:
+  repository: registry.k8s.io/kube-state-metrics/kube-state-metrics
+  pullPolicy: IfNotPresent
+  tag: ""
+
+# Single replica (use sharding for very large clusters)
+replicaCount: 1
+
+serviceAccount:
+  create: true
+
+rbac:
+  create: true
+
+podAnnotations:
+  prometheus.io/scrape: "true"
+  prometheus.io/port: "8080"
+
+podSecurityContext:
+  runAsUser: 65534
+  runAsNonRoot: true
+  fsGroup: 65534
+
+securityContext:
+  readOnlyRootFilesystem: true
+  allowPrivilegeEscalation: false
+  capabilities:
+    drop:
+      - ALL
+
+service:
+  type: ClusterIP
+  port: 8080
+  telemetryPort: 8081
+  annotations:
+    prometheus.io/scrape: "true"
+    prometheus.io/port: "8080"
+
+# Production: Monitor all namespaces
+collectors:
+  namespaces: []  # Empty = all namespaces
+
+  # Production: Collect all available resources
+  resources: []  # Empty = all resources
+
+# Extra args for production
+extraArgs:
+  # Add resource labels to metrics
+  - --metric-labels-allowlist=pods=[*],deployments=[*],statefulsets=[*]
+  # Add namespace annotations
+  - --metric-annotations-allowlist=namespaces=[*]
+
+# ServiceMonitor for Prometheus Operator
+serviceMonitor:
+  enabled: true
+  interval: 30s
+  scrapeTimeout: 10s
+  labels:
+    prometheus: kube-prometheus
+
+# Production resources
+resources:
+  limits:
+    cpu: 500m
+    memory: 512Mi
+  requests:
+    cpu: 100m
+    memory: 128Mi
+
+livenessProbe:
+  initialDelaySeconds: 30
+  periodSeconds: 10
+  timeoutSeconds: 5
+  failureThreshold: 5
+
+readinessProbe:
+  initialDelaySeconds: 10
+  periodSeconds: 10
+  timeoutSeconds: 5
+  failureThreshold: 3
+
+nodeSelector: {}
+
+# Tolerate all taints for critical monitoring infrastructure
+tolerations:
+  - effect: NoSchedule
+    operator: Exists
+
+# Prefer to run on different nodes for reliability
+affinity:
+  podAntiAffinity:
+    preferredDuringSchedulingIgnoredDuringExecution:
+      - weight: 100
+        podAffinityTerm:
+          labelSelector:
+            matchExpressions:
+              - key: app.kubernetes.io/name
+                operator: In
+                values:
+                  - kube-state-metrics
+          topologyKey: kubernetes.io/hostname
+
+# Use high priority for critical monitoring
+priorityClassName: "system-cluster-critical"

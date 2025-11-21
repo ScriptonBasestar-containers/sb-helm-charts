@@ -156,6 +156,7 @@ The metadata file serves multiple purposes:
   - ⚠️ For large-scale production, consider [Elastic Cloud on Kubernetes (ECK) Operator](https://www.elastic.co/guide/en/cloud-on-k8s/current/index.html)
 - **kafka**: Apache Kafka streaming platform with KRaft mode and management UI (StatefulSet, no Zookeeper)
   - ⚠️ For production clustering, consider [Strimzi Kafka Operator](https://strimzi.io/)
+- **kube-state-metrics**: Kube State Metrics exposes Kubernetes object state as Prometheus metrics (Deployment, ClusterRole, ServiceMonitor)
 - **memcached**: High-performance distributed memory caching system (Deployment, no database)
   - ⚠️ For production, consider [Memcached Operator](https://github.com/ianlewis/memcached-operator)
 - **minio**: High-performance S3-compatible object storage (StatefulSet, distributed mode, erasure coding)
@@ -751,6 +752,39 @@ make -f make/ops/node-exporter.mk ne-port-forward-node NODE=node-name
 
 # Operations
 make -f make/ops/node-exporter.mk ne-restart
+```
+
+### Kube State Metrics Specific Commands
+
+```bash
+# Basic operations
+make -f make/ops/kube-state-metrics.mk ksm-logs
+make -f make/ops/kube-state-metrics.mk ksm-shell
+make -f make/ops/kube-state-metrics.mk ksm-restart
+
+# Health and status
+make -f make/ops/kube-state-metrics.mk ksm-status
+make -f make/ops/kube-state-metrics.mk ksm-version
+make -f make/ops/kube-state-metrics.mk ksm-health
+
+# Metrics queries
+make -f make/ops/kube-state-metrics.mk ksm-metrics
+make -f make/ops/kube-state-metrics.mk ksm-pod-metrics
+make -f make/ops/kube-state-metrics.mk ksm-deployment-metrics
+make -f make/ops/kube-state-metrics.mk ksm-node-metrics
+make -f make/ops/kube-state-metrics.mk ksm-service-metrics
+make -f make/ops/kube-state-metrics.mk ksm-pv-metrics
+make -f make/ops/kube-state-metrics.mk ksm-pvc-metrics
+make -f make/ops/kube-state-metrics.mk ksm-namespace-metrics
+
+# Resource status
+make -f make/ops/kube-state-metrics.mk ksm-pod-status
+make -f make/ops/kube-state-metrics.mk ksm-deployment-status
+make -f make/ops/kube-state-metrics.mk ksm-node-status
+
+# Port forward
+make -f make/ops/kube-state-metrics.mk ksm-port-forward
+make -f make/ops/kube-state-metrics.mk ksm-port-forward-telemetry
 ```
 
 ### MinIO Specific Commands

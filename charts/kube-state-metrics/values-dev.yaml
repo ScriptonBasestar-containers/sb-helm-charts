@@ -1,0 +1,84 @@
+# Development values for kube-state-metrics
+# This configuration is optimized for local development and testing
+
+image:
+  repository: registry.k8s.io/kube-state-metrics/kube-state-metrics
+  pullPolicy: IfNotPresent
+  tag: ""
+
+# Single replica for development
+replicaCount: 1
+
+serviceAccount:
+  create: true
+
+rbac:
+  create: true
+
+podAnnotations:
+  prometheus.io/scrape: "true"
+  prometheus.io/port: "8080"
+
+podSecurityContext:
+  runAsUser: 65534
+  runAsNonRoot: true
+  fsGroup: 65534
+
+securityContext:
+  readOnlyRootFilesystem: true
+  allowPrivilegeEscalation: false
+  capabilities:
+    drop:
+      - ALL
+
+service:
+  type: ClusterIP
+  port: 8080
+  telemetryPort: 8081
+
+# Development: Monitor only default and kube-system namespaces
+collectors:
+  namespaces:
+    - default
+    - kube-system
+
+  # Development: Collect only essential resources
+  resources:
+    - pods
+    - deployments
+    - services
+    - nodes
+
+# Extra args for development
+extraArgs: []
+
+# ServiceMonitor disabled for development
+serviceMonitor:
+  enabled: false
+
+# Reduced resources for development
+resources:
+  limits:
+    cpu: 100m
+    memory: 128Mi
+  requests:
+    cpu: 25m
+    memory: 32Mi
+
+livenessProbe:
+  initialDelaySeconds: 10
+  periodSeconds: 10
+  timeoutSeconds: 5
+  failureThreshold: 3
+
+readinessProbe:
+  initialDelaySeconds: 5
+  periodSeconds: 10
+  timeoutSeconds: 5
+  failureThreshold: 3
+
+nodeSelector: {}
+
+tolerations: []
+
+affinity: {}
