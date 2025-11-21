@@ -208,6 +208,14 @@ charts:
     description: Prometheus monitoring system and time series database for Kubernetes
     production_note: "For large-scale production with advanced features, consider Prometheus Operator"
 
+  promtail:
+    name: Promtail
+    path: charts/promtail
+    category: infrastructure
+    tags: [Logging, Log-Collection, Observability]
+    keywords: [promtail, loki, logging, logs, log-collection, observability]
+    description: Promtail log collection agent for Loki with Kubernetes integration
+
   mysql:
     name: MySQL
     path: charts/mysql

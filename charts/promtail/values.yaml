@@ -1,0 +1,175 @@
+# Default values for promtail.
+
+image:
+  repository: grafana/promtail
+  pullPolicy: IfNotPresent
+  # Overrides the image tag whose default is the chart appVersion
+  tag: ""
+
+imagePullSecrets: []
+nameOverride: ""
+fullnameOverride: ""
+
+# Promtail configuration
+promtail:
+  # Use an existing ConfigMap for Promtail configuration
+  existingConfigMap: ""
+
+  # Server configuration
+  server:
+    httpListenPort: 3101
+    grpcListenPort: 9095
+    logLevel: "info"
+
+  # Loki client configuration
+  client:
+    # Loki push URL
+    url: "http://loki:3100/loki/api/v1/push"
+    # Optional tenant ID for multi-tenancy
+    tenantId: ""
+    # Basic authentication
+    basicAuth:
+      enabled: false
+      username: ""
+      password: ""
+    # External labels added to all logs
+    externalLabels: {}
+    # cluster: "kubernetes"
+    # environment: "production"
+
+  # Kubernetes service discovery configuration
+  kubernetesSD:
+    # Add pod annotations as labels (can increase cardinality)
+    addPodAnnotations: false
+    # Scrape systemd journal logs
+    scrapeSystemd: false
+
+  # Pipeline stages
+  pipelineStages:
+    # CRI parser (for containerd/cri-o)
+    cri:
+      enabled: true
+    # Docker parser
+    docker:
+      enabled: false
+    # Custom pipeline stages
+    custom: []
+    # - regex:
+    #     expression: '(?P<custom_field>value)'
+    # - labels:
+    #     custom_field:
+
+  # Additional scrape configurations
+  additionalScrapeConfigs: []
+  # - job_name: syslog
+  #   syslog:
+  #     listen_address: 0.0.0.0:1514
+  #   relabel_configs:
+  #     - source_labels: ['__syslog_message_hostname']
+  #       target_label: 'host'
+
+  # Additional Promtail configuration
+  # This will be merged with the generated config
+  config: {}
+
+  # Extra arguments for Promtail
+  extraArgs: []
+  # - -log.level=debug
+
+  # Extra environment variables
+  extraEnv: []
+  # - name: CUSTOM_VAR
+  #   value: "custom_value"
+
+  # Mount host paths
+  mountHostPaths:
+    # Mount /var/log/pods (required for CRI runtimes)
+    pods: true
+
+  # Extra volumes
+  extraVolumes: []
+  # - name: journal
+  #   hostPath:
+  #     path: /var/log/journal
+
+  # Extra volume mounts
+  extraVolumeMounts: []
+  # - name: journal
+  #   mountPath: /var/log/journal
+  #   readOnly: true
+
+rbac:
+  # Create RBAC resources
+  create: true
+
+serviceAccount:
+  # Specifies whether a service account should be created
+  create: true
+  # Annotations to add to the service account
+  annotations: {}
+  # The name of the service account to use.
+  # If not set and create is true, a name is generated using the fullname template
+  name: ""
+
+podAnnotations: {}
+
+podSecurityContext:
+  runAsUser: 0
+  runAsGroup: 0
+  fsGroup: 0
+
+securityContext:
+  # Promtail needs to read host logs
+  privileged: true
+  readOnlyRootFilesystem: true
+  allowPrivilegeEscalation: false
+  capabilities:
+    drop:
+      - ALL
+
+service:
+  # Enable service (for Prometheus metrics scraping)
+  enabled: true
+  type: ClusterIP
+  port: 3101
+  annotations: {}
+  # prometheus.io/scrape: "true"
+  # prometheus.io/port: "3101"
+
+resources:
+  limits:
+    cpu: 200m
+    memory: 128Mi
+  requests:
+    cpu: 100m
+    memory: 64Mi
+
+livenessProbe:
+  initialDelaySeconds: 10
+  periodSeconds: 10
+  timeoutSeconds: 1
+  failureThreshold: 3
+
+readinessProbe:
+  initialDelaySeconds: 10
+  periodSeconds: 10
+  timeoutSeconds: 1
+  failureThreshold: 3
+
+# DaemonSet update strategy
+updateStrategy:
+  type: RollingUpdate
+  rollingUpdate:
+    maxUnavailable: 1
+
+nodeSelector: {}
+
+tolerations:
+  # Run on all nodes including masters
+  - effect: NoSchedule
+    operator: Exists
+
+affinity: {}
+
+# Priority class for pod scheduling
+priorityClassName: ""
