@@ -15,6 +15,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - `charts/mongodb/values-example.yaml` - MongoDB replica set (3-member HA, WiredTiger optimization, authentication)
   - `charts/postgresql/values-example.yaml` - PostgreSQL primary-replica (streaming replication, WAL tuning, connection pooling)
   - `charts/mysql/values-example.yaml` - MySQL master-replica (GTID replication, InnoDB tuning, binary logging)
+  - `charts/kafka/values-example.yaml` - Kafka KRaft cluster (3-broker HA, SASL authentication, Kafka UI integration)
 
 ## [1.0.0] - 2025-11-21
 
