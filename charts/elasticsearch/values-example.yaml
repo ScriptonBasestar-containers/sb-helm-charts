@@ -1,0 +1,263 @@
+# Elasticsearch + Kibana - Production-Ready Example Configuration
+# This is a complete example showing all configuration options
+# Copy and customize for your environment
+
+# =============================================================================
+# REQUIRED: Set these values before deployment
+# =============================================================================
+elasticsearch:
+  password: ""  # REQUIRED - Generate strong password for 'elastic' user
+
+# =============================================================================
+# Elasticsearch Configuration
+# =============================================================================
+elasticsearch:
+  # Cluster mode: true for production HA
+  replicas: 3
+  clusterMode: true
+  clusterName: "elasticsearch-prod"
+
+  # REQUIRED: Set password for production
+  password: ""  # Generate strong password
+
+  # Java heap size (should be 50% of pod memory)
+  javaOpts: "-Xms2g -Xmx2g"
+
+  # CORS settings (disable in production unless needed)
+  httpCorsEnabled: false
+  httpCorsAllowOrigin: ""
+
+  # Monitoring
+  monitoring:
+    enabled: true
+
+  # Snapshot repository (S3/MinIO for backups)
+  snapshotRepository:
+    enabled: true
+    type: "s3"
+    name: "backup_repository"
+    settings:
+      bucket: "elasticsearch-backups"
+      region: "us-east-1"
+      # For MinIO:
+      endpoint: "http://minio.default.svc.cluster.local:9000"
+      pathStyleAccess: "true"
+    # S3 credentials (create secret separately)
+    credentialsSecret: "elasticsearch-s3-credentials"
+
+# =============================================================================
+# Kibana Configuration
+# =============================================================================
+kibana:
+  enabled: true
+  replicas: 2  # HA setup
+
+  serverHost: "0.0.0.0"
+  serverName: "kibana-prod"
+
+  # Kibana resources
+  resources:
+    limits:
+      cpu: 1000m
+      memory: 1Gi
+    requests:
+      cpu: 250m
+      memory: 512Mi
+
+  # Ingress configuration
+  ingress:
+    enabled: true
+    className: "nginx"
+    annotations:
+      cert-manager.io/cluster-issuer: "letsencrypt-prod"
+      nginx.ingress.kubernetes.io/ssl-redirect: "true"
+      nginx.ingress.kubernetes.io/proxy-body-size: "0"
+      nginx.ingress.kubernetes.io/proxy-read-timeout: "600"
+      nginx.ingress.kubernetes.io/proxy-send-timeout: "600"
+    hosts:
+      - host: kibana.example.com
+        paths:
+          - path: /
+            pathType: Prefix
+    tls:
+      - secretName: kibana-tls
+        hosts:
+          - kibana.example.com
+
+# =============================================================================
+# Elasticsearch Pod Configuration
+# =============================================================================
+# Resource allocation (critical for Elasticsearch performance)
+resources:
+  limits:
+    cpu: 4000m
+    memory: 4Gi  # 2x heap size
+  requests:
+    cpu: 1000m
+    memory: 4Gi  # Match limits for guaranteed QoS
+
+# Health probes
+livenessProbe:
+  initialDelaySeconds: 120
+  periodSeconds: 30
+  timeoutSeconds: 10
+  failureThreshold: 5
+
+readinessProbe:
+  initialDelaySeconds: 60
+  periodSeconds: 10
+  timeoutSeconds: 5
+  failureThreshold: 5
+
+startupProbe:
+  initialDelaySeconds: 30
+  periodSeconds: 10
+  timeoutSeconds: 5
+  failureThreshold: 60
+
+# =============================================================================
+# Storage Configuration
+# =============================================================================
+persistence:
+  enabled: true
+  size: 100Gi  # Adjust based on data volume
+  storageClass: ""  # Use default or specify
+  accessMode: ReadWriteOnce
+
+# =============================================================================
+# High Availability
+# =============================================================================
+# Pod Disruption Budget
+podDisruptionBudget:
+  enabled: true
+  minAvailable: 2  # Maintain quorum during maintenance
+
+# Anti-affinity (spread pods across nodes)
+affinity:
+  podAntiAffinity:
+    preferredDuringSchedulingIgnoredDuringExecution:
+      - weight: 100
+        podAffinityTerm:
+          labelSelector:
+            matchExpressions:
+              - key: app.kubernetes.io/name
+                operator: In
+                values:
+                  - elasticsearch
+          topologyKey: kubernetes.io/hostname
+
+# =============================================================================
+# Network Policy
+# =============================================================================
+networkPolicy:
+  enabled: true
+  policyTypes:
+    - Ingress
+    - Egress
+  ingress:
+    - from:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: kibana
+      ports:
+        - protocol: TCP
+          port: 9200
+        - protocol: TCP
+          port: 9300
+  egress:
+    - to:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: elasticsearch
+      ports:
+        - protocol: TCP
+          port: 9300
+    - to:  # DNS
+        - namespaceSelector: {}
+          podSelector:
+            matchLabels:
+              k8s-app: kube-dns
+      ports:
+        - protocol: UDP
+          port: 53
+
+# =============================================================================
+# Security
+# =============================================================================
+podSecurityContext:
+  fsGroup: 1000
+  runAsUser: 1000
+  runAsGroup: 1000
+
+securityContext:
+  runAsNonRoot: true
+  runAsUser: 1000
+  capabilities:
+    drop:
+      - ALL
+
+# =============================================================================
+# RBAC
+# =============================================================================
+serviceAccount:
+  create: true
+  annotations: {}
+  name: ""
+
+# =============================================================================
+# Additional Configuration
+# =============================================================================
+# Labels
+podLabels:
+  environment: "production"
+  monitoring: "enabled"
+
+podAnnotations:
+  prometheus.io/scrape: "true"
+  prometheus.io/port: "9200"
+
+# Node selection
+nodeSelector: {}
+  # disktype: ssd
+
+tolerations: []
+
+# Extra environment variables
+extraEnv: []
+  # - name: ES_JAVA_OPTS
+  #   value: "-Xms2g -Xmx2g"
+
+# Extra volumes
+extraVolumes: []
+extraVolumeMounts: []
+
+# Init containers
+initContainers: []
+  # - name: configure-sysctl
+  #   image: busybox:1.35
+  #   command: ["sysctl", "-w", "vm.max_map_count=262144"]
+  #   securityContext:
+  #     privileged: true
+
+# =============================================================================
+# ServiceMonitor (Prometheus Operator)
+# =============================================================================
+serviceMonitor:
+  enabled: true
+  interval: 30s
+  scrapeTimeout: 10s
+
+# =============================================================================
+# Notes
+# =============================================================================
+# Production Recommendations:
+# 1. Set elasticsearch.password to strong password
+# 2. Enable TLS for Elasticsearch and Kibana
+# 3. Configure snapshot repository for backups
+# 4. Use dedicated storage class with high IOPS
+# 5. Tune JVM heap to 50% of pod memory
+# 6. Set vm.max_map_count=262144 on nodes
+# 7. Monitor cluster health and performance
+# 8. Plan index lifecycle management (ILM)
+# 9. Set up index retention policies
+# 10. Configure log rotation and cleanup

@@ -1,0 +1,294 @@
+# Apache Airflow - Production-Ready Example Configuration
+# This is a complete example showing all configuration options
+# Copy and customize for your environment
+
+# =============================================================================
+# REQUIRED: Set these values before deployment
+# =============================================================================
+airflow:
+  admin:
+    password: ""  # REQUIRED - Generate secure password
+  fernetKey: ""   # REQUIRED - Generate with: python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"
+  webserverSecretKey: ""  # REQUIRED - Generate with: openssl rand -hex 32
+
+postgresql:
+  external:
+    password: ""  # REQUIRED - PostgreSQL password for airflow user
+
+# =============================================================================
+# Airflow Configuration
+# =============================================================================
+airflow:
+  # Executor: LocalExecutor (dev) or KubernetesExecutor (prod)
+  executor: KubernetesExecutor
+
+  # Examples and defaults
+  loadExamples: false  # Set true for learning/development
+  loadDefaultConnections: true
+
+  # Parallelism settings
+  parallelism: 32
+  maxActiveTasksPerDag: 16
+  maxActiveRunsPerDag: 16
+
+  schedulerHeartbeatSec: 5
+
+  # Security
+  exposeConfig: false  # Set true only for development
+  enableProxyFix: true
+
+  # Remote logging (S3/MinIO)
+  remoteLogging:
+    enabled: true
+    remoteBaseLogFolder: "s3://airflow-logs"
+    remoteLogConnId: "aws_default"
+
+  # Admin user (customize for your organization)
+  admin:
+    username: "admin"
+    firstname: "Admin"
+    lastname: "User"
+    email: "admin@example.com"
+    password: ""  # SET THIS
+
+# =============================================================================
+# Database Configuration
+# =============================================================================
+postgresql:
+  external:
+    enabled: true
+    host: "postgresql.default.svc.cluster.local"
+    port: 5432
+    database: "airflow"
+    username: "airflow"
+    password: ""  # SET THIS
+
+# =============================================================================
+# Storage Configuration
+# =============================================================================
+# DAGs storage
+dags:
+  persistence:
+    enabled: true
+    storageClass: ""  # Use default storage class
+    accessMode: ReadWriteMany  # Required for git-sync and multiple pods
+    size: 10Gi
+
+  # Git-sync for DAG deployment
+  gitSync:
+    enabled: true
+    repo: "https://github.com/your-org/airflow-dags.git"
+    branch: "main"
+    subPath: "dags"
+    wait: 60
+    maxFailures: 3
+    # SSH key for private repos (optional)
+    sshKeySecret: ""
+
+# Logs storage
+logs:
+  persistence:
+    enabled: true
+    storageClass: ""
+    accessMode: ReadWriteOnce
+    size: 20Gi
+
+# =============================================================================
+# Webserver Component
+# =============================================================================
+webserver:
+  replicaCount: 2  # HA setup
+
+  podSecurityContext:
+    fsGroup: 50000
+    runAsUser: 50000
+    runAsGroup: 50000
+
+  securityContext:
+    runAsNonRoot: true
+    runAsUser: 50000
+    capabilities:
+      drop:
+        - ALL
+
+  service:
+    type: ClusterIP
+    port: 8080
+
+  resources:
+    limits:
+      cpu: 2000m
+      memory: 2Gi
+    requests:
+      cpu: 500m
+      memory: 512Mi
+
+  livenessProbe:
+    enabled: true
+    initialDelaySeconds: 120
+    periodSeconds: 30
+    timeoutSeconds: 10
+    failureThreshold: 5
+
+  readinessProbe:
+    enabled: true
+    initialDelaySeconds: 30
+    periodSeconds: 10
+    timeoutSeconds: 5
+    failureThreshold: 5
+
+  startupProbe:
+    enabled: true
+    initialDelaySeconds: 30
+    periodSeconds: 10
+    timeoutSeconds: 5
+    failureThreshold: 30
+
+# =============================================================================
+# Scheduler Component
+# =============================================================================
+scheduler:
+  replicaCount: 2  # HA setup
+
+  podSecurityContext:
+    fsGroup: 50000
+    runAsUser: 50000
+    runAsGroup: 50000
+
+  securityContext:
+    runAsNonRoot: true
+    runAsUser: 50000
+    capabilities:
+      drop:
+        - ALL
+
+  resources:
+    limits:
+      cpu: 2000m
+      memory: 2Gi
+    requests:
+      cpu: 500m
+      memory: 512Mi
+
+  livenessProbe:
+    enabled: true
+    initialDelaySeconds: 120
+    periodSeconds: 30
+    timeoutSeconds: 10
+    failureThreshold: 5
+
+  startupProbe:
+    enabled: true
+    initialDelaySeconds: 30
+    periodSeconds: 10
+    timeoutSeconds: 5
+    failureThreshold: 30
+
+# =============================================================================
+# Triggerer Component (optional, for deferrable operators)
+# =============================================================================
+triggerer:
+  enabled: true
+  replicaCount: 1
+
+  podSecurityContext:
+    fsGroup: 50000
+    runAsUser: 50000
+    runAsGroup: 50000
+
+  securityContext:
+    runAsNonRoot: true
+    runAsUser: 50000
+    capabilities:
+      drop:
+        - ALL
+
+  resources:
+    limits:
+      cpu: 1000m
+      memory: 1Gi
+    requests:
+      cpu: 250m
+      memory: 256Mi
+
+  livenessProbe:
+    enabled: true
+    initialDelaySeconds: 120
+    periodSeconds: 30
+    timeoutSeconds: 10
+    failureThreshold: 5
+
+  startupProbe:
+    enabled: true
+    initialDelaySeconds: 30
+    periodSeconds: 10
+    timeoutSeconds: 5
+    failureThreshold: 30
+
+# =============================================================================
+# Ingress Configuration
+# =============================================================================
+ingress:
+  enabled: true
+  className: "nginx"
+  annotations:
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+  hosts:
+    - host: airflow.example.com
+      paths:
+        - path: /
+          pathType: Prefix
+  tls:
+    - secretName: airflow-tls
+      hosts:
+        - airflow.example.com
+
+# =============================================================================
+# RBAC and Security
+# =============================================================================
+serviceAccount:
+  create: true
+  annotations: {}
+  name: ""
+
+# =============================================================================
+# Additional Configuration
+# =============================================================================
+# Extra environment variables
+extraEnv: []
+  # - name: AIRFLOW__CORE__LOAD_DEFAULT_CONNECTIONS
+  #   value: "False"
+  # - name: AIRFLOW__WEBSERVER__EXPOSE_CONFIG
+  #   value: "False"
+
+# Extra secrets
+extraSecrets: {}
+  # my-s3-credentials:
+  #   data:
+  #     AWS_ACCESS_KEY_ID: "base64-encoded-key"
+  #     AWS_SECRET_ACCESS_KEY: "base64-encoded-secret"
+
+# Extra ConfigMaps
+extraConfigMaps: {}
+  # my-config:
+  #   data:
+  #     custom.conf: |
+  #       # Custom configuration
+
+nodeSelector: {}
+
+tolerations: []
+
+affinity: {}
+  # podAntiAffinity:
+  #   preferredDuringSchedulingIgnoredDuringExecution:
+  #     - weight: 100
+  #       podAffinityTerm:
+  #         labelSelector:
+  #           matchExpressions:
+  #             - key: app.kubernetes.io/name
+  #               operator: In
+  #               values:
+  #                 - airflow
+  #         topologyKey: kubernetes.io/hostname
