@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- **Example Values Files**: Added comprehensive production-ready example configurations
+  - `charts/airflow/values-example.yaml` - Production Airflow deployment with HA setup, KubernetesExecutor, Git-sync, and remote logging (305 lines)
+  - `charts/elasticsearch/values-example.yaml` - Production Elasticsearch + Kibana cluster with 3-node HA, S3 snapshots, and network policies (282 lines)
+
 ## [1.0.0] - 2025-11-21
 
 ### Overview
