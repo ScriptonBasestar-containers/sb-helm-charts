@@ -1,0 +1,257 @@
+# Kafka - Production-Ready Example Configuration
+# Copy and customize for your environment
+
+# =============================================================================
+# REQUIRED: Set these values before deployment
+# =============================================================================
+kafka:
+  sasl:
+    password: ""  # REQUIRED - Strong password for SASL authentication
+  # IMPORTANT: Update controllerQuorumVoters and advertisedListeners for your namespace
+
+# =============================================================================
+# Deployment Configuration (KRaft Mode Cluster)
+# =============================================================================
+# 3 brokers for production HA (odd number for quorum)
+replicaCount: 3
+
+image:
+  repository: bitnami/kafka
+  pullPolicy: IfNotPresent
+  tag: ""  # Defaults to chart appVersion (3.6.1)
+
+# =============================================================================
+# Kafka Configuration (KRaft Mode)
+# =============================================================================
+kafka:
+  # KRaft mode (no Zookeeper required)
+  processRoles: "broker,controller"
+
+  # Controller quorum voters - ALL 3 brokers for HA
+  # IMPORTANT: Update namespace if not using 'default'
+  controllerQuorumVoters: "0@kafka-0.kafka-headless.default.svc.cluster.local:9093,1@kafka-1.kafka-headless.default.svc.cluster.local:9093,2@kafka-2.kafka-headless.default.svc.cluster.local:9093"
+
+  # Advertised listeners (each pod overrides with its own DNS)
+  advertisedListeners: "PLAINTEXT://kafka-0.kafka-headless.default.svc.cluster.local:9092"
+
+  # Topic defaults for HA
+  numPartitions: 3
+  defaultReplicationFactor: 3
+  minInsyncReplicas: 2  # At least 2 replicas must acknowledge writes
+  autoCreateTopicsEnable: false  # Disable auto-creation for production
+
+  # Retention policy
+  logRetentionHours: 168  # 7 days
+  logRetentionBytes: -1  # Unlimited (size-based retention disabled)
+  logSegmentBytes: 1073741824  # 1GB segments
+
+  # Performance tuning
+  numNetworkThreads: 8
+  numIoThreads: 16
+  socketSendBufferBytes: 102400
+  socketReceiveBufferBytes: 102400
+  socketRequestMaxBytes: 104857600  # 100MB max request size
+
+  # SASL authentication (production security)
+  sasl:
+    enabled: true
+    mechanisms: "PLAIN"
+    interBrokerProtocol: "PLAIN"
+    username: "admin"
+    password: ""  # SET THIS
+
+  # Additional production configuration
+  config:
+    # Compression
+    compression.type: "gzip"
+
+    # Message size limits
+    message.max.bytes: "10485760"  # 10MB
+    replica.fetch.max.bytes: "10485760"
+
+    # Timeouts
+    request.timeout.ms: "30000"
+    session.timeout.ms: "10000"
+
+    # Leader election
+    leader.imbalance.check.interval.seconds: "300"
+    leader.imbalance.per.broker.percentage: "10"
+
+# =============================================================================
+# Kafka UI (Monitoring and Management)
+# =============================================================================
+kafkaUI:
+  enabled: true
+  replicaCount: 1
+
+  service:
+    type: ClusterIP
+    port: 8080
+
+  resources:
+    limits:
+      cpu: 500m
+      memory: 512Mi
+    requests:
+      cpu: 100m
+      memory: 256Mi
+
+  # Ingress for UI
+  ingress:
+    enabled: true
+    className: "nginx"
+    annotations:
+      cert-manager.io/cluster-issuer: "letsencrypt-prod"
+    hosts:
+      - host: kafka-ui.example.com
+        paths:
+          - path: /
+            pathType: Prefix
+    tls:
+      - secretName: kafka-ui-tls
+        hosts:
+          - kafka-ui.example.com
+
+# =============================================================================
+# Storage Configuration
+# =============================================================================
+persistence:
+  enabled: true
+  storageClass: ""  # Use "fast-ssd" for production
+  accessMode: ReadWriteOnce
+  size: 50Gi  # Adjust based on retention and throughput
+
+# =============================================================================
+# Resource Configuration
+# =============================================================================
+# Production resources (adjust based on workload)
+resources:
+  limits:
+    cpu: 2000m
+    memory: 4Gi
+  requests:
+    cpu: 500m
+    memory: 2Gi
+
+# =============================================================================
+# Health Probes
+# =============================================================================
+livenessProbe:
+  initialDelaySeconds: 30
+  periodSeconds: 10
+  timeoutSeconds: 5
+  failureThreshold: 6
+
+readinessProbe:
+  initialDelaySeconds: 10
+  periodSeconds: 10
+  timeoutSeconds: 5
+  failureThreshold: 3
+
+startupProbe:
+  initialDelaySeconds: 0
+  periodSeconds: 10
+  timeoutSeconds: 5
+  failureThreshold: 60  # Higher for cluster formation
+
+# =============================================================================
+# High Availability Configuration
+# =============================================================================
+# Pod anti-affinity (spread brokers across nodes)
+affinity:
+  podAntiAffinity:
+    # HARD requirement: No two Kafka brokers on same node
+    requiredDuringSchedulingIgnoredDuringExecution:
+      - labelSelector:
+          matchExpressions:
+            - key: app.kubernetes.io/name
+              operator: In
+              values:
+                - kafka
+        topologyKey: kubernetes.io/hostname
+    # SOFT preference: Spread across availability zones
+    preferredDuringSchedulingIgnoredDuringExecution:
+      - weight: 100
+        podAffinityTerm:
+          labelSelector:
+            matchExpressions:
+              - key: app.kubernetes.io/name
+                operator: In
+                values:
+                  - kafka
+          topologyKey: topology.kubernetes.io/zone
+
+# Node selection (optional)
+nodeSelector: {}
+  # node-role.kubernetes.io/kafka: "true"
+
+tolerations: []
+
+# =============================================================================
+# Security Configuration
+# =============================================================================
+serviceAccount:
+  create: true
+
+podSecurityContext:
+  fsGroup: 1001
+  runAsUser: 1001
+  runAsNonRoot: true
+
+securityContext:
+  capabilities:
+    drop:
+      - ALL
+  readOnlyRootFilesystem: false
+  allowPrivilegeEscalation: false
+
+# =============================================================================
+# Pod Configuration
+# =============================================================================
+podAnnotations:
+  prometheus.io/scrape: "true"
+  prometheus.io/port: "9092"
+
+podLabels:
+  environment: "production"
+
+# =============================================================================
+# Notes
+# =============================================================================
+# Production Recommendations:
+# 1. Set strong SASL password for authentication
+# 2. Update controllerQuorumVoters with correct namespace
+# 3. Use fast-ssd storage class with high IOPS
+# 4. Deploy 3 brokers minimum for HA (odd number for quorum)
+# 5. Configure topic retention based on use case
+# 6. Monitor lag, throughput, and disk usage
+# 7. Plan partition strategy for parallelism
+# 8. Enable compression to reduce network/storage usage
+# 9. Set minInsyncReplicas=2 for durability
+# 10. Use Kafka UI for monitoring and management
+#
+# KRaft Mode (No Zookeeper):
+# - Metadata stored in __cluster_metadata topic
+# - Controllers form quorum for metadata consensus
+# - Faster metadata operations
+# - Simplified architecture
+#
+# Connection String:
+# SASL: kafka-0.kafka-headless:9092,kafka-1.kafka-headless:9092,kafka-2.kafka-headless:9092
+# Bootstrap servers: kafka:9092 (service endpoint)
+#
+# Topic Management:
+# - Disable autoCreateTopicsEnable in production
+# - Create topics manually with proper partitions and replication
+# - Use kafka-topics.sh for topic operations
+#
+# Performance Tuning:
+# - num.partitions: Match consumer parallelism
+# - replication.factor: At least 3 for production
+# - min.insync.replicas: 2 (prevents data loss)
+# - compression.type: gzip or lz4 (trade-off: CPU vs bandwidth)
+#
+# Monitoring:
+# - JMX metrics: Broker, topic, partition metrics
+# - Kafka UI: Web-based monitoring and management
+# - Consumer lag: Monitor with kafka-consumer-groups
