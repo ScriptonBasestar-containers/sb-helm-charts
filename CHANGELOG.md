@@ -11,6 +11,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Example Values Files**: Added comprehensive production-ready example configurations
   - `charts/airflow/values-example.yaml` - Production Airflow deployment with HA setup, KubernetesExecutor, Git-sync, and remote logging (305 lines)
   - `charts/elasticsearch/values-example.yaml` - Production Elasticsearch + Kibana cluster with 3-node HA, S3 snapshots, and network policies (282 lines)
+  - `charts/minio/values-example.yaml` - Distributed MinIO (4-node cluster, erasure coding, S3-compatible object storage)
+  - `charts/mongodb/values-example.yaml` - MongoDB replica set (3-member HA, WiredTiger optimization, authentication)
+  - `charts/postgresql/values-example.yaml` - PostgreSQL primary-replica (streaming replication, WAL tuning, connection pooling)
+  - `charts/mysql/values-example.yaml` - MySQL master-replica (GTID replication, InnoDB tuning, binary logging)
 
 ## [1.0.0] - 2025-11-21
 
