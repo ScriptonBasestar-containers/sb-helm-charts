@@ -1,0 +1,145 @@
+# MySQL - Production-Ready Example Configuration
+# Copy and customize for your environment
+
+# =============================================================================
+# REQUIRED: Set these values before deployment
+# =============================================================================
+mysql:
+  rootPassword: ""  # REQUIRED - Strong password for root user
+  replication:
+    password: ""  # REQUIRED for replication - Strong password for replicator user
+
+# =============================================================================
+# Deployment Configuration (Master + Replicas)
+# =============================================================================
+replicaCount: 2  # 1 master + 2 replicas for HA
+
+image:
+  repository: mysql
+  pullPolicy: IfNotPresent
+  tag: ""  # Defaults to chart appVersion (8.0.35)
+
+# =============================================================================
+# MySQL Configuration
+# =============================================================================
+mysql:
+  database: "production"
+  user: "produser"
+  password: ""  # User password
+  rootPassword: ""  # SET THIS
+
+  # Connection limits
+  maxConnections: 200
+
+  # InnoDB settings (production optimized)
+  innodbBufferPoolSize: "2G"  # ~70% of RAM
+  innodbLogFileSize: "512M"
+  innodbFlushLogAtTrxCommit: 1  # ACID compliance
+
+  # Replication configuration
+  replication:
+    enabled: true
+    mode: "gtid"  # or "binlog"
+    user: "replicator"
+    password: ""  # SET THIS
+
+  # Custom MySQL configuration
+  config:
+    # Performance
+    innodb_flush_method: "O_DIRECT"
+    innodb_file_per_table: "1"
+    innodb_log_buffer_size: "16M"
+
+    # Binary logging
+    binlog_format: "ROW"
+    binlog_expire_logs_seconds: "604800"  # 7 days
+
+    # Logging
+    slow_query_log: "1"
+    slow_query_log_file: "/var/log/mysql/slow.log"
+    long_query_time: "2"
+
+# =============================================================================
+# Storage and Resources
+# =============================================================================
+persistence:
+  enabled: true
+  storageClass: ""  # Use "fast-ssd" for production
+  accessMode: ReadWriteOnce
+  size: 50Gi
+
+resources:
+  limits:
+    cpu: 2000m
+    memory: 4Gi
+  requests:
+    cpu: 500m
+    memory: 1Gi
+
+# =============================================================================
+# Health Probes
+# =============================================================================
+livenessProbe:
+  initialDelaySeconds: 30
+  periodSeconds: 10
+  timeoutSeconds: 5
+  failureThreshold: 6
+
+readinessProbe:
+  initialDelaySeconds: 10
+  periodSeconds: 10
+  timeoutSeconds: 5
+  failureThreshold: 3
+
+startupProbe:
+  initialDelaySeconds: 0
+  periodSeconds: 10
+  timeoutSeconds: 5
+  failureThreshold: 30
+
+# =============================================================================
+# HA Configuration
+# =============================================================================
+affinity:
+  podAntiAffinity:
+    requiredDuringSchedulingIgnoredDuringExecution:
+      - labelSelector:
+          matchExpressions:
+            - key: app.kubernetes.io/name
+              operator: In
+              values:
+                - mysql
+        topologyKey: kubernetes.io/hostname
+
+# =============================================================================
+# Security
+# =============================================================================
+serviceAccount:
+  create: true
+
+podSecurityContext:
+  fsGroup: 999
+  runAsUser: 999
+  runAsNonRoot: true
+
+securityContext:
+  capabilities:
+    drop:
+      - ALL
+  readOnlyRootFilesystem: false
+  allowPrivilegeEscalation: false
+
+# =============================================================================
+# Notes
+# =============================================================================
+# Production Recommendations:
+# 1. Set strong rootPassword and replication.password
+# 2. Use fast-ssd storage class
+# 3. Enable replication for HA (replicaCount >= 2)
+# 4. Configure regular backups (mysqldump or Percona XtraBackup)
+# 5. Monitor replication lag
+# 6. Tune InnoDB buffer pool size (~70% of RAM)
+# 7. Enable slow query log
+#
+# Connection String:
+# mysql://produser:PASSWORD@mysql-0.mysql-headless:3306/production

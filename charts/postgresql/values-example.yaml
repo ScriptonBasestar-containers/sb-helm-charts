@@ -1,0 +1,159 @@
+# PostgreSQL - Production-Ready Example Configuration
+# Copy and customize for your environment
+
+# =============================================================================
+# REQUIRED: Set these values before deployment
+# =============================================================================
+postgresql:
+  password: ""  # REQUIRED - Strong password for main user
+  replication:
+    password: ""  # REQUIRED for replication - Strong password for replicator user
+
+# =============================================================================
+# Deployment Configuration (Primary + Replicas)
+# =============================================================================
+replicaCount: 2  # 1 primary + 2 replicas for HA
+
+image:
+  repository: postgres
+  pullPolicy: IfNotPresent
+  tag: ""  # Defaults to chart appVersion (16.1)
+
+# =============================================================================
+# PostgreSQL Configuration
+# =============================================================================
+postgresql:
+  database: "production"
+  username: "produser"
+  password: ""  # SET THIS
+
+  # Connection limits and memory
+  maxConnections: 100
+  sharedBuffers: "256MB"  # ~25% of RAM
+  effectiveCacheSize: "2GB"  # ~75% of RAM
+  workMem: "8MB"  # sharedBuffers / maxConnections
+  maintenanceWorkMem: "128MB"
+
+  # WAL settings for replication
+  walLevel: "replica"
+  maxWalSenders: 10
+  maxReplicationSlots: 10
+
+  # Production optimizations
+  config:
+    # Performance (SSD)
+    random_page_cost: "1.1"
+    effective_io_concurrency: "200"
+    max_worker_processes: "4"
+    max_parallel_workers_per_gather: "2"
+
+    # WAL and Checkpointing
+    wal_buffers: "16MB"
+    checkpoint_completion_target: "0.9"
+    max_wal_size: "4GB"
+    min_wal_size: "1GB"
+
+    # Logging
+    log_statement: "ddl"
+    log_connections: "on"
+    log_disconnections: "on"
+
+    # Autovacuum
+    autovacuum: "on"
+    autovacuum_max_workers: "3"
+
+  # Replication for HA
+  replication:
+    enabled: true
+    user: "replicator"
+    password: ""  # SET THIS
+
+  # Database initialization
+  initdbScripts: {}
+    # 01-init.sql: |
+    #   CREATE EXTENSION IF NOT EXISTS pg_stat_statements;
+
+# =============================================================================
+# Storage and Resources
+# =============================================================================
+persistence:
+  enabled: true
+  storageClass: ""  # Use "fast-ssd" for production
+  accessMode: ReadWriteOnce
+  size: 50Gi
+
+resources:
+  limits:
+    cpu: 2000m
+    memory: 4Gi
+  requests:
+    cpu: 500m
+    memory: 1Gi
+
+# =============================================================================
+# Health Probes
+# =============================================================================
+livenessProbe:
+  initialDelaySeconds: 30
+  periodSeconds: 10
+  timeoutSeconds: 5
+  failureThreshold: 6
+
+readinessProbe:
+  initialDelaySeconds: 10
+  periodSeconds: 10
+  timeoutSeconds: 5
+  failureThreshold: 3
+
+startupProbe:
+  initialDelaySeconds: 0
+  periodSeconds: 10
+  timeoutSeconds: 5
+  failureThreshold: 30
+
+# =============================================================================
+# HA Configuration
+# =============================================================================
+affinity:
+  podAntiAffinity:
+    requiredDuringSchedulingIgnoredDuringExecution:
+      - labelSelector:
+          matchExpressions:
+            - key: app.kubernetes.io/name
+              operator: In
+              values:
+                - postgresql
+        topologyKey: kubernetes.io/hostname
+
+# =============================================================================
+# Security
+# =============================================================================
+serviceAccount:
+  create: true
+
+podSecurityContext:
+  fsGroup: 999
+  runAsUser: 999
+  runAsNonRoot: true
+
+securityContext:
+  capabilities:
+    drop:
+      - ALL
+  readOnlyRootFilesystem: false
+  allowPrivilegeEscalation: false
+
+# =============================================================================
+# Notes
+# =============================================================================
+# Production Recommendations:
+# 1. Set strong passwords for postgresql.password and replication.password
+# 2. Use fast-ssd storage class
+# 3. Enable replication for HA (replicaCount >= 2)
+# 4. Configure regular backups (pg_dump or continuous archiving)
+# 5. Monitor replication lag
+# 6. Tune memory settings based on workload
+# 7. Enable pg_stat_statements extension
+#
+# Connection String:
+# postgresql://produser:PASSWORD@postgresql-0.postgresql-headless:5432/production

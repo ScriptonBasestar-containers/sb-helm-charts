@@ -1,0 +1,262 @@
+# MongoDB - Production-Ready Example Configuration
+# This is a complete example showing all configuration options
+# Copy and customize for your environment
+
+# =============================================================================
+# REQUIRED: Set these values before deployment
+# =============================================================================
+mongodb:
+  rootPassword: ""  # REQUIRED - Generate strong password
+  replicaSet:
+    key: ""  # REQUIRED for replica set - Generate 32-char key with: openssl rand -base64 756
+
+# =============================================================================
+# Deployment Configuration
+# =============================================================================
+# Production HA: 3-member replica set (odd number recommended for voting)
+replicaCount: 3
+
+# =============================================================================
+# Image Configuration
+# =============================================================================
+image:
+  repository: mongo
+  pullPolicy: IfNotPresent
+  tag: ""  # Defaults to chart appVersion (7.0.14)
+
+imagePullSecrets: []
+nameOverride: ""
+fullnameOverride: ""
+
+# =============================================================================
+# MongoDB Configuration
+# =============================================================================
+mongodb:
+  # Database name
+  database: "production_db"
+
+  # Root credentials
+  rootPassword: ""  # SET THIS - Use strong password
+
+  # Alternatively, use existing secret
+  # existingSecret: "mongodb-credentials"
+  # rootPasswordKey: "mongodb-root-password"
+  # replicaSetKey: "mongodb-replica-set-key"
+
+  # Authentication
+  auth:
+    enabled: true  # Always enable for production
+
+  # WiredTiger storage engine configuration
+  wiredTiger:
+    cacheSizeGB: 1.5  # Default: 50% of (RAM - 1GB), adjust based on workload
+
+  # Profiling configuration
+  profiling:
+    mode: "slowOp"  # "off", "slowOp", or "all"
+    slowOpThresholdMs: 100  # Log queries slower than 100ms
+
+  # System log
+  systemLog:
+    verbosity: 0  # 0-5, higher is more verbose
+
+  # Replica set configuration
+  replicaSet:
+    enabled: true  # Enable for production HA
+    name: "rs0"
+    key: ""  # SET THIS - 32-char key for member authentication
+
+  # Custom MongoDB configuration (merged into mongod.conf)
+  config: {}
+    # setParameter:
+    #   enableLocalhostAuthBypass: false
+    # security:
+    #   authorization: enabled
+    # storage:
+    #   directoryPerDB: true
+
+  # Extra environment variables
+  extraEnv: []
+    # - name: MONGO_INITDB_DATABASE
+    #   value: "myapp"
+
+# =============================================================================
+# Service Configuration
+# =============================================================================
+service:
+  type: ClusterIP
+  port: 27017
+  nodePort: ""
+  annotations:
+    prometheus.io/scrape: "true"
+    prometheus.io/port: "27017"
+
+# =============================================================================
+# Storage Configuration
+# =============================================================================
+persistence:
+  enabled: true
+  storageClass: ""  # Use default or specify (e.g., "fast-ssd")
+  accessMode: ReadWriteOnce
+  size: 50Gi  # Adjust based on data volume
+  annotations: {}
+
+# =============================================================================
+# Security Configuration
+# =============================================================================
+serviceAccount:
+  create: true
+  annotations: {}
+  name: ""
+
+podSecurityContext:
+  fsGroup: 999
+  runAsUser: 999
+  runAsNonRoot: true
+
+securityContext:
+  capabilities:
+    drop:
+      - ALL
+  readOnlyRootFilesystem: false
+  allowPrivilegeEscalation: false
+
+# =============================================================================
+# Resource Configuration
+# =============================================================================
+# Production resources (adjust based on workload)
+resources:
+  limits:
+    cpu: 2000m
+    memory: 4Gi
+  requests:
+    cpu: 500m
+    memory: 2Gi
+
+# =============================================================================
+# Health Probes
+# =============================================================================
+livenessProbe:
+  initialDelaySeconds: 30
+  periodSeconds: 10
+  timeoutSeconds: 5
+  failureThreshold: 6
+
+readinessProbe:
+  initialDelaySeconds: 10
+  periodSeconds: 10
+  timeoutSeconds: 5
+  failureThreshold: 3
+
+startupProbe:
+  enabled: true
+  initialDelaySeconds: 0
+  periodSeconds: 10
+  timeoutSeconds: 5
+  failureThreshold: 30
+
+# =============================================================================
+# High Availability Configuration
+# =============================================================================
+# Pod anti-affinity (spread replica set members across nodes)
+affinity:
+  podAntiAffinity:
+    # HARD requirement: No two MongoDB pods on same node
+    requiredDuringSchedulingIgnoredDuringExecution:
+      - labelSelector:
+          matchExpressions:
+            - key: app.kubernetes.io/name
+              operator: In
+              values:
+                - mongodb
+        topologyKey: kubernetes.io/hostname
+    # SOFT preference: Spread across availability zones
+    preferredDuringSchedulingIgnoredDuringExecution:
+      - weight: 100
+        podAffinityTerm:
+          labelSelector:
+            matchExpressions:
+              - key: app.kubernetes.io/name
+                operator: In
+                values:
+                  - mongodb
+          topologyKey: topology.kubernetes.io/zone
+
+# Node selection (optional)
+nodeSelector: {}
+  # node-role.kubernetes.io/database: "true"
+
+tolerations: []
+  # - key: "database"
+  #   operator: "Equal"
+  #   value: "true"
+  #   effect: "NoSchedule"
+
+# =============================================================================
+# Pod Configuration
+# =============================================================================
+podAnnotations:
+  prometheus.io/scrape: "true"
+  prometheus.io/port: "27017"
+
+podLabels:
+  environment: "production"
+
+# =============================================================================
+# Init Containers
+# =============================================================================
+initContainers: []
+  # - name: init-permissions
+  #   image: busybox:latest
+  #   command: ['sh', '-c', 'chown -R 999:999 /data/db']
+  #   volumeMounts:
+  #     - name: data
+  #       mountPath: /data/db
+
+# =============================================================================
+# Advanced Configuration
+# =============================================================================
+# Extra volumes and volume mounts
+extraVolumes: []
+extraVolumeMounts: []
+
+# =============================================================================
+# Notes
+# =============================================================================
+# Production Recommendations:
+# 1. Set strong rootPassword and replicaSet.key (use secrets)
+# 2. Enable authentication (mongodb.auth.enabled: true)
+# 3. Use fast-ssd storage class with high IOPS
+# 4. Deploy 3-member replica set (odd number for voting)
+# 5. Configure regular backups (mongodump or continuous backup)
+# 6. Monitor replica set health and lag
+# 7. Set appropriate WiredTiger cache size (default: 50% of RAM - 1GB)
+# 8. Enable profiling to track slow queries
+# 9. Configure pod anti-affinity to spread members across nodes/zones
+# 10. Plan index strategy for query performance
+#
+# Replica Set Configuration:
+# - 3 members: 1 primary + 2 secondaries
+# - Automatic failover: If primary fails, secondaries elect new primary
+# - Read preference: Can distribute reads to secondaries
+# - Write concern: Configure based on durability requirements
+#
+# Connection String:
+# mongodb://root:PASSWORD@mongodb-0.mongodb-headless,mongodb-1.mongodb-headless,mongodb-2.mongodb-headless:27017/production_db?replicaSet=rs0
+#
+# Scaling Considerations:
+# - Add more replica set members: Scale to 5 or 7 (always odd)
+# - Arbiter: Add arbiter for tie-breaking (no data, voting only)
+# - Sharding: Consider for horizontal scaling (requires sharding setup)
+#
+# Backup Recommendations:
+# - mongodump: Full backup to external storage
+# - Oplog tailing: Continuous backup solution
+# - Filesystem snapshots: If using cloud provider storage
+# - Test restore procedures regularly
+#
+# Performance Tuning:
+# - Index optimization: Create indexes for frequent queries
+# - WiredTiger cache: Adjust based on working set size
+# - Connection pooling: Configure application connection pools
+# - Query profiling: Enable to identify slow queries
