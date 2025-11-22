@@ -16,6 +16,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - `charts/postgresql/values-example.yaml` - PostgreSQL primary-replica (streaming replication, WAL tuning, connection pooling)
   - `charts/mysql/values-example.yaml` - MySQL master-replica (GTID replication, InnoDB tuning, binary logging)
   - `charts/kafka/values-example.yaml` - Kafka KRaft cluster (3-broker HA, SASL authentication, Kafka UI integration)
+  - `charts/prometheus/values-example.yaml` - Prometheus monitoring (TSDB, ServiceMonitors, alert rules, Kubernetes SD)
+  - `charts/loki/values-example.yaml` - Loki log aggregation (memberlist clustering, S3 storage, replication factor 3)
+  - `charts/grafana/values-example.yaml` - Grafana visualization (datasource provisioning, dashboard loading, external PostgreSQL)
 
 ## [1.0.0] - 2025-11-21
 
