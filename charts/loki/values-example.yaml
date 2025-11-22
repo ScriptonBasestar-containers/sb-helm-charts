@@ -1,0 +1,216 @@
+# Loki - Production-Ready Example Configuration
+# Copy and customize for your environment
+
+# =============================================================================
+# REQUIRED: Set these values before deployment
+# =============================================================================
+loki:
+  storage:
+    s3:
+      accessKeyId: ""  # REQUIRED for S3 storage
+      secretAccessKey: ""  # REQUIRED for S3 storage
+
+# =============================================================================
+# Deployment Configuration (HA with memberlist)
+# =============================================================================
+# 3 replicas for HA (odd number for memberlist quorum)
+replicaCount: 3
+
+image:
+  repository: grafana/loki
+  pullPolicy: IfNotPresent
+  tag: ""  # Defaults to chart appVersion (2.9.3)
+
+# =============================================================================
+# Loki Configuration
+# =============================================================================
+loki:
+  # Authentication (optional)
+  auth:
+    enabled: false  # Set true for multi-tenant mode
+
+  # Storage backend (S3/MinIO for production)
+  storage:
+    type: "s3"  # or "filesystem" for dev
+    s3:
+      endpoint: "s3.amazonaws.com"  # or MinIO endpoint
+      bucketNames: "loki-chunks"
+      region: "us-east-1"
+      accessKeyId: ""  # SET THIS
+      secretAccessKey: ""  # SET THIS
+      s3ForcePathStyle: false  # Set true for MinIO
+
+  # Replication for HA
+  replicationFactor: 3
+
+  # Rate limits (adjust based on log volume)
+  limits:
+    ingestionRateMB: 8  # MB/sec per distributor
+    ingestionBurstSizeMB: 12
+
+  # Retention (filesystem storage only)
+  retention:
+    enabled: true
+    period: "744h"  # 31 days
+
+# =============================================================================
+# Security Configuration
+# =============================================================================
+serviceAccount:
+  create: true
+
+podSecurityContext:
+  fsGroup: 10001
+  runAsUser: 10001
+  runAsNonRoot: true
+
+securityContext:
+  capabilities:
+    drop:
+      - ALL
+  readOnlyRootFilesystem: true
+  runAsNonRoot: true
+  runAsUser: 10001
+
+# =============================================================================
+# Service Configuration
+# =============================================================================
+service:
+  type: ClusterIP
+  port: 3100  # HTTP
+  grpcPort: 9095  # gRPC
+
+# =============================================================================
+# Resource Configuration
+# =============================================================================
+resources:
+  limits:
+    cpu: 2000m
+    memory: 2Gi
+  requests:
+    cpu: 500m
+    memory: 1Gi
+
+# =============================================================================
+# Health Probes
+# =============================================================================
+livenessProbe:
+  httpGet:
+    path: /ready
+    port: http
+  initialDelaySeconds: 45
+  periodSeconds: 15
+  timeoutSeconds: 5
+  failureThreshold: 3
+
+readinessProbe:
+  httpGet:
+    path: /ready
+    port: http
+  initialDelaySeconds: 45
+  periodSeconds: 15
+  timeoutSeconds: 5
+  failureThreshold: 3
+
+startupProbe:
+  httpGet:
+    path: /ready
+    port: http
+  initialDelaySeconds: 0
+  periodSeconds: 10
+  timeoutSeconds: 5
+  failureThreshold: 30
+
+# =============================================================================
+# Storage Configuration
+# =============================================================================
+# Local filesystem storage (for WAL and cache)
+persistence:
+  enabled: true
+  accessMode: ReadWriteOnce
+  size: 50Gi  # For WAL and cache
+  storageClass: ""  # Use "fast-ssd" for production
+
+# =============================================================================
+# High Availability Configuration
+# =============================================================================
+# Hard anti-affinity (no two Loki pods on same node)
+affinity:
+  podAntiAffinity:
+    requiredDuringSchedulingIgnoredDuringExecution:
+      - labelSelector:
+          matchExpressions:
+            - key: app.kubernetes.io/name
+              operator: In
+              values:
+                - loki
+        topologyKey: kubernetes.io/hostname
+
+nodeSelector: {}
+tolerations: []
+
+# =============================================================================
+# Ingress Configuration
+# =============================================================================
+ingress:
+  enabled: true
+  className: "nginx"
+  annotations:
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
+  hosts:
+    - host: loki.example.com
+      paths:
+        - path: /
+          pathType: Prefix
+  tls:
+    - secretName: loki-tls
+      hosts:
+        - loki.example.com
+
+# =============================================================================
+# ServiceMonitor (Prometheus Operator)
+# =============================================================================
+serviceMonitor:
+  enabled: true
+  namespace: ""
+  labels:
+    release: prometheus
+  interval: 30s
+
+# =============================================================================
+# Pod Configuration
+# =============================================================================
+podAnnotations:
+  prometheus.io/scrape: "true"
+  prometheus.io/port: "3100"
+
+podLabels:
+  environment: "production"
+
+# =============================================================================
+# Notes
+# =============================================================================
+# Production Recommendations:
+# 1. Use S3/MinIO for chunk storage (not filesystem)
+# 2. Deploy 3 replicas with memberlist clustering
+# 3. Configure replicationFactor=3 for HA
+# 4. Set appropriate ingestion rate limits
+# 5. Monitor Loki metrics with Prometheus
+# 6. Integrate with Grafana for log visualization
+# 7. Use Promtail for log collection
+# 8. Plan retention based on log volume
+#
+# Storage Architecture:
+# - Chunks: Stored in S3 (long-term)
+# - Index: BoltDB stored in S3
+# - WAL: Local filesystem (persistence PVC)
+# - Cache: Local filesystem
+#
+# Memberlist Clustering:
+# - 3 replicas form memberlist cluster
+# - Automatic member discovery via headless service
+# - Hash ring for data distribution
+# - Replication factor ensures data availability
+#
+# Connection String (Grafana):
+# http://loki:3100

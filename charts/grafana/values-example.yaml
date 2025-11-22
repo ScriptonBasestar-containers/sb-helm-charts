@@ -1,0 +1,291 @@
+# Grafana - Production-Ready Example Configuration
+# Copy and customize for your environment
+
+# =============================================================================
+# REQUIRED: Set these values before deployment
+# =============================================================================
+grafana:
+  adminPassword: ""  # REQUIRED - Strong password for admin user
+database:
+  external:
+    password: ""  # REQUIRED if using external database
+
+# =============================================================================
+# Deployment Configuration
+# =============================================================================
+# Single replica (Grafana is stateful, use HA database instead)
+replicaCount: 1
+
+image:
+  repository: grafana/grafana
+  pullPolicy: IfNotPresent
+  tag: ""  # Defaults to chart appVersion (10.2.3)
+
+# =============================================================================
+# Grafana Configuration
+# =============================================================================
+grafana:
+  # Admin credentials
+  adminUser: "admin"
+  adminPassword: ""  # SET THIS
+
+  # Security settings
+  security:
+    disableGravatar: true
+    cookieSecure: true
+    cookieSameSite: "lax"
+    strictTransportSecurity: true
+
+  # User settings
+  users:
+    allowSignUp: false
+    allowOrgCreate: false
+    autoAssignOrg: true
+    autoAssignOrgRole: "Viewer"
+
+  # Authentication
+  auth:
+    anonymous:
+      enabled: false
+    # OAuth example:
+    # oauth:
+    #   enabled: true
+    #   name: "OAuth"
+    #   allowSignUp: true
+
+  # Analytics
+  analytics:
+    checkForUpdates: true
+    checkForPluginUpdates: true
+    reportingEnabled: false
+
+  # Logging
+  log:
+    level: "info"  # debug, info, warn, error
+
+  # Plugins to install
+  plugins: []
+    # - grafana-piechart-panel
+    # - grafana-worldmap-panel
+
+# =============================================================================
+# Database Configuration
+# =============================================================================
+# External PostgreSQL recommended for production
+database:
+  external:
+    enabled: true
+    type: "postgres"  # postgres, mysql, sqlite3
+    host: "postgresql.default.svc.cluster.local"
+    port: 5432
+    database: "grafana"
+    username: "grafana"
+    password: ""  # SET THIS
+    # SSL mode for PostgreSQL
+    sslMode: "disable"  # require, verify-ca, verify-full
+
+  # SQLite (development only, not recommended for production)
+  # external:
+  #   enabled: false
+
+# =============================================================================
+# Datasources Configuration
+# =============================================================================
+# Provisioned datasources (created automatically)
+datasources:
+  - name: Prometheus
+    type: prometheus
+    url: http://prometheus:9090
+    access: proxy
+    isDefault: true
+    jsonData:
+      timeInterval: "15s"
+      httpMethod: "POST"
+    editable: false
+
+  - name: Loki
+    type: loki
+    url: http://loki:3100
+    access: proxy
+    jsonData:
+      maxLines: 1000
+    editable: false
+
+  # - name: Alertmanager
+  #   type: alertmanager
+  #   url: http://alertmanager:9093
+  #   access: proxy
+
+# =============================================================================
+# Dashboards Configuration
+# =============================================================================
+# Dashboard providers (load dashboards from ConfigMaps)
+dashboardProviders:
+  - name: default
+    orgId: 1
+    folder: ""
+    type: file
+    disableDeletion: false
+    editable: true
+    options:
+      path: /var/lib/grafana/dashboards/default
+
+# Dashboard ConfigMaps to load
+dashboardConfigMaps: []
+  # - configMapName: grafana-dashboards-kubernetes
+  #   fileName: kubernetes-cluster.json
+  # - configMapName: grafana-dashboards-node
+  #   fileName: node-exporter-full.json
+
+# =============================================================================
+# Service Configuration
+# =============================================================================
+service:
+  type: ClusterIP
+  port: 80
+  targetPort: 3000
+  annotations:
+    prometheus.io/scrape: "true"
+    prometheus.io/port: "3000"
+
+# =============================================================================
+# Ingress Configuration
+# =============================================================================
+ingress:
+  enabled: true
+  className: "nginx"
+  annotations:
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+  hosts:
+    - host: grafana.example.com
+      paths:
+        - path: /
+          pathType: Prefix
+  tls:
+    - secretName: grafana-tls
+      hosts:
+        - grafana.example.com
+
+# =============================================================================
+# Storage Configuration
+# =============================================================================
+persistence:
+  enabled: true
+  storageClass: ""  # Use "fast-ssd" for production
+  accessMode: ReadWriteOnce
+  size: 20Gi
+
+# =============================================================================
+# Resource Configuration
+# =============================================================================
+resources:
+  limits:
+    cpu: 2000m
+    memory: 2Gi
+  requests:
+    cpu: 500m
+    memory: 1Gi
+
+# =============================================================================
+# Health Probes
+# =============================================================================
+livenessProbe:
+  httpGet:
+    path: /api/health
+    port: http
+  initialDelaySeconds: 30
+  periodSeconds: 10
+  timeoutSeconds: 5
+  failureThreshold: 10
+
+readinessProbe:
+  httpGet:
+    path: /api/health
+    port: http
+  initialDelaySeconds: 10
+  periodSeconds: 10
+  timeoutSeconds: 5
+  failureThreshold: 3
+
+startupProbe:
+  httpGet:
+    path: /api/health
+    port: http
+  initialDelaySeconds: 0
+  periodSeconds: 10
+  timeoutSeconds: 5
+  failureThreshold: 30
+
+# =============================================================================
+# Security Configuration
+# =============================================================================
+serviceAccount:
+  create: true
+
+podSecurityContext:
+  fsGroup: 472
+  runAsUser: 472
+  runAsNonRoot: true
+
+securityContext:
+  capabilities:
+    drop:
+      - ALL
+  readOnlyRootFilesystem: false
+  runAsNonRoot: true
+  runAsUser: 472
+
+# =============================================================================
+# Pod Configuration
+# =============================================================================
+podAnnotations:
+  prometheus.io/scrape: "true"
+  prometheus.io/port: "3000"
+
+podLabels:
+  environment: "production"
+
+nodeSelector: {}
+tolerations: []
+affinity: {}
+
+# =============================================================================
+# Notes
+# =============================================================================
+# Production Recommendations:
+# 1. Use external PostgreSQL for database (not SQLite)
+# 2. Configure datasources via provisioning
+# 3. Load dashboards from ConfigMaps
+# 4. Enable HTTPS with cert-manager
+# 5. Disable anonymous access
+# 6. Set strong admin password
+# 7. Configure OAuth/LDAP for authentication
+# 8. Enable security headers (cookieSecure, HSTS)
+# 9. Regularly backup Grafana database
+# 10. Monitor Grafana metrics with Prometheus
+#
+# Datasource Configuration:
+# - Prometheus: For metrics visualization
+# - Loki: For log aggregation
+# - Alertmanager: For alert management
+# - Configure via datasources list above
+#
+# Dashboard Provisioning:
+# Create ConfigMap with dashboards:
+#   kubectl create configmap grafana-dashboards-k8s \
+#     --from-file=kubernetes.json
+#
+# Then add to dashboardConfigMaps list
+#
+# User Management:
+# - Default admin/admin (change admin password!)
+# - Create users via UI or API
+# - Assign roles: Admin, Editor, Viewer
+# - Configure teams and permissions
+#
+# High Availability:
+# - Single Grafana instance (stateful)
+# - HA achieved via external PostgreSQL cluster
+# - Session storage in database
+# - Multiple replicas NOT recommended (state conflicts)
