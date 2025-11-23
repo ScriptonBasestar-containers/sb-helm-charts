@@ -1,0 +1,235 @@
+# Kube State Metrics - Production-Ready Example Configuration
+# Copy and customize for your environment
+
+# =============================================================================
+# Deployment Configuration
+# =============================================================================
+replicaCount: 1  # Single replica (stateless, can be increased for HA)
+
+image:
+  repository: registry.k8s.io/kube-state-metrics/kube-state-metrics
+  pullPolicy: IfNotPresent
+  tag: ""  # Defaults to chart appVersion (2.10.1)
+
+# =============================================================================
+# RBAC Configuration (Required)
+# =============================================================================
+# Kube State Metrics requires ClusterRole to read Kubernetes objects
+rbac:
+  create: true
+
+serviceAccount:
+  create: true
+  annotations: {}
+  name: ""
+
+# =============================================================================
+# Collectors Configuration
+# =============================================================================
+collectors:
+  # Limit collection to specific namespaces (default: all namespaces)
+  namespaces: []
+  # Example: Monitor only specific namespaces
+  # - kube-system
+  # - monitoring
+  # - production
+
+  # Limit collection to specific resources (default: all resources)
+  resources: []
+  # Example: Collect only critical resources
+  # - deployments
+  # - statefulsets
+  # - daemonsets
+  # - pods
+  # - nodes
+  # - services
+  # - persistentvolumeclaims
+  # - persistentvolumes
+
+# =============================================================================
+# Extra Arguments (Label and Annotation Allowlists)
+# =============================================================================
+extraArgs:
+  # Include all pod labels as metrics (increases cardinality)
+  - --metric-labels-allowlist=pods=[*]
+  # Include specific deployment labels
+  - --metric-labels-allowlist=deployments=[app,version,component]
+  # Include namespace annotations
+  - --metric-annotations-allowlist=namespaces=[owner,team,cost-center]
+  # Set log level
+  - --log.level=info
+
+# =============================================================================
+# Security Configuration
+# =============================================================================
+podSecurityContext:
+  runAsUser: 65534  # nobody
+  runAsNonRoot: true
+  fsGroup: 65534
+
+securityContext:
+  readOnlyRootFilesystem: true
+  allowPrivilegeEscalation: false
+  capabilities:
+    drop:
+      - ALL
+
+# =============================================================================
+# Service Configuration
+# =============================================================================
+service:
+  type: ClusterIP
+  port: 8080  # Metrics endpoint
+  telemetryPort: 8081  # Telemetry endpoint (self-metrics)
+  annotations:
+    prometheus.io/scrape: "true"
+    prometheus.io/port: "8080"
+    prometheus.io/path: "/metrics"
+
+# =============================================================================
+# ServiceMonitor (Prometheus Operator)
+# =============================================================================
+serviceMonitor:
+  enabled: true
+  interval: 30s
+  scrapeTimeout: 10s
+  labels:
+    prometheus: kube-prometheus
+
+  # Metric relabeling (drop high-cardinality metrics if needed)
+  metricRelabelings: []
+  # Example: Drop pod container state metrics for terminated containers
+  # - sourceLabels: [__name__, reason]
+  #   regex: 'kube_pod_container_status_waiting_reason;.*'
+  #   action: drop
+
+  relabelings: []
+
+# =============================================================================
+# Resource Configuration
+# =============================================================================
+resources:
+  limits:
+    cpu: 500m
+    memory: 512Mi
+  requests:
+    cpu: 100m
+    memory: 128Mi
+
+# =============================================================================
+# Health Probes
+# =============================================================================
+livenessProbe:
+  httpGet:
+    path: /healthz
+    port: 8080
+  initialDelaySeconds: 30
+  periodSeconds: 10
+  timeoutSeconds: 5
+  failureThreshold: 3
+
+readinessProbe:
+  httpGet:
+    path: /
+    port: 8080
+  initialDelaySeconds: 10
+  periodSeconds: 10
+  timeoutSeconds: 5
+  failureThreshold: 3
+
+# =============================================================================
+# Pod Scheduling
+# =============================================================================
+nodeSelector: {}
+# Example: Run on monitoring nodes
+#   node-role.kubernetes.io/monitoring: "true"
+
+tolerations: []
+# Example: Tolerate monitoring taint
+#   - key: "monitoring"
+#     operator: "Equal"
+#     value: "true"
+#     effect: "NoSchedule"
+
+affinity: {}
+# Example: Prefer different nodes for HA
+#   podAntiAffinity:
+#     preferredDuringSchedulingIgnoredDuringExecution:
+#       - weight: 100
+#         podAffinityTerm:
+#           labelSelector:
+#             matchExpressions:
+#               - key: app.kubernetes.io/name
+#                 operator: In
+#                 values:
+#                   - kube-state-metrics
+#           topologyKey: kubernetes.io/hostname
+
+priorityClassName: ""
+# Example: system-cluster-critical for essential metrics
+
+# =============================================================================
+# Pod Annotations
+# =============================================================================
+podAnnotations:
+  prometheus.io/scrape: "true"
+  prometheus.io/port: "8080"
+
+# =============================================================================
+# Key Metrics Exposed
+# =============================================================================
+# Node Metrics:
+#   - kube_node_status_condition (node conditions: Ready, MemoryPressure, etc.)
+#   - kube_node_status_capacity (node capacity: CPU, memory, pods)
+#   - kube_node_status_allocatable (allocatable resources)
+#
+# Pod Metrics:
+#   - kube_pod_status_phase (pod phase: Running, Pending, Failed)
+#   - kube_pod_container_status_ready (container readiness)
+#   - kube_pod_container_status_restarts_total (container restarts)
+#   - kube_pod_container_resource_requests (resource requests)
+#   - kube_pod_container_resource_limits (resource limits)
+#
+# Deployment Metrics:
+#   - kube_deployment_status_replicas (desired replicas)
+#   - kube_deployment_status_replicas_ready (ready replicas)
+#   - kube_deployment_status_replicas_available (available replicas)
+#   - kube_deployment_status_replicas_unavailable (unavailable replicas)
+#
+# StatefulSet Metrics:
+#   - kube_statefulset_status_replicas (desired replicas)
+#   - kube_statefulset_status_replicas_ready (ready replicas)
+#   - kube_statefulset_status_replicas_current (current replicas)
+#
+# DaemonSet Metrics:
+#   - kube_daemonset_status_desired_number_scheduled (desired pods)
+#   - kube_daemonset_status_number_ready (ready pods)
+#
+# PersistentVolume Metrics:
+#   - kube_persistentvolume_status_phase (PV phase: Available, Bound, Released)
+#   - kube_persistentvolumeclaim_status_phase (PVC phase)
+#   - kube_persistentvolumeclaim_resource_requests_storage_bytes (storage size)
+#
+# Service Metrics:
+#   - kube_service_info (service labels and annotations)
+#   - kube_service_spec_type (service type: ClusterIP, NodePort, LoadBalancer)
+#
+# =============================================================================
+# Usage Examples
+# =============================================================================
+# Query in Prometheus:
+#   kube_pod_status_phase{phase="Running"}  # Running pods
+#   kube_deployment_status_replicas_available  # Available deployment replicas
+#   kube_node_status_condition{condition="Ready", status="true"}  # Ready nodes
+#   kube_pod_container_status_restarts_total  # Container restart count
+#
+# Alert examples:
+#   - kube_pod_container_status_waiting_reason{reason!="ContainerCreating"}
+#   - kube_deployment_status_replicas_unavailable > 0
+#   - kube_node_status_condition{condition="Ready", status="false"}
+#
+# Operational commands:
+#   make -f make/ops/kube-state-metrics.mk ksm-metrics  # View all metrics
+#   make -f make/ops/kube-state-metrics.mk ksm-pod-metrics  # Pod metrics
+#   make -f make/ops/kube-state-metrics.mk ksm-deployment-metrics  # Deployment metrics
+#   make -f make/ops/kube-state-metrics.mk ksm-node-metrics  # Node metrics
