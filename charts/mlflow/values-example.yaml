@@ -1,0 +1,290 @@
+# MLflow - Production-Ready Example Configuration
+# Copy and customize for your environment
+
+# =============================================================================
+# REQUIRED: Configure external PostgreSQL and MinIO
+# =============================================================================
+postgresql:
+  external:
+    enabled: true
+    host: "postgresql.database.svc.cluster.local"
+    password: ""  # REQUIRED - Set PostgreSQL password
+
+minio:
+  external:
+    enabled: true
+    accessKey: ""  # REQUIRED - Set MinIO access key
+    secretKey: ""  # REQUIRED - Set MinIO secret key
+
+# =============================================================================
+# Deployment Configuration
+# =============================================================================
+replicaCount: 2  # 2 replicas for HA
+
+image:
+  repository: python
+  pullPolicy: IfNotPresent
+  tag: "3.11-slim"  # Python base image (MLflow installed via pip)
+
+# =============================================================================
+# MLflow Configuration
+# =============================================================================
+mlflow:
+  # Serve artifacts via tracking server (recommended for production)
+  serveArtifacts: true
+
+  # Extra environment variables
+  extraEnv:
+    # MLflow version to install
+    - name: MLFLOW_VERSION
+      value: "2.9.2"
+
+    # Authentication (optional - basic auth)
+    # - name: MLFLOW_TRACKING_USERNAME
+    #   value: "admin"
+    # - name: MLFLOW_TRACKING_PASSWORD
+    #   valueFrom:
+    #     secretKeyRef:
+    #       name: mlflow-auth
+    #       key: password
+
+    # Gunicorn workers (for high-traffic scenarios)
+    - name: GUNICORN_WORKERS
+      value: "4"
+
+  # Custom configuration
+  config: {}
+
+# =============================================================================
+# Backend Store (PostgreSQL) - Metadata and Experiment Tracking
+# =============================================================================
+postgresql:
+  external:
+    enabled: true
+    host: "postgresql.database.svc.cluster.local"
+    port: 5432
+    database: "mlflow"
+    username: "mlflow"
+    password: ""  # SET THIS - stored in Kubernetes Secret
+
+# =============================================================================
+# Artifact Store (MinIO/S3) - Model Artifacts and Files
+# =============================================================================
+minio:
+  external:
+    enabled: true
+    endpoint: "http://minio.storage.svc.cluster.local:9000"
+    accessKey: ""  # SET THIS
+    secretKey: ""  # SET THIS
+    bucket: "mlflow-artifacts"
+    ignoreTLS: "true"  # Set false for HTTPS endpoints
+
+    # For AWS S3:
+    # endpoint: "https://s3.amazonaws.com"
+    # bucket: "my-mlflow-artifacts"
+    # ignoreTLS: "false"
+
+# =============================================================================
+# Persistence (Local Development Only)
+# =============================================================================
+# NOTE: For production, use external PostgreSQL + MinIO instead
+persistence:
+  # SQLite database (disabled when using external PostgreSQL)
+  sqlite:
+    enabled: false
+    storageClass: ""
+    accessMode: ReadWriteOnce
+    size: 1Gi
+
+  # Local artifacts (disabled when using external MinIO/S3)
+  artifacts:
+    enabled: false
+    storageClass: ""
+    accessMode: ReadWriteOnce
+    size: 10Gi
+
+# =============================================================================
+# Security Configuration
+# =============================================================================
+serviceAccount:
+  create: true
+  annotations: {}
+  name: ""
+
+podSecurityContext:
+  fsGroup: 1000
+  runAsUser: 1000
+  runAsNonRoot: true
+
+securityContext:
+  capabilities:
+    drop:
+      - ALL
+  readOnlyRootFilesystem: false  # MLflow needs write access for temp files
+  allowPrivilegeEscalation: false
+
+# =============================================================================
+# Service Configuration
+# =============================================================================
+service:
+  type: ClusterIP
+  port: 5000
+  nodePort: ""
+  annotations: {}
+
+# =============================================================================
+# Ingress (Web UI Access)
+# =============================================================================
+# ingress:
+#   enabled: true
+#   className: nginx
+#   annotations:
+#     cert-manager.io/cluster-issuer: letsencrypt-prod
+#     # Session affinity for multiple replicas
+#     nginx.ingress.kubernetes.io/affinity: cookie
+#     nginx.ingress.kubernetes.io/session-cookie-name: mlflow-session
+#     # Increase upload size for large model artifacts
+#     nginx.ingress.kubernetes.io/proxy-body-size: "500m"
+#     nginx.ingress.kubernetes.io/proxy-read-timeout: "600"
+#   hosts:
+#     - host: mlflow.example.com
+#       paths:
+#         - path: /
+#           pathType: Prefix
+#   tls:
+#     - secretName: mlflow-tls
+#       hosts:
+#         - mlflow.example.com
+
+# =============================================================================
+# Resource Configuration
+# =============================================================================
+resources:
+  limits:
+    cpu: 2000m
+    memory: 2Gi
+  requests:
+    cpu: 500m
+    memory: 512Mi
+
+# =============================================================================
+# Health Probes
+# =============================================================================
+livenessProbe:
+  httpGet:
+    path: /health
+    port: 5000
+  initialDelaySeconds: 60
+  periodSeconds: 10
+  timeoutSeconds: 5
+  failureThreshold: 3
+
+readinessProbe:
+  httpGet:
+    path: /health
+    port: 5000
+  initialDelaySeconds: 30
+  periodSeconds: 10
+  timeoutSeconds: 5
+  failureThreshold: 3
+
+# =============================================================================
+# Pod Scheduling
+# =============================================================================
+nodeSelector: {}
+# Example: Run on ML nodes
+#   node-role.kubernetes.io/ml: "true"
+
+tolerations: []
+# Example: Tolerate ML taint
+#   - key: "ml"
+#     operator: "Equal"
+#     value: "true"
+#     effect: "NoSchedule"
+
+affinity: {}
+# Example: Spread across nodes
+#   podAntiAffinity:
+#     preferredDuringSchedulingIgnoredDuringExecution:
+#       - weight: 100
+#         podAffinityTerm:
+#           labelSelector:
+#             matchExpressions:
+#               - key: app.kubernetes.io/name
+#                 operator: In
+#                 values:
+#                   - mlflow
+#           topologyKey: kubernetes.io/hostname
+
+# =============================================================================
+# Usage Examples - Python Client
+# =============================================================================
+# Install MLflow client:
+#   pip install mlflow==2.9.2
+#
+# Set tracking URI:
+#   export MLFLOW_TRACKING_URI=http://mlflow.example.com
+#   # or in code:
+#   import mlflow
+#   mlflow.set_tracking_uri("http://mlflow.example.com")
+#
+# Log experiment:
+#   with mlflow.start_run():
+#       mlflow.log_param("learning_rate", 0.01)
+#       mlflow.log_metric("accuracy", 0.95)
+#       mlflow.log_artifact("model.pkl")
+#
+# Register model:
+#   mlflow.register_model(
+#       model_uri="runs:/<run_id>/model",
+#       name="my-model"
+#   )
+#
+# Load model:
+#   model = mlflow.pyfunc.load_model("models:/my-model/Production")
+#   predictions = model.predict(data)
+
+# =============================================================================
+# Usage Examples - REST API
+# =============================================================================
+# List experiments:
+#   curl http://mlflow.example.com/api/2.0/mlflow/experiments/list
+#
+# Create experiment:
+#   curl -X POST http://mlflow.example.com/api/2.0/mlflow/experiments/create \
+#     -H "Content-Type: application/json" \
+#     -d '{"name": "my-experiment"}'
+#
+# Search runs:
+#   curl http://mlflow.example.com/api/2.0/mlflow/runs/search \
+#     -d '{"experiment_ids": ["1"]}'
+
+# =============================================================================
+# Storage Requirements
+# =============================================================================
+# PostgreSQL (metadata):
+#   - Small: 1-5 GB (< 1000 experiments)
+#   - Medium: 5-20 GB (1000-10000 experiments)
+#   - Large: 20+ GB (10000+ experiments)
+#
+# MinIO/S3 (artifacts):
+#   - Depends on model sizes
+#   - ML models: 10 MB - 10 GB each
+#   - Datasets: 100 MB - 100 GB each
+#   - Recommend: 100 GB+ for production
+
+# =============================================================================
+# Pre-requisites Checklist
+# =============================================================================
+# 1. PostgreSQL database created:
+#    CREATE DATABASE mlflow;
+#    CREATE USER mlflow WITH PASSWORD 'secure-password';
+#    GRANT ALL PRIVILEGES ON DATABASE mlflow TO mlflow;
+#
+# 2. MinIO bucket created:
+#    mc mb minio/mlflow-artifacts
+#    mc policy set download minio/mlflow-artifacts  # Or appropriate policy
+#
+# 3. Secrets created (if using authentication):
+#    kubectl create secret generic mlflow-auth \
+#      --from-literal=password=<admin-password>
