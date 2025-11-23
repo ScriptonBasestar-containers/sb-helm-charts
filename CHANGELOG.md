@@ -8,8 +8,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
-- **Example Values Files**: Added comprehensive production-ready example configurations
-  - **Monitoring Stack (Complete)**:
+- **Example Values Files**: ✅ **100% Coverage** - All 36 charts now have comprehensive production-ready example configurations
+  - **Monitoring Stack (9 charts - Complete)**:
     - `charts/prometheus/values-example.yaml` - Prometheus monitoring (TSDB, ServiceMonitors, alert rules, Kubernetes SD)
     - `charts/alertmanager/values-example.yaml` - Alertmanager HA (3 replicas, gossip protocol, severity routing, inhibition rules)
     - `charts/loki/values-example.yaml` - Loki log aggregation (memberlist clustering, S3 storage, replication factor 3)
@@ -19,10 +19,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     - `charts/node-exporter/values-example.yaml` - Node Exporter hardware metrics (DaemonSet, 40+ collectors, textfile support)
     - `charts/kube-state-metrics/values-example.yaml` - Kubernetes object metrics (ClusterRole RBAC, label allowlists, resource filtering)
     - `charts/blackbox-exporter/values-example.yaml` - Endpoint probing (HTTP/HTTPS/TCP/DNS/ICMP, SSL verification, 2 replicas HA)
-  - **Application Stack**:
+  - **Admin Tools (2 charts)**:
+    - `charts/pgadmin/values-example.yaml` - PostgreSQL admin (multi-server config, 2FA, session affinity, metadata backup)
+    - `charts/phpmyadmin/values-example.yaml` - MySQL/MariaDB admin (multi-server config, pmadb, large imports 256M)
+  - **Application Stack (4 charts)**:
     - `charts/airflow/values-example.yaml` - Production Airflow deployment with HA setup, KubernetesExecutor, Git-sync, and remote logging (305 lines)
     - `charts/elasticsearch/values-example.yaml` - Production Elasticsearch + Kibana cluster with 3-node HA, S3 snapshots, and network policies (282 lines)
-  - **Database Stack**:
+    - `charts/mlflow/values-example.yaml` - MLflow experiment tracking (PostgreSQL + MinIO, 2 replicas HA, Python/REST API examples)
+    - `charts/harbor/values-example.yaml` - Container registry (2 replicas HA, PostgreSQL + Redis, S3/MinIO storage, Docker/K8s integration)
+  - **Database Stack (5 charts)**:
     - `charts/minio/values-example.yaml` - Distributed MinIO (4-node cluster, erasure coding, S3-compatible object storage)
     - `charts/mongodb/values-example.yaml` - MongoDB replica set (3-member HA, WiredTiger optimization, authentication)
     - `charts/postgresql/values-example.yaml` - PostgreSQL primary-replica (streaming replication, WAL tuning, connection pooling)
