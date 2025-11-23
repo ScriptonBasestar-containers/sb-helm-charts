@@ -1,0 +1,345 @@
+# Blackbox Exporter - Production-Ready Example Configuration
+# Copy and customize for your environment
+
+# =============================================================================
+# Deployment Configuration
+# =============================================================================
+replicaCount: 2  # 2 replicas for HA probing
+
+image:
+  repository: prom/blackbox-exporter
+  pullPolicy: IfNotPresent
+  tag: ""  # Defaults to chart appVersion (0.24.0)
+
+# =============================================================================
+# Probing Modules Configuration
+# =============================================================================
+config:
+  modules:
+    # HTTP 2xx probe (basic HTTP check)
+    http_2xx:
+      prober: http
+      timeout: 10s
+      http:
+        valid_http_versions: ["HTTP/1.1", "HTTP/2.0"]
+        valid_status_codes: []  # Defaults to 2xx
+        method: GET
+        preferred_ip_protocol: "ip4"
+        follow_redirects: true
+        fail_if_ssl: false
+        fail_if_not_ssl: false
+
+    # HTTPS probe with SSL certificate verification
+    https_2xx:
+      prober: http
+      timeout: 10s
+      http:
+        valid_http_versions: ["HTTP/1.1", "HTTP/2.0"]
+        method: GET
+        preferred_ip_protocol: "ip4"
+        follow_redirects: true
+        tls_config:
+          insecure_skip_verify: false  # Verify SSL certificates
+
+    # HTTPS with SSL expiry check
+    https_ssl_expiry:
+      prober: http
+      timeout: 10s
+      http:
+        method: GET
+        preferred_ip_protocol: "ip4"
+        tls_config:
+          insecure_skip_verify: false
+        # SSL certificate expiry is exposed via probe_ssl_earliest_cert_expiry metric
+
+    # HTTP POST probe (for API endpoints)
+    http_post_2xx:
+      prober: http
+      timeout: 10s
+      http:
+        method: POST
+        headers:
+          Content-Type: application/json
+        body: '{"health":"check"}'
+        valid_status_codes: [200, 201, 202]
+
+    # HTTP with Basic Auth
+    http_basic_auth:
+      prober: http
+      timeout: 10s
+      http:
+        method: GET
+        valid_status_codes: [200]
+        basic_auth:
+          username: "monitor"
+          password: "secret"  # Use secrets in production
+
+    # HTTP with custom headers
+    http_custom_headers:
+      prober: http
+      timeout: 10s
+      http:
+        method: GET
+        headers:
+          X-Custom-Header: "monitoring"
+          User-Agent: "Prometheus Blackbox Exporter"
+
+    # TCP connection probe (for database ports, etc.)
+    tcp_connect:
+      prober: tcp
+      timeout: 5s
+      tcp:
+        preferred_ip_protocol: "ip4"
+
+    # TCP with TLS (for HTTPS, SMTPS, etc.)
+    tcp_tls:
+      prober: tcp
+      timeout: 5s
+      tcp:
+        tls: true
+        tls_config:
+          insecure_skip_verify: false
+
+    # ICMP ping probe
+    icmp:
+      prober: icmp
+      timeout: 5s
+      icmp:
+        preferred_ip_protocol: "ip4"
+
+    # DNS UDP probe
+    dns_udp:
+      prober: dns
+      timeout: 5s
+      dns:
+        transport_protocol: "udp"
+        preferred_ip_protocol: "ip4"
+        query_name: "kubernetes.default.svc.cluster.local"
+        query_type: "A"
+        valid_rcodes: ["NOERROR"]
+
+    # DNS TCP probe
+    dns_tcp:
+      prober: dns
+      timeout: 5s
+      dns:
+        transport_protocol: "tcp"
+        preferred_ip_protocol: "ip4"
+        query_name: "kubernetes.default.svc.cluster.local"
+        query_type: "A"
+        valid_rcodes: ["NOERROR"]
+
+    # DNS with specific nameserver
+    dns_custom:
+      prober: dns
+      timeout: 5s
+      dns:
+        transport_protocol: "udp"
+        preferred_ip_protocol: "ip4"
+        query_name: "example.com"
+        query_type: "A"
+        dns_over_tls: false
+
+# =============================================================================
+# Extra Arguments
+# =============================================================================
+extraArgs:
+  - --log.level=info
+  - --history.limit=100  # Keep last 100 probe results in memory
+
+# =============================================================================
+# Security Configuration
+# =============================================================================
+serviceAccount:
+  create: true
+  annotations: {}
+  name: ""
+
+podSecurityContext:
+  runAsUser: 65534  # nobody
+  runAsNonRoot: true
+  fsGroup: 65534
+
+securityContext:
+  readOnlyRootFilesystem: true
+  allowPrivilegeEscalation: false
+  capabilities:
+    drop:
+      - ALL
+    # ICMP probes require NET_RAW capability
+    # add: ["NET_RAW"]
+
+# =============================================================================
+# Service Configuration
+# =============================================================================
+service:
+  type: ClusterIP
+  port: 9115
+  annotations:
+    prometheus.io/scrape: "true"
+    prometheus.io/port: "9115"
+
+# =============================================================================
+# ServiceMonitor (Prometheus Operator)
+# =============================================================================
+serviceMonitor:
+  enabled: true
+  interval: 60s  # Probe every 60 seconds
+  scrapeTimeout: 30s
+  labels:
+    prometheus: kube-prometheus
+
+  # Static targets to probe
+  relabelings: []
+  # Example: Probe external endpoints
+  # - sourceLabels: [__address__]
+  #   targetLabel: __param_target
+  # - sourceLabels: [__param_target]
+  #   targetLabel: instance
+  # - targetLabel: __address__
+  #   replacement: blackbox-exporter:9115
+
+  metricRelabelings: []
+
+# =============================================================================
+# Resource Configuration
+# =============================================================================
+resources:
+  limits:
+    cpu: 500m
+    memory: 512Mi
+  requests:
+    cpu: 100m
+    memory: 128Mi
+
+# =============================================================================
+# Health Probes
+# =============================================================================
+livenessProbe:
+  httpGet:
+    path: /health
+    port: 9115
+  initialDelaySeconds: 30
+  periodSeconds: 10
+  timeoutSeconds: 3
+  failureThreshold: 3
+
+readinessProbe:
+  httpGet:
+    path: /health
+    port: 9115
+  initialDelaySeconds: 10
+  periodSeconds: 10
+  timeoutSeconds: 3
+  failureThreshold: 3
+
+# =============================================================================
+# Pod Scheduling
+# =============================================================================
+nodeSelector: {}
+# Example: Run on monitoring nodes
+#   node-role.kubernetes.io/monitoring: "true"
+
+tolerations: []
+# Example: Tolerate monitoring taint
+#   - key: "monitoring"
+#     operator: "Equal"
+#     value: "true"
+#     effect: "NoSchedule"
+
+affinity: {}
+# Example: Spread across nodes for HA
+#   podAntiAffinity:
+#     preferredDuringSchedulingIgnoredDuringExecution:
+#       - weight: 100
+#         podAffinityTerm:
+#           labelSelector:
+#             matchExpressions:
+#               - key: app.kubernetes.io/name
+#                 operator: In
+#                 values:
+#                   - blackbox-exporter
+#           topologyKey: kubernetes.io/hostname
+
+priorityClassName: ""
+
+# =============================================================================
+# Pod Annotations
+# =============================================================================
+podAnnotations:
+  prometheus.io/scrape: "true"
+  prometheus.io/port: "9115"
+
+# =============================================================================
+# Usage Examples - Prometheus Configuration
+# =============================================================================
+# Add to Prometheus scrape_configs:
+#
+# - job_name: 'blackbox-http'
+#   metrics_path: /probe
+#   params:
+#     module: [http_2xx]
+#   static_configs:
+#     - targets:
+#       - https://example.com
+#       - https://api.example.com/health
+#   relabel_configs:
+#     - source_labels: [__address__]
+#       target_label: __param_target
+#     - source_labels: [__param_target]
+#       target_label: instance
+#     - target_label: __address__
+#       replacement: blackbox-exporter:9115
+#
+# - job_name: 'blackbox-icmp'
+#   metrics_path: /probe
+#   params:
+#     module: [icmp]
+#   static_configs:
+#     - targets:
+#       - 8.8.8.8
+#       - 1.1.1.1
+#   relabel_configs:
+#     - source_labels: [__address__]
+#       target_label: __param_target
+#     - source_labels: [__param_target]
+#       target_label: instance
+#     - target_label: __address__
+#       replacement: blackbox-exporter:9115
+
+# =============================================================================
+# Key Metrics Exposed
+# =============================================================================
+# Probe success/failure:
+#   - probe_success (1 = success, 0 = failure)
+#   - probe_duration_seconds (probe duration)
+#
+# HTTP metrics:
+#   - probe_http_status_code (HTTP status code)
+#   - probe_http_ssl (SSL status)
+#   - probe_ssl_earliest_cert_expiry (SSL cert expiry timestamp)
+#
+# DNS metrics:
+#   - probe_dns_lookup_time_seconds (DNS lookup time)
+#   - probe_dns_answer_rrs (number of answer records)
+#
+# ICMP metrics:
+#   - probe_icmp_duration_seconds (ping RTT)
+#
+# TCP metrics:
+#   - probe_tcp_connect_duration_seconds (TCP connection time)
+
+# =============================================================================
+# Operational Commands
+# =============================================================================
+# Test probes manually:
+#   make -f make/ops/blackbox-exporter.mk bbe-probe-http TARGET=https://example.com
+#   make -f make/ops/blackbox-exporter.mk bbe-probe-tcp TARGET=example.com:443
+#   make -f make/ops/blackbox-exporter.mk bbe-probe-dns TARGET=8.8.8.8
+#   make -f make/ops/blackbox-exporter.mk bbe-probe-icmp TARGET=8.8.8.8
+#
+# List available modules:
+#   make -f make/ops/blackbox-exporter.mk bbe-list-modules
+#
+# View metrics:
+#   make -f make/ops/blackbox-exporter.mk bbe-metrics
