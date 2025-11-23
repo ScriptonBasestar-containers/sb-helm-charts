@@ -1,0 +1,222 @@
+# Node Exporter - Production-Ready Example Configuration
+# Copy and customize for your environment
+
+# =============================================================================
+# Image Configuration
+# =============================================================================
+image:
+  repository: prom/node-exporter
+  pullPolicy: IfNotPresent
+  tag: ""  # Defaults to chart appVersion (1.7.0)
+
+# =============================================================================
+# Host Access Configuration
+# =============================================================================
+# REQUIRED: Node Exporter needs host network and PID access
+hostNetwork: true  # Access host network interfaces
+hostPID: true  # Access host process information
+
+# =============================================================================
+# Collectors Configuration
+# =============================================================================
+collectors:
+  enabled: true
+
+  # Additional collectors to enable (beyond defaults)
+  enable:
+    - processes  # Process metrics
+    # - systemd  # Systemd service metrics (if available)
+    # - tcpstat  # TCP connection state metrics
+
+  # Collectors to disable
+  disable:
+    - ipvs  # IPVS metrics (disable if not using IPVS)
+
+# =============================================================================
+# Extra Arguments (Filesystem and Mount Point Filtering)
+# =============================================================================
+extraArgs:
+  # Exclude virtual/temporary filesystems
+  - --collector.filesystem.mount-points-exclude=^/(dev|proc|sys|var/lib/docker/.+|var/lib/kubelet/.+)($|/)
+  - --collector.filesystem.fs-types-exclude=^(autofs|binfmt_misc|bpf|cgroup2?|configfs|debugfs|devpts|devtmpfs|fusectl|hugetlbfs|iso9660|mqueue|nsfs|overlay|proc|procfs|pstore|rpc_pipefs|securityfs|selinuxfs|squashfs|sysfs|tracefs)$
+  # Enable textfile collector for custom metrics
+  - --collector.textfile.directory=/host/textfile
+  # Set log level
+  - --log.level=info
+
+# =============================================================================
+# Custom Metrics via Textfile Collector
+# =============================================================================
+extraVolumes:
+  - name: textfile
+    hostPath:
+      path: /var/lib/node-exporter
+      type: DirectoryOrCreate
+
+extraVolumeMounts:
+  - name: textfile
+    mountPath: /host/textfile
+    readOnly: true
+
+# =============================================================================
+# Service Account
+# =============================================================================
+serviceAccount:
+  create: true
+  annotations: {}
+  name: ""
+
+# =============================================================================
+# Security Configuration
+# =============================================================================
+podSecurityContext:
+  runAsUser: 65534  # nobody
+  runAsNonRoot: true
+  fsGroup: 65534
+
+securityContext:
+  readOnlyRootFilesystem: true
+  allowPrivilegeEscalation: false
+  capabilities:
+    drop:
+      - ALL
+
+# =============================================================================
+# Service Configuration
+# =============================================================================
+service:
+  type: ClusterIP
+  port: 9100
+  annotations:
+    prometheus.io/scrape: "true"
+    prometheus.io/port: "9100"
+    prometheus.io/path: "/metrics"
+
+# =============================================================================
+# ServiceMonitor (Prometheus Operator)
+# =============================================================================
+serviceMonitor:
+  enabled: true
+  interval: 30s  # Scrape every 30 seconds
+  scrapeTimeout: 10s
+  labels:
+    prometheus: kube-prometheus
+
+  # Relabeling before scraping
+  relabelings:
+    # Add instance label from node name
+    - sourceLabels: [__meta_kubernetes_pod_node_name]
+      targetLabel: instance
+
+  # Metric relabeling (filter/modify metrics before storage)
+  metricRelabelings:
+    # Drop high-cardinality metrics if needed
+    # - sourceLabels: [__name__]
+    #   regex: 'node_network_transmit_queue_length'
+    #   action: drop
+
+# =============================================================================
+# Resource Configuration
+# =============================================================================
+resources:
+  limits:
+    cpu: 500m
+    memory: 256Mi
+  requests:
+    cpu: 100m
+    memory: 128Mi
+
+# =============================================================================
+# Health Probes
+# =============================================================================
+livenessProbe:
+  httpGet:
+    path: /
+    port: 9100
+  initialDelaySeconds: 30
+  periodSeconds: 10
+  timeoutSeconds: 3
+  failureThreshold: 3
+
+readinessProbe:
+  httpGet:
+    path: /
+    port: 9100
+  initialDelaySeconds: 10
+  periodSeconds: 10
+  timeoutSeconds: 3
+  failureThreshold: 3
+
+# =============================================================================
+# DaemonSet Update Strategy
+# =============================================================================
+updateStrategy:
+  type: RollingUpdate
+  rollingUpdate:
+    maxUnavailable: 1  # Update one node at a time
+
+# =============================================================================
+# Pod Scheduling
+# =============================================================================
+# DaemonSet runs on all nodes by default
+nodeSelector: {}
+# Example: Run only on worker nodes
+#   node-role.kubernetes.io/worker: "true"
+
+tolerations:
+  # Run on all nodes including control plane
+  - effect: NoSchedule
+    operator: Exists
+  - effect: NoExecute
+    operator: Exists
+
+affinity: {}
+
+priorityClassName: ""
+# Example: system-node-critical for essential monitoring
+
+# =============================================================================
+# Key Metrics Collected
+# =============================================================================
+# CPU:
+#   - node_cpu_seconds_total (per-core CPU time)
+#   - node_load1, node_load5, node_load15 (load average)
+#
+# Memory:
+#   - node_memory_MemTotal_bytes (total memory)
+#   - node_memory_MemAvailable_bytes (available memory)
+#   - node_memory_Buffers_bytes, node_memory_Cached_bytes
+#
+# Disk:
+#   - node_filesystem_size_bytes (filesystem size)
+#   - node_filesystem_avail_bytes (available space)
+#   - node_disk_read_bytes_total, node_disk_written_bytes_total
+#
+# Network:
+#   - node_network_receive_bytes_total (bytes received)
+#   - node_network_transmit_bytes_total (bytes transmitted)
+#   - node_network_transmit_errors_total
+#
+# System:
+#   - node_boot_time_seconds (system boot time)
+#   - node_time_seconds (current system time)
+#   - node_procs_running (running processes)
+#
+# =============================================================================
+# Usage Examples
+# =============================================================================
+# Query metrics in Prometheus:
+#   node_cpu_seconds_total  # CPU usage per core
+#   rate(node_cpu_seconds_total{mode="user"}[5m])  # User CPU rate
+#   node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes  # Memory usage %
+#   rate(node_network_receive_bytes_total[5m])  # Network receive rate
+#
+# Custom metrics via textfile collector:
+#   echo 'custom_metric{label="value"} 42' > /var/lib/node-exporter/custom.prom
+#
+# Operational commands:
+#   make -f make/ops/node-exporter.mk ne-metrics  # View all metrics
+#   make -f make/ops/node-exporter.mk ne-cpu-metrics  # CPU metrics only
+#   make -f make/ops/node-exporter.mk ne-memory-metrics  # Memory metrics
+#   make -f make/ops/node-exporter.mk ne-disk-metrics  # Disk metrics
+#   make -f make/ops/node-exporter.mk ne-logs  # View logs
