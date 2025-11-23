@@ -499,6 +499,47 @@ make -f make/ops/elasticsearch.mk es-create-snapshot REPO=minio SNAPSHOT=snapsho
 make -f make/ops/elasticsearch.mk es-restore-snapshot REPO=minio SNAPSHOT=snapshot_1
 ```
 
+### Harbor Specific Commands
+
+```bash
+# Access & Credentials
+make -f make/ops/harbor.mk harbor-get-admin-password
+make -f make/ops/harbor.mk harbor-port-forward  # UI on localhost:8080
+
+# Component Status
+make -f make/ops/harbor.mk harbor-status
+make -f make/ops/harbor.mk harbor-core-logs
+make -f make/ops/harbor.mk harbor-core-logs-all
+make -f make/ops/harbor.mk harbor-registry-logs
+make -f make/ops/harbor.mk harbor-registry-logs-all
+make -f make/ops/harbor.mk harbor-core-shell
+make -f make/ops/harbor.mk harbor-registry-shell
+
+# Health & Monitoring
+make -f make/ops/harbor.mk harbor-health
+make -f make/ops/harbor.mk harbor-core-health
+make -f make/ops/harbor.mk harbor-registry-health
+make -f make/ops/harbor.mk harbor-version
+make -f make/ops/harbor.mk harbor-metrics
+
+# Registry Operations
+make -f make/ops/harbor.mk harbor-test-push
+make -f make/ops/harbor.mk harbor-test-pull
+make -f make/ops/harbor.mk harbor-catalog
+make -f make/ops/harbor.mk harbor-projects
+make -f make/ops/harbor.mk harbor-gc              # Trigger garbage collection
+make -f make/ops/harbor.mk harbor-gc-status
+
+# Database Operations
+make -f make/ops/harbor.mk harbor-db-test
+make -f make/ops/harbor.mk harbor-db-migrate
+make -f make/ops/harbor.mk harbor-redis-test
+
+# Operations
+make -f make/ops/harbor.mk harbor-restart
+make -f make/ops/harbor.mk harbor-scale REPLICAS=2
+```
+
 ### Memcached Specific Commands
 
 ```bash
