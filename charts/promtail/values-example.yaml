@@ -1,0 +1,255 @@
+# Promtail - Production-Ready Example Configuration
+# Copy and customize for your environment
+
+# =============================================================================
+# REQUIRED: Configure Loki endpoint
+# =============================================================================
+promtail:
+  client:
+    url: "http://loki.monitoring.svc.cluster.local:3100/loki/api/v1/push"
+
+# =============================================================================
+# Image Configuration
+# =============================================================================
+image:
+  repository: grafana/promtail
+  pullPolicy: IfNotPresent
+  tag: ""  # Defaults to chart appVersion (2.9.3)
+
+# =============================================================================
+# Promtail Configuration
+# =============================================================================
+promtail:
+  # Server configuration
+  server:
+    httpListenPort: 3101  # HTTP server port (metrics + ready/healthy)
+    grpcListenPort: 9095  # gRPC server port
+    logLevel: "info"  # debug, info, warn, error
+
+  # Loki client configuration
+  client:
+    # Loki push API endpoint
+    url: "http://loki.monitoring.svc.cluster.local:3100/loki/api/v1/push"
+
+    # Multi-tenancy (optional)
+    tenantId: ""  # Set for Loki multi-tenant mode
+
+    # Basic authentication (optional)
+    basicAuth:
+      enabled: false
+      username: ""
+      password: ""
+
+    # External labels (added to all log streams)
+    externalLabels:
+      cluster: "production"
+      environment: "prod"
+      region: "us-east-1"
+
+  # Kubernetes service discovery
+  kubernetesSD:
+    # Add pod annotations as labels (increases cardinality)
+    addPodAnnotations: false
+
+    # Scrape systemd journal logs (requires hostPath mount)
+    scrapeSystemd: false
+
+  # Pipeline stages (log parsing and processing)
+  pipelineStages:
+    # CRI parser (for containerd/cri-o)
+    cri:
+      enabled: true
+
+    # Docker parser (for legacy Docker runtime)
+    docker:
+      enabled: false
+
+    # Custom pipeline stages
+    custom:
+      # Extract log level from JSON logs
+      - json:
+          expressions:
+            level: level
+            message: message
+            timestamp: timestamp
+      # Add log level as label
+      - labels:
+          level:
+      # Drop debug logs in production
+      - drop:
+          source: level
+          expression: "debug"
+          drop_counter_reason: "debug_logs_dropped"
+
+  # Additional scrape configurations
+  additionalScrapeConfigs: []
+  # Example: Syslog receiver
+  # - job_name: syslog
+  #   syslog:
+  #     listen_address: 0.0.0.0:1514
+  #     idle_timeout: 60s
+  #     label_structured_data: true
+  #   relabel_configs:
+  #     - source_labels: ['__syslog_message_hostname']
+  #       target_label: 'host'
+
+  # Additional Promtail configuration (merged with generated config)
+  config: {}
+  # limits_config:
+  #   readline_rate: 10000
+  #   readline_burst: 20000
+
+  # Extra command-line arguments
+  extraArgs: []
+  # - -log.level=debug
+  # - -config.expand-env=true
+
+  # Extra environment variables
+  extraEnv: []
+  # - name: HOSTNAME
+  #   valueFrom:
+  #     fieldRef:
+  #       fieldPath: spec.nodeName
+
+  # Mount host paths
+  mountHostPaths:
+    # Mount /var/log/pods (required for CRI runtimes)
+    pods: true
+
+  # Extra volumes (for systemd journal, etc.)
+  extraVolumes: []
+  # - name: journal
+  #   hostPath:
+  #     path: /var/log/journal
+  # - name: machine-id
+  #   hostPath:
+  #     path: /etc/machine-id
+
+  # Extra volume mounts
+  extraVolumeMounts: []
+  # - name: journal
+  #   mountPath: /var/log/journal
+  #   readOnly: true
+  # - name: machine-id
+  #   mountPath: /etc/machine-id
+  #   readOnly: true
+
+# =============================================================================
+# RBAC Configuration (Required for Kubernetes SD)
+# =============================================================================
+rbac:
+  create: true
+
+# =============================================================================
+# Service Account
+# =============================================================================
+serviceAccount:
+  create: true
+  annotations: {}
+  name: ""
+
+# =============================================================================
+# Security Configuration
+# =============================================================================
+# NOTE: Promtail runs as root to read host logs
+podSecurityContext:
+  runAsUser: 0
+  runAsGroup: 0
+  fsGroup: 0
+
+securityContext:
+  # Privileged required to read host log files
+  privileged: true
+  readOnlyRootFilesystem: true
+  allowPrivilegeEscalation: false
+  capabilities:
+    drop:
+      - ALL
+
+# =============================================================================
+# Service Configuration
+# =============================================================================
+service:
+  enabled: true
+  type: ClusterIP
+  port: 3101
+  annotations:
+    prometheus.io/scrape: "true"
+    prometheus.io/port: "3101"
+    prometheus.io/path: "/metrics"
+
+# =============================================================================
+# Resource Configuration
+# =============================================================================
+resources:
+  limits:
+    cpu: 500m
+    memory: 256Mi
+  requests:
+    cpu: 100m
+    memory: 128Mi
+
+# =============================================================================
+# Health Probes
+# =============================================================================
+livenessProbe:
+  httpGet:
+    path: /ready
+    port: http-metrics
+  initialDelaySeconds: 30
+  periodSeconds: 10
+  timeoutSeconds: 3
+  failureThreshold: 5
+
+readinessProbe:
+  httpGet:
+    path: /ready
+    port: http-metrics
+  initialDelaySeconds: 10
+  periodSeconds: 10
+  timeoutSeconds: 3
+  failureThreshold: 3
+
+# =============================================================================
+# DaemonSet Update Strategy
+# =============================================================================
+updateStrategy:
+  type: RollingUpdate
+  rollingUpdate:
+    maxUnavailable: 1  # Update one node at a time
+
+# =============================================================================
+# Pod Scheduling
+# =============================================================================
+# DaemonSet runs on all nodes by default
+nodeSelector: {}
+# Example: Run only on specific nodes
+#   node-role.kubernetes.io/worker: "true"
+
+tolerations:
+  # Run on all nodes including control plane
+  - effect: NoSchedule
+    operator: Exists
+  - effect: NoExecute
+    operator: Exists
+
+affinity: {}
+
+priorityClassName: ""
+# Example: system-node-critical for essential log collection
+
+# =============================================================================
+# Usage Examples
+# =============================================================================
+# Query logs in Loki/Grafana:
+#   {job="kubernetes-pods"}  # All Kubernetes pod logs
+#   {namespace="default"}  # Logs from default namespace
+#   {app="myapp"} |= "error"  # Filter for errors
+#   {cluster="production", level="error"}  # External labels + parsed level
+#
+# Operational commands:
+#   make -f make/ops/promtail.mk promtail-logs  # View Promtail logs
+#   make -f make/ops/promtail.mk promtail-status  # Check running status
+#   make -f make/ops/promtail.mk promtail-targets  # View scrape targets
+#   make -f make/ops/promtail.mk promtail-metrics  # View Promtail metrics
+#   make -f make/ops/promtail.mk promtail-test-loki  # Test Loki connectivity
