@@ -1,0 +1,316 @@
+# WordPress - Home Server Example
+# Optimized for Raspberry Pi, NUC, and small VPS
+
+replicaCount: 1  # Single replica for minimal resource usage
+
+image:
+  repository: wordpress
+  pullPolicy: IfNotPresent
+  tag: "6.7-apache"
+
+# =============================================================================
+# WordPress Configuration
+# =============================================================================
+wordpress:
+  # Site URL
+  siteUrl: "http://blog.home.local"
+  homeUrl: "http://blog.home.local"
+
+  # Admin user (created on first install)
+  adminUser: "admin"
+  adminPassword: ""  # SET THIS or auto-generated
+  adminEmail: "admin@example.com"
+
+  # Site configuration
+  blogTitle: "My Home Blog"
+  blogDescription: "Personal blog on home server"
+
+  # Security hardening
+  disableFileEdit: true  # Disable file editing in admin panel
+  disableAutoUpdate: true  # Manual updates for stability
+
+  # Performance optimization
+  memoryLimit: "256M"  # PHP memory limit
+  maxExecutionTime: 300  # PHP max execution time
+
+  # Post revisions and autosave
+  postRevisions: 5  # Keep only 5 revisions
+  autosaveInterval: 5  # Autosave every 5 minutes
+
+  # PHP configuration (home server optimized)
+  php:
+    uploadMaxFilesize: "32M"
+    postMaxSize: "32M"
+    maxInputVars: 3000
+
+  # Timezone
+  timezone: "UTC"
+
+  # Debug (disable in production)
+  debug: false
+
+# =============================================================================
+# External MySQL (REQUIRED)
+# =============================================================================
+mysql:
+  enabled: false  # NEVER enable - use external MySQL
+  external:
+    enabled: true
+    host: "mysql.database.svc.cluster.local"
+    port: 3306
+    database: "wordpress"
+    username: "wordpress"
+    password: ""  # SET THIS - stored in Kubernetes Secret
+
+# =============================================================================
+# Persistence
+# =============================================================================
+persistence:
+  enabled: true
+  storageClass: ""  # Use default (local-path for k3s)
+  accessMode: ReadWriteOnce
+  size: 5Gi  # Small size for home server
+
+  # WordPress subdirectories to persist
+  subPaths:
+    - wp-content/uploads
+    - wp-content/themes
+    - wp-content/plugins
+
+# =============================================================================
+# Service Configuration
+# =============================================================================
+service:
+  type: ClusterIP
+  port: 80
+
+# =============================================================================
+# Ingress (Optional - for external access)
+# =============================================================================
+ingress:
+  enabled: false  # Enable if you want external access
+  className: ""
+  annotations: {}
+  #   # For home servers with Cloudflare Tunnel
+  #   external-dns.alpha.kubernetes.io/hostname: blog.home.example.com
+  #   # For local DNS
+  #   kubernetes.io/ingress.class: nginx
+
+  hosts:
+    - host: blog.home.local
+      paths:
+        - path: /
+          pathType: Prefix
+
+  tls: []
+  #   - secretName: wordpress-tls
+  #     hosts:
+  #       - blog.home.local
+
+# =============================================================================
+# Resource Configuration (Home Server Optimized)
+# =============================================================================
+resources:
+  limits:
+    cpu: 500m  # 50% of 1 core
+    memory: 512Mi  # 512MB max
+  requests:
+    cpu: 200m  # 20% of 1 core minimum
+    memory: 256Mi  # 256MB minimum
+
+# =============================================================================
+# Health Probes (Relaxed for low-resource)
+# =============================================================================
+livenessProbe:
+  httpGet:
+    path: /wp-admin/install.php
+    port: 80
+  initialDelaySeconds: 120  # Longer for slower hardware
+  periodSeconds: 30
+  timeoutSeconds: 10
+  failureThreshold: 5
+
+readinessProbe:
+  httpGet:
+    path: /wp-login.php
+    port: 80
+  initialDelaySeconds: 60
+  periodSeconds: 10
+  timeoutSeconds: 5
+  failureThreshold: 3
+
+# =============================================================================
+# Security Configuration
+# =============================================================================
+serviceAccount:
+  create: true
+  annotations: {}
+  name: ""
+
+podSecurityContext:
+  fsGroup: 33  # www-data
+  runAsUser: 33
+  runAsNonRoot: true
+
+securityContext:
+  capabilities:
+    drop:
+      - ALL
+  readOnlyRootFilesystem: false  # WordPress needs write access
+  allowPrivilegeEscalation: false
+
+# =============================================================================
+# Network Policy (Optional)
+# =============================================================================
+networkPolicy:
+  enabled: false  # Disable for simplicity on home servers
+  # Enable if you want strict network isolation
+
+# =============================================================================
+# HorizontalPodAutoscaler
+# =============================================================================
+autoscaling:
+  enabled: false  # Not needed for home servers
+
+# =============================================================================
+# PodDisruptionBudget
+# =============================================================================
+podDisruptionBudget:
+  enabled: false  # Not needed for single replica
+
+# =============================================================================
+# Pod Scheduling
+# =============================================================================
+nodeSelector: {}
+# Example: Run on specific node
+#   kubernetes.io/hostname: "homeserver"
+
+tolerations: []
+# Example: Tolerate specific taint
+#   - key: "home-server"
+#     operator: "Equal"
+#     value: "true"
+#     effect: "NoSchedule"
+
+affinity: {}
+# Not needed for single replica deployment
+
+# =============================================================================
+# Home Server Specific Configuration
+# =============================================================================
+homeServer:
+  # Enable caching
+  caching:
+    enabled: true
+    plugin: "wp-super-cache"  # or "w3-total-cache"
+
+  # Optimize for low resources
+  optimization:
+    # Disable emoji scripts
+    disableEmojis: true
+    # Disable embeds
+    disableEmbeds: true
+    # Limit post revisions
+    limitRevisions: true
+
+  # Backup configuration
+  backup:
+    enabled: false  # Setup separately via CronJob
+    schedule: "0 2 * * *"  # Daily at 2 AM
+    retention: 7  # Keep 7 days
+
+# =============================================================================
+# Usage Examples - WP-CLI
+# =============================================================================
+# Access WordPress pod:
+#   kubectl exec -it wordpress-xxx -n wordpress -- bash
+#
+# Check WordPress status:
+#   wp core version
+#   wp core check-update
+#
+# Install plugins:
+#   wp plugin install wordfence --activate
+#   wp plugin install wp-super-cache --activate
+#   wp plugin install akismet --activate
+#
+# List plugins:
+#   wp plugin list
+#
+# Update plugins:
+#   wp plugin update --all
+#
+# Create user:
+#   wp user create bob bob@example.com --role=author
+#
+# Search and replace URL:
+#   wp search-replace 'http://old.local' 'http://new.local'
+#
+# Optimize database:
+#   wp db optimize
+#
+# Export database:
+#   wp db export
+#
+# Cache management:
+#   wp cache flush
+#   wp super-cache flush
+#
+# Maintenance mode:
+#   wp maintenance-mode activate
+#   wp maintenance-mode deactivate
+
+# =============================================================================
+# Usage Examples - Backup
+# =============================================================================
+# Manual backup (files):
+#   kubectl exec wordpress-xxx -n wordpress -- \
+#     tar czf /tmp/wp-backup.tar.gz /var/www/html
+#   kubectl cp wordpress/wordpress-xxx:/tmp/wp-backup.tar.gz ./wp-backup.tar.gz
+#
+# Manual backup (database):
+#   kubectl exec wordpress-xxx -n wordpress -- \
+#     wp db export - > wordpress-db-backup.sql
+#
+# Restore (files):
+#   kubectl cp ./wp-backup.tar.gz wordpress/wordpress-xxx:/tmp/
+#   kubectl exec wordpress-xxx -n wordpress -- \
+#     tar xzf /tmp/wp-backup.tar.gz -C /
+#
+# Restore (database):
+#   cat wordpress-db-backup.sql | \
+#     kubectl exec -i wordpress-xxx -n wordpress -- \
+#     wp db import -
+
+# =============================================================================
+# Home Server Deployment Notes
+# =============================================================================
+# Hardware Recommendations:
+#   - Raspberry Pi 4 (4GB RAM minimum)
+#   - Intel NUC i3+ (8GB RAM)
+#   - Any x86_64 with 4GB+ RAM
+#
+# Storage Recommendations:
+#   - Use local-path provisioner (k3s default)
+#   - SSD preferred for better performance
+#   - 20GB+ for future growth
+#
+# Network Recommendations:
+#   - Use local DNS for home access
+#   - Cloudflare Tunnel for secure external access
+#   - Or Tailscale for private VPN access
+#
+# Performance Tips:
+#   - Enable caching (WP Super Cache or W3 Total Cache)
+#   - Optimize images before upload
+#   - Use CDN for static files (optional)
+#   - Keep plugins minimal
+#   - Regular database optimization
+#
+# Security Tips:
+#   - Use strong admin password
+#   - Install Wordfence security plugin
+#   - Keep WordPress and plugins updated
+#   - Disable file editing in admin panel
+#   - Regular backups (daily recommended)
+#   - Use HTTPS with Let's Encrypt
