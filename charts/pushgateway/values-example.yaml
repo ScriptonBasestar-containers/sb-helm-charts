@@ -1,0 +1,218 @@
+# Pushgateway - Production-Ready Example Configuration
+# Copy and customize for your environment
+
+# =============================================================================
+# Deployment Configuration
+# =============================================================================
+# Single replica (Pushgateway is designed for ephemeral metrics, not HA storage)
+replicaCount: 1
+
+image:
+  repository: prom/pushgateway
+  pullPolicy: IfNotPresent
+  tag: ""  # Defaults to chart appVersion (v1.6.2)
+
+# =============================================================================
+# Pushgateway Configuration
+# =============================================================================
+pushgateway:
+  # File-based persistence (optional - for metrics across restarts)
+  persistence:
+    enabled: true
+    file: "/data/metrics.db"  # Metrics persist across pod restarts
+
+  # Log level
+  logLevel: "info"  # debug, info, warn, error
+
+  # Log format
+  logFormat: "logfmt"  # logfmt or json
+
+  # Extra command-line arguments
+  extraArgs:
+    - --web.enable-lifecycle  # Enable /-/quit and /-/reload endpoints
+    - --web.enable-admin-api  # Enable /api/v1/admin/* endpoints
+
+  # Extra environment variables
+  extraEnv: []
+
+# =============================================================================
+# Security Configuration
+# =============================================================================
+serviceAccount:
+  create: true
+  annotations: {}
+  name: ""
+
+podSecurityContext:
+  fsGroup: 65534
+  runAsUser: 65534
+  runAsNonRoot: true
+
+securityContext:
+  allowPrivilegeEscalation: false
+  capabilities:
+    drop:
+      - ALL
+  readOnlyRootFilesystem: true
+  runAsNonRoot: true
+  runAsUser: 65534
+
+# =============================================================================
+# Service Configuration
+# =============================================================================
+service:
+  type: ClusterIP
+  port: 9091
+  targetPort: 9091
+  annotations:
+    prometheus.io/scrape: "true"
+    prometheus.io/port: "9091"
+    prometheus.io/path: "/metrics"
+
+# =============================================================================
+# Persistence (File-based metrics storage)
+# =============================================================================
+persistence:
+  enabled: true
+  storageClass: ""  # Use default or specify
+  accessMode: ReadWriteOnce
+  size: 2Gi  # Increase based on metrics volume
+  annotations: {}
+
+# =============================================================================
+# ServiceMonitor (Prometheus Operator)
+# =============================================================================
+serviceMonitor:
+  enabled: true
+  interval: 30s
+  scrapeTimeout: 10s
+  labels:
+    prometheus: kube-prometheus
+  relabelings: []
+
+# =============================================================================
+# Resource Configuration
+# =============================================================================
+resources:
+  limits:
+    cpu: 500m
+    memory: 512Mi
+  requests:
+    cpu: 100m
+    memory: 128Mi
+
+# =============================================================================
+# Health Probes
+# =============================================================================
+readinessProbe:
+  enabled: true
+  httpGet:
+    path: /-/ready
+    port: 9091
+  initialDelaySeconds: 10
+  periodSeconds: 10
+  timeoutSeconds: 3
+  successThreshold: 1
+  failureThreshold: 3
+
+livenessProbe:
+  enabled: true
+  httpGet:
+    path: /-/healthy
+    port: 9091
+  initialDelaySeconds: 30
+  periodSeconds: 10
+  timeoutSeconds: 3
+  successThreshold: 1
+  failureThreshold: 3
+
+# =============================================================================
+# Network Policy (Optional)
+# =============================================================================
+networkPolicy:
+  enabled: true
+  policyTypes:
+    - Ingress
+    - Egress
+  ingress:
+    # Allow Prometheus scraping and application pushes
+    - from:
+        - namespaceSelector: {}
+      ports:
+        - protocol: TCP
+          port: 9091
+  egress:
+    # Allow DNS resolution
+    - to:
+        - namespaceSelector: {}
+      ports:
+        - protocol: UDP
+          port: 53
+
+# =============================================================================
+# Pod Disruption Budget
+# =============================================================================
+podDisruptionBudget:
+  enabled: false  # Not recommended for single replica
+
+# =============================================================================
+# Pod Scheduling
+# =============================================================================
+nodeSelector: {}
+# Example: Pin to specific nodes
+#   node-role.kubernetes.io/monitoring: "true"
+
+tolerations: []
+# Example: Tolerate monitoring taint
+#   - key: "monitoring"
+#     operator: "Equal"
+#     value: "true"
+#     effect: "NoSchedule"
+
+affinity: {}
+
+# =============================================================================
+# Ingress (Optional)
+# =============================================================================
+# ingress:
+#   enabled: true
+#   className: nginx
+#   annotations:
+#     cert-manager.io/cluster-issuer: letsencrypt-prod
+#     # Basic auth recommended for push operations
+#     nginx.ingress.kubernetes.io/auth-type: basic
+#     nginx.ingress.kubernetes.io/auth-secret: pushgateway-basic-auth
+#   hosts:
+#     - host: pushgateway.example.com
+#       paths:
+#         - path: /
+#           pathType: Prefix
+#   tls:
+#     - secretName: pushgateway-tls
+#       hosts:
+#         - pushgateway.example.com
+
+# =============================================================================
+# Usage Examples
+# =============================================================================
+# Push metrics from bash:
+#   echo "batch_job_duration_seconds 42" | curl --data-binary @- \
+#     http://pushgateway:9091/metrics/job/batch_job/instance/server1
+#
+# Push metrics from Python:
+#   from prometheus_client import CollectorRegistry, Gauge, push_to_gateway
+#   registry = CollectorRegistry()
+#   g = Gauge('job_last_success_unixtime', 'Last success', registry=registry)
+#   g.set_to_current_time()
+#   push_to_gateway('pushgateway:9091', job='batch_job', registry=registry)
+#
+# Delete metrics group:
+#   curl -X DELETE http://pushgateway:9091/metrics/job/batch_job/instance/server1
+#
+# View metrics in Prometheus:
+#   {job="batch_job"}
+#
+# Operational commands:
+#   make -f make/ops/pushgateway.mk pushgateway-metrics      # View all metrics
+#   make -f make/ops/pushgateway.mk pushgateway-delete-group JOB=batch_job
+#   make -f make/ops/pushgateway.mk pushgateway-port-forward # Access UI locally
