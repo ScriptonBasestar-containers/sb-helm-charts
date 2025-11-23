@@ -1,0 +1,298 @@
+# Alertmanager - Production-Ready Example Configuration
+# Copy and customize for your environment
+
+# =============================================================================
+# Deployment Configuration (HA with Gossip Protocol)
+# =============================================================================
+# 3 replicas for HA (odd number for gossip cluster stability)
+replicaCount: 3
+
+image:
+  repository: prom/alertmanager
+  pullPolicy: IfNotPresent
+  tag: ""  # Defaults to chart appVersion (0.27.0)
+
+# =============================================================================
+# Alertmanager Configuration
+# =============================================================================
+alertmanager:
+  # Data retention period (alerts and silences)
+  retention: "120h"  # 5 days
+
+  # Extra command-line arguments
+  extraArgs:
+    - --log.level=info
+    # Cluster settings (auto-configured in HA mode)
+    # - --cluster.listen-address=0.0.0.0:9094
+    # - --cluster.reconnect-timeout=5m
+
+# =============================================================================
+# Alert Routing Configuration
+# REQUIRED: Configure at least one notification receiver
+# =============================================================================
+config:
+  global:
+    # How long to wait for resolve
+    resolveTimeout: "5m"
+
+    # SMTP configuration (optional)
+    smtp: {}
+    #   from: "alertmanager@example.com"
+    #   smarthost: "smtp.gmail.com:587"
+    #   authUsername: "alertmanager@example.com"
+    #   authPassword: "your-app-password"
+    #   requireTLS: true
+
+    # Slack API URL (optional - global default)
+    slackApiUrl: ""
+    # slackApiUrl: "https://hooks.slack.com/services/YOUR/WEBHOOK/URL"
+
+    # PagerDuty URL (optional)
+    pagerdutyUrl: ""
+
+    # Opsgenie API URL (optional)
+    opsgenieApiUrl: ""
+
+  # Notification template files (optional)
+  templates: []
+  # - "/etc/alertmanager/templates/*.tmpl"
+
+  # Routing tree
+  route:
+    # Group alerts by these labels
+    groupBy: ['alertname', 'cluster', 'service']
+
+    # Wait before sending initial notification for new alert group
+    groupWait: 30s
+
+    # Wait before sending batch of new alerts for existing group
+    groupInterval: 5m
+
+    # Wait before resending resolved alerts
+    repeatInterval: 12h
+
+    # Default receiver
+    receiver: default
+
+    # Child routes (route by severity)
+    routes:
+      - match:
+          severity: critical
+        receiver: critical-alerts
+        groupWait: 10s
+        groupInterval: 5m
+        repeatInterval: 4h
+        continue: true
+
+      - match:
+          severity: warning
+        receiver: warning-alerts
+        groupWait: 5m
+        groupInterval: 10m
+        repeatInterval: 24h
+
+      - match:
+          alertname: Watchdog
+        receiver: null
+        repeatInterval: 5m
+
+  # Inhibition rules (suppress lower-severity alerts when higher-severity fires)
+  inhibitRules:
+    - sourceMatch:
+        severity: 'critical'
+      targetMatch:
+        severity: 'warning'
+      equal: ['alertname', 'cluster', 'service']
+
+    - sourceMatch:
+        alertname: 'NodeDown'
+      targetMatchRE:
+        alertname: 'Node.*'
+      equal: ['instance']
+
+  # Notification receivers
+  receivers:
+    - name: default
+      # Default catch-all receiver
+      webhook_configs:
+        - url: "http://example.com/webhook/default"
+          send_resolved: true
+
+    - name: critical-alerts
+      # Critical alerts to multiple channels
+      email_configs:
+        - to: "oncall@example.com"
+          from: "alertmanager@example.com"
+          headers:
+            Subject: "[CRITICAL] {{ .GroupLabels.alertname }}"
+
+      slack_configs:
+        - channel: "#critical-alerts"
+          api_url: ""  # SET THIS
+          title: "[CRITICAL] {{ .GroupLabels.alertname }}"
+          text: "{{ range .Alerts }}{{ .Annotations.summary }}\n{{ end }}"
+          send_resolved: true
+
+      # pagerduty_configs:
+      #   - service_key: "your-pagerduty-service-key"
+      #     severity: "{{ .CommonLabels.severity }}"
+
+    - name: warning-alerts
+      # Warnings to Slack only
+      slack_configs:
+        - channel: "#warning-alerts"
+          api_url: ""  # SET THIS
+          title: "[WARNING] {{ .GroupLabels.alertname }}"
+          text: "{{ range .Alerts }}{{ .Annotations.summary }}\n{{ end }}"
+          send_resolved: true
+
+    - name: "null"
+      # Discard alerts (for Watchdog)
+
+# =============================================================================
+# Security Configuration
+# =============================================================================
+serviceAccount:
+  create: true
+  annotations: {}
+  name: ""
+
+podSecurityContext:
+  runAsUser: 65534
+  runAsNonRoot: true
+  fsGroup: 65534
+
+securityContext:
+  capabilities:
+    drop:
+      - ALL
+  readOnlyRootFilesystem: true
+  allowPrivilegeEscalation: false
+
+# =============================================================================
+# Service Configuration
+# =============================================================================
+service:
+  type: ClusterIP
+  port: 9093
+  annotations:
+    prometheus.io/scrape: "true"
+    prometheus.io/port: "9093"
+
+# =============================================================================
+# ServiceMonitor (Prometheus Operator)
+# =============================================================================
+serviceMonitor:
+  enabled: true
+  interval: 30s
+  scrapeTimeout: 10s
+  labels:
+    prometheus: kube-prometheus
+  metricRelabelings: []
+  relabelings: []
+
+# =============================================================================
+# High Availability Configuration
+# =============================================================================
+podDisruptionBudget:
+  enabled: true
+  minAvailable: 2  # Keep at least 2 pods running during disruptions
+
+# =============================================================================
+# Persistence (Required for HA)
+# =============================================================================
+persistence:
+  enabled: true
+  storageClass: ""  # Use default or specify: fast-ssd, standard, etc.
+  accessModes:
+    - ReadWriteOnce
+  size: 5Gi  # Increase based on retention and alert volume
+  annotations: {}
+
+# =============================================================================
+# Resource Configuration
+# =============================================================================
+resources:
+  limits:
+    cpu: 500m
+    memory: 512Mi
+  requests:
+    cpu: 100m
+    memory: 128Mi
+
+# =============================================================================
+# Health Probes
+# =============================================================================
+livenessProbe:
+  httpGet:
+    path: /-/healthy
+    port: web
+  initialDelaySeconds: 30
+  periodSeconds: 10
+  timeoutSeconds: 3
+  failureThreshold: 3
+
+readinessProbe:
+  httpGet:
+    path: /-/ready
+    port: web
+  initialDelaySeconds: 10
+  periodSeconds: 10
+  timeoutSeconds: 3
+  failureThreshold: 3
+
+# =============================================================================
+# Pod Scheduling
+# =============================================================================
+# Anti-affinity: Spread pods across nodes for HA
+affinity:
+  podAntiAffinity:
+    preferredDuringSchedulingIgnoredDuringExecution:
+      - weight: 100
+        podAffinityTerm:
+          labelSelector:
+            matchExpressions:
+              - key: app.kubernetes.io/name
+                operator: In
+                values:
+                  - alertmanager
+          topologyKey: kubernetes.io/hostname
+
+nodeSelector: {}
+#   node-role.kubernetes.io/monitoring: "true"
+
+tolerations: []
+#   - key: "monitoring"
+#     operator: "Equal"
+#     value: "true"
+#     effect: "NoSchedule"
+
+priorityClassName: ""
+
+# =============================================================================
+# Ingress (Optional)
+# =============================================================================
+# ingress:
+#   enabled: true
+#   className: nginx
+#   annotations:
+#     cert-manager.io/cluster-issuer: letsencrypt-prod
+#   hosts:
+#     - host: alertmanager.example.com
+#       paths:
+#         - path: /
+#           pathType: Prefix
+#   tls:
+#     - secretName: alertmanager-tls
+#       hosts:
+#         - alertmanager.example.com
+
+# =============================================================================
+# Notes
+# =============================================================================
+# 1. Configure at least one receiver with valid credentials
+# 2. For HA, use 3+ replicas and enable persistence
+# 3. Test notification receivers before production deployment
+# 4. Monitor cluster gossip status: make -f make/ops/alertmanager.mk am-cluster-status
+# 5. API v2 endpoint: http://alertmanager:9093/api/v2
+# 6. Silence alerts via API or UI: http://alertmanager:9093/#/silences
