@@ -320,6 +320,32 @@ entries:
   harbor:
   - apiVersion: v2
     appVersion: 2.11.1
+    created: "2025-11-23T14:00:33.265862041Z"
+    description: Private container registry with vulnerability scanning and image
+      signing
+    digest: 67befc2354f355f3b997650a2114313447f47b63408bf837d61b8ff559e4d1c7
+    home: https://github.com/scriptonbasestar-container/sb-helm-charts
+    icon: https://raw.githubusercontent.com/cncf/artwork/master/projects/harbor/icon/color/harbor-icon-color.svg
+    keywords:
+    - harbor
+    - registry
+    - docker
+    - container
+    - security
+    - vulnerability-scanning
+    maintainers:
+    - email: scriptonbasestar@gmail.com
+      name: ScriptonBasestar
+    name: harbor
+    sources:
+    - https://github.com/scriptonbasestar-container/sb-helm-charts/tree/master/charts/harbor
+    - https://github.com/goharbor/harbor
+    type: application
+    urls:
+    - https://github.com/ScriptonBasestar-containers/sb-helm-charts/releases/download/harbor-0.3.0/harbor-0.3.0.tgz
+    version: 0.3.0
+  - apiVersion: v2
+    appVersion: 2.11.1
     created: "2025-11-21T01:42:07.555421787Z"
     description: Private container registry with vulnerability scanning and image
       signing
@@ -2403,4 +2429,4 @@ entries:
     urls:
     - https://github.com/ScriptonBasestar-containers/sb-helm-charts/releases/download/wordpress-0.1.0/wordpress-0.1.0.tgz
     version: 0.1.0
-generated: "2025-11-21T06:34:56.566335989Z"
+generated: "2025-11-23T14:00:35.211071586Z"
