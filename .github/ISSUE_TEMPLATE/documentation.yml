@@ -1,12 +1,14 @@
 name: Documentation Improvement
 description: Suggest improvements to documentation
-title: "[Docs]: "
-labels: ["documentation", "triage"]
+title: "[DOCS] "
+labels: ["documentation"]
+assignees: []
+
 body:
   - type: markdown
     attributes:
       value: |
-        Thanks for helping improve our documentation! Please provide details below.
+        Thanks for helping improve our documentation! Clear documentation is critical for users.
 
   - type: dropdown
     id: doc-type
@@ -15,11 +17,14 @@ body:
       description: What type of documentation needs improvement?
       options:
         - Chart README
-        - Project documentation (guides, tutorials)
-        - Code comments
+        - Repository README
+        - CONTRIBUTING guide
+        - Chart Development Guide
+        - values.yaml comments
+        - Example deployment
+        - Operational guide (Makefile commands)
+        - Troubleshooting guide
         - API documentation
-        - Examples
-        - CHANGELOG
         - Other
     validations:
       required: true
@@ -30,6 +35,7 @@ body:
       label: Chart Name (if applicable)
       description: Which chart's documentation needs improvement?
       options:
+        - Not chart-specific
         - airflow
         - alertmanager
         - blackbox-exporter
@@ -54,7 +60,6 @@ body:
         - paperless-ngx
         - pgadmin
         - phpmyadmin
-        - postgresql
         - prometheus
         - promtail
         - pushgateway
@@ -66,27 +71,8 @@ body:
         - vaultwarden
         - wireguard
         - wordpress
-        - N/A - General documentation
     validations:
-      required: true
-
-  - type: textarea
-    id: current-state
-    attributes:
-      label: Current Documentation State
-      description: What is currently documented (or missing)?
-      placeholder: Describe what exists now or what is missing...
-    validations:
-      required: true
-
-  - type: textarea
-    id: improvement
-    attributes:
-      label: Suggested Improvement
-      description: What should be added, changed, or removed?
-      placeholder: Describe the improvement in detail...
-    validations:
-      required: true
+      required: false
 
   - type: dropdown
     id: issue-type
@@ -97,58 +83,81 @@ body:
         - Missing information
         - Incorrect information
         - Outdated information
-        - Unclear/confusing
+        - Confusing/unclear explanation
+        - Missing example
         - Typo/grammar
-        - Missing examples
-        - Better organization needed
+        - Formatting issue
+        - Broken link
         - Other
     validations:
       required: true
 
   - type: textarea
-    id: affected-users
+    id: current
     attributes:
-      label: Who is Affected?
-      description: Who would benefit from this documentation improvement?
+      label: Current Documentation
+      description: What does the current documentation say? (paste relevant section)
       placeholder: |
-        - New users trying to install the chart
-        - Users configuring advanced features
-        - Contributors developing charts
-        - ...
+        ```markdown
+        Current text or configuration...
+        ```
+      render: markdown
+    validations:
+      required: false
+
+  - type: textarea
+    id: issue
+    attributes:
+      label: Issue Description
+      description: What is wrong or missing?
+      placeholder: |
+        Clearly describe what's wrong, missing, or confusing about the current documentation.
     validations:
       required: true
 
   - type: textarea
-    id: proposed-content
+    id: suggested
     attributes:
-      label: Proposed Content (if applicable)
-      description: If you have specific content to add or change, provide it here
+      label: Suggested Improvement
+      description: How should it be improved?
       placeholder: |
-        ## New Section
-
-        Content here...
-
-        ```yaml
-        # Example configuration
+        Provide your suggested text, example, or explanation.
+        ```markdown
+        Improved text...
         ```
       render: markdown
+    validations:
+      required: false
+
+  - type: textarea
+    id: context
+    attributes:
+      label: User Context
+      description: What were you trying to accomplish when you found this issue?
+      placeholder: |
+        Example: "I was trying to configure HA for Keycloak and couldn't find..."
+    validations:
+      required: false
 
   - type: input
-    id: reference
+    id: location
     attributes:
-      label: Reference Documentation
-      description: Links to official docs, similar projects, or other references
-      placeholder: "https://..."
+      label: File/Section Location
+      description: Where is this documentation located?
+      placeholder: "charts/keycloak/README.md, line 42"
+    validations:
+      required: false
 
   - type: dropdown
-    id: priority
+    id: impact
     attributes:
-      label: Priority
-      description: How important is this documentation improvement?
+      label: Impact
+      description: How does this documentation issue affect users?
       options:
-        - Low - Nice to have
-        - Medium - Would help users
-        - High - Critical information missing
+        - Critical (prevents usage)
+        - High (significant confusion)
+        - Medium (minor inconvenience)
+        - Low (cosmetic)
     validations:
       required: true
 
@@ -156,8 +165,22 @@ body:
     id: additional
     attributes:
       label: Additional Context
-      description: Any other context, screenshots, or examples
-      placeholder: Add any other information here...
+      description: Any other relevant information
+      placeholder: |
+        - Screenshots
+        - Related issues
+        - External documentation links
+    validations:
+      required: false
+
+  - type: checkboxes
+    id: contribution
+    attributes:
+      label: Contribution
+      description: Would you like to submit a PR to fix this?
+      options:
+        - label: I would like to submit a PR to fix this documentation issue
+          required: false
 
   - type: checkboxes
     id: checklist
@@ -165,9 +188,9 @@ body:
       label: Pre-submission Checklist
       description: Please confirm the following
       options:
-        - label: I have searched for existing documentation issues
+        - label: I have searched existing issues to avoid duplicates
           required: true
         - label: I have checked the latest version of the documentation
           required: true
-        - label: I am willing to contribute to improving this documentation
-          required: false
+        - label: I have provided clear description of the issue
+          required: true

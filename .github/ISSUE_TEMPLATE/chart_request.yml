@@ -1,0 +1,241 @@
+name: Chart Request
+description: Request a new Helm chart to be added to the repository
+title: "[CHART] "
+labels: ["new-chart", "triage"]
+assignees: []
+
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for requesting a new chart! Please provide detailed information to help us evaluate and potentially implement this chart.
+
+  - type: input
+    id: application-name
+    attributes:
+      label: Application Name
+      description: What is the name of the application?
+      placeholder: "PostgreSQL, Nextcloud, etc."
+    validations:
+      required: true
+
+  - type: input
+    id: homepage
+    attributes:
+      label: Application Homepage
+      description: Official website or GitHub repository
+      placeholder: "https://github.com/org/project"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: category
+    attributes:
+      label: Chart Category
+      description: What category does this chart belong to?
+      options:
+        - Application (Self-hosted service)
+        - Infrastructure (Database, cache, queue, etc.)
+        - Monitoring (Metrics, logs, tracing)
+        - Security (Authentication, secrets, scanning)
+        - Development Tools
+        - CI/CD
+        - Other
+    validations:
+      required: true
+
+  - type: textarea
+    id: description
+    attributes:
+      label: Application Description
+      description: Brief description of what this application does
+      placeholder: |
+        What problem does this application solve?
+        What are its key features?
+    validations:
+      required: true
+
+  - type: textarea
+    id: use-case
+    attributes:
+      label: Use Case
+      description: Why do you need this chart?
+      placeholder: |
+        Describe your specific use case.
+        Example: "I need to deploy a password manager for my team..."
+    validations:
+      required: true
+
+  - type: dropdown
+    id: database
+    attributes:
+      label: Database Requirement
+      description: Does this application require a database?
+      options:
+        - "No database required"
+        - "PostgreSQL"
+        - "MySQL/MariaDB"
+        - "MongoDB"
+        - "Redis"
+        - "Elasticsearch"
+        - "SQLite (embedded)"
+        - "Multiple options"
+        - "Other"
+    validations:
+      required: true
+
+  - type: textarea
+    id: dependencies
+    attributes:
+      label: External Dependencies
+      description: What external services does this application require?
+      placeholder: |
+        List any required external services:
+        - Database
+        - Object storage (S3/MinIO)
+        - Message queue
+        - Cache (Redis/Memcached)
+        - etc.
+    validations:
+      required: false
+
+  - type: input
+    id: docker-image
+    attributes:
+      label: Official Docker Image
+      description: Is there an official Docker image?
+      placeholder: "docker.io/library/postgres:16"
+    validations:
+      required: false
+
+  - type: textarea
+    id: configuration
+    attributes:
+      label: Configuration Method
+      description: How is this application typically configured?
+      placeholder: |
+        - Environment variables
+        - Configuration files (which ones?)
+        - Web UI
+        - CLI commands
+    validations:
+      required: false
+
+  - type: dropdown
+    id: persistence
+    attributes:
+      label: Persistence Requirement
+      description: Does this application need persistent storage?
+      options:
+        - "Yes - Data persistence required"
+        - "No - Stateless application"
+        - "Optional - Can run with or without persistence"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: ha-support
+    attributes:
+      label: High Availability Support
+      description: Can this application run in HA mode?
+      options:
+        - "Yes - Native HA/clustering support"
+        - "No - Single instance only"
+        - "Limited - Requires external coordination"
+        - "Unknown"
+    validations:
+      required: false
+
+  - type: textarea
+    id: existing-charts
+    attributes:
+      label: Existing Helm Charts
+      description: Are there existing Helm charts for this application?
+      placeholder: |
+        List any existing charts you're aware of:
+        - Official chart: https://...
+        - Community chart: https://...
+        
+        Why not use those charts?
+    validations:
+      required: false
+
+  - type: dropdown
+    id: license
+    attributes:
+      label: Application License
+      description: What license is the application under?
+      options:
+        - Open Source (Apache, MIT, BSD, etc.)
+        - Open Source (GPL, AGPL)
+        - Source Available (BSL, SSPL, etc.)
+        - Commercial/Proprietary
+        - Unknown
+    validations:
+      required: false
+
+  - type: textarea
+    id: challenges
+    attributes:
+      label: Known Challenges
+      description: Are there any known challenges or complexities?
+      placeholder: |
+        List any potential challenges:
+        - Complex configuration
+        - Multiple components
+        - Special networking requirements
+        - etc.
+    validations:
+      required: false
+
+  - type: dropdown
+    id: priority
+    attributes:
+      label: Priority
+      description: How urgently do you need this chart?
+      options:
+        - Critical (actively blocked)
+        - High (needed soon)
+        - Medium (nice to have)
+        - Low (future consideration)
+    validations:
+      required: true
+
+  - type: textarea
+    id: additional
+    attributes:
+      label: Additional Context
+      description: Any other information that would be helpful
+      placeholder: |
+        - Links to documentation
+        - Deployment guides
+        - Community discussions
+        - Related applications
+    validations:
+      required: false
+
+  - type: checkboxes
+    id: contribution
+    attributes:
+      label: Contribution
+      description: Would you be willing to contribute?
+      options:
+        - label: I would like to create this chart myself (with guidance)
+          required: false
+        - label: I can help test this chart
+          required: false
+        - label: I can help document this chart
+          required: false
+
+  - type: checkboxes
+    id: checklist
+    attributes:
+      label: Pre-submission Checklist
+      description: Please confirm the following
+      options:
+        - label: I have searched existing issues and charts to avoid duplicates
+          required: true
+        - label: This application aligns with project philosophy (external databases, simple configuration)
+          required: true
+        - label: I have provided sufficient information for evaluation
+          required: true

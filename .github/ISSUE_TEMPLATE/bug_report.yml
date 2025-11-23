@@ -1,12 +1,14 @@
 name: Bug Report
-description: Report a bug or issue with a chart
-title: "[Bug]: "
+description: Report a bug or issue with a Helm chart
+title: "[BUG] "
 labels: ["bug", "triage"]
+assignees: []
+
 body:
   - type: markdown
     attributes:
       value: |
-        Thanks for taking the time to report a bug! Please fill out the form below.
+        Thanks for taking the time to report a bug! Please fill out the information below to help us diagnose and fix the issue.
 
   - type: dropdown
     id: chart
@@ -38,7 +40,6 @@ body:
         - paperless-ngx
         - pgadmin
         - phpmyadmin
-        - postgresql
         - prometheus
         - promtail
         - pushgateway
@@ -50,7 +51,7 @@ body:
         - vaultwarden
         - wireguard
         - wordpress
-        - Other / Multiple charts
+        - Other
     validations:
       required: true
 
@@ -59,16 +60,25 @@ body:
     attributes:
       label: Chart Version
       description: What version of the chart are you using?
-      placeholder: "e.g., 0.3.0"
+      placeholder: "0.3.0"
     validations:
       required: true
+
+  - type: input
+    id: app-version
+    attributes:
+      label: Application Version
+      description: What version of the application (appVersion in Chart.yaml)?
+      placeholder: "26.0.7"
+    validations:
+      required: false
 
   - type: textarea
     id: description
     attributes:
       label: Bug Description
-      description: A clear and concise description of what the bug is.
-      placeholder: Describe the bug...
+      description: A clear and concise description of the bug
+      placeholder: Describe what happened and what you expected to happen
     validations:
       required: true
 
@@ -78,10 +88,9 @@ body:
       label: Steps to Reproduce
       description: Steps to reproduce the behavior
       placeholder: |
-        1. Install chart with 'helm install ...'
-        2. Configure values.yaml with '...'
-        3. Run command '...'
-        4. See error
+        1. Install chart with `helm install...`
+        2. Configure values with...
+        3. Observe error when...
     validations:
       required: true
 
@@ -90,7 +99,7 @@ body:
     attributes:
       label: Expected Behavior
       description: What did you expect to happen?
-      placeholder: Describe what should happen...
+      placeholder: Describe the expected behavior
     validations:
       required: true
 
@@ -99,50 +108,85 @@ body:
     attributes:
       label: Actual Behavior
       description: What actually happened?
-      placeholder: Describe what actually happened...
+      placeholder: Describe what actually happened
     validations:
       required: true
-
-  - type: textarea
-    id: values
-    attributes:
-      label: values.yaml (relevant parts)
-      description: Please provide relevant parts of your values.yaml
-      render: yaml
-      placeholder: |
-        # Paste relevant values.yaml content here
-        key: value
 
   - type: textarea
     id: logs
     attributes:
-      label: Logs
-      description: Please provide relevant logs (kubectl logs, helm output, etc.)
+      label: Relevant Logs
+      description: Please paste any relevant logs (use code blocks)
+      placeholder: |
+        ```
+        kubectl logs pod-name
+        kubectl describe pod pod-name
+        ```
       render: shell
-      placeholder: Paste logs here...
+    validations:
+      required: false
 
   - type: textarea
-    id: environment
+    id: values
     attributes:
-      label: Environment
-      description: |
-        Please provide information about your environment:
-        - Kubernetes version: (run `kubectl version`)
-        - Helm version: (run `helm version`)
-        - Cloud provider or platform: (e.g., AWS EKS, GKE, kind, minikube)
+      label: Values Configuration
+      description: Your values.yaml configuration (remove sensitive data)
       placeholder: |
-        - Kubernetes version: v1.28.0
-        - Helm version: v3.13.0
-        - Platform: AWS EKS
+        ```yaml
+        replicaCount: 2
+        persistence:
+          enabled: true
+          size: 10Gi
+        ```
+      render: yaml
+    validations:
+      required: false
+
+  - type: input
+    id: k8s-version
+    attributes:
+      label: Kubernetes Version
+      description: What version of Kubernetes are you using?
+      placeholder: "v1.28.0"
     validations:
       required: true
+
+  - type: input
+    id: helm-version
+    attributes:
+      label: Helm Version
+      description: What version of Helm are you using?
+      placeholder: "v3.13.0"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: platform
+    attributes:
+      label: Kubernetes Platform
+      description: What Kubernetes distribution are you using?
+      options:
+        - Kind
+        - K3s
+        - MicroK8s
+        - Minikube
+        - EKS (AWS)
+        - GKE (Google Cloud)
+        - AKS (Azure)
+        - OpenShift
+        - Rancher
+        - Other
+    validations:
+      required: false
 
   - type: textarea
     id: additional
     attributes:
       label: Additional Context
-      description: Add any other context about the problem here (screenshots, related issues, etc.)
-      placeholder: Any additional information...
+      description: Add any other context about the problem
+      placeholder: Screenshots, related issues, workarounds, etc.
+    validations:
+      required: false
 
   - type: checkboxes
     id: checklist
@@ -150,9 +194,9 @@ body:
       label: Pre-submission Checklist
       description: Please confirm the following
       options:
-        - label: I have searched for existing issues before creating this one
+        - label: I have searched existing issues to avoid duplicates
           required: true
-        - label: I have tested with the latest chart version
-          required: false
-        - label: I have included relevant logs and error messages
-          required: false
+        - label: I have provided all requested information
+          required: true
+        - label: I have removed sensitive data from logs and configurations
+          required: true
