@@ -9,16 +9,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 - **Example Values Files**: Added comprehensive production-ready example configurations
-  - `charts/airflow/values-example.yaml` - Production Airflow deployment with HA setup, KubernetesExecutor, Git-sync, and remote logging (305 lines)
-  - `charts/elasticsearch/values-example.yaml` - Production Elasticsearch + Kibana cluster with 3-node HA, S3 snapshots, and network policies (282 lines)
-  - `charts/minio/values-example.yaml` - Distributed MinIO (4-node cluster, erasure coding, S3-compatible object storage)
-  - `charts/mongodb/values-example.yaml` - MongoDB replica set (3-member HA, WiredTiger optimization, authentication)
-  - `charts/postgresql/values-example.yaml` - PostgreSQL primary-replica (streaming replication, WAL tuning, connection pooling)
-  - `charts/mysql/values-example.yaml` - MySQL master-replica (GTID replication, InnoDB tuning, binary logging)
-  - `charts/kafka/values-example.yaml` - Kafka KRaft cluster (3-broker HA, SASL authentication, Kafka UI integration)
-  - `charts/prometheus/values-example.yaml` - Prometheus monitoring (TSDB, ServiceMonitors, alert rules, Kubernetes SD)
-  - `charts/loki/values-example.yaml` - Loki log aggregation (memberlist clustering, S3 storage, replication factor 3)
-  - `charts/grafana/values-example.yaml` - Grafana visualization (datasource provisioning, dashboard loading, external PostgreSQL)
+  - **Monitoring Stack (Complete)**:
+    - `charts/prometheus/values-example.yaml` - Prometheus monitoring (TSDB, ServiceMonitors, alert rules, Kubernetes SD)
+    - `charts/alertmanager/values-example.yaml` - Alertmanager HA (3 replicas, gossip protocol, severity routing, inhibition rules)
+    - `charts/loki/values-example.yaml` - Loki log aggregation (memberlist clustering, S3 storage, replication factor 3)
+    - `charts/promtail/values-example.yaml` - Promtail log collection (DaemonSet, Kubernetes SD, CRI parser, custom pipelines)
+    - `charts/grafana/values-example.yaml` - Grafana visualization (datasource provisioning, dashboard loading, external PostgreSQL)
+    - `charts/pushgateway/values-example.yaml` - Pushgateway batch metrics (file persistence, admin API, usage examples)
+    - `charts/node-exporter/values-example.yaml` - Node Exporter hardware metrics (DaemonSet, 40+ collectors, textfile support)
+    - `charts/kube-state-metrics/values-example.yaml` - Kubernetes object metrics (ClusterRole RBAC, label allowlists, resource filtering)
+    - `charts/blackbox-exporter/values-example.yaml` - Endpoint probing (HTTP/HTTPS/TCP/DNS/ICMP, SSL verification, 2 replicas HA)
+  - **Application Stack**:
+    - `charts/airflow/values-example.yaml` - Production Airflow deployment with HA setup, KubernetesExecutor, Git-sync, and remote logging (305 lines)
+    - `charts/elasticsearch/values-example.yaml` - Production Elasticsearch + Kibana cluster with 3-node HA, S3 snapshots, and network policies (282 lines)
+  - **Database Stack**:
+    - `charts/minio/values-example.yaml` - Distributed MinIO (4-node cluster, erasure coding, S3-compatible object storage)
+    - `charts/mongodb/values-example.yaml` - MongoDB replica set (3-member HA, WiredTiger optimization, authentication)
+    - `charts/postgresql/values-example.yaml` - PostgreSQL primary-replica (streaming replication, WAL tuning, connection pooling)
+    - `charts/mysql/values-example.yaml` - MySQL master-replica (GTID replication, InnoDB tuning, binary logging)
+    - `charts/kafka/values-example.yaml` - Kafka KRaft cluster (3-broker HA, SASL authentication, Kafka UI integration)
 
 ## [1.0.0] - 2025-11-21
 
