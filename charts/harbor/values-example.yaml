@@ -239,19 +239,83 @@ tolerations: []
 #     value: "true"
 #     effect: "NoSchedule"
 
-affinity: {}
-# Example: Spread across nodes for HA
-#   podAntiAffinity:
-#     preferredDuringSchedulingIgnoredDuringExecution:
-#       - weight: 100
-#         podAffinityTerm:
-#           labelSelector:
-#             matchExpressions:
-#               - key: app.kubernetes.io/name
-#                 operator: In
-#                 values:
-#                   - harbor
-#           topologyKey: kubernetes.io/hostname
+affinity:
+  # Spread across nodes for HA
+  podAntiAffinity:
+    preferredDuringSchedulingIgnoredDuringExecution:
+      - weight: 100
+        podAffinityTerm:
+          labelSelector:
+            matchExpressions:
+              - key: app.kubernetes.io/name
+                operator: In
+                values:
+                  - harbor
+          topologyKey: kubernetes.io/hostname
+
+# =============================================================================
+# Production Features
+# =============================================================================
+
+# HorizontalPodAutoscaler
+autoscaling:
+  enabled: true
+  minReplicas: 2
+  maxReplicas: 5
+  targetCPUUtilizationPercentage: 75
+  targetMemoryUtilizationPercentage: 80
+
+# PodDisruptionBudget
+podDisruptionBudget:
+  enabled: true
+  minAvailable: 1
+
+# ServiceMonitor (Prometheus Operator)
+serviceMonitor:
+  enabled: true
+  interval: 30s
+  scrapeTimeout: 10s
+  path: /metrics
+  labels: {}
+
+# NetworkPolicy
+networkPolicy:
+  enabled: true
+  policyTypes:
+    - Ingress
+    - Egress
+  ingress:
+    # Allow ingress from anywhere (controlled by ingress)
+    - from:
+        - namespaceSelector: {}
+      ports:
+        - protocol: TCP
+          port: 80
+  egress:
+    # Allow DNS
+    - to:
+        - namespaceSelector: {}
+      ports:
+        - protocol: UDP
+          port: 53
+    # Allow PostgreSQL
+    - to:
+        - namespaceSelector: {}
+      ports:
+        - protocol: TCP
+          port: 5432
+    # Allow Redis
+    - to:
+        - namespaceSelector: {}
+      ports:
+        - protocol: TCP
+          port: 6379
+    # Allow HTTPS (external registries, vulnerability scanning)
+    - to:
+        - namespaceSelector: {}
+      ports:
+        - protocol: TCP
+          port: 443
 
 # =============================================================================
 # Usage Examples - Docker Client
