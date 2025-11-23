@@ -1,0 +1,297 @@
+# Nextcloud - Production Example
+# Enterprise file sync and share platform
+
+replicaCount: 2
+
+image:
+  repository: lscr.io/linuxserver/nextcloud
+  pullPolicy: IfNotPresent
+  tag: "29.0.8"
+
+# =============================================================================
+# Nextcloud Configuration
+# =============================================================================
+nextcloud:
+  # Host configuration (REQUIRED)
+  host: "nextcloud.example.com"
+
+  # Admin account
+  adminUser: "admin"
+  adminPassword: ""  # SET THIS or use existingSecret
+
+  # Trusted domains
+  trustedDomains:
+    - "nextcloud.example.com"
+    - "nextcloud"
+
+  # PHP configuration
+  php:
+    uploadMaxFilesize: "10G"
+    postMaxSize: "10G"
+    memoryLimit: "512M"
+    maxExecutionTime: 3600
+
+  # PUID/PGID for LinuxServer.io image
+  puid: 1000
+  pgid: 1000
+
+  # Timezone
+  timezone: "UTC"
+
+# =============================================================================
+# External PostgreSQL (REQUIRED)
+# =============================================================================
+postgresql:
+  enabled: false  # NEVER enable - use external PostgreSQL
+  external:
+    enabled: true
+    host: "postgresql.database.svc.cluster.local"
+    port: 5432
+    database: "nextcloud"
+    username: "nextcloud"
+    password: ""  # SET THIS - stored in Kubernetes Secret
+
+# =============================================================================
+# External Redis (REQUIRED)
+# =============================================================================
+redis:
+  enabled: false  # NEVER enable - use external Redis
+  external:
+    enabled: true
+    host: "redis.cache.svc.cluster.local"
+    port: 6379
+    password: ""  # Optional - set if Redis requires auth
+
+# =============================================================================
+# Persistence
+# =============================================================================
+persistence:
+  # User data
+  data:
+    enabled: true
+    storageClass: ""  # Use default or specify
+    accessMode: ReadWriteOnce
+    size: 100Gi
+
+  # Configuration files
+  config:
+    enabled: true
+    storageClass: ""
+    accessMode: ReadWriteOnce
+    size: 5Gi
+
+# =============================================================================
+# Service Configuration
+# =============================================================================
+service:
+  type: ClusterIP
+  port: 80
+
+# =============================================================================
+# Ingress (REQUIRED for web access)
+# =============================================================================
+ingress:
+  enabled: true
+  className: nginx
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+    # Large file upload support
+    nginx.ingress.kubernetes.io/proxy-body-size: "10G"
+    nginx.ingress.kubernetes.io/proxy-buffering: "off"
+    nginx.ingress.kubernetes.io/proxy-request-buffering: "off"
+    # Timeouts for large uploads
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "3600"
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "3600"
+    # Session affinity for multiple replicas
+    nginx.ingress.kubernetes.io/affinity: cookie
+    nginx.ingress.kubernetes.io/session-cookie-name: nextcloud-session
+
+  hosts:
+    - nextcloud.example.com
+
+  tls:
+    - secretName: nextcloud-tls
+      hosts:
+        - nextcloud.example.com
+
+# =============================================================================
+# Resource Configuration
+# =============================================================================
+resources:
+  limits:
+    cpu: 2000m
+    memory: 2Gi
+  requests:
+    cpu: 500m
+    memory: 512Mi
+
+# =============================================================================
+# Health Probes
+# =============================================================================
+livenessProbe:
+  httpGet:
+    path: /status.php
+    port: 80
+    httpHeaders:
+      - name: Host
+        value: "nextcloud.example.com"
+  initialDelaySeconds: 60
+  periodSeconds: 30
+  timeoutSeconds: 5
+  failureThreshold: 3
+
+readinessProbe:
+  httpGet:
+    path: /status.php
+    port: 80
+    httpHeaders:
+      - name: Host
+        value: "nextcloud.example.com"
+  initialDelaySeconds: 30
+  periodSeconds: 10
+  timeoutSeconds: 5
+  failureThreshold: 3
+
+# =============================================================================
+# Security Configuration
+# =============================================================================
+serviceAccount:
+  create: true
+  annotations: {}
+  name: ""
+
+podSecurityContext:
+  fsGroup: 1000
+  runAsUser: 1000
+  runAsNonRoot: true
+
+securityContext:
+  capabilities:
+    drop:
+      - ALL
+  readOnlyRootFilesystem: false  # Nextcloud needs write access
+  allowPrivilegeEscalation: false
+
+# =============================================================================
+# Network Policy (Optional)
+# =============================================================================
+networkPolicy:
+  enabled: true
+  policyTypes:
+    - Ingress
+    - Egress
+  ingress:
+    # Allow ingress from anywhere (controlled by ingress)
+    - from:
+        - namespaceSelector: {}
+      ports:
+        - protocol: TCP
+          port: 80
+  egress:
+    # Allow DNS
+    - to:
+        - namespaceSelector: {}
+      ports:
+        - protocol: UDP
+          port: 53
+    # Allow PostgreSQL
+    - to:
+        - namespaceSelector: {}
+      ports:
+        - protocol: TCP
+          port: 5432
+    # Allow Redis
+    - to:
+        - namespaceSelector: {}
+      ports:
+        - protocol: TCP
+          port: 6379
+    # Allow HTTPS (for app store, etc.)
+    - to:
+        - namespaceSelector: {}
+      ports:
+        - protocol: TCP
+          port: 443
+
+# =============================================================================
+# ServiceMonitor (Prometheus Operator)
+# =============================================================================
+serviceMonitor:
+  enabled: true
+  interval: 30s
+  path: /ocs/v2.php/apps/serverinfo/api/v1/info?format=json
+  scrapeTimeout: 10s
+
+# =============================================================================
+# HorizontalPodAutoscaler
+# =============================================================================
+autoscaling:
+  enabled: false  # Enable for high-traffic scenarios
+  minReplicas: 2
+  maxReplicas: 5
+  targetCPUUtilizationPercentage: 75
+  targetMemoryUtilizationPercentage: 80
+
+# =============================================================================
+# PodDisruptionBudget
+# =============================================================================
+podDisruptionBudget:
+  enabled: true
+  minAvailable: 1
+
+# =============================================================================
+# Pod Scheduling
+# =============================================================================
+nodeSelector: {}
+# Example: Run on specific nodes
+#   node-role.kubernetes.io/app: "true"
+
+tolerations: []
+# Example: Tolerate app taint
+#   - key: "app"
+#     operator: "Equal"
+#     value: "true"
+#     effect: "NoSchedule"
+
+affinity:
+  # Spread across nodes for HA
+  podAntiAffinity:
+    preferredDuringSchedulingIgnoredDuringExecution:
+      - weight: 100
+        podAffinityTerm:
+          labelSelector:
+            matchExpressions:
+              - key: app.kubernetes.io/name
+                operator: In
+                values:
+                  - nextcloud
+          topologyKey: kubernetes.io/hostname
+
+# =============================================================================
+# Usage Examples
+# =============================================================================
+# Access Nextcloud:
+#   kubectl port-forward svc/nextcloud 8080:80 -n nextcloud
+#   Open: http://localhost:8080
+#   Login with admin credentials
+#
+# Run occ commands:
+#   kubectl exec nextcloud-0 -n nextcloud -- \
+#     sudo -u abc php /config/www/nextcloud/occ status
+#
+# Enable apps:
+#   kubectl exec nextcloud-0 -n nextcloud -- \
+#     sudo -u abc php /config/www/nextcloud/occ app:enable calendar
+#
+# Create user:
+#   kubectl exec nextcloud-0 -n nextcloud -- \
+#     sudo -u abc php /config/www/nextcloud/occ user:add \
+#     --password-from-env username
+#
+# Scan files:
+#   kubectl exec nextcloud-0 -n nextcloud -- \
+#     sudo -u abc php /config/www/nextcloud/occ files:scan --all
+#
+# Maintenance mode:
+#   kubectl exec nextcloud-0 -n nextcloud -- \
+#     sudo -u abc php /config/www/nextcloud/occ maintenance:mode --on
