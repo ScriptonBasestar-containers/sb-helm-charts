@@ -1,0 +1,84 @@
+# Node Exporter - Monitoring Stack Example
+# Hardware and OS metrics from all nodes
+
+image:
+  repository: prom/node-exporter
+  pullPolicy: IfNotPresent
+  tag: "v1.8.2"
+
+# DaemonSet configuration - runs on ALL nodes
+hostNetwork: true
+hostPID: true
+hostIPC: true
+
+nodeExporter:
+  # Enabled collectors (most useful ones)
+  extraArgs:
+    - --collector.filesystem.mount-points-exclude=^/(dev|proc|sys|var/lib/docker/.+|var/lib/kubelet/.+)($|/)
+    - --collector.filesystem.fs-types-exclude=^(autofs|binfmt_misc|bpf|cgroup2?|configfs|debugfs|devpts|devtmpfs|fusectl|hugetlbfs|iso9660|mqueue|nsfs|overlay|proc|procfs|pstore|rpc_pipefs|securityfs|selinuxfs|squashfs|sysfs|tracefs)$
+    - --collector.netclass.ignored-devices=^(veth.*|docker.*|br-.*|cali.*)$
+    - --collector.netdev.device-exclude=^(veth.*|docker.*|br-.*|cali.*)$
+
+  # Additional collectors
+  enabledCollectors:
+    - cpu
+    - cpufreq
+    - diskstats
+    - filesystem
+    - loadavg
+    - meminfo
+    - netclass
+    - netdev
+    - netstat
+    - os
+    - stat
+    - time
+    - uname
+    - vmstat
+
+# Resources (per node)
+resources:
+  limits:
+    cpu: 500m
+    memory: 256Mi
+  requests:
+    cpu: 100m
+    memory: 128Mi
+
+# Service
+service:
+  type: ClusterIP
+  port: 9100
+
+# ServiceMonitor
+serviceMonitor:
+  enabled: true
+  interval: 30s
+
+# Security
+serviceAccount:
+  create: true
+
+podSecurityContext:
+  runAsNonRoot: true
+  runAsUser: 65534
+
+securityContext:
+  capabilities:
+    drop:
+      - ALL
+  readOnlyRootFilesystem: true
+  allowPrivilegeEscalation: false
+
+# Update strategy
+updateStrategy:
+  type: RollingUpdate
+  rollingUpdate:
+    maxUnavailable: 1
+
+# Tolerations - run on all nodes including masters
+tolerations:
+  - operator: Exists
+    effect: NoSchedule
+  - operator: Exists
+    effect: NoExecute

@@ -1,0 +1,150 @@
+# Alertmanager - Monitoring Stack Example
+# Alert routing and notification
+
+replicaCount: 3
+
+image:
+  repository: prom/alertmanager
+  pullPolicy: IfNotPresent
+  tag: "v0.27.0"
+
+alertmanager:
+  # Alertmanager configuration
+  config:
+    global:
+      resolve_timeout: 5m
+
+    # Alert routing
+    route:
+      group_by: ['alertname', 'cluster', 'service']
+      group_wait: 30s
+      group_interval: 5m
+      repeat_interval: 12h
+      receiver: 'default'
+      routes:
+        # Critical alerts
+        - match:
+            severity: critical
+          receiver: critical-alerts
+          group_wait: 10s
+          repeat_interval: 1h
+
+        # Warning alerts
+        - match:
+            severity: warning
+          receiver: warning-alerts
+          group_wait: 30s
+          repeat_interval: 4h
+
+    # Alert receivers
+    receivers:
+      # Default receiver (null)
+      - name: 'default'
+
+      # Critical alerts - multiple channels
+      - name: 'critical-alerts'
+        # Email
+        email_configs:
+          - to: 'alerts@example.com'
+            from: 'alertmanager@example.com'
+            smarthost: 'smtp.example.com:587'
+            auth_username: 'alertmanager@example.com'
+            auth_password: 'password'
+            headers:
+              Subject: '[CRITICAL] {{ .GroupLabels.alertname }}'
+
+        # Slack
+        slack_configs:
+          - api_url: 'https://hooks.slack.com/services/YOUR/WEBHOOK/URL'
+            channel: '#critical-alerts'
+            title: '[CRITICAL] {{ .GroupLabels.alertname }}'
+            text: '{{ range .Alerts }}{{ .Annotations.summary }}{{ end }}'
+
+      # Warning alerts
+      - name: 'warning-alerts'
+        slack_configs:
+          - api_url: 'https://hooks.slack.com/services/YOUR/WEBHOOK/URL'
+            channel: '#alerts'
+            title: '[WARNING] {{ .GroupLabels.alertname }}'
+            text: '{{ range .Alerts }}{{ .Annotations.summary }}{{ end }}'
+
+    # Inhibition rules
+    inhibit_rules:
+      # Inhibit warning if critical is firing
+      - source_match:
+          severity: 'critical'
+        target_match:
+          severity: 'warning'
+        equal: ['alertname', 'cluster', 'service']
+
+  # Clustering configuration
+  cluster:
+    enabled: true
+    peers:
+      - alertmanager-0.alertmanager-headless.monitoring.svc.cluster.local:9094
+      - alertmanager-1.alertmanager-headless.monitoring.svc.cluster.local:9094
+      - alertmanager-2.alertmanager-headless.monitoring.svc.cluster.local:9094
+
+# Resources
+resources:
+  limits:
+    cpu: 500m
+    memory: 512Mi
+  requests:
+    cpu: 100m
+    memory: 128Mi
+
+# Persistence
+persistence:
+  enabled: true
+  storageClass: ""
+  accessMode: ReadWriteOnce
+  size: 5Gi
+
+# Service
+service:
+  type: ClusterIP
+  port: 9093
+
+# Headless service for clustering
+headlessService:
+  enabled: true
+  clusterIP: None
+
+# ServiceMonitor
+serviceMonitor:
+  enabled: true
+  interval: 30s
+
+# Security
+serviceAccount:
+  create: true
+
+podSecurityContext:
+  fsGroup: 65534
+  runAsUser: 65534
+  runAsNonRoot: true
+
+securityContext:
+  capabilities:
+    drop:
+      - ALL
+  readOnlyRootFilesystem: true
+  allowPrivilegeEscalation: false
+
+# Anti-affinity for HA
+affinity:
+  podAntiAffinity:
+    requiredDuringSchedulingIgnoredDuringExecution:
+      - labelSelector:
+          matchExpressions:
+            - key: app.kubernetes.io/name
+              operator: In
+              values:
+                - alertmanager
+        topologyKey: kubernetes.io/hostname
+
+# PodDisruptionBudget
+podDisruptionBudget:
+  enabled: true
+  minAvailable: 2

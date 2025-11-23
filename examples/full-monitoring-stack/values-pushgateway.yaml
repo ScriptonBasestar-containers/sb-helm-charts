@@ -1,0 +1,82 @@
+# Pushgateway - Monitoring Stack Example
+# Batch job metrics collection
+
+replicaCount: 1
+
+image:
+  repository: prom/pushgateway
+  pullPolicy: IfNotPresent
+  tag: "v1.10.0"
+
+pushgateway:
+  # Persistence for metrics
+  persistence:
+    enabled: true
+    file: "/data/metrics.db"
+
+  # Extra arguments
+  extraArgs:
+    - --web.enable-lifecycle
+    - --web.enable-admin-api
+
+# Resources
+resources:
+  limits:
+    cpu: 500m
+    memory: 512Mi
+  requests:
+    cpu: 100m
+    memory: 128Mi
+
+# Persistence
+persistence:
+  enabled: true
+  storageClass: ""
+  accessMode: ReadWriteOnce
+  size: 2Gi
+
+# Service
+service:
+  type: ClusterIP
+  port: 9091
+
+# ServiceMonitor
+serviceMonitor:
+  enabled: true
+  interval: 30s
+  honorLabels: true  # Important: preserve job labels from pushed metrics
+
+# Security
+serviceAccount:
+  create: true
+
+podSecurityContext:
+  fsGroup: 65534
+  runAsUser: 65534
+  runAsNonRoot: true
+
+securityContext:
+  capabilities:
+    drop:
+      - ALL
+  readOnlyRootFilesystem: false  # Needs write access for persistence
+  allowPrivilegeEscalation: false
+
+# Health probes
+livenessProbe:
+  httpGet:
+    path: /-/healthy
+    port: 9091
+  initialDelaySeconds: 10
+  periodSeconds: 10
+  timeoutSeconds: 5
+  failureThreshold: 3
+
+readinessProbe:
+  httpGet:
+    path: /-/ready
+    port: 9091
+  initialDelaySeconds: 5
+  periodSeconds: 10
+  timeoutSeconds: 5
+  failureThreshold: 3

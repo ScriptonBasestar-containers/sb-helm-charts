@@ -1,0 +1,96 @@
+# Prometheus - Monitoring Stack Example
+# Time-series database and metrics collection
+
+replicaCount: 1
+
+image:
+  repository: prom/prometheus
+  pullPolicy: IfNotPresent
+  tag: "v2.54.1"
+
+prometheus:
+  # Retention period
+  retention: "15d"
+  retentionSize: "45GB"
+
+  # External labels for federation
+  externalLabels:
+    cluster: "main"
+    environment: "production"
+
+  # Storage
+  storageSpec:
+    volumeClaimTemplate:
+      spec:
+        accessModes: ["ReadWriteOnce"]
+        resources:
+          requests:
+            storage: 50Gi
+
+  # Service discovery
+  serviceDiscovery:
+    # Kubernetes service discovery enabled by default
+    kubernetes:
+      enabled: true
+
+    # Additional scrape configs
+    additionalScrapeConfigs: []
+
+  # Alerting configuration
+  alerting:
+    alertmanagers:
+      - static_configs:
+          - targets:
+              - alertmanager.monitoring.svc.cluster.local:9093
+
+    # Remote write (optional - for long-term storage)
+    # remoteWrite:
+    #   - url: "http://thanos-receive:19291/api/v1/receive"
+
+# Resources
+resources:
+  limits:
+    cpu: 2000m
+    memory: 4Gi
+  requests:
+    cpu: 500m
+    memory: 1Gi
+
+# Persistence
+persistence:
+  enabled: true
+  storageClass: ""
+  accessMode: ReadWriteOnce
+  size: 50Gi
+
+# ServiceMonitor (scrape Prometheus itself)
+serviceMonitor:
+  enabled: true
+  interval: 30s
+
+# Security
+serviceAccount:
+  create: true
+
+podSecurityContext:
+  fsGroup: 65534
+  runAsUser: 65534
+  runAsNonRoot: true
+
+securityContext:
+  capabilities:
+    drop:
+      - ALL
+  readOnlyRootFilesystem: true
+  allowPrivilegeEscalation: false
+
+# Service
+service:
+  type: ClusterIP
+  port: 9090
+
+# RBAC for Kubernetes service discovery
+rbac:
+  create: true
+  clusterRole:
+    create: true

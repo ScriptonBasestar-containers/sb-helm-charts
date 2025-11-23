@@ -1,0 +1,130 @@
+# Blackbox Exporter - Monitoring Stack Example
+# Endpoint probing (HTTP/HTTPS/TCP/DNS/ICMP)
+
+replicaCount: 2
+
+image:
+  repository: prom/blackbox-exporter
+  pullPolicy: IfNotPresent
+  tag: "v0.25.0"
+
+blackboxExporter:
+  # Probe modules configuration
+  config:
+    modules:
+      # HTTP 2xx check
+      http_2xx:
+        prober: http
+        timeout: 5s
+        http:
+          valid_http_versions: ["HTTP/1.1", "HTTP/2.0"]
+          valid_status_codes: []
+          method: GET
+          preferred_ip_protocol: "ip4"
+
+      # HTTPS with SSL/TLS validation
+      https_2xx:
+        prober: http
+        timeout: 5s
+        http:
+          valid_http_versions: ["HTTP/1.1", "HTTP/2.0"]
+          method: GET
+          tls_config:
+            insecure_skip_verify: false
+          preferred_ip_protocol: "ip4"
+
+      # HTTPS SSL expiry check
+      https_ssl_expiry:
+        prober: http
+        timeout: 5s
+        http:
+          method: GET
+          tls_config:
+            insecure_skip_verify: false
+          preferred_ip_protocol: "ip4"
+
+      # TCP connection check
+      tcp_connect:
+        prober: tcp
+        timeout: 5s
+        tcp:
+          preferred_ip_protocol: "ip4"
+
+      # ICMP ping
+      icmp:
+        prober: icmp
+        timeout: 5s
+        icmp:
+          preferred_ip_protocol: "ip4"
+
+      # DNS query
+      dns_tcp:
+        prober: dns
+        timeout: 5s
+        dns:
+          transport_protocol: "tcp"
+          preferred_ip_protocol: "ip4"
+          query_name: "kubernetes.default.svc.cluster.local"
+
+# Resources
+resources:
+  limits:
+    cpu: 500m
+    memory: 512Mi
+  requests:
+    cpu: 100m
+    memory: 128Mi
+
+# Service
+service:
+  type: ClusterIP
+  port: 9115
+
+# ServiceMonitor
+serviceMonitor:
+  enabled: true
+  interval: 60s
+  # Example targets to probe
+  targets:
+    - name: kubernetes-api
+      module: https_2xx
+      url: https://kubernetes.default.svc.cluster.local:443
+    - name: prometheus
+      module: http_2xx
+      url: http://prometheus.monitoring.svc.cluster.local:9090
+    - name: loki
+      module: http_2xx
+      url: http://loki.monitoring.svc.cluster.local:3100/ready
+
+# Security
+serviceAccount:
+  create: true
+
+podSecurityContext:
+  fsGroup: 65534
+  runAsUser: 65534
+  runAsNonRoot: true
+
+securityContext:
+  capabilities:
+    drop:
+      - ALL
+    # Required for ICMP probes
+    add:
+      - NET_RAW
+  readOnlyRootFilesystem: true
+  allowPrivilegeEscalation: false
+
+# Anti-affinity for HA
+affinity:
+  podAntiAffinity:
+    preferredDuringSchedulingIgnoredDuringExecution:
+      - weight: 100
+        podAffinityTerm:
+          labelSelector:
+            matchExpressions:
+              - key: app.kubernetes.io/name
+                operator: In
+                values:
+                  - blackbox-exporter
+          topologyKey: kubernetes.io/hostname

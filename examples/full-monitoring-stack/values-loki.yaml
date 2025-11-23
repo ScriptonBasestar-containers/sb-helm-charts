@@ -1,0 +1,107 @@
+# Loki - Monitoring Stack Example
+# Log aggregation and storage
+
+replicaCount: 1
+
+image:
+  repository: grafana/loki
+  pullPolicy: IfNotPresent
+  tag: "3.2.1"
+
+loki:
+  # Storage configuration
+  storage:
+    type: "filesystem"
+    filesystem:
+      chunksDirectory: "/loki/chunks"
+      rulesDirectory: "/loki/rules"
+
+  # Limits configuration
+  limits:
+    retentionPeriod: 168h  # 7 days
+    ingestionRate: 4MB
+    ingestionBurstSize: 6MB
+    maxStreamsPerUser: 10000
+    maxGlobalStreamsPerUser: 50000
+
+  # Schema configuration
+  schemaConfig:
+    configs:
+      - from: "2024-01-01"
+        store: tsdb
+        object_store: filesystem
+        schema: v13
+        index:
+          prefix: loki_index_
+          period: 24h
+
+  # Compactor
+  compactor:
+    enabled: true
+    workingDirectory: /loki/compactor
+    retentionEnabled: true
+    retentionDeleteDelay: 2h
+
+# Resources
+resources:
+  limits:
+    cpu: 2000m
+    memory: 2Gi
+  requests:
+    cpu: 500m
+    memory: 1Gi
+
+# Persistence
+persistence:
+  enabled: true
+  storageClass: ""
+  accessMode: ReadWriteOnce
+  size: 50Gi
+
+# Service
+service:
+  type: ClusterIP
+  http:
+    port: 3100
+  grpc:
+    port: 9095
+
+# ServiceMonitor
+serviceMonitor:
+  enabled: true
+  interval: 30s
+
+# Security
+serviceAccount:
+  create: true
+
+podSecurityContext:
+  fsGroup: 10001
+  runAsUser: 10001
+  runAsNonRoot: true
+
+securityContext:
+  capabilities:
+    drop:
+      - ALL
+  readOnlyRootFilesystem: true
+  allowPrivilegeEscalation: false
+
+# Health probes
+livenessProbe:
+  httpGet:
+    path: /ready
+    port: 3100
+  initialDelaySeconds: 45
+  periodSeconds: 10
+  timeoutSeconds: 1
+  failureThreshold: 3
+
+readinessProbe:
+  httpGet:
+    path: /ready
+    port: 3100
+  initialDelaySeconds: 45
+  periodSeconds: 10
+  timeoutSeconds: 1
+  failureThreshold: 3

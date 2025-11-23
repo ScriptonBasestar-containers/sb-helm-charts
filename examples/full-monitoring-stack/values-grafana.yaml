@@ -1,0 +1,161 @@
+# Grafana - Monitoring Stack Example
+# Metrics and logs visualization with dashboards
+
+replicaCount: 1
+
+image:
+  repository: grafana/grafana
+  pullPolicy: IfNotPresent
+  tag: "11.3.0"
+
+grafana:
+  # Admin credentials
+  adminUser: admin
+  adminPassword: ""  # SET THIS or use existingSecret
+
+  # Datasources - automatically configured
+  datasources:
+    # Prometheus
+    - name: Prometheus
+      type: prometheus
+      url: http://prometheus.monitoring.svc.cluster.local:9090
+      access: proxy
+      isDefault: true
+      jsonData:
+        timeInterval: 30s
+
+    # Loki
+    - name: Loki
+      type: loki
+      url: http://loki.monitoring.svc.cluster.local:3100
+      access: proxy
+      jsonData:
+        maxLines: 1000
+
+  # Dashboards - automatically provisioned
+  dashboards:
+    enabled: true
+    defaultDashboards:
+      # Kubernetes Cluster Monitoring
+      - id: 15760
+        revision: 1
+        datasource: Prometheus
+
+      # Node Exporter Full
+      - id: 1860
+        revision: 31
+        datasource: Prometheus
+
+      # Kubernetes Pod Metrics
+      - id: 6417
+        revision: 1
+        datasource: Prometheus
+
+      # Prometheus Stats
+      - id: 2
+        revision: 2
+        datasource: Prometheus
+
+      # Loki Logs
+      - id: 13639
+        revision: 2
+        datasource: Loki
+
+  # Plugins
+  plugins:
+    - grafana-piechart-panel
+    - grafana-clock-panel
+    - grafana-worldmap-panel
+
+  # Configuration
+  config:
+    server:
+      root_url: "http://grafana.example.com"
+
+    security:
+      admin_user: admin
+      admin_password: "${GF_SECURITY_ADMIN_PASSWORD}"
+
+    auth.anonymous:
+      enabled: false
+
+    analytics:
+      reporting_enabled: false
+      check_for_updates: false
+
+# Resources
+resources:
+  limits:
+    cpu: 500m
+    memory: 1Gi
+  requests:
+    cpu: 200m
+    memory: 256Mi
+
+# Persistence (for SQLite database and dashboards)
+persistence:
+  enabled: true
+  storageClass: ""
+  accessMode: ReadWriteOnce
+  size: 5Gi
+
+# Service
+service:
+  type: ClusterIP
+  port: 80
+
+# Ingress
+ingress:
+  enabled: false
+  className: nginx
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+  hosts:
+    - host: grafana.example.com
+      paths:
+        - path: /
+          pathType: Prefix
+  tls:
+    - secretName: grafana-tls
+      hosts:
+        - grafana.example.com
+
+# ServiceMonitor
+serviceMonitor:
+  enabled: true
+  interval: 30s
+
+# Security
+serviceAccount:
+  create: true
+
+podSecurityContext:
+  fsGroup: 472
+  runAsUser: 472
+  runAsNonRoot: true
+
+securityContext:
+  capabilities:
+    drop:
+      - ALL
+  readOnlyRootFilesystem: false  # Grafana needs write access
+  allowPrivilegeEscalation: false
+
+# Health probes
+livenessProbe:
+  httpGet:
+    path: /api/health
+    port: 3000
+  initialDelaySeconds: 60
+  periodSeconds: 10
+  timeoutSeconds: 30
+  failureThreshold: 10
+
+readinessProbe:
+  httpGet:
+    path: /api/health
+    port: 3000
+  initialDelaySeconds: 30
+  periodSeconds: 10
+  timeoutSeconds: 5
+  failureThreshold: 3
