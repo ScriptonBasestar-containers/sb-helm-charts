@@ -1,0 +1,366 @@
+# Harbor - Production-Ready Example Configuration
+# Copy and customize for your environment
+
+# =============================================================================
+# IMPORTANT: This is a simplified Harbor chart
+# =============================================================================
+# For production deployments with full Harbor features (trivy, notary, etc.),
+# consider the official Harbor Helm chart:
+# https://github.com/goharbor/harbor-helm
+#
+# This chart provides core Harbor functionality:
+# - Container registry (push/pull images)
+# - Web UI for repository management
+# - User authentication and RBAC
+# - PostgreSQL backend
+# - Redis cache
+# - S3/MinIO artifact storage
+
+# =============================================================================
+# REQUIRED: Set admin password and configure external services
+# =============================================================================
+harbor:
+  adminPassword: ""  # REQUIRED - Set strong admin password
+  externalURL: "https://harbor.example.com"  # REQUIRED - Public URL
+
+postgresql:
+  external:
+    password: ""  # REQUIRED - PostgreSQL password
+
+# =============================================================================
+# Core Component Configuration
+# =============================================================================
+core:
+  replicaCount: 2  # 2 replicas for HA
+
+  image:
+    repository: goharbor/harbor-core
+    pullPolicy: IfNotPresent
+    tag: "v2.11.1"
+
+  resources:
+    limits:
+      cpu: 2000m
+      memory: 2Gi
+    requests:
+      cpu: 500m
+      memory: 512Mi
+
+  livenessProbe:
+    initialDelaySeconds: 300  # Harbor core takes time to start
+    periodSeconds: 10
+    timeoutSeconds: 10
+    failureThreshold: 3
+
+  readinessProbe:
+    initialDelaySeconds: 60
+    periodSeconds: 10
+    timeoutSeconds: 10
+    failureThreshold: 3
+
+# =============================================================================
+# Registry Component Configuration
+# =============================================================================
+registry:
+  replicaCount: 2  # 2 replicas for HA
+
+  image:
+    repository: goharbor/registry-photon
+    pullPolicy: IfNotPresent
+    tag: "v2.11.1"
+
+  resources:
+    limits:
+      cpu: 2000m
+      memory: 2Gi
+    requests:
+      cpu: 500m
+      memory: 512Mi
+
+  livenessProbe:
+    initialDelaySeconds: 30
+    periodSeconds: 10
+    timeoutSeconds: 5
+    failureThreshold: 3
+
+  readinessProbe:
+    initialDelaySeconds: 10
+    periodSeconds: 10
+    timeoutSeconds: 5
+    failureThreshold: 3
+
+# =============================================================================
+# Harbor Configuration
+# =============================================================================
+harbor:
+  # Admin password for initial login (username: admin)
+  adminPassword: ""  # SET THIS - stored in Kubernetes Secret
+
+  # Secret key for encryption (auto-generated if empty)
+  secretKey: ""  # Leave empty for auto-generation
+
+  # External URL (for Docker client and UI access)
+  externalURL: "https://harbor.example.com"
+
+  # Use existing ConfigMap/Secret (advanced)
+  existingConfigMap: ""
+  existingSecret: ""
+
+# =============================================================================
+# External PostgreSQL (REQUIRED)
+# =============================================================================
+postgresql:
+  enabled: false  # NEVER enable - use external PostgreSQL
+  external:
+    enabled: true
+    host: "postgresql.database.svc.cluster.local"
+    port: 5432
+    database: "harbor"
+    username: "harbor"
+    password: ""  # SET THIS - stored in Kubernetes Secret
+
+    # SSL configuration (optional)
+    # sslmode: "require"  # disable, require, verify-ca, verify-full
+
+# =============================================================================
+# External Redis (REQUIRED)
+# =============================================================================
+redis:
+  enabled: false  # NEVER enable - use external Redis
+  external:
+    enabled: true
+    host: "redis.cache.svc.cluster.local"
+    port: 6379
+    password: ""  # Optional - set if Redis requires auth
+
+    # Sentinel configuration (for Redis HA)
+    # sentinelMasterSet: "mymaster"
+    # sentinel:
+    #   hosts: "redis-sentinel:26379"
+
+# =============================================================================
+# Service Configuration
+# =============================================================================
+service:
+  type: ClusterIP  # Use ClusterIP with Ingress
+  port: 80
+
+  # For NodePort or LoadBalancer (without Ingress):
+  # type: LoadBalancer
+  # port: 80
+
+# =============================================================================
+# Ingress (REQUIRED for Docker client access)
+# =============================================================================
+# IMPORTANT: Harbor requires HTTPS with valid TLS certificate
+ingress:
+  enabled: true
+  className: nginx
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+    # Large image upload support
+    nginx.ingress.kubernetes.io/proxy-body-size: "0"
+    nginx.ingress.kubernetes.io/proxy-buffering: "off"
+    nginx.ingress.kubernetes.io/proxy-request-buffering: "off"
+    # Timeouts for large image uploads
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "900"
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "900"
+
+  hosts:
+    - harbor.example.com  # MUST match externalURL
+
+  tls:
+    - secretName: harbor-tls
+      hosts:
+        - harbor.example.com
+
+# =============================================================================
+# Persistence (Registry Storage)
+# =============================================================================
+persistence:
+  enabled: true
+  storageClass: ""  # Use default or specify
+
+  # Storage backend options:
+  # Option 1: Kubernetes PVC (default)
+  accessMode: ReadWriteOnce
+  size: 200Gi  # Increase based on image storage needs
+
+  # Option 2: S3/MinIO (recommended for production)
+  # See harbor.storage configuration below
+  # enabled: false  # Disable PVC when using S3
+
+# Harbor storage configuration (for S3/MinIO)
+# storage:
+#   type: "s3"
+#   s3:
+#     region: "us-east-1"
+#     bucket: "harbor-registry"
+#     accessKey: "minio-access-key"
+#     secretKey: "minio-secret-key"
+#     endpoint: "http://minio.storage.svc.cluster.local:9000"
+#     secure: false  # true for HTTPS
+#     v4auth: true
+#     # For AWS S3:
+#     # endpoint: "https://s3.amazonaws.com"
+#     # secure: true
+
+# =============================================================================
+# Security Configuration
+# =============================================================================
+serviceAccount:
+  create: true
+  annotations: {}
+  name: ""
+
+podSecurityContext:
+  fsGroup: 10000
+  runAsUser: 10000
+  runAsNonRoot: true
+
+securityContext:
+  capabilities:
+    drop:
+      - ALL
+  readOnlyRootFilesystem: false  # Harbor needs write access
+  allowPrivilegeEscalation: false
+
+# =============================================================================
+# Pod Scheduling
+# =============================================================================
+nodeSelector: {}
+# Example: Run on specific nodes
+#   node-role.kubernetes.io/registry: "true"
+
+tolerations: []
+# Example: Tolerate registry taint
+#   - key: "registry"
+#     operator: "Equal"
+#     value: "true"
+#     effect: "NoSchedule"
+
+affinity: {}
+# Example: Spread across nodes for HA
+#   podAntiAffinity:
+#     preferredDuringSchedulingIgnoredDuringExecution:
+#       - weight: 100
+#         podAffinityTerm:
+#           labelSelector:
+#             matchExpressions:
+#               - key: app.kubernetes.io/name
+#                 operator: In
+#                 values:
+#                   - harbor
+#           topologyKey: kubernetes.io/hostname
+
+# =============================================================================
+# Usage Examples - Docker Client
+# =============================================================================
+# Login to Harbor:
+#   docker login harbor.example.com
+#   Username: admin
+#   Password: <your-admin-password>
+#
+# Tag and push image:
+#   docker tag myapp:latest harbor.example.com/library/myapp:latest
+#   docker push harbor.example.com/library/myapp:latest
+#
+# Pull image:
+#   docker pull harbor.example.com/library/myapp:latest
+#
+# Create project via UI:
+#   1. Open https://harbor.example.com
+#   2. Login as admin
+#   3. Click "New Project"
+#   4. Set project name (e.g., "production")
+#   5. Configure access level (public/private)
+
+# =============================================================================
+# Usage Examples - Kubernetes
+# =============================================================================
+# Create Docker registry secret:
+#   kubectl create secret docker-registry harbor-regcred \
+#     --docker-server=harbor.example.com \
+#     --docker-username=admin \
+#     --docker-password=<your-password> \
+#     --docker-email=admin@example.com
+#
+# Use in Pod spec:
+#   apiVersion: v1
+#   kind: Pod
+#   metadata:
+#     name: myapp
+#   spec:
+#     containers:
+#       - name: myapp
+#         image: harbor.example.com/library/myapp:latest
+#     imagePullSecrets:
+#       - name: harbor-regcred
+
+# =============================================================================
+# Pre-requisites Checklist
+# =============================================================================
+# 1. PostgreSQL database created:
+#    CREATE DATABASE harbor;
+#    CREATE USER harbor WITH PASSWORD 'secure-password';
+#    GRANT ALL PRIVILEGES ON DATABASE harbor TO harbor;
+#
+# 2. Redis instance running:
+#    - Deployed via redis chart, or
+#    - External Redis service
+#
+# 3. TLS certificate:
+#    - cert-manager issuer configured, OR
+#    - Manual certificate in Kubernetes Secret
+#
+# 4. DNS record:
+#    - harbor.example.com → Ingress IP/LoadBalancer
+#
+# 5. Storage backend (choose one):
+#    - PVC with sufficient size (200GB+), OR
+#    - S3/MinIO bucket created
+
+# =============================================================================
+# Storage Requirements
+# =============================================================================
+# PostgreSQL (metadata):
+#   - Small: 1-5 GB (< 1000 images)
+#   - Medium: 5-20 GB (1000-10000 images)
+#   - Large: 20+ GB (10000+ images)
+#
+# Registry storage (images):
+#   - Depends on image count and sizes
+#   - Typical container image: 100 MB - 2 GB
+#   - Base images: 50-500 MB
+#   - Application images: 200 MB - 2 GB
+#   - Recommend: 200 GB+ for production
+
+# =============================================================================
+# Migration to Official Harbor Chart
+# =============================================================================
+# For production deployments requiring:
+# - Trivy vulnerability scanning
+# - Notary content trust
+# - ChartMuseum (Helm chart hosting)
+# - Replication to other registries
+# - Advanced RBAC and policies
+#
+# Migrate to: https://github.com/goharbor/harbor-helm
+#
+# Migration steps:
+#   1. Export Harbor data via backup
+#   2. Deploy official chart
+#   3. Restore data
+#   4. Update DNS and image references
+
+# =============================================================================
+# Security Recommendations
+# =============================================================================
+# 1. Use strong admin password (20+ characters)
+# 2. Enable TLS (HTTPS) - REQUIRED for Docker client
+# 3. Use external PostgreSQL with SSL
+# 4. Use Redis with password authentication
+# 5. Enable image vulnerability scanning (official chart)
+# 6. Implement RBAC policies per project
+# 7. Regular backup of PostgreSQL database
+# 8. Monitor registry storage usage
