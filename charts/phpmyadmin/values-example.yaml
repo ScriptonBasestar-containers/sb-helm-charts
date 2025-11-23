@@ -1,0 +1,288 @@
+# phpMyAdmin - Production-Ready Example Configuration
+# Copy and customize for your environment
+
+# =============================================================================
+# Deployment Configuration
+# =============================================================================
+replicaCount: 1  # Single replica (use session affinity for multiple replicas)
+
+image:
+  repository: phpmyadmin
+  pullPolicy: IfNotPresent
+  tag: ""  # Defaults to chart appVersion (5.2.1)
+
+# =============================================================================
+# phpMyAdmin Configuration
+# =============================================================================
+phpmyadmin:
+  # MySQL/MariaDB Connection Options (choose one):
+
+  # Option 1: Single host (simplest)
+  # host: "mysql.database.svc.cluster.local"
+  # port: 3306
+
+  # Option 2: Arbitrary server connection (not recommended for production)
+  arbitraryServerConnection: false
+  allowArbitraryServer: false  # Security risk if enabled
+
+  # Option 3: Pre-configured servers (recommended for production)
+  servers:
+    enabled: true
+    config:
+      # Production MySQL
+      - host: "mysql-prod.database.svc.cluster.local"
+        port: 3306
+        verbose: "Production MySQL"
+        ssl: true
+        compress: true
+        # auth_type: "cookie"  # Default
+
+      # Staging MySQL
+      - host: "mysql-staging.database.svc.cluster.local"
+        port: 3306
+        verbose: "Staging MySQL"
+        ssl: false
+        compress: true
+
+      # Read-only replica
+      - host: "mysql-replica.database.svc.cluster.local"
+        port: 3306
+        verbose: "MySQL Read Replica"
+        ssl: false
+        only_db: ["analytics", "reporting"]  # Limit accessible databases
+
+  # Upload and import settings
+  uploadLimit: "256M"  # Max file upload size
+  maxExecutionTime: 1800  # 30 minutes for large imports
+  memoryLimit: "1G"
+
+  # Hide system databases from listing
+  hideDatabases:
+    - information_schema
+    - performance_schema
+    - mysql
+    - sys
+
+  # Blowfish secret for cookie encryption (auto-generated if empty)
+  blowfishSecret: ""  # Leave empty for auto-generation, or set custom 32-char string
+
+  # Configuration storage (pmadb) - stores bookmarks, history, etc.
+  configurationStorage:
+    enabled: true
+    database: "phpmyadmin"
+    # Tables: pma__bookmark, pma__history, pma__recent, etc.
+
+  # Extra environment variables
+  extraEnv: []
+  # - name: PMA_ABSOLUTE_URI
+  #   value: "https://phpmyadmin.example.com/"
+
+# =============================================================================
+# Security Configuration
+# =============================================================================
+serviceAccount:
+  create: true
+  annotations: {}
+  name: ""
+
+podSecurityContext:
+  fsGroup: 33  # www-data
+  runAsUser: 33
+  runAsNonRoot: true
+
+securityContext:
+  allowPrivilegeEscalation: false
+  capabilities:
+    drop:
+      - ALL
+  readOnlyRootFilesystem: false  # phpMyAdmin needs write access for sessions
+  runAsNonRoot: true
+  runAsUser: 33
+
+# =============================================================================
+# Service Configuration
+# =============================================================================
+service:
+  type: ClusterIP
+  port: 80
+  targetPort: 80
+  annotations:
+    # Session affinity for multiple replicas
+    service.kubernetes.io/topology-mode: "Auto"
+
+# =============================================================================
+# Ingress (Web Access)
+# =============================================================================
+# ingress:
+#   enabled: true
+#   className: nginx
+#   annotations:
+#     cert-manager.io/cluster-issuer: letsencrypt-prod
+#     # Increase upload size limit
+#     nginx.ingress.kubernetes.io/proxy-body-size: "256m"
+#     nginx.ingress.kubernetes.io/proxy-read-timeout: "1800"
+#     # Enable session affinity (sticky sessions)
+#     nginx.ingress.kubernetes.io/affinity: cookie
+#     nginx.ingress.kubernetes.io/session-cookie-name: phpmyadmin-session
+#     # Optional: Basic auth for additional security
+#     # nginx.ingress.kubernetes.io/auth-type: basic
+#     # nginx.ingress.kubernetes.io/auth-secret: phpmyadmin-basic-auth
+#   hosts:
+#     - host: phpmyadmin.example.com
+#       paths:
+#         - path: /
+#           pathType: Prefix
+#   tls:
+#     - secretName: phpmyadmin-tls
+#       hosts:
+#         - phpmyadmin.example.com
+
+# =============================================================================
+# Persistence (Session Storage)
+# =============================================================================
+persistence:
+  enabled: true
+  storageClass: ""  # Use default or specify
+  accessMode: ReadWriteOnce
+  size: 1Gi  # Increase for large export/import operations
+  annotations: {}
+
+# =============================================================================
+# Resource Configuration
+# =============================================================================
+resources:
+  limits:
+    cpu: 1000m
+    memory: 1Gi
+  requests:
+    cpu: 200m
+    memory: 256Mi
+
+# =============================================================================
+# Auto-scaling (Optional)
+# =============================================================================
+autoscaling:
+  enabled: false  # Enable for high-traffic scenarios
+  minReplicas: 2
+  maxReplicas: 5
+  targetCPUUtilizationPercentage: 75
+  targetMemoryUtilizationPercentage: 80
+
+# =============================================================================
+# Health Probes
+# =============================================================================
+readinessProbe:
+  enabled: true
+  httpGet:
+    path: /
+    port: 80
+  initialDelaySeconds: 30
+  periodSeconds: 10
+  timeoutSeconds: 5
+  successThreshold: 1
+  failureThreshold: 3
+
+livenessProbe:
+  enabled: true
+  httpGet:
+    path: /
+    port: 80
+  initialDelaySeconds: 60
+  periodSeconds: 20
+  timeoutSeconds: 5
+  successThreshold: 1
+  failureThreshold: 3
+
+# =============================================================================
+# Network Policy (Optional)
+# =============================================================================
+networkPolicy:
+  enabled: true
+  policyTypes:
+    - Ingress
+    - Egress
+  ingress:
+    # Allow ingress from anywhere (controlled by ingress)
+    - from:
+        - namespaceSelector: {}
+      ports:
+        - protocol: TCP
+          port: 80
+  egress:
+    # Allow DNS
+    - to:
+        - namespaceSelector: {}
+      ports:
+        - protocol: UDP
+          port: 53
+    # Allow MySQL/MariaDB connections
+    - to:
+        - namespaceSelector: {}
+      ports:
+        - protocol: TCP
+          port: 3306
+
+# =============================================================================
+# Pod Disruption Budget (Optional)
+# =============================================================================
+podDisruptionBudget:
+  enabled: false  # Enable for HA deployments
+  minAvailable: 1
+
+# =============================================================================
+# Pod Scheduling
+# =============================================================================
+nodeSelector: {}
+# Example: Run on specific nodes
+#   node-role.kubernetes.io/database: "true"
+
+tolerations: []
+# Example: Tolerate database taint
+#   - key: "database"
+#     operator: "Equal"
+#     value: "true"
+#     effect: "NoSchedule"
+
+affinity: {}
+# Example: Co-locate with databases
+#   podAffinity:
+#     preferredDuringSchedulingIgnoredDuringExecution:
+#       - weight: 100
+#         podAffinityTerm:
+#           labelSelector:
+#             matchExpressions:
+#               - key: app
+#                 operator: In
+#                 values:
+#                   - mysql
+#           topologyKey: kubernetes.io/hostname
+
+# =============================================================================
+# Usage Examples
+# =============================================================================
+# Access phpMyAdmin:
+#   kubectl port-forward svc/phpmyadmin 8080:80
+#   Open: http://localhost:8080
+#   Select server and login with MySQL credentials
+#
+# Import large database:
+#   - Set uploadLimit to accommodate file size
+#   - Use "Import" tab
+#   - Select SQL file
+#   - Execute
+#
+# Export database:
+#   - Select database
+#   - Click "Export" tab
+#   - Choose "Quick" or "Custom" export
+#   - Download SQL file
+#
+# Configure pmadb (configuration storage):
+#   - Login to phpMyAdmin
+#   - Tools → Server → Databases → Create database "phpmyadmin"
+#   - Settings → Features → Click "Create" for all features
+#
+# Operational commands:
+#   make -f make/ops/phpmyadmin.mk phpmyadmin-port-forward  # Access locally
+#   make -f make/ops/phpmyadmin.mk phpmyadmin-logs  # View logs
+#   make -f make/ops/phpmyadmin.mk phpmyadmin-restart  # Restart
