@@ -7,11 +7,72 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Planned
+- v1.2.0 roadmap and feature planning
+
+## [1.1.0] - 2025-11-23
+
+### Overview
+
+Second release focusing on documentation, examples, and achieving 100% chart maturity.
+
+**Major Achievements:**
+- ✅ **100% Chart Maturity** - All 36 charts now at v0.3.0+ with production features
+- ✅ **Complete Example Deployments** - 3 comprehensive deployment guides (2,895 lines)
+- ✅ **GitHub Issue Templates** - 4 standardized templates for community engagement
+- ✅ **Harbor Production Ready** - Promoted to v0.3.0 with operational commands
+
+**Chart Maturity:**
+- Application Charts: 19/19 at v0.3.0 (100%)
+- Infrastructure Charts: 17/17 at v0.3.0 (100%)
+- Harbor: v0.2.0 → v0.3.0 (last chart to achieve maturity)
+
 ### Added
+
+#### Example Deployments (Phase 1)
 - **Example Deployments**: ✅ **Complete** - Three comprehensive example deployments for common use cases
   - `examples/full-monitoring-stack/` - Complete observability stack with 9 components (Prometheus, Loki, Grafana, Alertmanager, Pushgateway, Promtail, Node Exporter, Kube State Metrics, Blackbox Exporter)
+    - README.md with architecture diagram, installation guide, troubleshooting
+    - 9 production-ready values files (Prometheus, Loki, Grafana, Alertmanager, etc.)
+    - Resource requirements and customization examples
   - `examples/nextcloud-production/` - Enterprise Nextcloud deployment with PostgreSQL, Redis, and HA (2 replicas, large file uploads, session affinity)
+    - Complete installation and configuration guide
+    - occ command reference and app management
+    - Backup and restore procedures
   - `examples/wordpress-homeserver/` - Home server optimized WordPress deployment (Raspberry Pi/NUC/VPS, 50% resource reduction, security hardening)
+    - Resource-optimized configuration (500m CPU, 512Mi memory)
+    - WP-CLI usage examples
+    - Performance and security tips
+
+#### GitHub Issue Templates (Phase 1)
+- **Issue Templates**: ✅ **Complete** - Comprehensive GitHub issue templates for standardized reporting
+  - `.github/ISSUE_TEMPLATE/bug_report.yml` - Detailed bug reporting with chart selection, version info, reproduction steps
+  - `.github/ISSUE_TEMPLATE/feature_request.yml` - Feature enhancement requests with categorization and examples
+  - `.github/ISSUE_TEMPLATE/chart_request.yml` - New chart requests with application details and requirements
+  - `.github/ISSUE_TEMPLATE/documentation.yml` - Documentation improvement suggestions
+  - `.github/ISSUE_TEMPLATE/config.yml` - Template configuration with community links
+
+#### Harbor Chart Production Features (Phase 2)
+- **Harbor v0.3.0**: ✅ **Complete** - Promoted from v0.2.0 with full production feature set
+  - `templates/hpa.yaml` - HorizontalPodAutoscaler for core and registry components (CPU/memory scaling)
+  - `templates/poddisruptionbudget.yaml` - Ensures availability during maintenance (minAvailable=1)
+  - `templates/servicemonitor.yaml` - Prometheus Operator integration (/metrics endpoint)
+  - `templates/networkpolicy.yaml` - Network isolation (PostgreSQL, Redis, DNS, HTTPS egress)
+  - Updated `values.yaml` with autoscaling, PDB, ServiceMonitor, NetworkPolicy configurations
+  - Updated `values-example.yaml` with production features enabled
+
+#### Harbor Operational Commands (Phase 2)
+- **Harbor Makefile**: ✅ **Complete** - Comprehensive operational command suite (30 commands)
+  - `make/ops/harbor.mk` - Complete Harbor management and troubleshooting toolkit
+    - Access & Credentials: get-admin-password, port-forward
+    - Component Status: status, logs, shell access for core and registry
+    - Health & Monitoring: health checks, version, metrics
+    - Registry Operations: test-push/pull, catalog, projects, garbage collection
+    - Database Operations: PostgreSQL and Redis connection tests, migrations
+    - Operations: restart, scale
+  - Updated `CLAUDE.md` with Harbor command reference
+
+#### Example Values Files (Completed in v1.0.0, documented here)
 - **Example Values Files**: ✅ **100% Coverage** - All 36 charts now have comprehensive production-ready example configurations
   - **Monitoring Stack (9 charts - Complete)**:
     - `charts/prometheus/values-example.yaml` - Prometheus monitoring (TSDB, ServiceMonitors, alert rules, Kubernetes SD)
