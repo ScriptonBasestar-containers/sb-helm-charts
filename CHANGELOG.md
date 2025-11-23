@@ -8,6 +8,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **Example Deployments**: ✅ **Complete** - Three comprehensive example deployments for common use cases
+  - `examples/full-monitoring-stack/` - Complete observability stack with 9 components (Prometheus, Loki, Grafana, Alertmanager, Pushgateway, Promtail, Node Exporter, Kube State Metrics, Blackbox Exporter)
+  - `examples/nextcloud-production/` - Enterprise Nextcloud deployment with PostgreSQL, Redis, and HA (2 replicas, large file uploads, session affinity)
+  - `examples/wordpress-homeserver/` - Home server optimized WordPress deployment (Raspberry Pi/NUC/VPS, 50% resource reduction, security hardening)
 - **Example Values Files**: ✅ **100% Coverage** - All 36 charts now have comprehensive production-ready example configurations
   - **Monitoring Stack (9 charts - Complete)**:
     - `charts/prometheus/values-example.yaml` - Prometheus monitoring (TSDB, ServiceMonitors, alert rules, Kubernetes SD)
