@@ -1,4 +1,20 @@
 charts:
+  tempo:
+    name: Grafana Tempo
+    path: charts/tempo
+    category: infrastructure
+    tags:
+    - Observability
+    - Tracing
+    - Monitoring
+    keywords:
+    - tempo
+    - tracing
+    - distributed-tracing
+    - observability
+    - grafana
+    - opentelemetry
+    description: Grafana Tempo distributed tracing backend with S3/MinIO storage support
   uptime-kuma:
     name: Uptime Kuma
     path: charts/uptime-kuma
