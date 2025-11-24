@@ -250,7 +250,7 @@ def main():
     """Main function."""
     # File paths
     repo_root = Path(__file__).parent.parent
-    metadata_file = repo_root / 'charts-metadata.yaml'
+    metadata_file = repo_root / 'charts' / 'charts-metadata.yaml'
     output_file = repo_root / 'docs' / 'ARTIFACTHUB_DASHBOARD.md'
 
     # Repository name (adjust as needed)

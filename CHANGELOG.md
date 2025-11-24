@@ -9,6 +9,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+#### Metadata File Relocation
+- **charts-metadata.yaml Migration**: Moved from repository root to `charts/charts-metadata.yaml`
+  - **Rationale**: Better logical grouping with chart files
+  - **Updated Files**:
+    - 4 Python scripts (validate, sync, generate)
+    - Pre-commit hook configuration
+    - 9 documentation files (CLAUDE.md, README.md, CONTRIBUTING.md, etc.)
+  - **Impact**: All metadata workflows validated and working correctly
+  - **Backward Compatibility**: N/A (internal project structure change)
+
 #### Documentation Optimization
 - **CLAUDE.md Optimization**: ✅ **Complete** - Reduced file size by 77% (1,642 → 373 lines) following Anthropic best practices
   - **Problem**: CLAUDE.md was 8x larger than recommended (1,642 lines vs 100-200 line target)
@@ -372,7 +382,7 @@ First stable release of ScriptonBasestar Helm Charts with 36 production-ready ch
 - Testing, troubleshooting, production guides
 
 #### Automation
-- Centralized metadata management (charts-metadata.yaml)
+- Centralized metadata management (charts/charts-metadata.yaml)
 - Keyword sync automation
 - Pre-commit hooks for validation
 - CI/CD workflows
@@ -814,7 +824,7 @@ For users deploying pre-release versions:
   - Consolidated Intel/AMD GPU check logic
 
 #### Chart Metadata Management System
-- **Centralized Metadata** (`charts-metadata.yaml`)
+- **Centralized Metadata** (`charts/charts-metadata.yaml`)
   - Single source of truth for chart keywords, tags, descriptions
   - 16 charts documented with complete metadata
   - Categories: `application` and `infrastructure`
@@ -833,7 +843,7 @@ For users deploying pre-release versions:
   - `make generate-artifacthub-dashboard` - Generate Artifact Hub dashboard
 - **Pre-commit Hooks** (Enhanced)
   - Automatic metadata validation before commits
-  - Validates Chart.yaml and charts-metadata.yaml consistency
+  - Validates Chart.yaml and charts/charts-metadata.yaml consistency
   - Fixed configuration (removed unsupported additional_dependencies from system language hook)
   - Trailing whitespace and end-of-file auto-fixes applied
   - Conventional commits enforcement

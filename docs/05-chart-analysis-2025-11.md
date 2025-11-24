@@ -32,7 +32,7 @@ This document provides a quick summary of the comprehensive Helm charts analysis
 - Comprehensive operational tooling (Makefile commands)
 - Strong security practices (non-root, SecurityContext, Secrets)
 - External database architecture (no subcharts)
-- Metadata automation (charts-metadata.yaml)
+- Metadata automation (charts/charts-metadata.yaml)
 
 ### ⚠️ **NEEDS ATTENTION**
 1. Redis Sentinel/Cluster values exist but not implemented

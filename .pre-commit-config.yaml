@@ -53,7 +53,7 @@ repos:
         entry: python3 scripts/validate-chart-metadata.py
         language: system
         pass_filenames: false
-        files: ^(charts/.*/Chart\.yaml|charts-metadata\.yaml|scripts/validate-chart-metadata\.py)$
+        files: ^(charts/.*/Chart\.yaml|charts/charts-metadata\.yaml|scripts/validate-chart-metadata\.py)$
 
   # Markdown linting and link checking
   - repo: https://github.com/markdownlint/markdownlint

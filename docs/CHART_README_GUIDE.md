@@ -208,14 +208,14 @@ Before committing your README:
 
 ### Extract Metadata
 
-You can reference `charts-metadata.yaml` for consistent descriptions:
+You can reference `charts/charts-metadata.yaml` for consistent descriptions:
 
 ```bash
 # Get chart keywords
-yq '.charts.keycloak.keywords' charts-metadata.yaml
+yq '.charts.keycloak.keywords' charts/charts-metadata.yaml
 
 # Get chart description
-yq '.charts.keycloak.description' charts-metadata.yaml
+yq '.charts.keycloak.description' charts/charts-metadata.yaml
 ```
 
 ### Version Sync

@@ -80,7 +80,7 @@ charts/my-app/
 
 **IMPORTANT: Update Chart Metadata**
 
-When creating a new chart or modifying an existing one, you MUST update `charts-metadata.yaml` at the repository root:
+When creating a new chart or modifying an existing one, you MUST update `charts/charts-metadata.yaml`:
 
 ```yaml
 charts:
@@ -104,7 +104,7 @@ See [CLAUDE.md](../CLAUDE.md#chart-metadata) for complete metadata requirements.
 
 **Syncing Keywords:**
 
-After updating `charts-metadata.yaml`, you can automatically sync keywords to `Chart.yaml`:
+After updating `charts/charts-metadata.yaml`, you can automatically sync keywords to `Chart.yaml`:
 
 ```bash
 # Preview changes (dry-run)
@@ -117,13 +117,13 @@ make sync-keywords
 python3 scripts/sync-chart-keywords.py --chart my-app
 ```
 
-The sync tool ensures `Chart.yaml` keywords match `charts-metadata.yaml`, maintaining consistency across all charts.
+The sync tool ensures `Chart.yaml` keywords match `charts/charts-metadata.yaml`, maintaining consistency across all charts.
 
 ### 2. Modifying Existing Charts
 
 - Always increment chart version following [Semantic Versioning](../docs/CHART_VERSION_POLICY.md)
 - Update `CHANGELOG.md` with your changes
-- Update `charts-metadata.yaml` if keywords or description changed
+- Update `charts/charts-metadata.yaml` if keywords or description changed
 - Test all scenario values files
 
 ### 3. Local Testing
@@ -152,10 +152,10 @@ helm test my-app
 
 When working with chart metadata, follow this workflow:
 
-1. **Update metadata first** in `charts-metadata.yaml`:
+1. **Update metadata first** in `charts/charts-metadata.yaml`:
    ```bash
-   # Edit charts-metadata.yaml
-   vim charts-metadata.yaml
+   # Edit charts/charts-metadata.yaml
+   vim charts/charts-metadata.yaml
    ```
 
 2. **Sync keywords to Chart.yaml**:
@@ -180,7 +180,7 @@ When working with chart metadata, follow this workflow:
 
 5. **Commit changes**:
    ```bash
-   git add charts-metadata.yaml charts/my-app/Chart.yaml docs/CHARTS.md docs/ARTIFACTHUB_DASHBOARD.md
+   git add charts/charts-metadata.yaml charts/my-app/Chart.yaml docs/CHARTS.md docs/ARTIFACTHUB_DASHBOARD.md
    git commit -m "feat(my-app): Update chart keywords and regenerate catalog"
    ```
 
@@ -308,7 +308,7 @@ See [Scenario Values Guide](../docs/SCENARIO_VALUES_GUIDE.md) for detailed speci
    - Chart `README.md` with deployment examples
    - Main `CHANGELOG.md` with your changes
    - Chart `Chart.yaml` annotations for Artifact Hub
-   - `charts-metadata.yaml` if keywords or description changed
+   - `charts/charts-metadata.yaml` if keywords or description changed
    - `docs/CHARTS.md` (auto-generated, run `make generate-catalog`)
 
 6. **Commit message format:**
@@ -340,7 +340,7 @@ See [Scenario Values Guide](../docs/SCENARIO_VALUES_GUIDE.md) for detailed speci
 3. PR Checklist:
    - [ ] Chart version incremented according to [version policy](../docs/CHART_VERSION_POLICY.md)
    - [ ] `CHANGELOG.md` updated
-   - [ ] `charts-metadata.yaml` updated (for new/modified charts)
+   - [ ] `charts/charts-metadata.yaml` updated (for new/modified charts)
    - [ ] All three scenario values files included
    - [ ] README.md includes deployment scenarios section
    - [ ] `helm lint` passes with 0 errors

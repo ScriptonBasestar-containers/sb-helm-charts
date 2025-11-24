@@ -79,7 +79,7 @@ def main():
     # Setup paths
     repo_root = Path(__file__).parent.parent
     charts_dir = repo_root / "charts"
-    metadata_file = repo_root / "charts-metadata.yaml"
+    metadata_file = repo_root / "charts" / "charts-metadata.yaml"
 
     print("=" * 80)
     print("Chart Metadata Validation")

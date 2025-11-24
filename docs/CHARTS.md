@@ -121,7 +121,7 @@ helm install my-grafana sb-charts/grafana
 ![Registry](https://img.shields.io/badge/tag-Registry-orange.svg)
 ![Container](https://img.shields.io/badge/tag-Container-orange.svg)
 ![Security](https://img.shields.io/badge/tag-Security-orange.svg)
-![Chart Version](https://img.shields.io/badge/chart-0.2.0-blue.svg) ![App Version](https://img.shields.io/badge/app-2.11.1-green.svg)
+![Chart Version](https://img.shields.io/badge/chart-0.3.0-blue.svg) ![App Version](https://img.shields.io/badge/app-2.11.1-green.svg)
 
 **Description**: Private container registry with vulnerability scanning and image signing
 

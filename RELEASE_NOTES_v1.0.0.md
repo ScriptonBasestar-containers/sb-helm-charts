@@ -131,7 +131,7 @@ All charts include multiple deployment profiles:
 ## 🤖 Automation
 
 ### Metadata Management
-- **charts-metadata.yaml**: Centralized metadata for all 36 charts
+- **charts/charts-metadata.yaml**: Centralized metadata for all 36 charts
 - **Validation**: Pre-commit hooks and CI/CD workflows
 - **Sync**: Automated Chart.yaml keyword synchronization
 - **Catalog**: Auto-generated CHARTS.md and Artifact Hub dashboard

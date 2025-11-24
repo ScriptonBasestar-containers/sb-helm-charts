@@ -78,7 +78,7 @@ The catalog includes:
 - **36 charts** organized by category (Application/Infrastructure)
 - Version badges, descriptions, and installation examples
 - Searchable by tags and keywords
-- Auto-generated from `charts-metadata.yaml`
+- Auto-generated from `charts/charts-metadata.yaml`
 
 **Quick Overview:**
 - **Application Charts** (19): airflow, browserless-chrome, devpi, grafana, harbor, immich, jellyfin, keycloak, loki, mlflow, nextcloud, paperless-ngx, pgadmin, phpmyadmin, rsshub, rustfs, uptime-kuma, vaultwarden, wireguard, wordpress
@@ -254,9 +254,9 @@ helm install test-prod charts/my-chart -f charts/my-chart/values-prod-master-rep
 
 ### Chart Metadata Management
 
-All chart metadata (keywords, tags, descriptions) is centrally managed in `charts-metadata.yaml`. When adding or modifying charts:
+All chart metadata (keywords, tags, descriptions) is centrally managed in `charts/charts-metadata.yaml`. When adding or modifying charts:
 
-1. **Update metadata** in `charts-metadata.yaml`
+1. **Update metadata** in `charts/charts-metadata.yaml`
 2. **Ensure Chart.yaml keywords match** the metadata file
 3. **Validate consistency**:
    ```bash
@@ -275,7 +275,7 @@ All chart metadata (keywords, tags, descriptions) is centrally managed in `chart
 
 The validation ensures:
 - ✅ All charts have metadata entries
-- ✅ Keywords in `Chart.yaml` match `charts-metadata.yaml`
+- ✅ Keywords in `Chart.yaml` match `charts/charts-metadata.yaml`
 - ✅ Consistent categorization across all charts
 
 The metadata is also used to auto-generate the [Chart Catalog](docs/CHARTS.md).

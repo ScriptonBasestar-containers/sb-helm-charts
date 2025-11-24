@@ -15,7 +15,7 @@ on:
   pull_request:
     paths:
       - 'charts/**'
-      - 'charts-metadata.yaml'
+      - 'charts/charts-metadata.yaml'
       - 'scripts/*.py'
       - 'scripts/requirements.txt'
   push:
@@ -23,7 +23,7 @@ on:
       - develop
     paths:
       - 'charts/**'
-      - 'charts-metadata.yaml'
+      - 'charts/charts-metadata.yaml'
       - 'scripts/*.py'
       - 'scripts/requirements.txt'
 ```
@@ -129,7 +129,7 @@ git push
 The enhanced CI workflow will now:
 
 1. ✅ **Validate chart metadata consistency** (NEW)
-   - Ensures Chart.yaml keywords match charts-metadata.yaml
+   - Ensures Chart.yaml keywords match charts/charts-metadata.yaml
    - Runs on every chart change
 
 2. ✅ **Verify chart catalog is up-to-date** (NEW)
@@ -152,7 +152,7 @@ The enhanced CI workflow will now:
 
 After applying the changes:
 
-1. **Test on PR**: Open a PR that modifies `charts-metadata.yaml`
+1. **Test on PR**: Open a PR that modifies `charts/charts-metadata.yaml`
 2. **Check Actions**: The `metadata-validation` job should appear
 3. **Verify Output**: Check GitHub Step Summary for validation results
 4. **Test Catalog**: Modify metadata without regenerating catalog to see failure

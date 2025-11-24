@@ -38,13 +38,13 @@ Standard: Chart.yaml, values.yaml, values-example.yaml, templates/ (deployment, 
 
 ## Chart Metadata
 
-**⚠️ CRITICAL**: All chart metadata is centrally managed in `charts-metadata.yaml` at the repository root.
+**⚠️ CRITICAL**: All chart metadata is centrally managed in `charts/charts-metadata.yaml`.
 
 ### When Adding or Modifying Charts
 
 When you add a new chart or modify an existing one, you **MUST** update:
 
-**1. Update `charts-metadata.yaml`:**
+**1. Update `charts/charts-metadata.yaml`:**
    - `name`: Human-readable chart name
    - `path`: Chart directory path (e.g., `charts/chart-name`)
    - `category`: Either `application` or `infrastructure`
@@ -232,7 +232,7 @@ extraEnv:
 
 ### Chart Metadata Requirements
 
-**ALWAYS update `charts-metadata.yaml` when adding or modifying charts** - see Chart Metadata section above.
+**ALWAYS update `charts/charts-metadata.yaml` when adding or modifying charts** - see Chart Metadata section above.
 
 ---
 
