@@ -1,0 +1,81 @@
+{{- if not .Values.tempo.existingConfigMap }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "tempo.configMapName" . }}
+  labels:
+    {{- include "tempo.labels" . | nindent 4 }}
+data:
+  tempo.yaml: |
+    server:
+      http_listen_port: 3200
+
+    distributor:
+      receivers:
+        {{- if .Values.tempo.receivers.otlp.grpc.enabled }}
+        otlp:
+          protocols:
+            grpc:
+              endpoint: "0.0.0.0:{{ .Values.tempo.receivers.otlp.grpc.port }}"
+        {{- end }}
+        {{- if .Values.tempo.receivers.otlp.http.enabled }}
+            http:
+              endpoint: "0.0.0.0:{{ .Values.tempo.receivers.otlp.http.port }}"
+        {{- end }}
+        {{- if .Values.tempo.receivers.jaeger.grpc.enabled }}
+        jaeger:
+          protocols:
+            grpc:
+              endpoint: "0.0.0.0:{{ .Values.tempo.receivers.jaeger.grpc.port }}"
+        {{- end }}
+        {{- if .Values.tempo.receivers.jaeger.thriftHttp.enabled }}
+            thrift_http:
+              endpoint: "0.0.0.0:{{ .Values.tempo.receivers.jaeger.thriftHttp.port }}"
+        {{- end }}
+        {{- if .Values.tempo.receivers.zipkin.enabled }}
+        zipkin:
+          endpoint: "0.0.0.0:{{ .Values.tempo.receivers.zipkin.port }}"
+        {{- end }}
+
+    ingester:
+      trace_idle_period: {{ .Values.tempo.ingester.traceIdleTime | quote }}
+      max_block_duration: {{ .Values.tempo.ingester.maxBlockDuration | quote }}
+
+    compactor:
+      compaction:
+        block_retention: {{ mul .Values.tempo.retention.days 24 }}h
+        compaction_window: {{ .Values.tempo.compactor.compactionWindow | quote }}
+        max_compaction_objects: {{ .Values.tempo.compactor.maxCompactionObjects }}
+
+    storage:
+      trace:
+        {{- if eq .Values.tempo.storage.type "local" }}
+        backend: local
+        local:
+          path: {{ .Values.tempo.storage.local.path | quote }}
+        {{- else if eq .Values.tempo.storage.type "s3" }}
+        backend: s3
+        s3:
+          bucket: {{ .Values.tempo.storage.s3.bucket | quote }}
+          endpoint: {{ .Values.tempo.storage.s3.endpoint | quote }}
+          {{- if .Values.tempo.storage.s3.insecure }}
+          insecure: true
+          {{- end }}
+        {{- end }}
+        wal:
+          path: /var/tempo/wal
+        pool:
+          max_workers: 100
+          queue_depth: 10000
+
+    query_frontend:
+      {{- if .Values.tempo.queryFrontend.search.enabled }}
+      search:
+        max_duration: {{ .Values.tempo.queryFrontend.search.maxDuration | default "0" | quote }}
+      {{- end }}
+
+    overrides:
+      {{- if .Values.tempo.config }}
+      {{- toYaml .Values.tempo.config | nindent 6 }}
+      {{- end }}
+{{- end }}

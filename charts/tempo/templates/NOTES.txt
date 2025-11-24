@@ -1,0 +1,49 @@
+Thank you for installing {{ .Chart.Name }}!
+
+Your release is named {{ .Release.Name }}.
+
+To learn more about the release, try:
+
+  $ helm status {{ .Release.Name }} -n {{ .Release.Namespace }}
+  $ helm get all {{ .Release.Name }} -n {{ .Release.Namespace }}
+
+Tempo is now running in your cluster!
+
+{{- if .Values.tempo.receivers.otlp.grpc.enabled }}
+
+OTLP gRPC receiver is available at:
+  {{ include "tempo.fullname" . }}.{{ .Release.Namespace }}.svc.cluster.local:{{ .Values.service.ports.otlpGrpc }}
+{{- end }}
+
+{{- if .Values.tempo.receivers.otlp.http.enabled }}
+
+OTLP HTTP receiver is available at:
+  {{ include "tempo.fullname" . }}.{{ .Release.Namespace }}.svc.cluster.local:{{ .Values.service.ports.otlpHttp }}
+{{- end }}
+
+Tempo HTTP API is available at:
+  {{ include "tempo.fullname" . }}.{{ .Release.Namespace }}.svc.cluster.local:{{ .Values.service.port }}
+
+To query traces, integrate with Grafana:
+  - Data source type: Tempo
+  - URL: http://{{ include "tempo.fullname" . }}.{{ .Release.Namespace }}.svc.cluster.local:{{ .Values.service.port }}
+
+{{- if eq .Values.tempo.storage.type "local" }}
+
+⚠️  WARNING: Using local storage. For production, configure S3/MinIO storage:
+  --set tempo.storage.type=s3
+  --set tempo.storage.s3.endpoint=minio.default.svc.cluster.local:9000
+  --set tempo.storage.s3.bucket=tempo-traces
+  --set tempo.storage.s3.accessKeyId=<access-key>
+  --set tempo.storage.s3.secretAccessKey=<secret-key>
+{{- end }}
+
+{{- if not .Values.serviceMonitor.enabled }}
+
+💡 TIP: Enable Prometheus monitoring:
+  --set serviceMonitor.enabled=true
+{{- end }}
+
+For more information, visit:
+  - Documentation: https://grafana.com/docs/tempo/latest/
+  - GitHub: https://github.com/grafana/tempo

@@ -1,0 +1,21 @@
+apiVersion: v2
+name: tempo
+description: Grafana Tempo distributed tracing backend with S3/MinIO storage support
+type: application
+version: 0.3.0
+appVersion: "2.6.1"
+keywords:
+  - tempo
+  - tracing
+  - distributed-tracing
+  - observability
+  - grafana
+  - opentelemetry
+home: https://github.com/scriptonbasestar-container/sb-helm-charts
+icon: https://raw.githubusercontent.com/cncf/artwork/master/projects/grafana/icon/color/grafana-icon-color.svg
+sources:
+  - https://github.com/scriptonbasestar-container/sb-helm-charts/tree/master/charts/tempo
+  - https://github.com/grafana/tempo
+maintainers:
+  - name: ScriptonBasestar
+    email: scriptonbasestar@gmail.com

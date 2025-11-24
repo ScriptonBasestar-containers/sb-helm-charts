@@ -1,0 +1,124 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "tempo.fullname" . }}
+  labels:
+    {{- include "tempo.labels" . | nindent 4 }}
+spec:
+  {{- if not .Values.autoscaling.enabled }}
+  replicas: {{ .Values.replicaCount }}
+  {{- end }}
+  selector:
+    matchLabels:
+      {{- include "tempo.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      annotations:
+        checksum/config: {{ include (print $.Template.BasePath "/configmap.yaml") . | sha256sum }}
+        {{- if and (eq .Values.tempo.storage.type "s3") (not .Values.tempo.existingSecret) }}
+        checksum/secret: {{ include (print $.Template.BasePath "/secret.yaml") . | sha256sum }}
+        {{- end }}
+        {{- with .Values.podAnnotations }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+      labels:
+        {{- include "tempo.selectorLabels" . | nindent 8 }}
+    spec:
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      serviceAccountName: {{ include "tempo.serviceAccountName" . }}
+      securityContext:
+        {{- toYaml .Values.podSecurityContext | nindent 8 }}
+      containers:
+      - name: tempo
+        securityContext:
+          {{- toYaml .Values.securityContext | nindent 12 }}
+        image: {{ include "tempo.image" . }}
+        imagePullPolicy: {{ .Values.image.pullPolicy }}
+        args:
+          - "-config.file=/etc/tempo/tempo.yaml"
+        ports:
+        - name: http
+          containerPort: 3200
+          protocol: TCP
+        {{- if .Values.tempo.receivers.otlp.grpc.enabled }}
+        - name: otlp-grpc
+          containerPort: {{ .Values.tempo.receivers.otlp.grpc.port }}
+          protocol: TCP
+        {{- end }}
+        {{- if .Values.tempo.receivers.otlp.http.enabled }}
+        - name: otlp-http
+          containerPort: {{ .Values.tempo.receivers.otlp.http.port }}
+          protocol: TCP
+        {{- end }}
+        {{- if .Values.tempo.receivers.jaeger.grpc.enabled }}
+        - name: jaeger-grpc
+          containerPort: {{ .Values.tempo.receivers.jaeger.grpc.port }}
+          protocol: TCP
+        {{- end }}
+        {{- if .Values.tempo.receivers.jaeger.thriftHttp.enabled }}
+        - name: jaeger-http
+          containerPort: {{ .Values.tempo.receivers.jaeger.thriftHttp.port }}
+          protocol: TCP
+        {{- end }}
+        {{- if .Values.tempo.receivers.zipkin.enabled }}
+        - name: zipkin
+          containerPort: {{ .Values.tempo.receivers.zipkin.port }}
+          protocol: TCP
+        {{- end }}
+        {{- if .Values.livenessProbe }}
+        livenessProbe:
+          {{- toYaml .Values.livenessProbe | nindent 12 }}
+        {{- end }}
+        {{- if .Values.readinessProbe }}
+        readinessProbe:
+          {{- toYaml .Values.readinessProbe | nindent 12 }}
+        {{- end }}
+        resources:
+          {{- toYaml .Values.resources | nindent 12 }}
+        env:
+        {{- if eq .Values.tempo.storage.type "s3" }}
+        - name: S3_ACCESS_KEY_ID
+          valueFrom:
+            secretKeyRef:
+              name: {{ include "tempo.secretName" . }}
+              key: access-key-id
+        - name: S3_SECRET_ACCESS_KEY
+          valueFrom:
+            secretKeyRef:
+              name: {{ include "tempo.secretName" . }}
+              key: secret-access-key
+        {{- end }}
+        {{- with .Values.tempo.extraEnv }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+        volumeMounts:
+        - name: config
+          mountPath: /etc/tempo
+        - name: storage
+          mountPath: /var/tempo
+      volumes:
+      - name: config
+        configMap:
+          name: {{ include "tempo.configMapName" . }}
+      - name: storage
+        {{- if and .Values.persistence.enabled (eq .Values.tempo.storage.type "local") }}
+        persistentVolumeClaim:
+          claimName: {{ include "tempo.fullname" . }}
+        {{- else }}
+        emptyDir: {}
+        {{- end }}
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
