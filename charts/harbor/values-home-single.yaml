@@ -1,0 +1,158 @@
+# Harbor values for Home Server - Single Instance
+# Minimal resources optimized for home lab/personal use
+# Use: helm install harbor ./charts/harbor -f charts/harbor/values-home-single.yaml
+#
+# Requirements:
+# - External PostgreSQL 12+ (required)
+# - External Redis 6+ (required)
+# - Set passwords: --set harbor.adminPassword=xxx --set postgresql.external.password=xxx
+
+# Core component - single instance with minimal resources
+core:
+  replicaCount: 1
+
+  image:
+    repository: goharbor/harbor-core
+    pullPolicy: IfNotPresent
+    tag: "v2.11.1"
+
+  resources:
+    limits:
+      cpu: 500m
+      memory: 512Mi
+    requests:
+      cpu: 100m
+      memory: 256Mi
+
+  livenessProbe:
+    initialDelaySeconds: 300
+    periodSeconds: 10
+    timeoutSeconds: 10
+    failureThreshold: 3
+
+  readinessProbe:
+    initialDelaySeconds: 60
+    periodSeconds: 10
+    timeoutSeconds: 10
+    failureThreshold: 3
+
+# Registry component - single instance with minimal resources
+registry:
+  replicaCount: 1
+
+  image:
+    repository: goharbor/registry-photon
+    pullPolicy: IfNotPresent
+    tag: "v2.11.1"
+
+  resources:
+    limits:
+      cpu: 500m
+      memory: 512Mi
+    requests:
+      cpu: 50m
+      memory: 128Mi
+
+  livenessProbe:
+    initialDelaySeconds: 30
+    periodSeconds: 10
+    timeoutSeconds: 5
+    failureThreshold: 3
+
+  readinessProbe:
+    initialDelaySeconds: 10
+    periodSeconds: 10
+    timeoutSeconds: 5
+    failureThreshold: 3
+
+# Harbor configuration
+harbor:
+  adminPassword: ""  # REQUIRED: Set via --set harbor.adminPassword=xxx
+  secretKey: ""  # Auto-generated if empty
+  externalURL: ""  # Auto-generated from ingress if empty
+  existingConfigMap: ""
+  existingSecret: ""
+
+# External PostgreSQL (required)
+postgresql:
+  enabled: false  # NEVER auto-install
+  external:
+    enabled: true
+    host: ""  # REQUIRED: e.g., postgres-postgresql.default.svc.cluster.local
+    port: 5432
+    database: "harbor"
+    username: "harbor"
+    password: ""  # REQUIRED: Set via --set postgresql.external.password=xxx
+
+# External Redis (required)
+redis:
+  enabled: false  # NEVER auto-install
+  external:
+    enabled: true
+    host: ""  # REQUIRED: e.g., redis-master.default.svc.cluster.local
+    port: 6379
+    password: ""  # Optional: Set if Redis has authentication
+
+# Service
+service:
+  type: ClusterIP
+  port: 80
+
+# Ingress - disabled by default for home use
+ingress:
+  enabled: false
+  className: ""
+  annotations: {}
+  hosts:
+    - harbor.local
+  tls: []
+
+# Persistence - smaller volume for home use
+persistence:
+  enabled: true
+  storageClass: ""  # Use default storage class
+  accessMode: ReadWriteOnce
+  size: 20Gi  # Reduced from 50Gi for home use
+
+# ServiceAccount
+serviceAccount:
+  create: true
+  annotations: {}
+  name: ""
+
+# Security
+podSecurityContext:
+  fsGroup: 10000
+  runAsUser: 10000
+  runAsNonRoot: true
+
+securityContext:
+  capabilities:
+    drop:
+    - ALL
+  readOnlyRootFilesystem: false
+  allowPrivilegeEscalation: false
+
+# Pod annotations
+podAnnotations: {}
+
+# Node selection
+nodeSelector: {}
+tolerations: []
+affinity: {}
+
+# HorizontalPodAutoscaler - disabled for single instance
+autoscaling:
+  enabled: false
+
+# PodDisruptionBudget - disabled for single instance
+podDisruptionBudget:
+  enabled: false
+
+# ServiceMonitor - disabled for home use
+serviceMonitor:
+  enabled: false
+
+# NetworkPolicy - disabled for home use
+networkPolicy:
+  enabled: false

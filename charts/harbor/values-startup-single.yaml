@@ -1,0 +1,205 @@
+# Harbor values for Startup - Single Instance
+# Balanced configuration for small teams and development environments
+# Use: helm install harbor ./charts/harbor -f charts/harbor/values-startup-single.yaml
+#
+# Requirements:
+# - External PostgreSQL 12+ (required)
+# - External Redis 6+ (required)
+# - Set passwords: --set harbor.adminPassword=xxx --set postgresql.external.password=xxx
+
+# Core component - single instance with balanced resources
+core:
+  replicaCount: 1
+
+  image:
+    repository: goharbor/harbor-core
+    pullPolicy: IfNotPresent
+    tag: "v2.11.1"
+
+  resources:
+    limits:
+      cpu: 1000m
+      memory: 1Gi
+    requests:
+      cpu: 250m
+      memory: 512Mi
+
+  livenessProbe:
+    initialDelaySeconds: 300
+    periodSeconds: 10
+    timeoutSeconds: 10
+    failureThreshold: 3
+
+  readinessProbe:
+    initialDelaySeconds: 60
+    periodSeconds: 10
+    timeoutSeconds: 10
+    failureThreshold: 3
+
+# Registry component - single instance with balanced resources
+registry:
+  replicaCount: 1
+
+  image:
+    repository: goharbor/registry-photon
+    pullPolicy: IfNotPresent
+    tag: "v2.11.1"
+
+  resources:
+    limits:
+      cpu: 1000m
+      memory: 1Gi
+    requests:
+      cpu: 100m
+      memory: 256Mi
+
+  livenessProbe:
+    initialDelaySeconds: 30
+    periodSeconds: 10
+    timeoutSeconds: 5
+    failureThreshold: 3
+
+  readinessProbe:
+    initialDelaySeconds: 10
+    periodSeconds: 10
+    timeoutSeconds: 5
+    failureThreshold: 3
+
+# Harbor configuration
+harbor:
+  adminPassword: ""  # REQUIRED: Set via --set harbor.adminPassword=xxx
+  secretKey: ""  # Auto-generated if empty
+  externalURL: ""  # REQUIRED: Set to public URL (e.g., https://harbor.example.com)
+  existingConfigMap: ""
+  existingSecret: ""
+
+# External PostgreSQL (required)
+postgresql:
+  enabled: false  # NEVER auto-install
+  external:
+    enabled: true
+    host: ""  # REQUIRED: e.g., postgres-postgresql.default.svc.cluster.local
+    port: 5432
+    database: "harbor"
+    username: "harbor"
+    password: ""  # REQUIRED: Set via --set postgresql.external.password=xxx
+
+# External Redis (required)
+redis:
+  enabled: false  # NEVER auto-install
+  external:
+    enabled: true
+    host: ""  # REQUIRED: e.g., redis-master.default.svc.cluster.local
+    port: 6379
+    password: ""  # Optional: Set if Redis has authentication
+
+# Service
+service:
+  type: ClusterIP
+  port: 80
+
+# Ingress - typically enabled for startup environments
+ingress:
+  enabled: true
+  className: "nginx"
+  annotations:
+    # Required for large image uploads
+    nginx.ingress.kubernetes.io/proxy-body-size: "0"
+    nginx.ingress.kubernetes.io/proxy-buffering: "off"
+    # Optional: cert-manager
+    # cert-manager.io/cluster-issuer: "letsencrypt-prod"
+  hosts:
+    - harbor.example.com  # CHANGE THIS
+  tls:
+    - secretName: harbor-tls
+      hosts:
+        - harbor.example.com  # CHANGE THIS
+
+# Persistence - moderate volume for startup use
+persistence:
+  enabled: true
+  storageClass: ""  # Use default storage class
+  accessMode: ReadWriteOnce
+  size: 50Gi  # Standard size for startup environment
+
+# ServiceAccount
+serviceAccount:
+  create: true
+  annotations: {}
+  name: ""
+
+# Security
+podSecurityContext:
+  fsGroup: 10000
+  runAsUser: 10000
+  runAsNonRoot: true
+
+securityContext:
+  capabilities:
+    drop:
+    - ALL
+  readOnlyRootFilesystem: false
+  allowPrivilegeEscalation: false
+
+# Pod annotations
+podAnnotations: {}
+
+# Node selection
+nodeSelector: {}
+tolerations: []
+affinity: {}
+
+# HorizontalPodAutoscaler - disabled for single instance
+autoscaling:
+  enabled: false
+
+# PodDisruptionBudget - disabled for single instance
+podDisruptionBudget:
+  enabled: false
+
+# ServiceMonitor - enabled for monitoring
+serviceMonitor:
+  enabled: true
+  interval: 30s
+  scrapeTimeout: 10s
+  path: /metrics
+  labels:
+    prometheus: kube-prometheus
+
+# NetworkPolicy - enabled for security
+networkPolicy:
+  enabled: true
+  policyTypes:
+    - Ingress
+    - Egress
+  ingress:
+    - from:
+        - namespaceSelector: {}
+      ports:
+        - protocol: TCP
+          port: 80
+  egress:
+    # Allow DNS
+    - to:
+        - namespaceSelector: {}
+      ports:
+        - protocol: UDP
+          port: 53
+    # Allow PostgreSQL
+    - to:
+        - namespaceSelector: {}
+      ports:
+        - protocol: TCP
+          port: 5432
+    # Allow Redis
+    - to:
+        - namespaceSelector: {}
+      ports:
+        - protocol: TCP
+          port: 6379
+    # Allow HTTPS (for external registries, vulnerability scanning)
+    - to:
+        - namespaceSelector: {}
+      ports:
+        - protocol: TCP
+          port: 443

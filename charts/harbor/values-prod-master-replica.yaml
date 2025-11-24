@@ -1,0 +1,258 @@
+# Harbor values for Production - High Availability
+# Production-ready configuration with multiple replicas and HA features
+# Use: helm install harbor ./charts/harbor -f charts/harbor/values-prod-master-replica.yaml
+#
+# Requirements:
+# - External PostgreSQL 12+ with HA (required)
+# - External Redis 6+ with HA (required)
+# - Set passwords: --set harbor.adminPassword=xxx --set postgresql.external.password=xxx
+# - ReadWriteMany storage or shared filesystem for multi-replica registry
+
+# Core component - multiple replicas for HA
+core:
+  replicaCount: 2  # Multiple replicas for HA
+
+  image:
+    repository: goharbor/harbor-core
+    pullPolicy: IfNotPresent
+    tag: "v2.11.1"
+
+  resources:
+    limits:
+      cpu: 2000m
+      memory: 2Gi
+    requests:
+      cpu: 500m
+      memory: 512Mi
+
+  livenessProbe:
+    initialDelaySeconds: 300
+    periodSeconds: 10
+    timeoutSeconds: 10
+    failureThreshold: 3
+
+  readinessProbe:
+    initialDelaySeconds: 60
+    periodSeconds: 10
+    timeoutSeconds: 10
+    failureThreshold: 3
+
+# Registry component - multiple replicas for HA
+registry:
+  replicaCount: 2  # Multiple replicas for HA
+
+  image:
+    repository: goharbor/registry-photon
+    pullPolicy: IfNotPresent
+    tag: "v2.11.1"
+
+  resources:
+    limits:
+      cpu: 2000m
+      memory: 2Gi
+    requests:
+      cpu: 500m
+      memory: 512Mi
+
+  livenessProbe:
+    initialDelaySeconds: 30
+    periodSeconds: 10
+    timeoutSeconds: 5
+    failureThreshold: 3
+
+  readinessProbe:
+    initialDelaySeconds: 10
+    periodSeconds: 10
+    timeoutSeconds: 5
+    failureThreshold: 3
+
+# Harbor configuration
+harbor:
+  adminPassword: ""  # REQUIRED: Set via --set harbor.adminPassword=xxx
+  secretKey: ""  # Auto-generated if empty
+  externalURL: ""  # REQUIRED: Set to public URL (e.g., https://harbor.example.com)
+  existingConfigMap: ""
+  existingSecret: ""
+
+# External PostgreSQL (required - HA recommended)
+postgresql:
+  enabled: false  # NEVER auto-install
+  external:
+    enabled: true
+    host: ""  # REQUIRED: e.g., postgres-ha-pgpool.default.svc.cluster.local
+    port: 5432
+    database: "harbor"
+    username: "harbor"
+    password: ""  # REQUIRED: Set via --set postgresql.external.password=xxx
+
+# External Redis (required - HA recommended)
+redis:
+  enabled: false  # NEVER auto-install
+  external:
+    enabled: true
+    host: ""  # REQUIRED: e.g., redis-ha-announce-0.default.svc.cluster.local
+    port: 6379
+    password: ""  # REQUIRED: Set if Redis has authentication
+
+# Service
+service:
+  type: ClusterIP
+  port: 80
+
+# Ingress - enabled for production
+ingress:
+  enabled: true
+  className: "nginx"
+  annotations:
+    # Required for large image uploads
+    nginx.ingress.kubernetes.io/proxy-body-size: "0"
+    nginx.ingress.kubernetes.io/proxy-buffering: "off"
+    nginx.ingress.kubernetes.io/proxy-connect-timeout: "300"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "300"
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "300"
+    # TLS configuration
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
+    # Rate limiting (optional)
+    nginx.ingress.kubernetes.io/limit-rps: "100"
+  hosts:
+    - harbor.example.com  # CHANGE THIS
+  tls:
+    - secretName: harbor-tls
+      hosts:
+        - harbor.example.com  # CHANGE THIS
+
+# Persistence - large volume for production
+# NOTE: For multi-replica registry, consider using ReadWriteMany or S3/MinIO backend
+persistence:
+  enabled: true
+  storageClass: ""  # Use storage class that supports ReadWriteMany if available
+  accessMode: ReadWriteOnce  # Change to ReadWriteMany for multi-replica registry
+  size: 100Gi  # Large volume for production
+
+# ServiceAccount
+serviceAccount:
+  create: true
+  annotations: {}
+  name: ""
+
+# Security
+podSecurityContext:
+  fsGroup: 10000
+  runAsUser: 10000
+  runAsNonRoot: true
+
+securityContext:
+  capabilities:
+    drop:
+    - ALL
+  readOnlyRootFilesystem: false
+  allowPrivilegeEscalation: false
+
+# Pod annotations
+podAnnotations:
+  prometheus.io/scrape: "true"
+  prometheus.io/port: "8080"
+  prometheus.io/path: "/metrics"
+
+# Node selection - spread across availability zones
+nodeSelector: {}
+
+tolerations: []
+
+# Pod anti-affinity for HA
+affinity:
+  podAntiAffinity:
+    preferredDuringSchedulingIgnoredDuringExecution:
+      - weight: 100
+        podAffinityTerm:
+          labelSelector:
+            matchExpressions:
+              - key: app.kubernetes.io/name
+                operator: In
+                values:
+                  - harbor
+              - key: app.kubernetes.io/component
+                operator: In
+                values:
+                  - core
+                  - registry
+          topologyKey: kubernetes.io/hostname
+      - weight: 50
+        podAffinityTerm:
+          labelSelector:
+            matchExpressions:
+              - key: app.kubernetes.io/name
+                operator: In
+                values:
+                  - harbor
+          topologyKey: topology.kubernetes.io/zone
+
+# HorizontalPodAutoscaler - enabled for auto-scaling
+autoscaling:
+  enabled: true
+  minReplicas: 2
+  maxReplicas: 5
+  targetCPUUtilizationPercentage: 75
+  targetMemoryUtilizationPercentage: 80
+
+# PodDisruptionBudget - enabled for HA
+podDisruptionBudget:
+  enabled: true
+  minAvailable: 1  # Ensure at least 1 replica always available
+  # maxUnavailable: 1
+
+# ServiceMonitor - enabled for monitoring
+serviceMonitor:
+  enabled: true
+  interval: 30s
+  scrapeTimeout: 10s
+  path: /metrics
+  labels:
+    prometheus: kube-prometheus
+  relabelings: []
+  metricRelabelings: []
+
+# NetworkPolicy - enabled for security
+networkPolicy:
+  enabled: true
+  policyTypes:
+    - Ingress
+    - Egress
+  ingress:
+    # Allow ingress from all namespaces (ingress controller)
+    - from:
+        - namespaceSelector: {}
+      ports:
+        - protocol: TCP
+          port: 80
+  egress:
+    # Allow DNS
+    - to:
+        - namespaceSelector: {}
+      ports:
+        - protocol: UDP
+          port: 53
+    # Allow PostgreSQL
+    - to:
+        - namespaceSelector: {}
+      ports:
+        - protocol: TCP
+          port: 5432
+    # Allow Redis
+    - to:
+        - namespaceSelector: {}
+      ports:
+        - protocol: TCP
+          port: 6379
+    # Allow HTTPS (for external registries, vulnerability scanning, etc.)
+    - to:
+        - namespaceSelector: {}
+      ports:
+        - protocol: TCP
+          port: 443
+    # Allow HTTP (for external registries)
+    - to:
+        - namespaceSelector: {}
+      ports:
+        - protocol: TCP
+          port: 80
