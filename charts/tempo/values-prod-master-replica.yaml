@@ -1,0 +1,232 @@
+# Tempo values for Production - High Availability
+# Production-ready configuration with multiple replicas and HA features
+# Use: helm install tempo ./charts/tempo -f charts/tempo/values-prod-master-replica.yaml
+#
+# Requirements:
+# - S3/MinIO storage (REQUIRED for multi-replica)
+# - Set credentials: --set tempo.storage.s3.accessKeyId=xxx --set tempo.storage.s3.secretAccessKey=xxx
+
+# Multiple replicas for HA (requires S3 storage)
+replicaCount: 2
+
+image:
+  repository: grafana/tempo
+  pullPolicy: IfNotPresent
+  tag: ""
+
+# Tempo configuration - S3 storage required for HA
+tempo:
+  existingConfigMap: ""
+  existingSecret: ""
+
+  auth:
+    enabled: false
+
+  # S3/MinIO storage REQUIRED for production HA
+  storage:
+    type: "s3"
+    local:
+      path: "/var/tempo/traces"
+    s3:
+      endpoint: ""  # REQUIRED: e.g., minio.default.svc.cluster.local:9000
+      bucket: "tempo-traces"
+      accessKeyId: ""  # REQUIRED: Set via --set
+      secretAccessKey: ""  # REQUIRED: Set via --set
+      insecure: false  # Set true for HTTP MinIO dev
+
+  # Trace retention - 14 days for production
+  retention:
+    days: 14
+
+  # All receivers enabled for production compatibility
+  receivers:
+    otlp:
+      grpc:
+        enabled: true
+        port: 4317
+      http:
+        enabled: true
+        port: 4318
+    jaeger:
+      grpc:
+        enabled: true
+        port: 14250
+      thriftHttp:
+        enabled: true
+        port: 14268
+    zipkin:
+      enabled: true
+      port: 9411
+
+  ingester:
+    traceIdleTime: "10s"
+    maxBlockDuration: "30m"
+
+  compactor:
+    compactionWindow: "1h"
+    maxCompactionObjects: 1000000
+
+  queryFrontend:
+    search:
+      enabled: true
+      maxDuration: "0"
+
+  config: {}
+  extraEnv: []
+
+serviceAccount:
+  create: true
+  annotations: {}
+  name: ""
+
+podAnnotations:
+  prometheus.io/scrape: "true"
+  prometheus.io/port: "3200"
+  prometheus.io/path: "/metrics"
+
+podSecurityContext:
+  fsGroup: 10001
+  runAsUser: 10001
+  runAsNonRoot: true
+
+securityContext:
+  capabilities:
+    drop:
+    - ALL
+  readOnlyRootFilesystem: false
+  runAsNonRoot: true
+  runAsUser: 10001
+
+service:
+  type: ClusterIP
+  port: 3200
+  annotations: {}
+  ports:
+    otlpGrpc: 4317
+    otlpHttp: 4318
+    jaegerGrpc: 14250
+    jaegerThriftHttp: 14268
+    zipkin: 9411
+
+# Production resources
+resources:
+  limits:
+    cpu: 2000m
+    memory: 2Gi
+  requests:
+    cpu: 250m
+    memory: 512Mi
+
+livenessProbe:
+  httpGet:
+    path: /ready
+    port: 3200
+  initialDelaySeconds: 30
+  periodSeconds: 10
+  timeoutSeconds: 5
+  failureThreshold: 3
+
+readinessProbe:
+  httpGet:
+    path: /ready
+    port: 3200
+  initialDelaySeconds: 10
+  periodSeconds: 10
+  timeoutSeconds: 5
+  failureThreshold: 3
+
+# S3 storage used, PVC disabled
+persistence:
+  enabled: false
+
+nodeSelector: {}
+
+tolerations: []
+
+# Pod anti-affinity for HA
+affinity:
+  podAntiAffinity:
+    preferredDuringSchedulingIgnoredDuringExecution:
+      - weight: 100
+        podAffinityTerm:
+          labelSelector:
+            matchExpressions:
+              - key: app.kubernetes.io/name
+                operator: In
+                values:
+                  - tempo
+          topologyKey: kubernetes.io/hostname
+      - weight: 50
+        podAffinityTerm:
+          labelSelector:
+            matchExpressions:
+              - key: app.kubernetes.io/name
+                operator: In
+                values:
+                  - tempo
+          topologyKey: topology.kubernetes.io/zone
+
+# HPA enabled for auto-scaling
+autoscaling:
+  enabled: true
+  minReplicas: 2
+  maxReplicas: 5
+  targetCPUUtilizationPercentage: 75
+  targetMemoryUtilizationPercentage: 80
+
+# PDB enabled for HA
+podDisruptionBudget:
+  enabled: true
+  minAvailable: 1
+
+# ServiceMonitor enabled for monitoring
+serviceMonitor:
+  enabled: true
+  interval: 30s
+  scrapeTimeout: 10s
+  path: /metrics
+  labels:
+    prometheus: kube-prometheus
+  relabelings: []
+  metricRelabelings: []
+
+# NetworkPolicy enabled for security
+networkPolicy:
+  enabled: true
+  policyTypes:
+    - Ingress
+    - Egress
+  ingress:
+    # Allow ingress from all namespaces (application pods)
+    - from:
+        - namespaceSelector: {}
+      ports:
+        - protocol: TCP
+          port: 3200
+        - protocol: TCP
+          port: 4317
+        - protocol: TCP
+          port: 4318
+        - protocol: TCP
+          port: 14250
+        - protocol: TCP
+          port: 14268
+        - protocol: TCP
+          port: 9411
+  egress:
+    # Allow DNS
+    - to:
+        - namespaceSelector: {}
+      ports:
+        - protocol: UDP
+          port: 53
+    # Allow S3/MinIO
+    - to:
+        - namespaceSelector: {}
+      ports:
+        - protocol: TCP
+          port: 9000
+        - protocol: TCP
+          port: 443
+        - protocol: TCP
+          port: 80

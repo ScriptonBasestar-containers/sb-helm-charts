@@ -1,0 +1,193 @@
+# Tempo values for Startup - Single Instance
+# Balanced configuration for small teams and development environments
+# Use: helm install tempo ./charts/tempo -f charts/tempo/values-startup-single.yaml
+#
+# Recommended: Use S3/MinIO storage for better scalability
+# --set tempo.storage.type=s3 --set tempo.storage.s3.endpoint=...
+
+# Single instance with balanced resources
+replicaCount: 1
+
+image:
+  repository: grafana/tempo
+  pullPolicy: IfNotPresent
+  tag: ""
+
+# Tempo configuration
+tempo:
+  existingConfigMap: ""
+  existingSecret: ""
+
+  auth:
+    enabled: false
+
+  # S3/MinIO storage recommended for startup (configure via --set)
+  # Or use local storage with larger PVC
+  storage:
+    type: "local"  # Change to "s3" for production
+    local:
+      path: "/var/tempo/traces"
+    s3:
+      endpoint: ""  # e.g., minio.default.svc.cluster.local:9000
+      bucket: "tempo-traces"
+      accessKeyId: ""
+      secretAccessKey: ""
+      insecure: false
+
+  # Trace retention - 7 days default
+  retention:
+    days: 7
+
+  # OTLP receivers (most common) + Jaeger for compatibility
+  receivers:
+    otlp:
+      grpc:
+        enabled: true
+        port: 4317
+      http:
+        enabled: true
+        port: 4318
+    jaeger:
+      grpc:
+        enabled: true
+        port: 14250
+      thriftHttp:
+        enabled: false
+    zipkin:
+      enabled: false
+
+  ingester:
+    traceIdleTime: "10s"
+    maxBlockDuration: "30m"
+
+  compactor:
+    compactionWindow: "1h"
+    maxCompactionObjects: 1000000
+
+  queryFrontend:
+    search:
+      enabled: true
+      maxDuration: "0"
+
+  config: {}
+  extraEnv: []
+
+serviceAccount:
+  create: true
+  annotations: {}
+  name: ""
+
+podAnnotations: {}
+
+podSecurityContext:
+  fsGroup: 10001
+  runAsUser: 10001
+  runAsNonRoot: true
+
+securityContext:
+  capabilities:
+    drop:
+    - ALL
+  readOnlyRootFilesystem: false
+  runAsNonRoot: true
+  runAsUser: 10001
+
+service:
+  type: ClusterIP
+  port: 3200
+  annotations: {}
+  ports:
+    otlpGrpc: 4317
+    otlpHttp: 4318
+    jaegerGrpc: 14250
+    jaegerThriftHttp: 14268
+    zipkin: 9411
+
+# Balanced resources for startup environment
+resources:
+  limits:
+    cpu: 1000m
+    memory: 1Gi
+  requests:
+    cpu: 100m
+    memory: 256Mi
+
+livenessProbe:
+  httpGet:
+    path: /ready
+    port: 3200
+  initialDelaySeconds: 30
+  periodSeconds: 10
+  timeoutSeconds: 5
+  failureThreshold: 3
+
+readinessProbe:
+  httpGet:
+    path: /ready
+    port: 3200
+  initialDelaySeconds: 10
+  periodSeconds: 10
+  timeoutSeconds: 5
+  failureThreshold: 3
+
+# Moderate storage for startup use
+persistence:
+  enabled: true
+  annotations: {}
+  accessMode: ReadWriteOnce
+  size: 10Gi  # 10Gi for startup (7 days retention)
+
+nodeSelector: {}
+tolerations: []
+affinity: {}
+
+# Disabled for single instance
+autoscaling:
+  enabled: false
+
+# Disabled for single instance
+podDisruptionBudget:
+  enabled: false
+
+# Enabled for monitoring
+serviceMonitor:
+  enabled: true
+  interval: 30s
+  scrapeTimeout: 10s
+  path: /metrics
+  labels:
+    prometheus: kube-prometheus
+
+# Enabled for security
+networkPolicy:
+  enabled: true
+  policyTypes:
+    - Ingress
+    - Egress
+  ingress:
+    - from:
+        - namespaceSelector: {}
+      ports:
+        - protocol: TCP
+          port: 3200
+        - protocol: TCP
+          port: 4317
+        - protocol: TCP
+          port: 4318
+        - protocol: TCP
+          port: 14250
+  egress:
+    # Allow DNS
+    - to:
+        - namespaceSelector: {}
+      ports:
+        - protocol: UDP
+          port: 53
+    # Allow S3/MinIO
+    - to:
+        - namespaceSelector: {}
+      ports:
+        - protocol: TCP
+          port: 9000
+        - protocol: TCP
+          port: 443

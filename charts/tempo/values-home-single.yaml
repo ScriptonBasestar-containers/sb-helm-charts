@@ -1,0 +1,150 @@
+# Tempo values for Home Server - Single Instance
+# Minimal resources optimized for home lab/personal use
+# Use: helm install tempo ./charts/tempo -f charts/tempo/values-home-single.yaml
+#
+# Storage: Local filesystem (PVC)
+# For S3/MinIO: Set --set tempo.storage.type=s3 with credentials
+
+# Single instance for home use
+replicaCount: 1
+
+image:
+  repository: grafana/tempo
+  pullPolicy: IfNotPresent
+  tag: ""
+
+# Tempo configuration - local storage
+tempo:
+  existingConfigMap: ""
+  existingSecret: ""
+
+  auth:
+    enabled: false
+
+  # Local filesystem storage (default for home use)
+  storage:
+    type: "local"
+    local:
+      path: "/var/tempo/traces"
+
+  # Trace retention - 7 days for home use
+  retention:
+    days: 7
+
+  # OTLP receivers only (most common)
+  receivers:
+    otlp:
+      grpc:
+        enabled: true
+        port: 4317
+      http:
+        enabled: true
+        port: 4318
+    jaeger:
+      grpc:
+        enabled: false
+      thriftHttp:
+        enabled: false
+    zipkin:
+      enabled: false
+
+  ingester:
+    traceIdleTime: "10s"
+    maxBlockDuration: "30m"
+
+  compactor:
+    compactionWindow: "1h"
+    maxCompactionObjects: 1000000
+
+  queryFrontend:
+    search:
+      enabled: true
+      maxDuration: "0"
+
+  config: {}
+  extraEnv: []
+
+serviceAccount:
+  create: true
+  annotations: {}
+  name: ""
+
+podAnnotations: {}
+
+podSecurityContext:
+  fsGroup: 10001
+  runAsUser: 10001
+  runAsNonRoot: true
+
+securityContext:
+  capabilities:
+    drop:
+    - ALL
+  readOnlyRootFilesystem: false
+  runAsNonRoot: true
+  runAsUser: 10001
+
+service:
+  type: ClusterIP
+  port: 3200
+  annotations: {}
+  ports:
+    otlpGrpc: 4317
+    otlpHttp: 4318
+    jaegerGrpc: 14250
+    jaegerThriftHttp: 14268
+    zipkin: 9411
+
+# Minimal resources for home server
+resources:
+  limits:
+    cpu: 500m
+    memory: 512Mi
+  requests:
+    cpu: 50m
+    memory: 128Mi
+
+livenessProbe:
+  httpGet:
+    path: /ready
+    port: 3200
+  initialDelaySeconds: 30
+  periodSeconds: 10
+  timeoutSeconds: 5
+  failureThreshold: 3
+
+readinessProbe:
+  httpGet:
+    path: /ready
+    port: 3200
+  initialDelaySeconds: 10
+  periodSeconds: 10
+  timeoutSeconds: 5
+  failureThreshold: 3
+
+# Smaller storage for home use
+persistence:
+  enabled: true
+  annotations: {}
+  accessMode: ReadWriteOnce
+  size: 5Gi  # 5Gi for home use (7 days retention)
+
+nodeSelector: {}
+tolerations: []
+affinity: {}
+
+# Disabled for single instance
+autoscaling:
+  enabled: false
+
+# Disabled for single instance
+podDisruptionBudget:
+  enabled: false
+
+# Disabled for home use
+serviceMonitor:
+  enabled: false
+
+# Disabled for home use
+networkPolicy:
+  enabled: false
