@@ -17,15 +17,13 @@
 # - S3/MinIO artifact storage
 
 # =============================================================================
-# REQUIRED: Set admin password and configure external services
+# REQUIRED: Configure external services and admin password
 # =============================================================================
-harbor:
-  adminPassword: ""  # REQUIRED - Set strong admin password
-  externalURL: "https://harbor.example.com"  # REQUIRED - Public URL
-
-postgresql:
-  external:
-    password: ""  # REQUIRED - PostgreSQL password
+# NOTE: All configuration is done in their respective sections below:
+# - harbor.adminPassword (line 102)
+# - harbor.externalURL (line 108)
+# - postgresql.external.password (line 125)
+# - redis.external.password (line 139)
 
 # =============================================================================
 # Core Component Configuration
@@ -36,6 +34,8 @@ core:
   image:
     repository: goharbor/harbor-core
     pullPolicy: IfNotPresent
+    # NOTE: Current v2.11.1, latest stable is v2.13.3 (as of 2024-11-24)
+    # Consider upgrading after testing for breaking changes
     tag: "v2.11.1"
 
   resources:

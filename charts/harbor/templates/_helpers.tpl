@@ -147,14 +147,6 @@ Component service names
 {{- printf "%s-core" (include "harbor.fullname" .) }}
 {{- end }}
 
-{{- define "harbor.portal" -}}
-{{- printf "%s-portal" (include "harbor.fullname" .) }}
-{{- end }}
-
 {{- define "harbor.registry" -}}
 {{- printf "%s-registry" (include "harbor.fullname" .) }}
-{{- end }}
-
-{{- define "harbor.jobservice" -}}
-{{- printf "%s-jobservice" (include "harbor.fullname" .) }}
 {{- end }}

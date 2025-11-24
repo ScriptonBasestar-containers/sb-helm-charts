@@ -20,5 +20,4 @@ data:
   REGISTRY_URL: "http://{{ include "harbor.registry" . }}:5000"
   TOKEN_SERVICE_URL: "http://{{ include "harbor.core" . }}:8080/service/token"
   CORE_URL: "http://{{ include "harbor.core" . }}:8080"
-  JOBSERVICE_URL: "http://{{ include "harbor.jobservice" . }}:8080"
 {{- end }}

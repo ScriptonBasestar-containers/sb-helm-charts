@@ -19,9 +19,13 @@ core:
   livenessProbe:
     initialDelaySeconds: 300
     periodSeconds: 10
+    timeoutSeconds: 10
+    failureThreshold: 3
   readinessProbe:
     initialDelaySeconds: 20
     periodSeconds: 10
+    timeoutSeconds: 10
+    failureThreshold: 3
 
 # Registry component
 registry:
@@ -40,9 +44,13 @@ registry:
   livenessProbe:
     initialDelaySeconds: 30
     periodSeconds: 10
+    timeoutSeconds: 5
+    failureThreshold: 3
   readinessProbe:
     initialDelaySeconds: 10
     periodSeconds: 10
+    timeoutSeconds: 5
+    failureThreshold: 3
 
 # Harbor configuration
 harbor:
@@ -54,6 +62,7 @@ harbor:
 
 # External PostgreSQL (REQUIRED)
 postgresql:
+  # IMPORTANT: Always false - only external PostgreSQL is supported
   enabled: false
   external:
     enabled: true
@@ -65,6 +74,7 @@ postgresql:
 
 # External Redis (REQUIRED)
 redis:
+  # IMPORTANT: Always false - only external Redis is supported
   enabled: false
   external:
     enabled: true
