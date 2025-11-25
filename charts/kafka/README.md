@@ -1,14 +1,14 @@
 # Apache Kafka Helm Chart
 
 ![Version: 0.1.0](https://img.shields.io/badge/Version-0.1.0-informational?style=flat-square)
-![AppVersion: 3.6.1](https://img.shields.io/badge/AppVersion-3.6.1-informational?style=flat-square)
+![AppVersion: 3.9.0](https://img.shields.io/badge/AppVersion-3.9.0-informational?style=flat-square)
 ![Type: application](https://img.shields.io/badge/Type-application-informational?style=flat-square)
 
 Apache Kafka streaming platform with KRaft mode (no Zookeeper) and management UI.
 
 ## Features
 
-- ✅ **Kafka 3.6.1** - Latest stable version
+- ✅ **Kafka 3.9.0** - Latest stable 3.x version (LTS)
 - ✅ **KRaft Mode** - No Zookeeper dependency
 - ✅ **Kafka UI** - Web-based management interface
 - ✅ **Production-Ready** - StatefulSet with persistent storage
@@ -271,6 +271,6 @@ Apache Kafka is licensed under the [Apache License 2.0](https://www.apache.org/l
 
 ---
 
-**Chart Version:** 0.1.0  
-**Kafka Version:** 3.6.1  
+**Chart Version:** 0.3.0
+**Kafka Version:** 3.9.0
 **Last Updated:** 2025-11

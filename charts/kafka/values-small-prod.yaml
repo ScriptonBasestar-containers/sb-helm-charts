@@ -14,7 +14,7 @@ replicaCount: 3
 image:
   repository: bitnami/kafka
   pullPolicy: IfNotPresent
-  tag: "3.6.1"
+  tag: "3.9.0"
 
 # Kafka configuration for production
 kafka:

@@ -3,7 +3,7 @@ name: kafka
 description: Apache Kafka streaming platform with KRaft mode and management UI
 type: application
 version: 0.3.0
-appVersion: "3.6.1"
+appVersion: "3.9.0"
 keywords:
   - kafka
   - streaming

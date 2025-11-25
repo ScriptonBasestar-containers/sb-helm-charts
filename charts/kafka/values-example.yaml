@@ -18,7 +18,7 @@ replicaCount: 3
 image:
   repository: bitnami/kafka
   pullPolicy: IfNotPresent
-  tag: ""  # Defaults to chart appVersion (3.6.1)
+  tag: ""  # Defaults to chart appVersion (3.9.0)
 
 # =============================================================================
 # Kafka Configuration (KRaft Mode)
