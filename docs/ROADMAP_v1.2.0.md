@@ -115,7 +115,7 @@ Planning document for v1.2.0 release following the v1.1.0 documentation-focused 
 - [x] OpenTelemetry Collector chart *(2025-11-25: charts/opentelemetry-collector)*
 - [x] Pre-configured alerting rules *(2025-11-25: alerting-rules/ with Prometheus, Kubernetes, Loki, Tempo, Mimir)*
 - [x] Advanced HA guide *(2025-11-25: docs/ADVANCED_HA_GUIDE.md)*
-- [ ] Vault integration examples
+- [x] Vault integration examples *(2025-11-25: docs/VAULT_INTEGRATION_GUIDE.md)*
 
 ### Nice to Have (Optional)
 - [ ] Consul chart
