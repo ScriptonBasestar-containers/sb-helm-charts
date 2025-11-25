@@ -35,28 +35,28 @@ This document provides a quick summary of the comprehensive Helm charts analysis
 - Metadata automation (charts/charts-metadata.yaml)
 
 ### ⚠️ **NEEDS ATTENTION**
-1. Redis Sentinel/Cluster values exist but not implemented
-2. Redis existingClaim support is broken
+1. ✅ Redis Sentinel/Cluster values - WARNING comments added (2025-11)
+2. ✅ Redis existingClaim support - Fixed in v0.3.1+
 3. Some misleading file names (memcached, rabbitmq prod files)
 
 ---
 
 ## 🔴 Critical Issues (Must Fix)
 
-### 1. Redis: Remove Unimplemented Scenario Files
+### 1. ✅ Redis: Unimplemented Scenario Files - RESOLVED
 ```bash
-# These files exist but don't work:
-charts/redis/values-prod-sentinel.yaml     # ❌ Templates don't support Sentinel
-charts/redis/values-prod-cluster.yaml      # ❌ Templates don't support Cluster
+# These files now contain WARNING comments:
+charts/redis/values-prod-sentinel.yaml     # ⚠️ WARNING added - not implemented
+charts/redis/values-prod-cluster.yaml      # ⚠️ WARNING added - not implemented
 
-# Action: Remove or add WARNING comment
+# Status: WARNING comments added (2025-11-25)
 ```
 
-### 2. Redis: Fix existingClaim Support
+### 2. ✅ Redis: existingClaim Support - RESOLVED
 ```
-File: charts/redis/templates/statefulset.yaml:270-287
-Issue: persistence.existingClaim is ignored (no volume mount created)
-Impact: Silent data loss
+File: charts/redis/templates/statefulset.yaml
+Status: Fixed in v0.3.1+ (current: v0.3.3)
+Verification: helm template with existingClaim works correctly
 ```
 
 ---
@@ -151,9 +151,9 @@ Impact: Silent data loss
 - Startup scenarios (all charts)
 
 ### ⚠️ Not Ready for Production
-- ❌ Redis Sentinel mode (not implemented)
-- ❌ Redis Cluster mode (not implemented)
-- ⚠️ Redis with existingClaim (broken)
+- ❌ Redis Sentinel mode (not implemented - use Bitnami chart)
+- ❌ Redis Cluster mode (not implemented - use Bitnami chart)
+- ✅ Redis with existingClaim (fixed in v0.3.1+)
 
 ### 📌 Requires External Services
 - PostgreSQL for: Keycloak, Nextcloud, Paperless-ngx, Immich, Devpi
