@@ -3,7 +3,7 @@ name: harbor
 description: Private container registry with vulnerability scanning and image signing
 type: application
 version: 0.3.0
-appVersion: "2.11.1"
+appVersion: "2.13.3"
 keywords:
   - harbor
   - registry

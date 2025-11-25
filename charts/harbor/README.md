@@ -3,7 +3,7 @@
 <!-- Badges -->
 [![Artifact Hub](https://img.shields.io/endpoint?url=https://artifacthub.io/badge/repository/sb-helm-charts)](https://artifacthub.io/packages/helm/sb-helm-charts/harbor)
 [![Chart Version](https://img.shields.io/badge/chart-0.3.0-blue.svg)](https://github.com/scriptonbasestar-container/sb-helm-charts)
-[![App Version](https://img.shields.io/badge/app-2.11.1-green.svg)](https://goharbor.io/)
+[![App Version](https://img.shields.io/badge/app-2.13.3-green.svg)](https://goharbor.io/)
 [![License](https://img.shields.io/badge/license-BSD--3--Clause-orange.svg)](https://opensource.org/licenses/BSD-3-Clause)
 
 Private container registry with vulnerability scanning and image signing capabilities.
@@ -232,12 +232,12 @@ No special Redis configuration needed - standard Redis installation works.
 | `harbor.secretKey` | Encryption secret key | Auto-generated |
 | **Core Component** | | |
 | `core.replicaCount` | Number of core replicas | `1` |
-| `core.image.tag` | Harbor core image tag | `v2.11.1` |
+| `core.image.tag` | Harbor core image tag | `v2.13.3` |
 | `core.resources.requests.cpu` | Core CPU request | `100m` |
 | `core.resources.requests.memory` | Core memory request | `256Mi` |
 | **Registry Component** | | |
 | `registry.replicaCount` | Number of registry replicas | `1` |
-| `registry.image.tag` | Registry image tag | `v2.11.1` |
+| `registry.image.tag` | Registry image tag | `v2.13.3` |
 | `registry.resources.requests.cpu` | Registry CPU request | `100m` |
 | `registry.resources.requests.memory` | Registry memory request | `256Mi` |
 | **PostgreSQL** | | |

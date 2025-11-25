@@ -34,9 +34,8 @@ core:
   image:
     repository: goharbor/harbor-core
     pullPolicy: IfNotPresent
-    # NOTE: Current v2.11.1, latest stable is v2.13.3 (as of 2024-11-24)
-    # Consider upgrading after testing for breaking changes
-    tag: "v2.11.1"
+    # NOTE: Using v2.13.3 (latest stable as of 2025-11)
+    tag: "v2.13.3"
 
   resources:
     limits:
@@ -67,7 +66,7 @@ registry:
   image:
     repository: goharbor/registry-photon
     pullPolicy: IfNotPresent
-    tag: "v2.11.1"
+    tag: "v2.13.3"
 
   resources:
     limits:
