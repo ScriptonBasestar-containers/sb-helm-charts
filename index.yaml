@@ -878,6 +878,34 @@ entries:
     urls:
     - https://github.com/ScriptonBasestar-containers/sb-helm-charts/releases/download/memcached-0.1.0/memcached-0.1.0.tgz
     version: 0.1.0
+  mimir:
+  - apiVersion: v2
+    appVersion: 2.15.0
+    created: "2025-11-25T08:05:56.273413506Z"
+    description: Grafana Mimir - horizontally scalable, highly available, long-term
+      storage for Prometheus metrics
+    digest: 8ba3d60d5efd245cb5efa3a6f8111a3b5f5c6c75683c3bd920156798c3a53625
+    home: https://github.com/scriptonbasestar-container/sb-helm-charts
+    icon: https://grafana.com/static/img/menu/mimir.svg
+    keywords:
+    - mimir
+    - metrics
+    - prometheus
+    - monitoring
+    - observability
+    - timeseries
+    - long-term-storage
+    maintainers:
+    - email: scriptonbasestar@gmail.com
+      name: ScriptonBasestar
+    name: mimir
+    sources:
+    - https://github.com/scriptonbasestar-container/sb-helm-charts/tree/master/charts/mimir
+    - https://github.com/grafana/mimir
+    type: application
+    urls:
+    - https://github.com/ScriptonBasestar-containers/sb-helm-charts/releases/download/mimir-0.3.0/mimir-0.3.0.tgz
+    version: 0.3.0
   minio:
   - annotations:
       artifacthub.io/changes: |
@@ -2455,4 +2483,4 @@ entries:
     urls:
     - https://github.com/ScriptonBasestar-containers/sb-helm-charts/releases/download/wordpress-0.1.0/wordpress-0.1.0.tgz
     version: 0.1.0
-generated: "2025-11-25T02:18:36.720214837Z"
+generated: "2025-11-25T08:05:58.700830571Z"
