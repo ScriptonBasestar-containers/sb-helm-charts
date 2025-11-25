@@ -2,7 +2,7 @@
 
 [![Artifact Hub](https://img.shields.io/endpoint?url=https://artifacthub.io/badge/repository/sb-helm-charts)](https://artifacthub.io/packages/helm/sb-helm-charts/elasticsearch)
 [![Chart Version](https://img.shields.io/badge/chart-0.1.0-blue.svg)](https://github.com/scriptonbasestar-container/sb-helm-charts)
-[![App Version](https://img.shields.io/badge/app-8.11.0-green.svg)](https://www.elastic.co/elasticsearch/)
+[![App Version](https://img.shields.io/badge/app-8.17.0-green.svg)](https://www.elastic.co/elasticsearch/)
 [![License](https://img.shields.io/badge/license-BSD--3--Clause-orange.svg)](https://opensource.org/licenses/BSD-3-Clause)
 
 Distributed search and analytics engine with integrated Kibana web UI for visualization and exploration.
