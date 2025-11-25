@@ -3,7 +3,7 @@ name: grafana
 description: Grafana metrics visualization and dashboarding platform
 type: application
 version: 0.3.0
-appVersion: "10.2.3"
+appVersion: "12.2.2"
 keywords:
   - grafana
   - monitoring

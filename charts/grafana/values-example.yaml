@@ -19,7 +19,7 @@ replicaCount: 1
 image:
   repository: grafana/grafana
   pullPolicy: IfNotPresent
-  tag: ""  # Defaults to chart appVersion (10.2.3)
+  tag: ""  # Defaults to chart appVersion (12.2.2)
 
 # =============================================================================
 # Grafana Configuration
