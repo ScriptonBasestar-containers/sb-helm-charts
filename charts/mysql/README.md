@@ -1,6 +1,6 @@
 # MySQL Helm Chart
 
-![Version: 0.1.0](https://img.shields.io/badge/Version-0.1.0-informational?style=flat-square) ![Type: application](https://img.shields.io/badge/Type-application-informational?style=flat-square) ![AppVersion: 8.0.35](https://img.shields.io/badge/AppVersion-8.0.35-informational?style=flat-square)
+![Version: 0.1.0](https://img.shields.io/badge/Version-0.1.0-informational?style=flat-square) ![Type: application](https://img.shields.io/badge/Type-application-informational?style=flat-square) ![AppVersion: 8.4.3](https://img.shields.io/badge/AppVersion-8.4.3-informational?style=flat-square)
 
 MySQL relational database with replication support for Kubernetes
 
@@ -673,5 +673,5 @@ MySQL is licensed under the GNU General Public License (GPL) version 2.
 ---
 
 **Maintained by**: ScriptonBasestar
-**Chart Version**: 0.1.0
-**MySQL Version**: 8.0.35
+**Chart Version**: 0.3.0
+**MySQL Version**: 8.4.3 LTS

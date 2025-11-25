@@ -3,7 +3,7 @@ name: mysql
 description: MySQL relational database with replication support
 type: application
 version: 0.3.0
-appVersion: "8.0.35"
+appVersion: "8.4.3"
 keywords:
   - mysql
   - mariadb

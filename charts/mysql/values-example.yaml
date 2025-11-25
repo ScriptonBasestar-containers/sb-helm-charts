@@ -17,7 +17,7 @@ replicaCount: 2  # 1 master + 2 replicas for HA
 image:
   repository: mysql
   pullPolicy: IfNotPresent
-  tag: ""  # Defaults to chart appVersion (8.0.35)
+  tag: ""  # Defaults to chart appVersion (8.4.3)
 
 # =============================================================================
 # MySQL Configuration
