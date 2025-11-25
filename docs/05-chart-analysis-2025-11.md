@@ -145,6 +145,8 @@ Verification: helm template with existingClaim works correctly
 
 All charts upgraded to latest stable versions:
 
+### Infrastructure Charts (11)
+
 | Chart | Previous | Current | Notes |
 |-------|----------|---------|-------|
 | Harbor | 2.11.x | 2.13.3 | Container registry |
@@ -159,10 +161,37 @@ All charts upgraded to latest stable versions:
 | MinIO | 2024-10-02 | 2025-10-15 | S3-compatible storage |
 | PostgreSQL | 16.1 | 16.11 | Latest 16.x |
 
-### Deferred Upgrades
-- **RabbitMQ 4.x**: Major breaking changes (AMQP 1.0, new protocols)
-- **MongoDB 8.x**: Major version, requires compatibility testing
-- **Redis 8.x**: License changed to RSALv2/SSPLv1
+### Application Charts (5)
+
+| Chart | Previous | Current | Notes |
+|-------|----------|---------|-------|
+| Keycloak | 26.0.6 | 26.4.2 | FAPI 2, DPoP, Passkeys |
+| Jellyfin | 10.10.3 | 10.11.3 | Major backend improvements |
+| Paperless-ngx | 2.14.7 | 2.19.6 | OCR enhancements |
+| WordPress | 6.4.3 | 6.8 | Style Book, bcrypt hashing |
+| phpMyAdmin | 5.2.1 | 5.2.3 | Bugfixes |
+
+### Monitoring Charts (5)
+
+| Chart | Previous | Current | Notes |
+|-------|----------|---------|-------|
+| Alertmanager | 0.27.0 | 0.29.0 | incident.io notifier |
+| Blackbox Exporter | 0.24.0 | 0.27.0 | CEL expressions |
+| Node Exporter | 1.7.0 | 1.10.2 | Zswap metrics |
+| kube-state-metrics | 2.10.1 | 2.15.0 | Timezone-aware cronjob |
+| Pushgateway | 1.6.2 | 1.11.2 | UTF-8 support |
+
+### Deferred Upgrades (Major Version Changes)
+
+| Chart | Current | Latest | Reason |
+|-------|---------|--------|--------|
+| Immich | v1.122.3 | v2.3.1 | Major version (v1→v2) |
+| MLflow | 2.9.2 | 3.6.0 | Major version (Python 3.10+) |
+| pgAdmin | 8.13 | 9.10 | Major version |
+| Airflow | 2.8.1 | 3.1.3 | Major version |
+| RabbitMQ | 3.13.1 | 4.x | AMQP 1.0 breaking changes |
+| MongoDB | 7.0.14 | 8.x | Major version |
+| Redis | 7.4.1 | 8.x | License changed (RSALv2/SSPLv1) |
 
 ---
 
