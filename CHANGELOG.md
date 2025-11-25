@@ -9,6 +9,86 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+#### v1.2.0 Features
+
+##### New Charts
+- **opentelemetry-collector** (0.3.0) - Unified telemetry collection for traces, metrics, and logs
+  - OTLP gRPC (4317) and HTTP (4318) receivers
+  - Deployment and DaemonSet modes (gateway vs agent)
+  - k8sattributes processor for Kubernetes metadata enrichment
+  - Multiple exporters: Prometheus remote write, Loki, Tempo, Jaeger
+  - Production features: HPA, PDB, ServiceMonitor, NetworkPolicy
+  - ClusterRole RBAC for k8sattributes processor
+
+- **mimir** (0.3.0) - Scalable Prometheus long-term metrics storage
+  - Monolithic deployment mode for simplicity
+  - S3/MinIO backend for blocks storage
+  - Multi-tenancy support with X-Scope-OrgID header
+  - Remote write endpoint for Prometheus integration
+  - Production features: HPA, PDB, ServiceMonitor
+
+##### Documentation
+- **GitOps Guide** (`docs/GITOPS_GUIDE.md`)
+  - ArgoCD ApplicationSet examples for multi-environment deployment
+  - Flux HelmRelease examples with Kustomize overlays
+  - Multi-environment deployment patterns (dev/staging/prod)
+  - Secrets management with SOPS, Sealed Secrets, External Secrets
+
+- **Advanced HA Guide** (`docs/ADVANCED_HA_GUIDE.md`)
+  - Multi-region deployment patterns
+  - Cross-zone pod distribution with topology spread constraints
+  - Disaster recovery procedures
+  - Backup and restore automation
+
+- **Security Hardening Guide** (`docs/SECURITY_HARDENING_GUIDE.md`)
+  - Pod Security Standards (PSS) configuration
+  - Network Policy patterns and examples
+  - RBAC best practices with least privilege
+  - Container security (non-root, capabilities, seccomp)
+  - Secret management with External Secrets Operator
+  - Image security and scanning
+  - Ingress security headers and TLS
+  - Resource limits and quotas
+  - Audit logging configuration
+
+- **Vault Integration Guide** (`docs/VAULT_INTEGRATION_GUIDE.md`)
+  - External Secrets Operator integration (recommended)
+  - Vault Agent Sidecar injection
+  - CSI Provider for volume-mounted secrets
+  - Kubernetes authentication configuration
+  - Dynamic database secrets
+  - PKI integration with cert-manager
+  - Transit encryption service
+  - Secret rotation with Reloader
+
+- **Dashboard Provisioning Guide** (`docs/DASHBOARD_PROVISIONING_GUIDE.md`)
+  - ConfigMap-based dashboard loading
+  - Grafana dashboard auto-discovery
+  - Dashboard versioning strategies
+
+##### Grafana Dashboards (`dashboards/`)
+- **prometheus-overview.json** - Prometheus server health and performance
+- **loki-overview.json** - Loki log aggregation metrics
+- **tempo-overview.json** - Tempo distributed tracing metrics
+- **kubernetes-cluster.json** - Kubernetes cluster overview
+
+##### Alerting Rules (`alerting-rules/`)
+- **prometheus-alerts.yaml** - Prometheus server and target alerts
+- **kubernetes-alerts.yaml** - Kubernetes cluster and workload alerts
+- **loki-alerts.yaml** - Loki log aggregation alerts
+- **tempo-alerts.yaml** - Tempo tracing alerts
+- **mimir-alerts.yaml** - Mimir metrics storage alerts
+
+##### Chart Version Upgrades (21 charts)
+- **Infrastructure (11):** Harbor 2.13.3, Grafana 12.2.2, Prometheus 3.7.3, Elasticsearch 8.17.0, Loki 3.6.1, Kafka 3.9.0, Tempo 2.9.0, Promtail 3.6.1, MySQL 8.4.3, MinIO 2025-10-15, PostgreSQL 16.11
+- **Application (5):** Keycloak 26.4.2, Jellyfin 10.11.3, Paperless-ngx 2.19.6, WordPress 6.8, phpMyAdmin 5.2.3
+- **Monitoring (5):** Alertmanager 0.29.0, Blackbox Exporter 0.27.0, Node Exporter 1.10.2, kube-state-metrics 2.15.0, Pushgateway 1.11.2
+
+### Changed
+- Enhanced Prometheus and Grafana READMEs with security and performance sections
+
+---
+
 #### Documentation (v1.1.0 Progress)
 - **Observability Stack Guide** (`docs/OBSERVABILITY_STACK_GUIDE.md`)
   - Complete setup guide for Prometheus + Loki + Tempo monitoring stack
