@@ -1167,6 +1167,35 @@ entries:
     urls:
     - https://github.com/ScriptonBasestar-containers/sb-helm-charts/releases/download/node-exporter-0.3.0/node-exporter-0.3.0.tgz
     version: 0.3.0
+  opentelemetry-collector:
+  - apiVersion: v2
+    appVersion: 0.96.0
+    created: "2025-11-25T08:12:01.920528354Z"
+    description: OpenTelemetry Collector for unified telemetry collection (traces,
+      metrics, logs)
+    digest: 92c6e6a746484f2208afc6d3e4ac624f3f4aac06b6618b2cbc24ac71f1d80446
+    home: https://opentelemetry.io/
+    icon: https://opentelemetry.io/img/logos/opentelemetry-logo-nav.png
+    keywords:
+    - opentelemetry
+    - otel
+    - telemetry
+    - tracing
+    - metrics
+    - logging
+    - observability
+    - otlp
+    - distributed-tracing
+    maintainers:
+    - name: ScriptonBasestar
+    name: opentelemetry-collector
+    sources:
+    - https://github.com/open-telemetry/opentelemetry-collector
+    - https://github.com/open-telemetry/opentelemetry-collector-contrib
+    type: application
+    urls:
+    - https://github.com/ScriptonBasestar-containers/sb-helm-charts/releases/download/opentelemetry-collector-0.3.0/opentelemetry-collector-0.3.0.tgz
+    version: 0.3.0
   paperless-ngx:
   - annotations:
       artifacthub.io/changes: |
@@ -2483,4 +2512,4 @@ entries:
     urls:
     - https://github.com/ScriptonBasestar-containers/sb-helm-charts/releases/download/wordpress-0.1.0/wordpress-0.1.0.tgz
     version: 0.1.0
-generated: "2025-11-25T08:05:58.700830571Z"
+generated: "2025-11-25T08:12:01.920619124Z"
