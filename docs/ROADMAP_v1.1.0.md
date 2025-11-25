@@ -313,8 +313,8 @@ None planned.
 ### Nice to Have (Optional)
 - 💡 Mimir chart implemented
 - ✅ Homeserver optimization guide
-- 💡 Multi-tenancy guide
-- 💡 Chart generator script
+- ✅ Multi-tenancy guide
+- ✅ Chart generator script
 
 ## Risk Assessment
 
