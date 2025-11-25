@@ -1,0 +1,178 @@
+# Prometheus Alerting Rules
+# Deploy as PrometheusRule CRD (for Prometheus Operator) or ConfigMap (standalone)
+#
+# Usage with Prometheus Operator:
+#   kubectl apply -f prometheus-alerts.yaml -n monitoring
+#
+# Usage with standalone Prometheus:
+#   Mount as ConfigMap and reference in prometheus.ruleFiles
+
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: prometheus-alerts
+  labels:
+    app.kubernetes.io/name: prometheus
+    app.kubernetes.io/component: alerting-rules
+    prometheus: main
+    role: alert-rules
+spec:
+  groups:
+    # ==========================================================================
+    # Prometheus Self-Monitoring Alerts
+    # ==========================================================================
+    - name: prometheus.rules
+      rules:
+        - alert: PrometheusTargetDown
+          expr: up == 0
+          for: 5m
+          labels:
+            severity: critical
+          annotations:
+            summary: "Prometheus target is down"
+            description: "{{ $labels.job }}/{{ $labels.instance }} has been down for more than 5 minutes."
+            runbook_url: "https://runbooks.prometheus-operator.dev/runbooks/general/targetdown"
+
+        - alert: PrometheusConfigurationReloadFailure
+          expr: prometheus_config_last_reload_successful != 1
+          for: 5m
+          labels:
+            severity: warning
+          annotations:
+            summary: "Prometheus configuration reload failure"
+            description: "Prometheus configuration reload has failed on {{ $labels.instance }}."
+
+        - alert: PrometheusTSDBCompactionsFailing
+          expr: increase(prometheus_tsdb_compactions_failed_total[6h]) > 0
+          for: 0m
+          labels:
+            severity: warning
+          annotations:
+            summary: "Prometheus TSDB compactions failing"
+            description: "Prometheus TSDB compactions are failing on {{ $labels.instance }}."
+
+        - alert: PrometheusTSDBHeadTruncationsFailed
+          expr: increase(prometheus_tsdb_head_truncations_failed_total[1h]) > 0
+          for: 0m
+          labels:
+            severity: warning
+          annotations:
+            summary: "Prometheus TSDB head truncations failed"
+            description: "Prometheus TSDB head truncations are failing on {{ $labels.instance }}."
+
+        - alert: PrometheusNotConnectedToAlertmanager
+          expr: prometheus_notifications_alertmanagers_discovered < 1
+          for: 10m
+          labels:
+            severity: warning
+          annotations:
+            summary: "Prometheus not connected to Alertmanager"
+            description: "Prometheus cannot connect to any Alertmanager instance."
+
+        - alert: PrometheusRuleEvaluationFailures
+          expr: increase(prometheus_rule_evaluation_failures_total[5m]) > 0
+          for: 5m
+          labels:
+            severity: warning
+          annotations:
+            summary: "Prometheus rule evaluation failures"
+            description: "Prometheus rule evaluations are failing on {{ $labels.instance }}."
+
+        - alert: PrometheusRuleEvaluationSlow
+          expr: prometheus_rule_group_last_duration_seconds > prometheus_rule_group_interval_seconds
+          for: 15m
+          labels:
+            severity: warning
+          annotations:
+            summary: "Prometheus rule evaluation slow"
+            description: "Prometheus rule evaluation is taking longer than the evaluation interval."
+
+        - alert: PrometheusTSDBWALCorruptions
+          expr: increase(prometheus_tsdb_wal_corruptions_total[1h]) > 0
+          for: 0m
+          labels:
+            severity: critical
+          annotations:
+            summary: "Prometheus TSDB WAL corruptions"
+            description: "Prometheus TSDB WAL corruptions detected on {{ $labels.instance }}."
+
+    # ==========================================================================
+    # Storage and Performance Alerts
+    # ==========================================================================
+    - name: prometheus-storage.rules
+      rules:
+        - alert: PrometheusStorageRunningLow
+          expr: |
+            (
+              prometheus_tsdb_storage_blocks_bytes /
+              (prometheus_tsdb_storage_blocks_bytes + prometheus_tsdb_head_max_time - prometheus_tsdb_head_min_time)
+            ) > 0.8
+          for: 30m
+          labels:
+            severity: warning
+          annotations:
+            summary: "Prometheus storage running low"
+            description: "Prometheus storage is above 80% capacity on {{ $labels.instance }}."
+
+        - alert: PrometheusHighSampleIngestionRate
+          expr: rate(prometheus_tsdb_head_samples_appended_total[5m]) > 100000
+          for: 15m
+          labels:
+            severity: warning
+          annotations:
+            summary: "High sample ingestion rate"
+            description: "Prometheus is ingesting {{ $value | humanize }} samples/s, which may indicate cardinality explosion."
+
+        - alert: PrometheusHighQueryLoad
+          expr: rate(prometheus_engine_queries_total[5m]) > 100
+          for: 15m
+          labels:
+            severity: warning
+          annotations:
+            summary: "High query load on Prometheus"
+            description: "Prometheus is handling {{ $value | humanize }} queries/s on {{ $labels.instance }}."
+
+        - alert: PrometheusHighMemoryUsage
+          expr: |
+            process_resident_memory_bytes{job="prometheus"} /
+            on(instance) machine_memory_bytes > 0.8
+          for: 15m
+          labels:
+            severity: warning
+          annotations:
+            summary: "Prometheus high memory usage"
+            description: "Prometheus memory usage is above 80% on {{ $labels.instance }}."
+
+    # ==========================================================================
+    # Scrape Alerts
+    # ==========================================================================
+    - name: prometheus-scrape.rules
+      rules:
+        - alert: PrometheusScrapesSlow
+          expr: |
+            prometheus_target_interval_length_seconds{quantile="0.9"} >
+            prometheus_target_interval_length_seconds{quantile="0.5"} * 1.5
+          for: 15m
+          labels:
+            severity: warning
+          annotations:
+            summary: "Prometheus scrapes are slow"
+            description: "Scrape duration is high for {{ $labels.job }} on {{ $labels.instance }}."
+
+        - alert: PrometheusScrapeSampleLimit
+          expr: increase(prometheus_target_scrapes_exceeded_sample_limit_total[1h]) > 0
+          for: 0m
+          labels:
+            severity: warning
+          annotations:
+            summary: "Prometheus scrape sample limit exceeded"
+            description: "Some targets are exceeding the sample limit on {{ $labels.instance }}."
+
+        - alert: PrometheusTooManyRestarts
+          expr: changes(process_start_time_seconds{job="prometheus"}[1h]) > 2
+          for: 0m
+          labels:
+            severity: warning
+          annotations:
+            summary: "Prometheus too many restarts"
+            description: "Prometheus has restarted more than twice in the last hour on {{ $labels.instance }}."

@@ -1,0 +1,178 @@
+# Tempo Alerting Rules
+# Deploy as PrometheusRule CRD (for Prometheus Operator)
+#
+# Requires: Tempo with metrics endpoint enabled
+
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: tempo-alerts
+  labels:
+    app.kubernetes.io/name: tempo
+    app.kubernetes.io/component: alerting-rules
+    prometheus: main
+    role: alert-rules
+spec:
+  groups:
+    # ==========================================================================
+    # Tempo Ingestion Alerts
+    # ==========================================================================
+    - name: tempo-ingestion.rules
+      rules:
+        - alert: TempoIngesterUnhealthy
+          expr: |
+            tempo_ingester_live_traces == 0 and
+            rate(tempo_distributor_spans_received_total[5m]) > 0
+          for: 10m
+          labels:
+            severity: warning
+          annotations:
+            summary: "Tempo ingester unhealthy"
+            description: "Tempo ingester {{ $labels.instance }} is receiving spans but has no live traces."
+
+        - alert: TempoHighSpanIngestionRate
+          expr: |
+            sum(rate(tempo_distributor_spans_received_total[5m])) > 100000
+          for: 15m
+          labels:
+            severity: warning
+          annotations:
+            summary: "High Tempo span ingestion rate"
+            description: "Tempo is receiving {{ $value | humanize }} spans/s which may indicate tracing explosion."
+
+        - alert: TempoSpansDropped
+          expr: |
+            sum(rate(tempo_discarded_spans_total[5m])) by (reason) > 0
+          for: 5m
+          labels:
+            severity: warning
+          annotations:
+            summary: "Tempo spans being dropped"
+            description: "Tempo is dropping spans due to {{ $labels.reason }} ({{ $value }}/s)."
+
+        - alert: TempoIngesterFlushFailed
+          expr: |
+            rate(tempo_ingester_failed_flushes_total[5m]) > 0
+          for: 10m
+          labels:
+            severity: warning
+          annotations:
+            summary: "Tempo ingester flush failed"
+            description: "Tempo ingester {{ $labels.instance }} is failing to flush traces."
+
+    # ==========================================================================
+    # Tempo Query Alerts
+    # ==========================================================================
+    - name: tempo-query.rules
+      rules:
+        - alert: TempoQueryErrors
+          expr: |
+            sum(rate(tempo_query_frontend_queries_total{status="error"}[5m])) /
+            sum(rate(tempo_query_frontend_queries_total[5m])) > 0.05
+          for: 15m
+          labels:
+            severity: warning
+          annotations:
+            summary: "Tempo query errors"
+            description: "Tempo query error rate is {{ $value | humanizePercentage }}."
+
+        - alert: TempoQueryLatencyHigh
+          expr: |
+            histogram_quantile(0.99, sum(rate(tempo_query_frontend_request_duration_seconds_bucket[5m])) by (le)) > 30
+          for: 15m
+          labels:
+            severity: warning
+          annotations:
+            summary: "Tempo query latency high"
+            description: "Tempo 99th percentile query latency is {{ $value }}s."
+
+        - alert: TempoTraceNotFound
+          expr: |
+            sum(rate(tempo_query_frontend_queries_total{status="not_found"}[5m])) /
+            sum(rate(tempo_query_frontend_queries_total[5m])) > 0.5
+          for: 30m
+          labels:
+            severity: info
+          annotations:
+            summary: "High trace not found rate"
+            description: "{{ $value | humanizePercentage }} of trace queries are returning not found."
+
+    # ==========================================================================
+    # Tempo Storage Alerts
+    # ==========================================================================
+    - name: tempo-storage.rules
+      rules:
+        - alert: TempoCompactorFailed
+          expr: |
+            increase(tempo_compactor_runs_failed_total[1h]) > 0
+          for: 0m
+          labels:
+            severity: warning
+          annotations:
+            summary: "Tempo compactor failed"
+            description: "Tempo compactor has failed runs in the last hour."
+
+        - alert: TempoBlocksNotCompacted
+          expr: |
+            tempo_compactor_outstanding_blocks > 100
+          for: 1h
+          labels:
+            severity: warning
+          annotations:
+            summary: "Tempo blocks not compacted"
+            description: "Tempo has {{ $value }} outstanding blocks waiting for compaction."
+
+        - alert: TempoStorageWriteLatencyHigh
+          expr: |
+            histogram_quantile(0.99, sum(rate(tempo_gcs_request_duration_seconds_bucket{operation="PUT"}[5m])) by (le)) > 5
+          for: 15m
+          labels:
+            severity: warning
+          annotations:
+            summary: "Tempo storage write latency high"
+            description: "Tempo storage write 99th percentile latency is {{ $value }}s."
+
+    # ==========================================================================
+    # Tempo Health Alerts
+    # ==========================================================================
+    - name: tempo-health.rules
+      rules:
+        - alert: TempoDown
+          expr: up{job=~".*tempo.*"} == 0
+          for: 5m
+          labels:
+            severity: critical
+          annotations:
+            summary: "Tempo is down"
+            description: "Tempo {{ $labels.instance }} has been down for more than 5 minutes."
+
+        - alert: TempoHighMemoryUsage
+          expr: |
+            container_memory_usage_bytes{container="tempo"} /
+            container_spec_memory_limit_bytes{container="tempo"} > 0.8
+          for: 15m
+          labels:
+            severity: warning
+          annotations:
+            summary: "Tempo high memory usage"
+            description: "Tempo memory usage is above 80% on {{ $labels.pod }}."
+
+        - alert: TempoTooManyRestarts
+          expr: |
+            changes(kube_pod_container_status_restarts_total{container="tempo"}[1h]) > 3
+          for: 0m
+          labels:
+            severity: warning
+          annotations:
+            summary: "Tempo too many restarts"
+            description: "Tempo has restarted more than 3 times in the last hour."
+
+        - alert: TempoIngesterRingUnhealthy
+          expr: |
+            cortex_ring_members{name="ingester",state="ACTIVE"} < 1
+          for: 5m
+          labels:
+            severity: critical
+          annotations:
+            summary: "Tempo ingester ring unhealthy"
+            description: "Tempo ingester ring has no active members."

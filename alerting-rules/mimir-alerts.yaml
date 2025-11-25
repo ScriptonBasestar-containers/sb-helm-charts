@@ -1,0 +1,226 @@
+# Mimir Alerting Rules
+# Deploy as PrometheusRule CRD (for Prometheus Operator)
+#
+# Requires: Mimir with metrics endpoint enabled
+
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: mimir-alerts
+  labels:
+    app.kubernetes.io/name: mimir
+    app.kubernetes.io/component: alerting-rules
+    prometheus: main
+    role: alert-rules
+spec:
+  groups:
+    # ==========================================================================
+    # Mimir Ingestion Alerts
+    # ==========================================================================
+    - name: mimir-ingestion.rules
+      rules:
+        - alert: MimirIngesterUnhealthy
+          expr: |
+            cortex_ring_members{name="ingester",state!="ACTIVE"} > 0
+          for: 10m
+          labels:
+            severity: warning
+          annotations:
+            summary: "Mimir ingester unhealthy"
+            description: "Mimir ingester {{ $labels.instance }} is in {{ $labels.state }} state."
+
+        - alert: MimirIngestionRateLimited
+          expr: |
+            sum(rate(cortex_discarded_samples_total[5m])) by (reason) > 0
+          for: 5m
+          labels:
+            severity: warning
+          annotations:
+            summary: "Mimir samples being discarded"
+            description: "Mimir is discarding samples due to {{ $labels.reason }} ({{ $value }}/s)."
+
+        - alert: MimirHighIngestionRate
+          expr: |
+            sum(rate(cortex_distributor_received_samples_total[5m])) > 1000000
+          for: 15m
+          labels:
+            severity: warning
+          annotations:
+            summary: "High Mimir ingestion rate"
+            description: "Mimir is receiving {{ $value | humanize }} samples/s."
+
+        - alert: MimirIngesterReplicasUnhealthy
+          expr: |
+            count(cortex_ring_members{name="ingester",state="ACTIVE"}) <
+            cortex_replication_factor
+          for: 10m
+          labels:
+            severity: warning
+          annotations:
+            summary: "Mimir ingester replicas unhealthy"
+            description: "Mimir has fewer active ingesters than the replication factor."
+
+        - alert: MimirDistributorPushLatencyHigh
+          expr: |
+            histogram_quantile(0.99, sum(rate(cortex_distributor_push_duration_seconds_bucket[5m])) by (le)) > 1
+          for: 15m
+          labels:
+            severity: warning
+          annotations:
+            summary: "Mimir distributor push latency high"
+            description: "Mimir distributor 99th percentile push latency is {{ $value }}s."
+
+    # ==========================================================================
+    # Mimir Query Alerts
+    # ==========================================================================
+    - name: mimir-query.rules
+      rules:
+        - alert: MimirQueryErrors
+          expr: |
+            sum(rate(cortex_request_duration_seconds_count{status_code=~"5.."}[5m])) by (route) /
+            sum(rate(cortex_request_duration_seconds_count[5m])) by (route) > 0.01
+          for: 15m
+          labels:
+            severity: warning
+          annotations:
+            summary: "Mimir query errors"
+            description: "Mimir {{ $labels.route }} error rate is {{ $value | humanizePercentage }}."
+
+        - alert: MimirQueryLatencyHigh
+          expr: |
+            histogram_quantile(0.99, sum(rate(cortex_request_duration_seconds_bucket{route=~".*query.*"}[5m])) by (le)) > 30
+          for: 15m
+          labels:
+            severity: warning
+          annotations:
+            summary: "Mimir query latency high"
+            description: "Mimir 99th percentile query latency is {{ $value }}s."
+
+        - alert: MimirQueryFrontendQueueFull
+          expr: |
+            cortex_query_scheduler_queue_length > 100
+          for: 5m
+          labels:
+            severity: warning
+          annotations:
+            summary: "Mimir query frontend queue full"
+            description: "Mimir query scheduler has {{ $value }} pending queries."
+
+    # ==========================================================================
+    # Mimir Storage Alerts
+    # ==========================================================================
+    - name: mimir-storage.rules
+      rules:
+        - alert: MimirCompactorFailed
+          expr: |
+            increase(cortex_compactor_runs_failed_total[1h]) > 0
+          for: 0m
+          labels:
+            severity: warning
+          annotations:
+            summary: "Mimir compactor failed"
+            description: "Mimir compactor has failed runs in the last hour."
+
+        - alert: MimirBlocksNotCompacted
+          expr: |
+            cortex_compactor_blocks_marked_for_no_compaction_total > 100
+          for: 1h
+          labels:
+            severity: warning
+          annotations:
+            summary: "Mimir blocks not compacted"
+            description: "Mimir has {{ $value }} blocks marked for no compaction."
+
+        - alert: MimirStorageWriteFailed
+          expr: |
+            rate(thanos_objstore_bucket_operation_failures_total{operation="upload"}[5m]) > 0
+          for: 10m
+          labels:
+            severity: warning
+          annotations:
+            summary: "Mimir storage write failed"
+            description: "Mimir is failing to write to object storage."
+
+        - alert: MimirStorageReadFailed
+          expr: |
+            rate(thanos_objstore_bucket_operation_failures_total{operation="get"}[5m]) > 0
+          for: 10m
+          labels:
+            severity: warning
+          annotations:
+            summary: "Mimir storage read failed"
+            description: "Mimir is failing to read from object storage."
+
+    # ==========================================================================
+    # Mimir Health Alerts
+    # ==========================================================================
+    - name: mimir-health.rules
+      rules:
+        - alert: MimirDown
+          expr: up{job=~".*mimir.*"} == 0
+          for: 5m
+          labels:
+            severity: critical
+          annotations:
+            summary: "Mimir is down"
+            description: "Mimir {{ $labels.instance }} has been down for more than 5 minutes."
+
+        - alert: MimirHighMemoryUsage
+          expr: |
+            container_memory_usage_bytes{container="mimir"} /
+            container_spec_memory_limit_bytes{container="mimir"} > 0.8
+          for: 15m
+          labels:
+            severity: warning
+          annotations:
+            summary: "Mimir high memory usage"
+            description: "Mimir memory usage is above 80% on {{ $labels.pod }}."
+
+        - alert: MimirTooManyRestarts
+          expr: |
+            changes(kube_pod_container_status_restarts_total{container="mimir"}[1h]) > 3
+          for: 0m
+          labels:
+            severity: warning
+          annotations:
+            summary: "Mimir too many restarts"
+            description: "Mimir has restarted more than 3 times in the last hour."
+
+        - alert: MimirRingUnhealthy
+          expr: |
+            cortex_ring_members{state!="ACTIVE"} > 0
+          for: 10m
+          labels:
+            severity: warning
+          annotations:
+            summary: "Mimir ring unhealthy"
+            description: "Mimir ring {{ $labels.name }} has unhealthy members."
+
+    # ==========================================================================
+    # Mimir Limits Alerts
+    # ==========================================================================
+    - name: mimir-limits.rules
+      rules:
+        - alert: MimirTenantNearSeriesLimit
+          expr: |
+            cortex_ingester_active_series /
+            ignoring(instance, pod) group_left()
+            cortex_limits_overrides{limit_name="max_global_series_per_user"} > 0.8
+          for: 15m
+          labels:
+            severity: warning
+          annotations:
+            summary: "Tenant near series limit"
+            description: "Tenant {{ $labels.user }} is at {{ $value | humanizePercentage }} of max series limit."
+
+        - alert: MimirTenantNearIngestionRateLimit
+          expr: |
+            sum(rate(cortex_distributor_received_samples_total[5m])) by (user) /
+            ignoring(user) group_left()
+            cortex_limits_overrides{limit_name="ingestion_rate"} > 0.8
+          for: 15m
+          labels:
+            severity: warning
+          annotations:
+            summary: "Tenant near ingestion rate limit"
+            description: "Tenant {{ $labels.user }} is at {{ $value | humanizePercentage }} of ingestion rate limit."

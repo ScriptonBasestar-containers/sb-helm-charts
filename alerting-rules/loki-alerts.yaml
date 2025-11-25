@@ -1,0 +1,211 @@
+# Loki Alerting Rules
+# Deploy as PrometheusRule CRD (for Prometheus Operator)
+#
+# Requires: Loki with metrics endpoint enabled
+
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: loki-alerts
+  labels:
+    app.kubernetes.io/name: loki
+    app.kubernetes.io/component: alerting-rules
+    prometheus: main
+    role: alert-rules
+spec:
+  groups:
+    # ==========================================================================
+    # Loki Ingestion Alerts
+    # ==========================================================================
+    - name: loki-ingestion.rules
+      rules:
+        - alert: LokiIngesterUnhealthy
+          expr: |
+            loki_ingester_inflight_requests > 0 and
+            rate(loki_ingester_chunks_flushed_total[5m]) == 0
+          for: 15m
+          labels:
+            severity: warning
+          annotations:
+            summary: "Loki ingester unhealthy"
+            description: "Loki ingester {{ $labels.instance }} is not flushing chunks despite having requests."
+
+        - alert: LokiHighIngestionRate
+          expr: |
+            sum(rate(loki_distributor_bytes_received_total[5m])) > 100000000
+          for: 15m
+          labels:
+            severity: warning
+          annotations:
+            summary: "High Loki ingestion rate"
+            description: "Loki is receiving {{ $value | humanize }}B/s which may indicate excessive logging."
+
+        - alert: LokiIngestionRateLimited
+          expr: |
+            sum(rate(loki_discarded_samples_total[5m])) by (reason) > 0
+          for: 5m
+          labels:
+            severity: warning
+          annotations:
+            summary: "Loki samples being discarded"
+            description: "Loki is discarding samples due to {{ $labels.reason }} ({{ $value }}/s)."
+
+        - alert: LokiStreamLimitExceeded
+          expr: |
+            sum(rate(loki_discarded_samples_total{reason="per_stream_rate_limit"}[5m])) > 0
+          for: 5m
+          labels:
+            severity: warning
+          annotations:
+            summary: "Loki stream limit exceeded"
+            description: "Some streams are exceeding the per-stream rate limit."
+
+    # ==========================================================================
+    # Loki Query Alerts
+    # ==========================================================================
+    - name: loki-query.rules
+      rules:
+        - alert: LokiQueryErrors
+          expr: |
+            sum(rate(loki_request_duration_seconds_count{status_code=~"5.."}[5m])) /
+            sum(rate(loki_request_duration_seconds_count[5m])) > 0.01
+          for: 15m
+          labels:
+            severity: warning
+          annotations:
+            summary: "Loki query errors"
+            description: "Loki error rate is {{ $value | humanizePercentage }}."
+
+        - alert: LokiQueryLatencyHigh
+          expr: |
+            histogram_quantile(0.99, sum(rate(loki_request_duration_seconds_bucket{route=~"loki_api_v1_query.*"}[5m])) by (le)) > 30
+          for: 15m
+          labels:
+            severity: warning
+          annotations:
+            summary: "Loki query latency high"
+            description: "Loki 99th percentile query latency is {{ $value }}s."
+
+        - alert: LokiQueryQueueFull
+          expr: |
+            loki_query_scheduler_queue_length > 100
+          for: 5m
+          labels:
+            severity: warning
+          annotations:
+            summary: "Loki query queue full"
+            description: "Loki query scheduler queue has {{ $value }} pending queries."
+
+    # ==========================================================================
+    # Loki Storage Alerts
+    # ==========================================================================
+    - name: loki-storage.rules
+      rules:
+        - alert: LokiChunkStoreFailed
+          expr: |
+            sum(rate(loki_chunk_store_index_entries_per_chunk_sum[5m])) == 0
+          for: 15m
+          labels:
+            severity: critical
+          annotations:
+            summary: "Loki chunk store failed"
+            description: "Loki is not writing chunks to storage."
+
+        - alert: LokiBoltDBShipperLag
+          expr: |
+            time() - max(loki_boltdb_shipper_last_successful_upload_time) > 300
+          for: 5m
+          labels:
+            severity: warning
+          annotations:
+            summary: "Loki BoltDB shipper lag"
+            description: "Loki BoltDB shipper hasn't uploaded in {{ $value | humanizeDuration }}."
+
+        - alert: LokiCompactorFailed
+          expr: |
+            increase(loki_compactor_runs_failed_total[1h]) > 0
+          for: 0m
+          labels:
+            severity: warning
+          annotations:
+            summary: "Loki compactor failed"
+            description: "Loki compactor has failed runs in the last hour."
+
+    # ==========================================================================
+    # Loki Health Alerts
+    # ==========================================================================
+    - name: loki-health.rules
+      rules:
+        - alert: LokiDown
+          expr: up{job=~".*loki.*"} == 0
+          for: 5m
+          labels:
+            severity: critical
+          annotations:
+            summary: "Loki is down"
+            description: "Loki {{ $labels.instance }} has been down for more than 5 minutes."
+
+        - alert: LokiHighMemoryUsage
+          expr: |
+            container_memory_usage_bytes{container="loki"} /
+            container_spec_memory_limit_bytes{container="loki"} > 0.8
+          for: 15m
+          labels:
+            severity: warning
+          annotations:
+            summary: "Loki high memory usage"
+            description: "Loki memory usage is above 80% on {{ $labels.pod }}."
+
+        - alert: LokiTooManyRestarts
+          expr: |
+            changes(kube_pod_container_status_restarts_total{container="loki"}[1h]) > 3
+          for: 0m
+          labels:
+            severity: warning
+          annotations:
+            summary: "Loki too many restarts"
+            description: "Loki has restarted more than 3 times in the last hour."
+
+    # ==========================================================================
+    # Promtail Alerts (Log Collection)
+    # ==========================================================================
+    - name: promtail.rules
+      rules:
+        - alert: PromtailDown
+          expr: up{job=~".*promtail.*"} == 0
+          for: 5m
+          labels:
+            severity: warning
+          annotations:
+            summary: "Promtail is down"
+            description: "Promtail {{ $labels.instance }} has been down for more than 5 minutes."
+
+        - alert: PromtailFileLagging
+          expr: |
+            promtail_files_active_total - promtail_file_bytes_total > 10000000
+          for: 15m
+          labels:
+            severity: warning
+          annotations:
+            summary: "Promtail file lagging"
+            description: "Promtail is lagging behind on file {{ $labels.path }} by {{ $value | humanize }}B."
+
+        - alert: PromtailSendErrors
+          expr: |
+            rate(promtail_sent_entries_total{status="failed"}[5m]) > 0
+          for: 10m
+          labels:
+            severity: warning
+          annotations:
+            summary: "Promtail send errors"
+            description: "Promtail {{ $labels.instance }} is failing to send entries to Loki."
+
+        - alert: PromtailTooManyDroppedEntries
+          expr: |
+            rate(promtail_dropped_entries_total[5m]) > 100
+          for: 10m
+          labels:
+            severity: warning
+          annotations:
+            summary: "Promtail dropping entries"
+            description: "Promtail {{ $labels.instance }} is dropping {{ $value }}/s entries."
