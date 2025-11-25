@@ -1,6 +1,6 @@
 # Loki Helm Chart
 
-![Version: 0.1.0](https://img.shields.io/badge/Version-0.1.0-informational?style=flat-square) ![Type: application](https://img.shields.io/badge/Type-application-informational?style=flat-square) ![AppVersion: 2.9.3](https://img.shields.io/badge/AppVersion-2.9.3-informational?style=flat-square)
+![Version: 0.1.0](https://img.shields.io/badge/Version-0.1.0-informational?style=flat-square) ![Type: application](https://img.shields.io/badge/Type-application-informational?style=flat-square) ![AppVersion: 3.6.1](https://img.shields.io/badge/AppVersion-3.6.1-informational?style=flat-square)
 
 Loki log aggregation system with Grafana integration for Kubernetes
 
@@ -319,4 +319,4 @@ make -f make/ops/loki.mk loki-config
 
 **Maintained by**: ScriptonBasestar
 **Chart Version**: 0.1.0
-**Loki Version**: 2.9.3
+**Loki Version**: 3.6.1
