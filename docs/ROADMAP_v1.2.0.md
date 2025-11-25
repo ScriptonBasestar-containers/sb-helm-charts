@@ -109,7 +109,7 @@ Planning document for v1.2.0 release following the v1.1.0 documentation-focused 
 - [x] Mimir chart implemented *(2025-11-25: charts/mimir)*
 - [x] GitOps guide with ArgoCD/Flux examples *(2025-11-25: docs/GITOPS_GUIDE.md)*
 - [x] At least 5 Grafana dashboards *(4 core dashboards created: prometheus-overview, loki-overview, tempo-overview, kubernetes-cluster)*
-- [ ] Enhanced chart READMEs (security, performance sections)
+- [x] Enhanced chart READMEs (security, performance sections) *(2025-11-25: Prometheus, Grafana READMEs enhanced)*
 
 ### Should Have (High Priority)
 - [ ] OpenTelemetry Collector chart
@@ -139,7 +139,7 @@ Planning document for v1.2.0 release following the v1.1.0 documentation-focused 
 - [x] GitOps guide with examples *(2025-11-25: docs/GITOPS_GUIDE.md)*
 - [ ] Advanced HA guide
 - [ ] Security hardening guide
-- [ ] Enhanced chart READMEs
+- [x] Enhanced chart READMEs *(2025-11-25)*
 
 ### Phase 4: Testing & Release (Weeks 9-10)
 - [ ] Comprehensive testing

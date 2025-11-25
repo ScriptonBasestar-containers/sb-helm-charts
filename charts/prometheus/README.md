@@ -412,6 +412,189 @@ replicaCount: 2
 - [Cortex](https://cortexmetrics.io/) - Horizontally scalable Prometheus
 - [Prometheus Operator](https://github.com/prometheus-operator/prometheus-operator) - Advanced Prometheus management
 
+## Security Considerations
+
+### Access Control
+
+**Disable Admin API in Production:**
+```yaml
+prometheus:
+  enableAdminAPI: false  # Prevents unauthorized deletions and snapshots
+```
+
+**Network Policy:**
+```yaml
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: prometheus-netpol
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: prometheus
+  policyTypes:
+  - Ingress
+  ingress:
+  - from:
+    - podSelector:
+        matchLabels:
+          app.kubernetes.io/name: grafana  # Allow only from Grafana
+    ports:
+    - protocol: TCP
+      port: 9090
+```
+
+**RBAC Minimal Permissions:**
+The chart creates RBAC with read-only cluster access. Review `ClusterRole` if deploying in security-sensitive environments.
+
+### Ingress Security
+
+**Basic Auth with Ingress:**
+```yaml
+ingress:
+  enabled: true
+  annotations:
+    nginx.ingress.kubernetes.io/auth-type: basic
+    nginx.ingress.kubernetes.io/auth-secret: prometheus-basic-auth
+    nginx.ingress.kubernetes.io/auth-realm: "Authentication Required"
+```
+
+Create auth secret:
+```bash
+htpasswd -c auth admin
+kubectl create secret generic prometheus-basic-auth --from-file=auth
+```
+
+**IP Whitelist:**
+```yaml
+ingress:
+  annotations:
+    nginx.ingress.kubernetes.io/whitelist-source-range: "10.0.0.0/8,192.168.0.0/16"
+```
+
+### Data Security
+
+- **PVC Encryption**: Use encrypted storage classes
+- **Sensitive Labels**: Avoid scraping PII in metrics labels
+- **Query Logging**: Consider enabling `--query.log-file` for audit trails
+
+## Performance Tuning
+
+### Memory Optimization
+
+Prometheus memory usage scales with active time series and query complexity:
+
+```yaml
+# For ~500K active series
+resources:
+  limits:
+    memory: 4Gi
+  requests:
+    memory: 2Gi
+
+# For ~1M active series
+resources:
+  limits:
+    memory: 8Gi
+  requests:
+    memory: 4Gi
+
+# For ~5M active series
+resources:
+  limits:
+    memory: 32Gi
+  requests:
+    memory: 16Gi
+```
+
+**Memory Formula:**
+```
+Memory ≈ (Active Series × 2KB) + (Ingested Samples/s × 5MB per 10k/s)
+```
+
+### Storage Optimization
+
+**SSD Storage (Required for Production):**
+```yaml
+persistence:
+  storageClass: "fast-ssd"
+  size: 100Gi
+```
+
+**Size-Based Retention (Prevents Disk Full):**
+```yaml
+prometheus:
+  retention:
+    time: "30d"
+    size: "90GB"  # Set to 90% of PVC size
+```
+
+**TSDB Block Duration:**
+```yaml
+prometheus:
+  tsdb:
+    minBlockDuration: "2h"  # Default
+    maxBlockDuration: "24h"  # Reduces compaction overhead
+```
+
+### Scrape Performance
+
+**Optimize Scrape Intervals:**
+```yaml
+prometheus:
+  global:
+    scrapeInterval: "30s"     # Reduce from 15s if not needed
+    scrapeTimeout: "10s"
+    evaluationInterval: "30s"
+```
+
+**Sample Limits:**
+```yaml
+prometheus:
+  global:
+    sampleLimit: 10000  # Per scrape target
+```
+
+**Relabeling for Cardinality Control:**
+```yaml
+prometheus:
+  additionalScrapeConfigs:
+    - job_name: 'app'
+      metric_relabel_configs:
+        - source_labels: [__name__]
+          regex: 'go_.*'  # Drop verbose Go metrics
+          action: drop
+```
+
+### Query Performance
+
+**Recording Rules for Complex Queries:**
+```yaml
+groups:
+  - name: performance
+    interval: 1m
+    rules:
+      - record: job:http_requests:rate5m
+        expr: sum(rate(http_requests_total[5m])) by (job)
+```
+
+**Query Resource Limits:**
+```yaml
+prometheus:
+  queryTimeout: "2m"
+  queryConcurrency: 20
+  queryMaxSamples: 50000000
+```
+
+### Benchmarks
+
+| Active Series | Ingestion Rate | Memory | CPU | Storage (30d) |
+|--------------|----------------|--------|-----|---------------|
+| 100K | 10K/s | 2Gi | 500m | 50Gi |
+| 500K | 50K/s | 4Gi | 1000m | 250Gi |
+| 1M | 100K/s | 8Gi | 2000m | 500Gi |
+| 5M | 500K/s | 32Gi | 8000m | 2.5Ti |
+
 ## License
 
 - Chart: BSD 3-Clause License

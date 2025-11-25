@@ -127,6 +127,270 @@ Import from Grafana.com:
 2. Copy dashboard ID or JSON
 3. Import via UI or CLI
 
+## Security Considerations
+
+### Authentication
+
+**LDAP/OAuth Integration:**
+```yaml
+grafana:
+  extraConfig:
+    auth.ldap: |
+      enabled = true
+      config_file = /etc/grafana/ldap.toml
+
+    auth.generic_oauth: |
+      enabled = true
+      name = Keycloak
+      allow_sign_up = true
+      client_id = grafana
+      client_secret = ${GF_AUTH_GENERIC_OAUTH_CLIENT_SECRET}
+      scopes = openid email profile
+      auth_url = https://keycloak.example.com/realms/master/protocol/openid-connect/auth
+      token_url = https://keycloak.example.com/realms/master/protocol/openid-connect/token
+      api_url = https://keycloak.example.com/realms/master/protocol/openid-connect/userinfo
+```
+
+**Disable Anonymous Access (Production):**
+```yaml
+grafana:
+  extraConfig:
+    auth.anonymous: |
+      enabled = false
+```
+
+### Network Security
+
+**Network Policy:**
+```yaml
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: grafana-netpol
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: grafana
+  policyTypes:
+  - Ingress
+  ingress:
+  - from:
+    - namespaceSelector:
+        matchLabels:
+          kubernetes.io/metadata.name: ingress-nginx
+    ports:
+    - protocol: TCP
+      port: 3000
+```
+
+### Ingress Security
+
+**TLS with Cert-Manager:**
+```yaml
+ingress:
+  enabled: true
+  annotations:
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+  tls:
+    - secretName: grafana-tls
+      hosts:
+        - grafana.example.com
+```
+
+**IP Whitelist:**
+```yaml
+ingress:
+  annotations:
+    nginx.ingress.kubernetes.io/whitelist-source-range: "10.0.0.0/8,192.168.0.0/16"
+```
+
+### Secret Management
+
+**Use External Secrets:**
+```yaml
+# ExternalSecret for Grafana admin password
+apiVersion: external-secrets.io/v1beta1
+kind: ExternalSecret
+metadata:
+  name: grafana-admin
+spec:
+  secretStoreRef:
+    name: vault-backend
+    kind: ClusterSecretStore
+  target:
+    name: grafana-admin-secret
+  data:
+    - secretKey: admin-password
+      remoteRef:
+        key: secret/grafana
+        property: admin-password
+```
+
+### Data Source Security
+
+**Use Credentials from Secrets:**
+```yaml
+grafana:
+  datasources:
+    - name: Prometheus
+      type: prometheus
+      url: http://prometheus:9090
+      secureJsonData:
+        httpHeaderValue1: "${PROMETHEUS_TOKEN}"
+```
+
+## Performance Tuning
+
+### Database Optimization
+
+**External PostgreSQL (Recommended for Production):**
+```yaml
+database:
+  external:
+    enabled: true
+    type: postgres
+    host: postgresql.database.svc.cluster.local
+    port: 5432
+    name: grafana
+    user: grafana
+    # Use connection pooling for high concurrency
+```
+
+**SQLite Tuning (Development Only):**
+```yaml
+grafana:
+  extraConfig:
+    database: |
+      type = sqlite3
+      cache_mode = shared
+      wal = true
+```
+
+### Resource Sizing
+
+| Users | Dashboards | Memory | CPU | Notes |
+|-------|------------|--------|-----|-------|
+| < 10 | < 50 | 256Mi | 100m | Development |
+| 10-50 | 50-200 | 512Mi | 250m | Small team |
+| 50-200 | 200-500 | 1Gi | 500m | Medium deployment |
+| 200+ | 500+ | 2Gi | 1000m | Large deployment |
+
+**Production Resources:**
+```yaml
+resources:
+  limits:
+    cpu: 1000m
+    memory: 1Gi
+  requests:
+    cpu: 250m
+    memory: 512Mi
+```
+
+### Caching
+
+**Enable Query Caching:**
+```yaml
+grafana:
+  extraConfig:
+    caching: |
+      enabled = true
+      backend = redis
+
+    caching.redis: |
+      url = redis://redis:6379/0
+```
+
+**Dashboard Caching:**
+```yaml
+grafana:
+  extraConfig:
+    dashboards: |
+      versions_to_keep = 20
+      min_refresh_interval = 5s
+```
+
+### Rendering Performance
+
+**Remote Rendering (for PDF/PNG export):**
+```yaml
+grafana:
+  extraConfig:
+    rendering: |
+      server_url = http://grafana-image-renderer:8081/render
+      callback_url = http://grafana:3000/
+```
+
+**Disable Unused Features:**
+```yaml
+grafana:
+  extraConfig:
+    explore: |
+      enabled = false  # If not using Explore
+
+    alerting: |
+      enabled = false  # If using external alerting
+```
+
+### High Availability
+
+**Session Affinity for HA:**
+```yaml
+replicaCount: 2
+
+service:
+  sessionAffinity: ClientIP
+  sessionAffinityConfig:
+    clientIP:
+      timeoutSeconds: 10800
+
+# Use external database for session storage
+database:
+  external:
+    enabled: true
+```
+
+**Redis for HA Caching:**
+```yaml
+grafana:
+  extraConfig:
+    remote_cache: |
+      type = redis
+      connstr = addr=redis:6379,pool_size=100
+```
+
+## Troubleshooting
+
+### Check Pod Status
+
+```bash
+# Pod status
+kubectl get pods -l app.kubernetes.io/name=grafana
+
+# Logs
+kubectl logs -l app.kubernetes.io/name=grafana -f
+
+# Describe pod
+kubectl describe pod -l app.kubernetes.io/name=grafana
+```
+
+### Common Issues
+
+1. **Login fails**: Check admin password secret, verify database connectivity
+2. **Dashboard not loading**: Check data source connectivity, increase query timeout
+3. **High memory usage**: Reduce dashboard complexity, enable query caching
+4. **Slow startup**: Use external database, reduce provisioned dashboards
+
+### Health Check
+
+```bash
+# Readiness check
+kubectl exec -n monitoring grafana-0 -- curl -s http://localhost:3000/api/health
+
+# Get version
+kubectl exec -n monitoring grafana-0 -- curl -s http://localhost:3000/api/health | jq '.version'
+```
+
 ## License
 
 - Chart: BSD 3-Clause License
