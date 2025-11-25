@@ -1944,6 +1944,32 @@ entries:
     urls:
     - https://github.com/ScriptonBasestar-containers/sb-helm-charts/releases/download/rustfs-0.1.0/rustfs-0.1.0.tgz
     version: 0.1.0
+  tempo:
+  - apiVersion: v2
+    appVersion: 2.6.1
+    created: "2025-11-25T02:18:36.720101675Z"
+    description: Grafana Tempo distributed tracing backend with S3/MinIO storage support
+    digest: 7dbbc7cdfe8827a05181ed14249df8a5ed8f475aa6dffddbb8c8233e65eee16d
+    home: https://github.com/scriptonbasestar-container/sb-helm-charts
+    icon: https://raw.githubusercontent.com/cncf/artwork/master/projects/grafana/icon/color/grafana-icon-color.svg
+    keywords:
+    - tempo
+    - tracing
+    - distributed-tracing
+    - observability
+    - grafana
+    - opentelemetry
+    maintainers:
+    - email: scriptonbasestar@gmail.com
+      name: ScriptonBasestar
+    name: tempo
+    sources:
+    - https://github.com/scriptonbasestar-container/sb-helm-charts/tree/master/charts/tempo
+    - https://github.com/grafana/tempo
+    type: application
+    urls:
+    - https://github.com/ScriptonBasestar-containers/sb-helm-charts/releases/download/tempo-0.3.0/tempo-0.3.0.tgz
+    version: 0.3.0
   uptime-kuma:
   - annotations:
       artifacthub.io/changes: |
@@ -2429,4 +2455,4 @@ entries:
     urls:
     - https://github.com/ScriptonBasestar-containers/sb-helm-charts/releases/download/wordpress-0.1.0/wordpress-0.1.0.tgz
     version: 0.1.0
-generated: "2025-11-23T14:00:35.211071586Z"
+generated: "2025-11-25T02:18:36.720214837Z"
