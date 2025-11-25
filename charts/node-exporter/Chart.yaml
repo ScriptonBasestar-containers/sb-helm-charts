@@ -3,7 +3,7 @@ name: node-exporter
 description: Prometheus Node Exporter for hardware and OS metrics with Kubernetes integration
 type: application
 version: 0.3.0
-appVersion: "1.7.0"
+appVersion: "1.10.2"
 keywords:
   - node-exporter
   - prometheus

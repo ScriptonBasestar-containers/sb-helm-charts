@@ -3,7 +3,7 @@ name: blackbox-exporter
 description: Blackbox Exporter for probing endpoints over HTTP, HTTPS, DNS, TCP, and ICMP
 type: application
 version: 0.3.0
-appVersion: "0.24.0"
+appVersion: "0.27.0"
 keywords:
   - blackbox-exporter
   - prometheus
