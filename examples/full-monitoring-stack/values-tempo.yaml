@@ -1,0 +1,69 @@
+# Tempo values for Full Monitoring Stack
+# Distributed tracing backend
+
+replicaCount: 1
+
+tempo:
+  # Storage configuration
+  storage:
+    type: "local"
+    local:
+      path: "/var/tempo/traces"
+
+  # Trace retention (days)
+  retention:
+    days: 7
+
+  # Receiver configurations
+  receivers:
+    otlp:
+      grpc:
+        enabled: true
+        port: 4317
+      http:
+        enabled: true
+        port: 4318
+    jaeger:
+      grpc:
+        enabled: true
+        port: 14250
+      thriftHttp:
+        enabled: true
+        port: 14268
+    zipkin:
+      enabled: true
+      port: 9411
+
+  # Query frontend
+  queryFrontend:
+    search:
+      enabled: true
+      maxDuration: "0"
+
+# Persistence
+persistence:
+  enabled: true
+  size: 10Gi
+  accessMode: ReadWriteOnce
+
+# Resources
+resources:
+  limits:
+    cpu: 1000m
+    memory: 2Gi
+  requests:
+    cpu: 100m
+    memory: 256Mi
+
+# Service configuration
+service:
+  type: ClusterIP
+  port: 3200
+
+# Enable ServiceMonitor for Prometheus scraping
+serviceMonitor:
+  enabled: true
+  interval: 30s
+  scrapeTimeout: 10s
+  labels:
+    release: prometheus

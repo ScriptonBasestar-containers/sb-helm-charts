@@ -1,0 +1,47 @@
+# PostgreSQL values for MLOps Stack
+# Metadata storage for MLflow experiment tracking
+
+replicaCount: 1
+
+postgresql:
+  # MLflow database
+  database: "mlflow"
+  username: "mlflow"
+  password: "mlflow-password-change-me"
+
+  # Memory settings (adjust based on available resources)
+  sharedBuffers: "128MB"
+  effectiveCacheSize: "512MB"
+  workMem: "4MB"
+  maintenanceWorkMem: "64MB"
+
+  # Connection settings
+  maxConnections: 100
+
+  # Initialize additional databases/users if needed
+  initdbScripts: {}
+    # init-additional.sql: |
+    #   CREATE DATABASE airflow;
+    #   CREATE USER airflow WITH PASSWORD 'airflow-password';
+    #   GRANT ALL PRIVILEGES ON DATABASE airflow TO airflow;
+
+# Persistence
+persistence:
+  enabled: true
+  size: 10Gi
+  storageClass: ""
+  accessMode: ReadWriteOnce
+
+# Resources
+resources:
+  limits:
+    cpu: 500m
+    memory: 1Gi
+  requests:
+    cpu: 100m
+    memory: 256Mi
+
+# Service
+service:
+  type: ClusterIP
+  port: 5432

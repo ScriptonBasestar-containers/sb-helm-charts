@@ -1,0 +1,48 @@
+# MinIO values for MLOps Stack
+# S3-compatible object storage for MLflow artifacts
+
+replicaCount: 1
+
+minio:
+  mode: standalone
+  drivesPerNode: 1
+
+  # Root credentials
+  rootUser: "minio-admin"
+  rootPassword: "minio-secret-key-change-me"
+
+  # Region
+  region: "us-east-1"
+
+  # Prometheus metrics (optional)
+  prometheusAuthType: "public"
+
+# Persistence
+persistence:
+  enabled: true
+  size: 50Gi
+  storageClass: ""
+  accessMode: ReadWriteOnce
+
+# Resources
+resources:
+  limits:
+    cpu: 1000m
+    memory: 2Gi
+  requests:
+    cpu: 100m
+    memory: 256Mi
+
+# Service
+service:
+  type: ClusterIP
+  port: 9000
+  consolePort: 9001
+
+# Init job to create mlflow bucket
+initBuckets:
+  enabled: true
+  buckets:
+    - name: mlflow
+      policy: none
+      purge: false

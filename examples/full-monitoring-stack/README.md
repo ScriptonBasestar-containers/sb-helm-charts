@@ -1,6 +1,6 @@
 # Full Monitoring Stack - Example Deployment
 
-Complete observability stack with metrics, logs, and visualization.
+Complete observability stack with metrics, logs, traces, and visualization.
 
 ## Stack Components
 
@@ -18,43 +18,45 @@ Complete observability stack with metrics, logs, and visualization.
 - **Loki** - Log aggregation and storage
 - **Promtail** - Log collection agent (DaemonSet on all nodes)
 
+### Tracing
+
+- **Tempo** - Distributed tracing backend (OTLP, Jaeger, Zipkin receivers)
+
 ### Visualization
 
-- **Grafana** - Metrics and logs visualization with dashboards
+- **Grafana** - Metrics, logs, and traces visualization with dashboards
 
 ## Architecture
 
 ```
-
 ┌─────────────────────────────────────────────────────────────────┐
 │                         Grafana (UI)                            │
 │                    http://grafana.local                         │
-└───────────────┬──────────────────────┬──────────────────────────┘
-                │                      │
-                ▼                      ▼
-        ┌──────────────┐       ┌──────────────┐
-        │  Prometheus  │       │     Loki     │
-        │   (Metrics)  │       │    (Logs)    │
-        └──────┬───────┘       └──────┬───────┘
-               │                      │
-        ┌──────┴───────┬──────────────┴────────┐
-        ▼              ▼              ▼         ▼
-  ┌──────────┐  ┌──────────┐  ┌───────────┐ ┌─────────┐
-  │   Node   │  │   Kube   │  │ Blackbox  │ │Promtail │
-  │ Exporter │  │  State   │  │  Exporter │ │(DaemonSet)
-  │(DaemonSet)│  │ Metrics  │  │           │ └─────────┘
-  └──────────┘  └──────────┘  └───────────┘
+└───────────────┬──────────────┬──────────────┬───────────────────┘
+                │              │              │
+                ▼              ▼              ▼
+        ┌──────────────┐ ┌──────────┐ ┌──────────────┐
+        │  Prometheus  │ │   Loki   │ │    Tempo     │
+        │   (Metrics)  │ │  (Logs)  │ │   (Traces)   │
+        └──────┬───────┘ └────┬─────┘ └──────┬───────┘
+               │              │              │
+        ┌──────┴───────┬──────┴──────┐       │
+        ▼              ▼             ▼       ▼
+  ┌──────────┐  ┌──────────┐  ┌─────────┐ ┌─────────┐
+  │   Node   │  │   Kube   │  │Promtail │ │  Apps   │
+  │ Exporter │  │  State   │  │(DaemonSet│ │ (OTLP)  │
+  │(DaemonSet)│  │ Metrics  │  └─────────┘ └─────────┘
+  └──────────┘  └──────────┘
         │
-  ┌─────┴─────┐
-  │Pushgateway│
-  │(Batch Jobs)
-  └───────────┘
+  ┌─────┴─────────┬─────────────┐
+  │   Blackbox    │ Pushgateway │
+  │   Exporter    │ (Batch Jobs)│
+  └───────────────┴─────────────┘
         │
   ┌─────┴──────┐
   │Alertmanager│
   │  (Alerts)  │
   └────────────┘
-
 ```
 
 ## Prerequisites
@@ -99,70 +101,70 @@ Install in this order for proper dependencies:
 
 ```bash
 # Prometheus (metrics storage)
-helm install prometheus scripton-charts/prometheus \
+helm install prometheus sb-charts/prometheus \
   -f values-prometheus.yaml \
   -n monitoring
 
 # Loki (log storage)
-helm install loki scripton-charts/loki \
+helm install loki sb-charts/loki \
   -f values-loki.yaml \
   -n monitoring
 
+# Tempo (trace storage)
+helm install tempo sb-charts/tempo \
+  -f values-tempo.yaml \
+  -n monitoring
 ```
 
 #### 2.2 Metrics Exporters
 
 ```bash
 # Node Exporter (hardware metrics)
-helm install node-exporter scripton-charts/node-exporter \
+helm install node-exporter sb-charts/node-exporter \
   -f values-node-exporter.yaml \
   -n monitoring
 
 # Kube State Metrics (K8s object metrics)
-helm install kube-state-metrics scripton-charts/kube-state-metrics \
+helm install kube-state-metrics sb-charts/kube-state-metrics \
   -f values-kube-state-metrics.yaml \
   -n monitoring
 
 # Blackbox Exporter (endpoint probing)
-helm install blackbox-exporter scripton-charts/blackbox-exporter \
+helm install blackbox-exporter sb-charts/blackbox-exporter \
   -f values-blackbox-exporter.yaml \
   -n monitoring
-
 ```
 
 #### 2.3 Log Collection
 
 ```bash
 # Promtail (log collection)
-helm install promtail scripton-charts/promtail \
+helm install promtail sb-charts/promtail \
   -f values-promtail.yaml \
   -n monitoring
-
 ```
 
 #### 2.4 Alerting
 
 ```bash
 # Alertmanager (alert routing)
-helm install alertmanager scripton-charts/alertmanager \
+helm install alertmanager sb-charts/alertmanager \
   -f values-alertmanager.yaml \
   -n monitoring
 
 # Pushgateway (batch job metrics)
-helm install pushgateway scripton-charts/pushgateway \
+helm install pushgateway sb-charts/pushgateway \
   -f values-pushgateway.yaml \
   -n monitoring
-
 ```
 
 #### 2.5 Visualization
 
 ```bash
 # Grafana (dashboards)
-helm install grafana scripton-charts/grafana \
+helm install grafana sb-charts/grafana \
   -f values-grafana.yaml \
   -n monitoring
-
 ```
 
 ### Step 3: Verify Installation
@@ -174,6 +176,7 @@ kubectl get pods -n monitoring
 # Expected output:
 # prometheus-0                      1/1     Running
 # loki-0                            1/1     Running
+# tempo-0                           1/1     Running
 # alertmanager-0                    1/1     Running
 # grafana-...                       1/1     Running
 # node-exporter-...                 1/1     Running  (on each node)
@@ -181,7 +184,6 @@ kubectl get pods -n monitoring
 # blackbox-exporter-...             1/1     Running
 # promtail-...                      1/1     Running  (on each node)
 # pushgateway-...                   1/1     Running
-
 ```
 
 ## Access
@@ -214,6 +216,14 @@ open http://localhost:9090
 ```bash
 kubectl port-forward -n monitoring svc/alertmanager 9093:9093
 open http://localhost:9093
+```
+
+### Tempo API
+
+```bash
+kubectl port-forward -n monitoring svc/tempo 3200:3200
+# API endpoint: http://localhost:3200
+# Query traces via Grafana Tempo datasource
 
 ```
 
