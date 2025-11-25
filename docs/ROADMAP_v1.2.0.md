@@ -114,7 +114,7 @@ Planning document for v1.2.0 release following the v1.1.0 documentation-focused 
 ### Should Have (High Priority)
 - [ ] OpenTelemetry Collector chart
 - [x] Pre-configured alerting rules *(2025-11-25: alerting-rules/ with Prometheus, Kubernetes, Loki, Tempo, Mimir)*
-- [ ] Advanced HA guide
+- [x] Advanced HA guide *(2025-11-25: docs/ADVANCED_HA_GUIDE.md)*
 - [ ] Vault integration examples
 
 ### Nice to Have (Optional)
@@ -137,7 +137,7 @@ Planning document for v1.2.0 release following the v1.1.0 documentation-focused 
 
 ### Phase 3: GitOps & Documentation (Weeks 7-8)
 - [x] GitOps guide with examples *(2025-11-25: docs/GITOPS_GUIDE.md)*
-- [ ] Advanced HA guide
+- [x] Advanced HA guide *(2025-11-25: docs/ADVANCED_HA_GUIDE.md)*
 - [ ] Security hardening guide
 - [x] Enhanced chart READMEs *(2025-11-25)*
 
