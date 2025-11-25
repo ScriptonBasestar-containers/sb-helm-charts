@@ -10,7 +10,7 @@ replicaCount: 1
 image:
   repository: postgres
   pullPolicy: IfNotPresent
-  tag: "16.1"
+  tag: "16.11"
 
 # PostgreSQL configuration optimized for development
 postgresql:

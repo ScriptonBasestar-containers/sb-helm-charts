@@ -15,7 +15,7 @@ replicaCount: 2
 image:
   repository: postgres
   pullPolicy: IfNotPresent
-  tag: "16.1"
+  tag: "16.11"
 
 # PostgreSQL configuration for production
 postgresql:

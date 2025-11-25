@@ -1,14 +1,14 @@
 # PostgreSQL Helm Chart
 
-![Version: 0.1.0](https://img.shields.io/badge/Version-0.1.0-informational?style=flat-square)
-![AppVersion: 16.1](https://img.shields.io/badge/AppVersion-16.1-informational?style=flat-square)
+![Version: 0.3.0](https://img.shields.io/badge/Version-0.3.0-informational?style=flat-square)
+![AppVersion: 16.11](https://img.shields.io/badge/AppVersion-16.11-informational?style=flat-square)
 ![Type: application](https://img.shields.io/badge/Type-application-informational?style=flat-square)
 
 PostgreSQL relational database with replication support for Kubernetes.
 
 ## Features
 
-- ✅ **PostgreSQL 16.1** - Latest stable version
+- ✅ **PostgreSQL 16.11** - Latest stable version
 - ✅ **Primary-Replica Replication** - Built-in streaming replication support
 - ✅ **Production-Ready** - StatefulSet with persistent storage
 - ✅ **Configuration Management** - Full postgresql.conf and pg_hba.conf support
@@ -615,7 +615,7 @@ spec:
         spec:
           containers:
           - name: backup
-            image: postgres:16.1
+            image: postgres:16.11
             command:
             - sh
             - -c
@@ -706,6 +706,6 @@ Contributions are welcome! Please see [CONTRIBUTING.md](../../CONTRIBUTING.md) f
 
 ---
 
-**Chart Version:** 0.1.0
-**PostgreSQL Version:** 16.1
+**Chart Version:** 0.3.0
+**PostgreSQL Version:** 16.11
 **Last Updated:** 2025-11

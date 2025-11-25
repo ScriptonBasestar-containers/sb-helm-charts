@@ -3,7 +3,7 @@ name: postgresql
 description: PostgreSQL relational database with replication support
 type: application
 version: 0.3.0
-appVersion: "16.1"
+appVersion: "16.11"
 keywords:
   - postgresql
   - postgres
