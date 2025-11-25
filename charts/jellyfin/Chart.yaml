@@ -3,7 +3,7 @@ name: jellyfin
 description: Jellyfin - The Free Software Media System (Plex Alternative)
 type: application
 version: 0.3.0
-appVersion: "10.10.3"
+appVersion: "10.11.3"
 home: https://github.com/scriptonbasestar-container/sb-helm-charts
 sources:
   - https://github.com/scriptonbasestar-container/sb-helm-charts

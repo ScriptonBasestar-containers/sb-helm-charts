@@ -3,7 +3,7 @@ name: phpmyadmin
 description: phpMyAdmin is a web-based MySQL and MariaDB administration tool
 type: application
 version: 0.3.0
-appVersion: "5.2.1"
+appVersion: "5.2.3"
 keywords:
   - mysql
   - mariadb
