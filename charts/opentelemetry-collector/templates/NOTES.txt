@@ -1,0 +1,77 @@
+OpenTelemetry Collector has been deployed successfully!
+
+Release: {{ .Release.Name }}
+Namespace: {{ .Release.Namespace }}
+Mode: {{ .Values.mode }}
+
+=== OTLP Endpoints ===
+
+The collector is configured to receive telemetry data via OTLP:
+
+  gRPC: {{ include "otel-collector.fullname" . }}:4317
+  HTTP: {{ include "otel-collector.fullname" . }}:4318
+
+=== Accessing the Collector ===
+
+From within the cluster, configure your applications to send telemetry to:
+
+  OTLP gRPC:
+    export OTEL_EXPORTER_OTLP_ENDPOINT=http://{{ include "otel-collector.fullname" . }}.{{ .Release.Namespace }}.svc.cluster.local:4317
+
+  OTLP HTTP:
+    export OTEL_EXPORTER_OTLP_ENDPOINT=http://{{ include "otel-collector.fullname" . }}.{{ .Release.Namespace }}.svc.cluster.local:4318
+
+=== Port Forwarding (for local testing) ===
+
+  # Forward OTLP gRPC port
+  kubectl port-forward -n {{ .Release.Namespace }} svc/{{ include "otel-collector.fullname" . }} 4317:4317
+
+  # Forward OTLP HTTP port
+  kubectl port-forward -n {{ .Release.Namespace }} svc/{{ include "otel-collector.fullname" . }} 4318:4318
+
+  # Forward metrics port
+  kubectl port-forward -n {{ .Release.Namespace }} svc/{{ include "otel-collector.fullname" . }} 8888:8888
+
+=== Health Check ===
+
+  kubectl exec -n {{ .Release.Namespace }} -it deploy/{{ include "otel-collector.fullname" . }} -- wget -qO- http://localhost:13133
+
+=== View Logs ===
+
+  kubectl logs -n {{ .Release.Namespace }} -l app.kubernetes.io/name={{ include "otel-collector.name" . }} -f
+
+=== Configuration ===
+
+The collector configuration is stored in ConfigMap:
+
+  kubectl get configmap -n {{ .Release.Namespace }} {{ include "otel-collector.fullname" . }} -o yaml
+
+To update the configuration:
+1. Modify values.yaml with your desired config
+2. Run: helm upgrade {{ .Release.Name }} <chart> -n {{ .Release.Namespace }} -f values.yaml
+
+{{- if .Values.serviceMonitor.enabled }}
+
+=== Prometheus Metrics ===
+
+ServiceMonitor is enabled. Metrics will be scraped by Prometheus Operator.
+Metrics endpoint: http://{{ include "otel-collector.fullname" . }}:8888/metrics
+
+{{- end }}
+
+{{- if .Values.ingress.enabled }}
+
+=== Ingress ===
+
+OTLP HTTP endpoint is exposed via Ingress:
+{{- range .Values.ingress.hosts }}
+  http{{ if $.Values.ingress.tls }}s{{ end }}://{{ .host }}
+{{- end }}
+
+{{- end }}
+
+=== Documentation ===
+
+  - OpenTelemetry Collector: https://opentelemetry.io/docs/collector/
+  - OTLP Protocol: https://opentelemetry.io/docs/specs/otlp/
+  - Configuration: https://opentelemetry.io/docs/collector/configuration/

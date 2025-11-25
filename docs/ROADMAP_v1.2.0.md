@@ -112,7 +112,7 @@ Planning document for v1.2.0 release following the v1.1.0 documentation-focused 
 - [x] Enhanced chart READMEs (security, performance sections) *(2025-11-25: Prometheus, Grafana READMEs enhanced)*
 
 ### Should Have (High Priority)
-- [ ] OpenTelemetry Collector chart
+- [x] OpenTelemetry Collector chart *(2025-11-25: charts/opentelemetry-collector)*
 - [x] Pre-configured alerting rules *(2025-11-25: alerting-rules/ with Prometheus, Kubernetes, Loki, Tempo, Mimir)*
 - [x] Advanced HA guide *(2025-11-25: docs/ADVANCED_HA_GUIDE.md)*
 - [ ] Vault integration examples
@@ -127,7 +127,7 @@ Planning document for v1.2.0 release following the v1.1.0 documentation-focused 
 
 ### Phase 1: Charts (Weeks 1-4)
 - [x] Implement Mimir chart *(2025-11-25)*
-- [ ] Implement OpenTelemetry Collector chart
+- [x] Implement OpenTelemetry Collector chart *(2025-11-25)*
 - [ ] Add operational commands for new charts
 
 ### Phase 2: Dashboards & Alerts (Weeks 5-6)

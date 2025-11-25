@@ -1,0 +1,54 @@
+{{- if and .Values.rbac.create .Values.rbac.clusterRole -}}
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: {{ include "otel-collector.fullname" . }}
+  labels:
+    {{- include "otel-collector.labels" . | nindent 4 }}
+rules:
+  # Required for k8sattributes processor
+  - apiGroups: [""]
+    resources:
+      - pods
+      - namespaces
+      - nodes
+    verbs:
+      - get
+      - list
+      - watch
+  - apiGroups: ["apps"]
+    resources:
+      - replicasets
+      - deployments
+      - statefulsets
+      - daemonsets
+    verbs:
+      - get
+      - list
+      - watch
+  - apiGroups: ["batch"]
+    resources:
+      - jobs
+      - cronjobs
+    verbs:
+      - get
+      - list
+      - watch
+  # Required for k8s_cluster receiver (optional)
+  - apiGroups: [""]
+    resources:
+      - events
+      - endpoints
+      - services
+    verbs:
+      - get
+      - list
+      - watch
+  - apiGroups: ["extensions"]
+    resources:
+      - replicasets
+    verbs:
+      - get
+      - list
+      - watch
+{{- end }}

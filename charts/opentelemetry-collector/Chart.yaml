@@ -1,0 +1,23 @@
+apiVersion: v2
+name: opentelemetry-collector
+description: OpenTelemetry Collector for unified telemetry collection (traces, metrics, logs)
+type: application
+version: 0.3.0
+appVersion: "0.96.0"
+keywords:
+  - opentelemetry
+  - otel
+  - telemetry
+  - tracing
+  - metrics
+  - logging
+  - observability
+  - otlp
+  - distributed-tracing
+maintainers:
+  - name: ScriptonBasestar
+home: https://opentelemetry.io/
+sources:
+  - https://github.com/open-telemetry/opentelemetry-collector
+  - https://github.com/open-telemetry/opentelemetry-collector-contrib
+icon: https://opentelemetry.io/img/logos/opentelemetry-logo-nav.png

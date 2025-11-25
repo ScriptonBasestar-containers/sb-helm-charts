@@ -1,0 +1,229 @@
+# OpenTelemetry Collector Helm Chart Values
+# https://opentelemetry.io/docs/collector/
+
+# ------------------------------------------------------------------------------
+# Deployment Configuration
+# ------------------------------------------------------------------------------
+
+replicaCount: 1
+
+# Deployment mode: "deployment" or "daemonset"
+# - deployment: For centralized collection (gateway mode)
+# - daemonset: For per-node collection (agent mode)
+mode: deployment
+
+image:
+  repository: otel/opentelemetry-collector-contrib
+  # Defaults to appVersion if not set
+  tag: ""
+  pullPolicy: IfNotPresent
+
+imagePullSecrets: []
+nameOverride: ""
+fullnameOverride: ""
+
+# ------------------------------------------------------------------------------
+# OpenTelemetry Collector Configuration
+# ------------------------------------------------------------------------------
+
+config:
+  # Receivers - Data sources
+  receivers:
+    otlp:
+      protocols:
+        grpc:
+          endpoint: 0.0.0.0:4317
+        http:
+          endpoint: 0.0.0.0:4318
+
+  # Processors - Data transformation
+  processors:
+    batch:
+      timeout: 5s
+      send_batch_size: 10000
+    memory_limiter:
+      check_interval: 1s
+      limit_percentage: 80
+      spike_limit_percentage: 25
+
+  # Exporters - Data destinations
+  exporters:
+    debug:
+      verbosity: basic
+
+  # Extensions - Additional capabilities
+  extensions:
+    health_check:
+      endpoint: 0.0.0.0:13133
+
+  # Service - Pipeline configuration
+  service:
+    extensions:
+      - health_check
+    pipelines:
+      traces:
+        receivers:
+          - otlp
+        processors:
+          - memory_limiter
+          - batch
+        exporters:
+          - debug
+      metrics:
+        receivers:
+          - otlp
+        processors:
+          - memory_limiter
+          - batch
+        exporters:
+          - debug
+      logs:
+        receivers:
+          - otlp
+        processors:
+          - memory_limiter
+          - batch
+        exporters:
+          - debug
+
+# ------------------------------------------------------------------------------
+# Kubernetes Resources
+# ------------------------------------------------------------------------------
+
+serviceAccount:
+  create: true
+  automount: true
+  annotations: {}
+  name: ""
+
+# RBAC for k8sattributes processor
+rbac:
+  create: true
+  # Create ClusterRole (required for k8sattributes processor)
+  clusterRole: true
+
+podAnnotations: {}
+podLabels: {}
+
+podSecurityContext:
+  runAsNonRoot: true
+  runAsUser: 10001
+  runAsGroup: 10001
+  fsGroup: 10001
+
+securityContext:
+  allowPrivilegeEscalation: false
+  capabilities:
+    drop:
+      - ALL
+  readOnlyRootFilesystem: true
+
+# Service configuration
+service:
+  type: ClusterIP
+  annotations: {}
+  ports:
+    otlp-grpc:
+      port: 4317
+      protocol: TCP
+    otlp-http:
+      port: 4318
+      protocol: TCP
+    metrics:
+      port: 8888
+      protocol: TCP
+
+# Ingress for OTLP HTTP endpoint
+ingress:
+  enabled: false
+  className: ""
+  annotations: {}
+  hosts:
+    - host: otel-collector.local
+      paths:
+        - path: /
+          pathType: Prefix
+  tls: []
+
+resources:
+  limits:
+    cpu: 1000m
+    memory: 2Gi
+  requests:
+    cpu: 200m
+    memory: 400Mi
+
+# Liveness and readiness probes
+livenessProbe:
+  httpGet:
+    path: /
+    port: 13133
+  initialDelaySeconds: 10
+  periodSeconds: 10
+  timeoutSeconds: 5
+  failureThreshold: 3
+
+readinessProbe:
+  httpGet:
+    path: /
+    port: 13133
+  initialDelaySeconds: 5
+  periodSeconds: 5
+  timeoutSeconds: 3
+  failureThreshold: 3
+
+# Horizontal Pod Autoscaler
+autoscaling:
+  enabled: false
+  minReplicas: 1
+  maxReplicas: 10
+  targetCPUUtilizationPercentage: 80
+  targetMemoryUtilizationPercentage: 80
+
+# Pod Disruption Budget
+podDisruptionBudget:
+  enabled: false
+  minAvailable: 1
+  # maxUnavailable: 1
+
+# Node selector
+nodeSelector: {}
+
+# Tolerations
+tolerations: []
+
+# Affinity
+affinity: {}
+
+# Extra environment variables
+extraEnv: []
+# - name: OTEL_RESOURCE_ATTRIBUTES
+#   value: "service.name=my-service"
+
+# Extra volume mounts
+extraVolumeMounts: []
+# - name: config
+#   mountPath: /etc/otel/config
+
+# Extra volumes
+extraVolumes: []
+# - name: config
+#   configMap:
+#     name: otel-config
+
+# ------------------------------------------------------------------------------
+# Monitoring
+# ------------------------------------------------------------------------------
+
+# ServiceMonitor for Prometheus Operator
+serviceMonitor:
+  enabled: false
+  namespace: ""
+  labels: {}
+  interval: 30s
+  scrapeTimeout: 10s
+  additionalLabels: {}
+
+# Prometheus annotations (if not using ServiceMonitor)
+prometheusAnnotations:
+  enabled: false

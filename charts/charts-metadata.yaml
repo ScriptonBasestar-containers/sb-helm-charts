@@ -1,4 +1,26 @@
 charts:
+  opentelemetry-collector:
+    name: OpenTelemetry Collector
+    path: charts/opentelemetry-collector
+    category: infrastructure
+    tags:
+    - Observability
+    - Telemetry
+    - Tracing
+    - Metrics
+    - Logging
+    keywords:
+    - opentelemetry
+    - otel
+    - telemetry
+    - tracing
+    - metrics
+    - logging
+    - observability
+    - otlp
+    - distributed-tracing
+    description: OpenTelemetry Collector for unified telemetry collection (traces, metrics, logs)
+    production_note: For large-scale deployments, consider the official OpenTelemetry Helm chart with microservices mode
   tempo:
     name: Grafana Tempo
     path: charts/tempo
