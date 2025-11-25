@@ -10,9 +10,9 @@ Planning document for v1.2.0 release following the v1.1.0 documentation-focused 
 ## Goals
 
 ### Primary Goals
-1. **GitOps Integration**: ArgoCD and Flux examples for all charts
+1. **GitOps Integration**: ArgoCD and Flux examples for all charts ✅ *(GITOPS_GUIDE.md created)*
 2. **Mimir Chart**: Scalable Prometheus metrics backend
-3. **Pre-configured Grafana Dashboards**: JSON dashboards for all observability charts
+3. **Pre-configured Grafana Dashboards**: JSON dashboards for all observability charts ✅ *(4 dashboards in dashboards/)*
 4. **Enhanced Chart READMEs**: Security considerations, performance tuning sections
 
 ### Secondary Goals
@@ -107,7 +107,7 @@ Planning document for v1.2.0 release following the v1.1.0 documentation-focused 
 
 ### Must Have (Required for v1.2.0)
 - [ ] Mimir chart implemented
-- [ ] GitOps guide with ArgoCD/Flux examples
+- [x] GitOps guide with ArgoCD/Flux examples *(2025-11-25: docs/GITOPS_GUIDE.md)*
 - [x] At least 5 Grafana dashboards *(4 core dashboards created: prometheus-overview, loki-overview, tempo-overview, kubernetes-cluster)*
 - [ ] Enhanced chart READMEs (security, performance sections)
 
@@ -136,7 +136,7 @@ Planning document for v1.2.0 release following the v1.1.0 documentation-focused 
 - [ ] Dashboard provisioning guide
 
 ### Phase 3: GitOps & Documentation (Weeks 7-8)
-- [ ] GitOps guide with examples
+- [x] GitOps guide with examples *(2025-11-25: docs/GITOPS_GUIDE.md)*
 - [ ] Advanced HA guide
 - [ ] Security hardening guide
 - [ ] Enhanced chart READMEs
