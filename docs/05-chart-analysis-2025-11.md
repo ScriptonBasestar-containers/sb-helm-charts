@@ -1,7 +1,7 @@
 # Helm Charts Analysis Report - November 2025
 
 > **Document Type**: Analysis Report
-> **Analysis Date**: 2025-11-17
+> **Analysis Date**: 2025-11-17 (Updated: 2025-11-25)
 > **Analyst**: Claude Code (Automated Analysis)
 > **Method**: Comprehensive code review and static analysis
 > **Charts Analyzed**: 16/16 (100%)
@@ -138,6 +138,31 @@ Verification: helm template with existingClaim works correctly
 8. 🔮 Implement Redis Cluster mode in templates
 9. 🔮 Add integration test suite
 10. 🔮 Create production deployment checklist
+
+---
+
+## 📦 Version Updates (2025-11-25)
+
+All charts upgraded to latest stable versions:
+
+| Chart | Previous | Current | Notes |
+|-------|----------|---------|-------|
+| Harbor | 2.11.x | 2.13.3 | Container registry |
+| Grafana | 11.x | 12.2.2 | Major UI improvements |
+| Prometheus | 2.x | 3.7.3 | New query engine |
+| Elasticsearch | 8.12 | 8.17.0 | Search engine |
+| Loki | 2.9.3 | 3.6.1 | Log aggregation |
+| Kafka | 3.6.1 | 3.9.0 | Last ZooKeeper+KRaft version |
+| Tempo | 2.6.1 | 2.9.0 | Distributed tracing |
+| Promtail | 2.9.3 | 3.6.1 | Synced with Loki |
+| MySQL | 8.0.35 | 8.4.3 | LTS version |
+| MinIO | 2024-10-02 | 2025-10-15 | S3-compatible storage |
+| PostgreSQL | 16.1 | 16.11 | Latest 16.x |
+
+### Deferred Upgrades
+- **RabbitMQ 4.x**: Major breaking changes (AMQP 1.0, new protocols)
+- **MongoDB 8.x**: Major version, requires compatibility testing
+- **Redis 8.x**: License changed to RSALv2/SSPLv1
 
 ---
 
