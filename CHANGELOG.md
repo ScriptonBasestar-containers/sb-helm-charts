@@ -7,6 +7,57 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+#### Documentation (v1.1.0 Progress)
+- **Observability Stack Guide** (`docs/OBSERVABILITY_STACK_GUIDE.md`)
+  - Complete setup guide for Prometheus + Loki + Tempo monitoring stack
+  - Integration examples and dashboard recommendations
+  - Query examples for metrics, logs, and traces
+
+- **Operator Migration Guides** (`docs/migrations/`)
+  - 6 comprehensive guides for migrating from Helm charts to Kubernetes Operators:
+    - `postgresql-to-operator.md` - Zalando, Crunchy, CloudNativePG operators
+    - `redis-to-operator.md` - Spotahome Redis Operator
+    - `mysql-to-operator.md` - Oracle, Percona, Vitess operators
+    - `mongodb-to-operator.md` - Community, Enterprise, Percona operators
+    - `rabbitmq-to-operator.md` - RabbitMQ Cluster Operator
+    - `kafka-to-strimzi.md` - Strimzi Kafka Operator with KRaft
+
+- **Homeserver Optimization Guide** (`docs/HOMESERVER_OPTIMIZATION.md`)
+  - Hardware recommendations (Raspberry Pi, NUC, Mini PCs)
+  - Resource optimization strategies for limited hardware
+  - K3s configuration for home servers
+  - Chart-specific optimizations
+  - Power management and cost analysis
+
+- **Multi-Tenancy Guide** (`docs/MULTI_TENANCY_GUIDE.md`)
+  - Namespace isolation strategies
+  - ResourceQuota and LimitRange examples
+  - RBAC patterns (admin, developer, viewer roles)
+  - NetworkPolicy for tenant isolation
+  - Storage and secrets isolation
+  - Monitoring per tenant
+
+- **Chart Generator Script** (`scripts/generate-chart.sh`)
+  - Automated chart scaffolding following project conventions
+  - Generates complete Helm chart structure (15 files)
+  - Supports application and infrastructure types
+  - Includes production features (HPA, PDB, ServiceMonitor, NetworkPolicy)
+
+- **Quick Start Script** (`scripts/quick-start.sh`)
+  - Deployment automation for 6 common scenarios:
+    - monitoring: Full observability stack
+    - mlops: MLflow + MinIO + PostgreSQL
+    - database: PostgreSQL + Redis + pgAdmin
+    - nextcloud: Complete Nextcloud deployment
+    - wordpress: WordPress with MySQL
+    - messaging: RabbitMQ + Kafka
+
+- **Example Deployments**
+  - `examples/mlops-stack/` - MLflow experiment tracking with MinIO and PostgreSQL
+  - `examples/full-monitoring-stack/values-tempo.yaml` - Tempo distributed tracing
+
 ### Changed
 
 #### Metadata File Relocation

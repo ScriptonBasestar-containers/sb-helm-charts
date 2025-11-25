@@ -46,29 +46,19 @@ Planning document for v1.1.0 release following the successful v1.0.0 first stabl
 
 ### Chart Upgrades
 
-#### Harbor (v0.2.0 → v0.3.0)
-**Status**: Development → Production-Ready
+#### Harbor (v0.2.0 → v0.3.0) ✅ COMPLETED
+**Status**: Production-Ready
 
-**Missing Features:**
-- [ ] Values profiles (values-dev.yaml, values-small-prod.yaml, values-homeserver.yaml)
-- [ ] Operational Makefile (make/ops/harbor.mk)
-- [ ] Comprehensive README.md
-- [ ] Production features:
-  - [ ] PodDisruptionBudget
-  - [ ] HorizontalPodAutoscaler
-  - [ ] ServiceMonitor
-  - [ ] Network policies
-  - [ ] Anti-affinity rules
-
-**Implementation Plan:**
-1. Add values profiles with resource configurations
-2. Create operational commands (backup/restore, user management, registry operations)
-3. Write comprehensive README with deployment scenarios
-4. Add production features (PDB, HPA, ServiceMonitor, NetworkPolicy)
-5. Test all deployment scenarios
-6. Update Chart.yaml to v0.3.0
-
-**Estimated Effort**: 2-3 days
+**Completed Features:**
+- [x] Values profiles (values-home-single.yaml, values-prod-master-replica.yaml, values-startup-single.yaml)
+- [x] Operational Makefile (make/ops/harbor.mk) - 35+ commands
+- [x] Comprehensive README.md (739 lines)
+- [x] Production features:
+  - [x] PodDisruptionBudget
+  - [x] HorizontalPodAutoscaler
+  - [x] ServiceMonitor
+  - [x] Network policies
+  - [x] Anti-affinity rules
 
 #### Application Charts - Icon Addition
 **Charts needing icons** (from helm lint INFO messages):
