@@ -2,7 +2,7 @@
 
 [![Artifact Hub](https://img.shields.io/endpoint?url=https://artifacthub.io/badge/repository/sb-helm-charts)](https://artifacthub.io/packages/helm/sb-helm-charts/tempo)
 [![Chart Version](https://img.shields.io/badge/chart-0.3.0-blue.svg)](https://github.com/scriptonbasestar-container/sb-helm-charts)
-[![App Version](https://img.shields.io/badge/app-2.6.1-green.svg)](https://grafana.com/oss/tempo/)
+[![App Version](https://img.shields.io/badge/app-2.9.0-green.svg)](https://grafana.com/oss/tempo/)
 [![License](https://img.shields.io/badge/license-BSD--3--Clause-orange.svg)](https://opensource.org/licenses/BSD-3-Clause)
 
 Grafana Tempo distributed tracing backend with S3/MinIO storage support and OpenTelemetry compatibility.
