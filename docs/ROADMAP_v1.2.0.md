@@ -106,7 +106,7 @@ Planning document for v1.2.0 release following the v1.1.0 documentation-focused 
 ## Success Criteria
 
 ### Must Have (Required for v1.2.0)
-- [ ] Mimir chart implemented
+- [x] Mimir chart implemented *(2025-11-25: charts/mimir)*
 - [x] GitOps guide with ArgoCD/Flux examples *(2025-11-25: docs/GITOPS_GUIDE.md)*
 - [x] At least 5 Grafana dashboards *(4 core dashboards created: prometheus-overview, loki-overview, tempo-overview, kubernetes-cluster)*
 - [ ] Enhanced chart READMEs (security, performance sections)
@@ -126,7 +126,7 @@ Planning document for v1.2.0 release following the v1.1.0 documentation-focused 
 ## Timeline (Tentative)
 
 ### Phase 1: Charts (Weeks 1-4)
-- [ ] Implement Mimir chart
+- [x] Implement Mimir chart *(2025-11-25)*
 - [ ] Implement OpenTelemetry Collector chart
 - [ ] Add operational commands for new charts
 

@@ -1,0 +1,88 @@
+Thank you for installing {{ .Chart.Name }}!
+
+Grafana Mimir has been deployed successfully.
+
+## Access Mimir
+
+{{- if contains "ClusterIP" .Values.service.type }}
+
+Port-forward the service:
+  kubectl port-forward -n {{ .Release.Namespace }} svc/{{ include "mimir.fullname" . }} {{ .Values.service.httpPort }}:{{ .Values.service.httpPort }}
+
+Then access:
+  - HTTP API: http://localhost:{{ .Values.service.httpPort }}
+  - Metrics: http://localhost:{{ .Values.service.httpPort }}/metrics
+  - Ready: http://localhost:{{ .Values.service.httpPort }}/ready
+
+{{- else if contains "NodePort" .Values.service.type }}
+
+Get the NodePort:
+  export NODE_PORT=$(kubectl get -n {{ .Release.Namespace }} -o jsonpath="{.spec.ports[0].nodePort}" services {{ include "mimir.fullname" . }})
+  export NODE_IP=$(kubectl get nodes -o jsonpath="{.items[0].status.addresses[0].address}")
+  echo "Mimir URL: http://$NODE_IP:$NODE_PORT"
+
+{{- end }}
+
+## Configure Prometheus to Write to Mimir
+
+Add this to your Prometheus configuration:
+
+```yaml
+remote_write:
+  - url: http://{{ include "mimir.fullname" . }}.{{ .Release.Namespace }}.svc.cluster.local:{{ .Values.service.httpPort }}/api/v1/push
+{{- if .Values.mimir.multitenancy.enabled }}
+    headers:
+      X-Scope-OrgID: <tenant-id>
+{{- end }}
+```
+
+## Configure Grafana Datasource
+
+Add Mimir as a Prometheus datasource in Grafana:
+
+```yaml
+datasources:
+  - name: Mimir
+    type: prometheus
+    url: http://{{ include "mimir.fullname" . }}.{{ .Release.Namespace }}.svc.cluster.local:{{ .Values.service.httpPort }}/prometheus
+{{- if .Values.mimir.multitenancy.enabled }}
+    jsonData:
+      httpHeaderName1: X-Scope-OrgID
+    secureJsonData:
+      httpHeaderValue1: <tenant-id>
+{{- end }}
+```
+
+## Storage Backend
+
+{{- if eq .Values.mimir.storage.backend "filesystem" }}
+⚠️  Using filesystem storage (not recommended for production)
+    Consider using S3/MinIO for production deployments.
+{{- else if eq .Values.mimir.storage.backend "s3" }}
+✅ Using S3 storage backend
+   Endpoint: {{ .Values.mimir.storage.s3.endpoint }}
+   Bucket: {{ .Values.mimir.storage.s3.bucket }}
+{{- else if eq .Values.mimir.storage.backend "gcs" }}
+✅ Using GCS storage backend
+   Bucket: {{ .Values.mimir.storage.gcs.bucketName }}
+{{- else if eq .Values.mimir.storage.backend "azure" }}
+✅ Using Azure storage backend
+   Container: {{ .Values.mimir.storage.azure.containerName }}
+{{- end }}
+
+## Useful Commands
+
+Check Mimir status:
+  kubectl get pods -n {{ .Release.Namespace }} -l app.kubernetes.io/name={{ include "mimir.name" . }}
+
+View logs:
+  kubectl logs -n {{ .Release.Namespace }} -l app.kubernetes.io/name={{ include "mimir.name" . }} -f
+
+Check ready status:
+  kubectl exec -n {{ .Release.Namespace }} {{ include "mimir.fullname" . }}-0 -- wget -qO- http://localhost:{{ .Values.service.httpPort }}/ready
+
+## Documentation
+
+- Grafana Mimir: https://grafana.com/docs/mimir/latest/
+- Remote Write: https://grafana.com/docs/mimir/latest/references/http-api/#remote-write
+- Query API: https://grafana.com/docs/mimir/latest/references/http-api/#querier--query-frontend

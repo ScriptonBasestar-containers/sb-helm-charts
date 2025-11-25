@@ -1,0 +1,16 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: "{{ include "mimir.fullname" . }}-test-connection"
+  labels:
+    {{- include "mimir.labels" . | nindent 4 }}
+  annotations:
+    "helm.sh/hook": test
+    "helm.sh/hook-delete-policy": hook-succeeded
+spec:
+  containers:
+    - name: wget
+      image: busybox:1.36
+      command: ['wget']
+      args: ['{{ include "mimir.fullname" . }}:{{ .Values.service.httpPort }}/ready']
+  restartPolicy: Never

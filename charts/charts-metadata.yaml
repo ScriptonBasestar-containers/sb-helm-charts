@@ -623,3 +623,21 @@ charts:
     - observability
     description: Prometheus Pushgateway for push-based metrics collection from batch
       jobs and ephemeral services
+  mimir:
+    name: Grafana Mimir
+    path: charts/mimir
+    category: infrastructure
+    tags:
+    - Monitoring
+    - Metrics
+    - Long-Term-Storage
+    keywords:
+    - mimir
+    - metrics
+    - prometheus
+    - monitoring
+    - observability
+    - timeseries
+    - long-term-storage
+    description: Grafana Mimir horizontally scalable, highly available long-term storage for Prometheus metrics
+    production_note: For large-scale deployments, consider microservices mode with official Grafana Mimir Helm chart

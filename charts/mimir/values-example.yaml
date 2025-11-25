@@ -1,0 +1,85 @@
+# Production example values for Mimir with S3/MinIO backend
+#
+# This configuration demonstrates:
+# - S3-compatible storage (MinIO)
+# - Multi-tenancy enabled
+# - Appropriate resource limits
+# - Monitoring integration
+
+replicaCount: 1
+
+mimir:
+  # Enable multi-tenancy
+  multitenancy:
+    enabled: true
+
+  # S3/MinIO storage configuration
+  storage:
+    backend: "s3"
+    s3:
+      endpoint: "minio.monitoring.svc.cluster.local:9000"
+      bucket: "mimir-blocks"
+      region: "us-east-1"
+      accessKeyId: "admin"
+      secretAccessKey: "secretpassword"
+      insecure: true  # Set to false for HTTPS
+
+  # Block retention
+  blocks:
+    retentionPeriod: "30d"
+
+  # Ingester configuration
+  ingester:
+    ring:
+      replicationFactor: 1
+
+  # Enable ruler for alerting
+  ruler:
+    enabled: true
+    alertmanagerUrl: "http://alertmanager.monitoring.svc.cluster.local:9093"
+
+  # Limits for production
+  limits:
+    ingestionRate: 50000
+    ingestionBurstSize: 500000
+    maxGlobalSeriesPerUser: 500000
+    maxQueryLength: "2160h"  # 90 days
+
+# Resources for production
+resources:
+  limits:
+    cpu: 4000m
+    memory: 8Gi
+  requests:
+    cpu: 1000m
+    memory: 2Gi
+
+# Persistence
+persistence:
+  enabled: true
+  storageClass: ""
+  size: 100Gi
+
+# Enable ServiceMonitor
+serviceMonitor:
+  enabled: true
+  namespace: monitoring
+  interval: "30s"
+  labels:
+    release: prometheus
+
+# Pod Disruption Budget
+podDisruptionBudget:
+  enabled: true
+  minAvailable: 1
+
+# Affinity for high availability
+affinity:
+  podAntiAffinity:
+    preferredDuringSchedulingIgnoredDuringExecution:
+      - weight: 100
+        podAffinityTerm:
+          labelSelector:
+            matchLabels:
+              app.kubernetes.io/name: mimir
+          topologyKey: kubernetes.io/hostname

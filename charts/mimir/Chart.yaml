@@ -1,0 +1,22 @@
+apiVersion: v2
+name: mimir
+description: Grafana Mimir - horizontally scalable, highly available, long-term storage for Prometheus metrics
+type: application
+version: 0.3.0
+appVersion: "2.15.0"
+keywords:
+  - mimir
+  - metrics
+  - prometheus
+  - monitoring
+  - observability
+  - timeseries
+  - long-term-storage
+home: https://github.com/scriptonbasestar-container/sb-helm-charts
+icon: https://grafana.com/static/img/menu/mimir.svg
+sources:
+  - https://github.com/scriptonbasestar-container/sb-helm-charts/tree/master/charts/mimir
+  - https://github.com/grafana/mimir
+maintainers:
+  - name: ScriptonBasestar
+    email: scriptonbasestar@gmail.com

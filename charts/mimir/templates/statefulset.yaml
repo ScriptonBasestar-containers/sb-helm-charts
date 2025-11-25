@@ -1,0 +1,152 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: {{ include "mimir.fullname" . }}
+  labels:
+    {{- include "mimir.labels" . | nindent 4 }}
+spec:
+  serviceName: {{ include "mimir.fullname" . }}-headless
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      {{- include "mimir.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      annotations:
+        checksum/config: {{ include (print $.Template.BasePath "/configmap.yaml") . | sha256sum }}
+        {{- with .Values.podAnnotations }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+      labels:
+        {{- include "mimir.selectorLabels" . | nindent 8 }}
+    spec:
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      serviceAccountName: {{ include "mimir.serviceAccountName" . }}
+      securityContext:
+        {{- toYaml .Values.podSecurityContext | nindent 8 }}
+      containers:
+        - name: {{ .Chart.Name }}
+          securityContext:
+            {{- toYaml .Values.securityContext | nindent 12 }}
+          image: {{ include "mimir.image" . }}
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          args:
+            - "-config.file=/etc/mimir/mimir.yaml"
+            - "-config.expand-env=true"
+          ports:
+            - name: http
+              containerPort: {{ .Values.mimir.server.httpListenPort }}
+              protocol: TCP
+            - name: grpc
+              containerPort: {{ .Values.mimir.server.grpcListenPort }}
+              protocol: TCP
+            - name: memberlist
+              containerPort: 7946
+              protocol: TCP
+          env:
+            {{- if eq .Values.mimir.storage.backend "s3" }}
+            - name: S3_ACCESS_KEY_ID
+              {{- if .Values.mimir.existingSecret }}
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.mimir.existingSecret }}
+                  key: s3-access-key-id
+              {{- else }}
+              value: {{ .Values.mimir.storage.s3.accessKeyId | quote }}
+              {{- end }}
+            - name: S3_SECRET_ACCESS_KEY
+              {{- if .Values.mimir.existingSecret }}
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.mimir.existingSecret }}
+                  key: s3-secret-access-key
+              {{- else }}
+              value: {{ .Values.mimir.storage.s3.secretAccessKey | quote }}
+              {{- end }}
+            {{- end }}
+            {{- if eq .Values.mimir.storage.backend "azure" }}
+            - name: AZURE_ACCOUNT_KEY
+              {{- if .Values.mimir.existingSecret }}
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.mimir.existingSecret }}
+                  key: azure-account-key
+              {{- else }}
+              value: {{ .Values.mimir.storage.azure.accountKey | quote }}
+              {{- end }}
+            {{- end }}
+            {{- with .Values.mimir.extraEnv }}
+            {{- toYaml . | nindent 12 }}
+            {{- end }}
+          livenessProbe:
+            httpGet:
+              path: /ready
+              port: http
+            initialDelaySeconds: {{ .Values.livenessProbe.initialDelaySeconds }}
+            periodSeconds: {{ .Values.livenessProbe.periodSeconds }}
+            timeoutSeconds: {{ .Values.livenessProbe.timeoutSeconds }}
+            failureThreshold: {{ .Values.livenessProbe.failureThreshold }}
+          readinessProbe:
+            httpGet:
+              path: /ready
+              port: http
+            initialDelaySeconds: {{ .Values.readinessProbe.initialDelaySeconds }}
+            periodSeconds: {{ .Values.readinessProbe.periodSeconds }}
+            timeoutSeconds: {{ .Values.readinessProbe.timeoutSeconds }}
+            failureThreshold: {{ .Values.readinessProbe.failureThreshold }}
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+          volumeMounts:
+            - name: config
+              mountPath: /etc/mimir
+            - name: data
+              mountPath: /data
+            - name: tmp
+              mountPath: /tmp
+      volumes:
+        - name: config
+          configMap:
+            name: {{ .Values.mimir.existingConfigMap | default (printf "%s-config" (include "mimir.fullname" .)) }}
+        - name: tmp
+          emptyDir: {}
+        {{- if not .Values.persistence.enabled }}
+        - name: data
+          emptyDir: {}
+        {{- end }}
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+  {{- if .Values.persistence.enabled }}
+  volumeClaimTemplates:
+    - metadata:
+        name: data
+        {{- with .Values.persistence.annotations }}
+        annotations:
+          {{- toYaml . | nindent 10 }}
+        {{- end }}
+      spec:
+        accessModes:
+          - {{ .Values.persistence.accessMode }}
+        {{- if .Values.persistence.storageClass }}
+        {{- if (eq "-" .Values.persistence.storageClass) }}
+        storageClassName: ""
+        {{- else }}
+        storageClassName: {{ .Values.persistence.storageClass | quote }}
+        {{- end }}
+        {{- end }}
+        resources:
+          requests:
+            storage: {{ .Values.persistence.size }}
+  {{- end }}
