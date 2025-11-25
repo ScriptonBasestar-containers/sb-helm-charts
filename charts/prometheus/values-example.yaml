@@ -10,7 +10,7 @@ replicaCount: 2
 image:
   repository: prom/prometheus
   pullPolicy: IfNotPresent
-  tag: ""  # Defaults to chart appVersion (v2.48.1)
+  tag: ""  # Defaults to chart appVersion (v3.7.3)
 
 # =============================================================================
 # Prometheus Configuration
