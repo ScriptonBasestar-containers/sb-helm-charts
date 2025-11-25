@@ -143,8 +143,8 @@ Planning document for v1.2.0 release following the v1.1.0 documentation-focused 
 
 ### Phase 4: Testing & Release (Weeks 9-10)
 - [ ] Comprehensive testing
-- [ ] Update CHANGELOG.md
-- [ ] Create release notes
+- [x] Update CHANGELOG.md *(2025-11-25)*
+- [x] Create release notes *(2025-11-25: docs/RELEASE_NOTES_v1.2.0.md)*
 - [ ] Release v1.2.0
 
 ## ✅ Completed (2025-11-25)
