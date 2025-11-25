@@ -147,6 +147,48 @@ Planning document for v1.2.0 release following the v1.1.0 documentation-focused 
 - [ ] Create release notes
 - [ ] Release v1.2.0
 
+## ✅ Completed (2025-11-25)
+
+### Chart Version Upgrades
+
+21 charts upgraded to latest stable versions:
+
+**Infrastructure (11):** Harbor 2.13.3, Grafana 12.2.2, Prometheus 3.7.3, Elasticsearch 8.17.0, Loki 3.6.1, Kafka 3.9.0, Tempo 2.9.0, Promtail 3.6.1, MySQL 8.4.3, MinIO 2025-10-15, PostgreSQL 16.11
+
+**Application (5):** Keycloak 26.4.2, Jellyfin 10.11.3, Paperless-ngx 2.19.6, WordPress 6.8, phpMyAdmin 5.2.3
+
+**Monitoring (5):** Alertmanager 0.29.0, Blackbox Exporter 0.27.0, Node Exporter 1.10.2, kube-state-metrics 2.15.0, Pushgateway 1.11.2
+
+---
+
+## 🔄 Planned: Major Version Migrations
+
+Charts requiring separate testing due to breaking changes:
+
+| Chart | Current | Target | Priority | Notes |
+|-------|---------|--------|----------|-------|
+| Immich | v1.122.3 | v2.3.1 | High | Breaking API changes, migration required |
+| Airflow | 2.8.1 | 3.1.3 | Medium | New executor model, DAG format changes |
+| pgAdmin | 8.13 | 9.10 | Low | UI changes, new features |
+| MLflow | 2.9.2 | 3.6.0 | Medium | Python 3.10+ required, new APIs |
+
+### Migration Plan
+
+1. **Create feature branch** for each major migration
+2. **Test in isolated environment** before merging
+3. **Document breaking changes** in chart README
+4. **Provide migration guide** if needed
+
+### Deferred (License/Breaking)
+
+| Chart | Current | Latest | Reason |
+|-------|---------|--------|--------|
+| RabbitMQ | 3.13.1 | 4.x | AMQP 1.0 protocol changes |
+| MongoDB | 7.0.14 | 8.x | Major version, compatibility testing needed |
+| Redis | 7.4.1 | 8.x | License changed to RSALv2/SSPLv1 |
+
+---
+
 ## Deferred from v1.1.0
 
 Items intentionally deferred:
@@ -163,4 +205,5 @@ This roadmap builds on v1.1.0's documentation foundation to add:
 - Enhanced observability capabilities
 
 **Created**: 2025-11-25
-**Status**: Draft - Pending v1.1.0 release feedback
+**Updated**: 2025-11-25
+**Status**: Active - Chart upgrades completed, Major migrations planned
