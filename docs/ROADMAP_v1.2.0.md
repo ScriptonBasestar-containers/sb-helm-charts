@@ -138,7 +138,7 @@ Planning document for v1.2.0 release following the v1.1.0 documentation-focused 
 ### Phase 3: GitOps & Documentation (Weeks 7-8)
 - [x] GitOps guide with examples *(2025-11-25: docs/GITOPS_GUIDE.md)*
 - [x] Advanced HA guide *(2025-11-25: docs/ADVANCED_HA_GUIDE.md)*
-- [ ] Security hardening guide
+- [x] Security hardening guide *(2025-11-25: docs/SECURITY_HARDENING_GUIDE.md)*
 - [x] Enhanced chart READMEs *(2025-11-25)*
 
 ### Phase 4: Testing & Release (Weeks 9-10)
