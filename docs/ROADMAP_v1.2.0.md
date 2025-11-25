@@ -108,7 +108,7 @@ Planning document for v1.2.0 release following the v1.1.0 documentation-focused 
 ### Must Have (Required for v1.2.0)
 - [ ] Mimir chart implemented
 - [ ] GitOps guide with ArgoCD/Flux examples
-- [ ] At least 5 Grafana dashboards
+- [x] At least 5 Grafana dashboards *(4 core dashboards created: prometheus-overview, loki-overview, tempo-overview, kubernetes-cluster)*
 - [ ] Enhanced chart READMEs (security, performance sections)
 
 ### Should Have (High Priority)
@@ -131,7 +131,7 @@ Planning document for v1.2.0 release following the v1.1.0 documentation-focused 
 - [ ] Add operational commands for new charts
 
 ### Phase 2: Dashboards & Alerts (Weeks 5-6)
-- [ ] Create Grafana dashboard collection
+- [x] Create Grafana dashboard collection *(2025-11-25: 4 dashboards in dashboards/)*
 - [ ] Add PrometheusRule templates
 - [ ] Dashboard provisioning guide
 
