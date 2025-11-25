@@ -133,7 +133,7 @@ Planning document for v1.2.0 release following the v1.1.0 documentation-focused 
 ### Phase 2: Dashboards & Alerts (Weeks 5-6)
 - [x] Create Grafana dashboard collection *(2025-11-25: 4 dashboards in dashboards/)*
 - [x] Add PrometheusRule templates *(2025-11-25: alerting-rules/)*
-- [ ] Dashboard provisioning guide
+- [x] Dashboard provisioning guide *(2025-11-25: docs/DASHBOARD_PROVISIONING_GUIDE.md)*
 
 ### Phase 3: GitOps & Documentation (Weeks 7-8)
 - [x] GitOps guide with examples *(2025-11-25: docs/GITOPS_GUIDE.md)*

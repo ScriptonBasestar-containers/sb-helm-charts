@@ -146,7 +146,9 @@ Dashboards are designed to be editable. Common customizations:
 
 ## Related Documentation
 
-- [Observability Stack Guide](../docs/OBSERVABILITY_STACK_GUIDE.md)
+- [Dashboard Provisioning Guide](../docs/DASHBOARD_PROVISIONING_GUIDE.md) - Comprehensive provisioning methods
+- [GitOps Guide](../docs/GITOPS_GUIDE.md) - ArgoCD/Flux deployment patterns
+- [Alerting Rules](../alerting-rules/) - Pre-configured PrometheusRule templates
 - [Grafana Chart](../charts/grafana/)
 - [Prometheus Chart](../charts/prometheus/)
 - [Loki Chart](../charts/loki/)
