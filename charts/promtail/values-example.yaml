@@ -14,7 +14,7 @@ promtail:
 image:
   repository: grafana/promtail
   pullPolicy: IfNotPresent
-  tag: ""  # Defaults to chart appVersion (2.9.3)
+  tag: ""  # Defaults to chart appVersion (3.6.1)
 
 # =============================================================================
 # Promtail Configuration

@@ -4,7 +4,7 @@
 image:
   repository: grafana/promtail
   pullPolicy: IfNotPresent
-  tag: "2.9.3"
+  tag: "3.6.1"
 
 promtail:
   server:
