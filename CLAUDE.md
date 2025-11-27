@@ -16,6 +16,10 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 **Troubleshooting?** → [docs/TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md) - Common issues and solutions
 
+**Observability stack?** → [docs/observability-stack-guide.md](docs/observability-stack-guide.md) - Complete monitoring/logging/tracing integration
+
+**Multi-tenancy?** → [docs/multi-tenancy-guide.md](docs/multi-tenancy-guide.md) - Kubernetes multi-tenancy patterns and implementation
+
 ---
 
 ## Project Overview
@@ -88,7 +92,7 @@ make generate-catalog
 - **20 Application Charts**: Airflow, Grafana, Harbor, Immich, Jellyfin, Keycloak, Loki, MLflow, Nextcloud, Paperless-ngx, pgAdmin, phpMyAdmin, Uptime Kuma, Vaultwarden, WireGuard, WordPress, and more
 - **19 Infrastructure Charts**: Alertmanager, Blackbox Exporter, Elasticsearch, Grafana Mimir, Kafka, Kube State Metrics, Memcached, MinIO, MongoDB, MySQL, Node Exporter, OpenTelemetry Collector, PostgreSQL, Prometheus, Promtail, Pushgateway, RabbitMQ, Redis, RustFS, Tempo
 
-**⚠️ 6 Enhanced Charts** with comprehensive RBAC, backup/recovery, and upgrade features: Keycloak, Airflow, Harbor, MLflow, Kafka, Elasticsearch (see Enhanced Operational Features section below)
+**⚠️ 8 Enhanced Charts** with comprehensive RBAC, backup/recovery, and upgrade features: Keycloak, Airflow, Harbor, MLflow, Kafka, Elasticsearch, Mimir, OpenTelemetry Collector (see Enhanced Operational Features section below)
 
 **⚠️ Infrastructure charts** are suitable for dev/test. For production HA, consider using Kubernetes Operators (see [docs/CHARTS.md](docs/CHARTS.md) for operator links).
 
@@ -201,7 +205,7 @@ Modern charts include: PodDisruptionBudget, HorizontalPodAutoscaler, NetworkPoli
 
 ## Enhanced Operational Features
 
-**6 charts** have been enhanced with comprehensive RBAC, backup/recovery, and upgrade capabilities:
+**8 charts** have been enhanced with comprehensive RBAC, backup/recovery, and upgrade capabilities:
 
 ### Enhanced Charts
 
@@ -213,6 +217,8 @@ Modern charts include: PodDisruptionBudget, HorizontalPodAutoscaler, NetworkPoli
 | **MLflow** | ✅ | [mlflow-backup-guide.md](docs/mlflow-backup-guide.md) | [mlflow-upgrade-guide.md](docs/mlflow-upgrade-guide.md) | ✅ |
 | **Kafka** | ✅ | [kafka-backup-guide.md](docs/kafka-backup-guide.md) | [kafka-upgrade-guide.md](docs/kafka-upgrade-guide.md) | ✅ |
 | **Elasticsearch** | ✅ | [elasticsearch-backup-guide.md](docs/elasticsearch-backup-guide.md) | [elasticsearch-upgrade-guide.md](docs/elasticsearch-upgrade-guide.md) | ✅ |
+| **Mimir** | ✅ | [mimir-backup-guide.md](docs/mimir-backup-guide.md) | [mimir-upgrade-guide.md](docs/mimir-upgrade-guide.md) | ✅ |
+| **OpenTelemetry Collector** | ✅ | [opentelemetry-collector-backup-guide.md](docs/opentelemetry-collector-backup-guide.md) | [opentelemetry-collector-upgrade-guide.md](docs/opentelemetry-collector-upgrade-guide.md) | ✅ |
 
 ### RBAC Features
 
@@ -265,6 +271,16 @@ Each chart's backup strategy is tailored to its architecture:
 - Index-level backups (_snapshot API)
 - Cluster settings (templates, ILM policies)
 - PVC snapshots for disaster recovery
+
+**Mimir:**
+- Block storage backups (TSDB blocks containing metrics data)
+- Configuration backups (ConfigMaps and Mimir runtime configuration)
+- PVC snapshots (disaster recovery with VolumeSnapshot API)
+
+**OpenTelemetry Collector:**
+- Configuration backups (receivers, processors, exporters, pipelines)
+- Kubernetes manifests (Deployment/DaemonSet, Service, ConfigMap)
+- Custom extensions (if any custom processors or exporters)
 
 ### Upgrade Features
 
@@ -376,6 +392,8 @@ upgrade:
 | MLflow | < 1 hour | 24 hours | Experiments + artifacts restore |
 | Kafka | < 2 hours | 1 hour | Topic metadata + offsets |
 | Elasticsearch | < 2 hours | 24 hours | Snapshot restore |
+| Mimir | < 2 hours | 24 hours | Block storage + config restore |
+| OpenTelemetry Collector | < 30 minutes | 0 (stateless) | Config + manifest restore |
 
 ---
 
