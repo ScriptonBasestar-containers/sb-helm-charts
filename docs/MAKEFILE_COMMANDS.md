@@ -12,8 +12,8 @@ Complete reference for all chart-specific make commands in sb-helm-charts reposi
 - [Infrastructure Charts](#infrastructure-charts)
   - [Alertmanager](#alertmanager) | [Blackbox Exporter](#blackbox-exporter) | [Elasticsearch](#elasticsearch)
   - [Kafka](#kafka) | [Kube State Metrics](#kube-state-metrics) | [Loki](#loki) | [Memcached](#memcached)
-  - [MinIO](#minio) | [MongoDB](#mongodb) | [MySQL](#mysql) | [Node Exporter](#node-exporter)
-  - [pgAdmin](#pgadmin) | [phpMyAdmin](#phpmyadmin) | [PostgreSQL](#postgresql) | [Prometheus](#prometheus)
+  - [Mimir](#mimir) | [MinIO](#minio) | [MongoDB](#mongodb) | [MySQL](#mysql) | [Node Exporter](#node-exporter)
+  - [OpenTelemetry Collector](#opentelemetry-collector) | [pgAdmin](#pgadmin) | [phpMyAdmin](#phpmyadmin) | [PostgreSQL](#postgresql) | [Prometheus](#prometheus)
   - [Promtail](#promtail) | [Pushgateway](#pushgateway) | [RabbitMQ](#rabbitmq) | [Redis](#redis) | [RustFS](#rustfs)
 - [Local Testing](#local-testing-kind)
 
@@ -693,6 +693,53 @@ make -f make/ops/minio.mk minio-disk-usage
 make -f make/ops/minio.mk minio-version
 ```
 
+### Mimir
+
+Grafana Mimir - horizontally scalable Prometheus long-term storage.
+
+```bash
+# Basic operations
+make -f make/ops/mimir.mk mimir-logs
+make -f make/ops/mimir.mk mimir-logs-all
+make -f make/ops/mimir.mk mimir-shell
+make -f make/ops/mimir.mk mimir-port-forward          # HTTP API (8080)
+make -f make/ops/mimir.mk mimir-port-forward-grpc     # gRPC (9095)
+make -f make/ops/mimir.mk mimir-restart
+
+# Health & Status
+make -f make/ops/mimir.mk mimir-ready
+make -f make/ops/mimir.mk mimir-healthy
+make -f make/ops/mimir.mk mimir-version
+make -f make/ops/mimir.mk mimir-config
+make -f make/ops/mimir.mk mimir-runtime-config
+make -f make/ops/mimir.mk mimir-status
+
+# Metrics & Queries (requires TENANT parameter for multi-tenancy)
+make -f make/ops/mimir.mk mimir-query QUERY='up' TENANT='demo'
+make -f make/ops/mimir.mk mimir-query-range QUERY='up' TENANT='demo'
+make -f make/ops/mimir.mk mimir-labels TENANT='demo'
+make -f make/ops/mimir.mk mimir-label-values LABEL='job' TENANT='demo'
+make -f make/ops/mimir.mk mimir-series MATCH='{__name__=~".+"}' TENANT='demo'
+make -f make/ops/mimir.mk mimir-metrics
+
+# Ingestion
+make -f make/ops/mimir.mk mimir-remote-write-test TENANT='demo'
+make -f make/ops/mimir.mk mimir-limits TENANT='demo'
+
+# Storage & TSDB
+make -f make/ops/mimir.mk mimir-check-storage
+make -f make/ops/mimir.mk mimir-blocks
+make -f make/ops/mimir.mk mimir-compactor-status
+make -f make/ops/mimir.mk mimir-store-gateway-status
+
+# Tenants
+make -f make/ops/mimir.mk mimir-tenants
+make -f make/ops/mimir.mk mimir-tenant-stats TENANT='demo'
+
+# Scaling
+make -f make/ops/mimir.mk mimir-scale REPLICAS=2
+```
+
 ### MongoDB
 
 MongoDB NoSQL database with replica set support.
@@ -821,6 +868,61 @@ make -f make/ops/node-exporter.mk ne-port-forward-node NODE=node-name
 
 # Operations
 make -f make/ops/node-exporter.mk ne-restart
+```
+
+### OpenTelemetry Collector
+
+OpenTelemetry Collector for unified telemetry collection (traces, metrics, logs).
+
+```bash
+# Basic operations
+make -f make/ops/opentelemetry-collector.mk otel-logs
+make -f make/ops/opentelemetry-collector.mk otel-logs-all
+make -f make/ops/opentelemetry-collector.mk otel-shell
+make -f make/ops/opentelemetry-collector.mk otel-port-forward-grpc      # OTLP gRPC (4317)
+make -f make/ops/opentelemetry-collector.mk otel-port-forward-http      # OTLP HTTP (4318)
+make -f make/ops/opentelemetry-collector.mk otel-port-forward-metrics   # Metrics (8888)
+make -f make/ops/opentelemetry-collector.mk otel-port-forward-health    # Health (13133)
+make -f make/ops/opentelemetry-collector.mk otel-restart
+
+# Health & Status
+make -f make/ops/opentelemetry-collector.mk otel-ready
+make -f make/ops/opentelemetry-collector.mk otel-healthy
+make -f make/ops/opentelemetry-collector.mk otel-version
+make -f make/ops/opentelemetry-collector.mk otel-config
+make -f make/ops/opentelemetry-collector.mk otel-status
+make -f make/ops/opentelemetry-collector.mk otel-feature-gates
+
+# Metrics & Monitoring
+make -f make/ops/opentelemetry-collector.mk otel-metrics
+make -f make/ops/opentelemetry-collector.mk otel-zpages
+make -f make/ops/opentelemetry-collector.mk otel-pipeline-metrics
+
+# Receivers
+make -f make/ops/opentelemetry-collector.mk otel-test-otlp-grpc
+make -f make/ops/opentelemetry-collector.mk otel-test-otlp-http
+make -f make/ops/opentelemetry-collector.mk otel-receivers-status
+
+# Processors
+make -f make/ops/opentelemetry-collector.mk otel-processors-status
+make -f make/ops/opentelemetry-collector.mk otel-batch-stats
+make -f make/ops/opentelemetry-collector.mk otel-memory-limiter-stats
+
+# Exporters
+make -f make/ops/opentelemetry-collector.mk otel-exporters-status
+make -f make/ops/opentelemetry-collector.mk otel-queue-stats
+
+# Configuration
+make -f make/ops/opentelemetry-collector.mk otel-validate-config
+make -f make/ops/opentelemetry-collector.mk otel-reload-config
+
+# Debugging
+make -f make/ops/opentelemetry-collector.mk otel-trace-logs
+make -f make/ops/opentelemetry-collector.mk otel-metric-logs
+make -f make/ops/opentelemetry-collector.mk otel-error-logs
+
+# Scaling (deployment mode only)
+make -f make/ops/opentelemetry-collector.mk otel-scale REPLICAS=2
 ```
 
 ### pgAdmin
