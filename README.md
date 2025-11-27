@@ -75,14 +75,14 @@ Browse the complete chart catalog with detailed information:
 **🏷️ [Artifact Hub Dashboard](docs/ARTIFACTHUB_DASHBOARD.md)** - Publishing status and badges
 
 The catalog includes:
-- **37 charts** organized by category (Application/Infrastructure)
+- **39 charts** organized by category (Application/Infrastructure)
 - Version badges, descriptions, and installation examples
 - Searchable by tags and keywords
 - Auto-generated from `charts/charts-metadata.yaml`
 
 **Quick Overview:**
 - **Application Charts** (20): airflow, browserless-chrome, devpi, grafana, harbor, immich, jellyfin, keycloak, loki, mlflow, nextcloud, paperless-ngx, pgadmin, phpmyadmin, rsshub, rustfs, uptime-kuma, vaultwarden, wireguard, wordpress
-- **Infrastructure Charts** (17): alertmanager, blackbox-exporter, elasticsearch, kafka, kube-state-metrics, memcached, minio, mongodb, mysql, node-exporter, postgresql, prometheus, promtail, pushgateway, rabbitmq, redis, tempo
+- **Infrastructure Charts** (19): alertmanager, blackbox-exporter, elasticsearch, kafka, kube-state-metrics, memcached, mimir, minio, mongodb, mysql, node-exporter, opentelemetry-collector, postgresql, prometheus, promtail, pushgateway, rabbitmq, redis, tempo
 
 For comprehensive chart documentation, deployment scenarios, and configuration options, see the [full catalog](docs/CHARTS.md).
 
@@ -94,7 +94,7 @@ Charts are available on Artifact Hub for easy discovery and security scanning:
 - **Automated Security Scanning**: Container images are scanned for vulnerabilities
 - **Publishing Status**: See [Artifact Hub Dashboard](docs/ARTIFACTHUB_DASHBOARD.md) for badges and statistics
 
-The repository includes `artifacthub-repo.yml` with metadata for all 37 charts, enabling:
+The repository includes `artifacthub-repo.yml` with metadata for all 39 charts, enabling:
 - Automatic chart discovery
 - Container image security scanning
 - Rich chart documentation with badges and links
