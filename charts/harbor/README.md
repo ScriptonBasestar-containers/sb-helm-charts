@@ -674,6 +674,191 @@ make -f make/ops/harbor.mk harbor-status
 make -f make/ops/harbor.mk harbor-port-forward
 ```
 
+## Backup & Recovery
+
+Harbor supports comprehensive backup and recovery procedures for production deployments.
+
+### Backup Strategy
+
+Harbor backup consists of three critical components:
+
+1. **Harbor Configuration** (projects, users, replication policies, registries)
+2. **PostgreSQL Database** (metadata, audit logs, scan results)
+3. **Registry Data** (container images, Helm charts, artifacts)
+
+### Backup Commands
+
+```bash
+# 1. Backup Harbor configuration (projects, users, policies)
+make -f make/ops/harbor.mk harbor-config-backup
+
+# 2. Backup PostgreSQL database
+make -f make/ops/harbor.mk harbor-db-backup
+
+# 3. Backup registry data (create PVC snapshot)
+make -f make/ops/harbor.mk harbor-registry-backup
+
+# 4. Verify backups
+ls -lh tmp/harbor-backups/config/
+ls -lh tmp/harbor-backups/db/
+kubectl get volumesnapshot -n harbor
+```
+
+**Backup storage locations:**
+```
+tmp/harbor-backups/
+├── config/                    # Configuration exports
+│   ├── YYYYMMDD-HHMMSS/
+│   │   ├── projects.json
+│   │   ├── users.json
+│   │   └── replication-policies.json
+├── db/                        # Database dumps
+│   └── harbor-db-YYYYMMDD-HHMMSS.sql
+└── registry/                  # Registry snapshots
+    └── snapshot-info.txt
+```
+
+### Recovery Commands
+
+```bash
+# 1. Restore database from backup
+make -f make/ops/harbor.mk harbor-db-restore FILE=tmp/harbor-backups/db/harbor-db-YYYYMMDD-HHMMSS.sql
+
+# 2. Restore registry data from VolumeSnapshot
+# (Follow VolumeSnapshot restoration procedures)
+
+# 3. Verify recovery
+make -f make/ops/harbor.mk harbor-health
+make -f make/ops/harbor.mk harbor-projects
+```
+
+### Best Practices
+
+- **Production**: Daily automated backups + pre-upgrade backups
+- **Retention**: 30 days (daily), 90 days (weekly), 1 year (monthly)
+- **Verification**: Test restores quarterly
+- **Security**: Encrypt backups at rest and in transit
+
+**📖 Complete guide**: See [docs/harbor-backup-guide.md](../../docs/harbor-backup-guide.md) for detailed backup/recovery procedures.
+
+---
+
+## Upgrading
+
+Harbor supports multiple upgrade strategies depending on your availability requirements.
+
+### Pre-Upgrade Checklist
+
+```bash
+# 1. Run pre-upgrade health check
+make -f make/ops/harbor.mk harbor-pre-upgrade-check
+
+# 2. Backup everything
+make -f make/ops/harbor.mk harbor-config-backup
+make -f make/ops/harbor.mk harbor-db-backup
+make -f make/ops/harbor.mk harbor-registry-backup
+
+# 3. Review changelog
+# - Check Harbor release notes: https://github.com/goharbor/harbor/releases
+# - Review chart CHANGELOG.md
+
+# 4. Test in staging
+helm upgrade harbor-staging charts/harbor -n staging -f values-staging.yaml
+```
+
+### Upgrade Procedures
+
+**Method 1: Rolling Upgrade (Recommended for patch/minor versions)**
+```bash
+# Zero-downtime upgrade
+helm upgrade harbor charts/harbor -f values.yaml --wait --timeout=10m
+make -f make/ops/harbor.mk harbor-db-migrate
+make -f make/ops/harbor.mk harbor-post-upgrade-check
+```
+
+**Method 2: Blue-Green Upgrade (For major versions)**
+```bash
+# Deploy new "green" environment
+helm install harbor-green charts/harbor -f values.yaml --set fullnameOverride=harbor-green
+
+# Run database migrations on green
+kubectl exec -it harbor-green-core-0 -- harbor_core migrate
+
+# Switch traffic (update Ingress/Service)
+kubectl patch service harbor -p '{"spec":{"selector":{"app.kubernetes.io/instance":"harbor-green"}}}'
+
+# Decommission old "blue" after validation
+helm uninstall harbor
+```
+
+**Method 3: Maintenance Window Upgrade**
+```bash
+# Scale down components
+kubectl scale deployment harbor-core --replicas=0
+kubectl scale deployment harbor-registry --replicas=0
+
+# Backup database
+make -f make/ops/harbor.mk harbor-db-backup
+
+# Upgrade chart
+helm upgrade harbor charts/harbor -f values.yaml
+
+# Run database migrations
+make -f make/ops/harbor.mk harbor-db-migrate
+
+# Scale up components
+kubectl scale deployment harbor-core --replicas=1
+kubectl scale deployment harbor-registry --replicas=1
+
+# Validate upgrade
+make -f make/ops/harbor.mk harbor-post-upgrade-check
+```
+
+### Post-Upgrade Validation
+
+```bash
+# Automated validation
+make -f make/ops/harbor.mk harbor-post-upgrade-check
+
+# Manual checks
+kubectl get pods -l app.kubernetes.io/name=harbor
+kubectl exec -it harbor-core-0 -- curl http://localhost:8080/api/v2.0/systeminfo | jq '.harbor_version'
+make -f make/ops/harbor.mk harbor-projects
+
+# Test image push/pull
+docker tag busybox:latest harbor.example.com/library/test:latest
+docker push harbor.example.com/library/test:latest
+docker pull harbor.example.com/library/test:latest
+```
+
+### Rollback Procedures
+
+**Option 1: Helm Rollback (Fast)**
+```bash
+make -f make/ops/harbor.mk harbor-upgrade-rollback  # Display rollback plan
+helm rollback harbor
+make -f make/ops/harbor.mk harbor-health
+```
+
+**Option 2: Database Restore (Complete)**
+```bash
+kubectl scale deployment harbor-core --replicas=0
+kubectl scale deployment harbor-registry --replicas=0
+
+make -f make/ops/harbor.mk harbor-db-restore FILE=tmp/harbor-backups/pre-upgrade-YYYYMMDD-HHMMSS/harbor-db-*.sql
+
+helm rollback harbor
+
+kubectl scale deployment harbor-core --replicas=1
+kubectl scale deployment harbor-registry --replicas=1
+
+make -f make/ops/harbor.mk harbor-health
+```
+
+**📖 Complete guide**: See [docs/harbor-upgrade-guide.md](../../docs/harbor-upgrade-guide.md) for detailed upgrade procedures and version-specific notes.
+
+---
+
 ## Migration to Official Harbor Chart
 
 If you need advanced Harbor features, migrate to the [official Harbor Helm chart](https://github.com/goharbor/harbor-helm):
