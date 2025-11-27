@@ -100,6 +100,68 @@ The repository includes `artifacthub-repo.yml` with metadata for all 37 charts, 
 - Rich chart documentation with badges and links
 - Integration with the Artifact Hub ecosystem
 
+## 🏢 Enterprise-Ready Features
+
+**6 charts** now include comprehensive operational capabilities for production deployments:
+
+### Enhanced Charts with Full Operational Support
+
+| Chart | RBAC | Backup/Recovery | Upgrade Strategies | Documentation |
+|-------|------|-----------------|-------------------|---------------|
+| **Keycloak** | ✅ | ✅ 4-component | ✅ 3 strategies | [Backup](docs/keycloak-backup-guide.md) • [Upgrade](docs/keycloak-upgrade-guide.md) |
+| **Airflow** | ✅ | ✅ 3-component | ✅ 3 strategies | [Backup](docs/airflow-backup-guide.md) • [Upgrade](docs/airflow-upgrade-guide.md) |
+| **Harbor** | ✅ | ✅ 3-component | ✅ 3 strategies | [Backup](docs/harbor-backup-guide.md) • [Upgrade](docs/harbor-upgrade-guide.md) |
+| **MLflow** | ✅ | ✅ 3-component | ✅ 3 strategies | [Backup](docs/mlflow-backup-guide.md) • [Upgrade](docs/mlflow-upgrade-guide.md) |
+| **Kafka** | ✅ | ✅ 5-component | ✅ 3 strategies | [Backup](docs/kafka-backup-guide.md) • [Upgrade](docs/kafka-upgrade-guide.md) |
+| **Elasticsearch** | ✅ | ✅ 4-component | ✅ 3 strategies | [Backup](docs/elasticsearch-backup-guide.md) • [Upgrade](docs/elasticsearch-upgrade-guide.md) |
+
+### Features Include
+
+**🔐 RBAC (Role-Based Access Control)**
+- Namespace-scoped Roles with read access to ConfigMaps, Secrets, Pods, PVCs
+- Configurable RoleBindings for ServiceAccounts
+- Production-ready security defaults
+
+**💾 Backup & Recovery**
+- Multi-component backup strategies (3-5 components per chart)
+- Makefile-driven operations (no automated CronJobs)
+- Comprehensive recovery procedures with RTO/RPO targets
+- Support for snapshot repositories, database dumps, and PVC snapshots
+
+**⬆️ Zero-Downtime Upgrades**
+- Multiple upgrade strategies (Rolling, Blue-Green, Maintenance Window)
+- Pre/post-upgrade validation checks
+- Automated rollback procedures
+- Version-specific upgrade notes
+
+**📚 Comprehensive Documentation**
+- Detailed backup guides (500-600 lines each)
+- Detailed upgrade guides (600-700 lines each)
+- README sections with quick-start examples
+- RTO/RPO targets: < 1-2 hours recovery time, 1-24 hours data loss
+
+### Operational Commands
+
+All enhanced charts include standardized Makefile targets:
+
+```bash
+# Backup operations
+make -f make/ops/keycloak.mk kc-backup-all-realms
+make -f make/ops/airflow.mk airflow-full-backup
+make -f make/ops/kafka.mk kafka-full-backup
+
+# Pre-upgrade checks
+make -f make/ops/elasticsearch.mk es-pre-upgrade-check
+
+# Post-upgrade validation
+make -f make/ops/harbor.mk harbor-post-upgrade-check
+
+# Rollback procedures
+make -f make/ops/mlflow.mk mlflow-upgrade-rollback
+```
+
+**See [CLAUDE.md](CLAUDE.md#enhanced-operational-features)** for complete feature documentation and usage examples.
+
 ## Recent Changes
 
 **Latest Release: v1.1.0** (2025-11-25)
