@@ -68,3 +68,17 @@ Return the proper image name
 {{- $tag := .Values.image.tag | default .Chart.AppVersion -}}
 {{- printf "%s:%s" .Values.image.repository $tag -}}
 {{- end }}
+
+{{/*
+Return the name of the Role
+*/}}
+{{- define "mimir.roleName" -}}
+{{- include "mimir.fullname" . -}}
+{{- end }}
+
+{{/*
+Return the name of the RoleBinding
+*/}}
+{{- define "mimir.roleBindingName" -}}
+{{- include "mimir.fullname" . -}}
+{{- end }}

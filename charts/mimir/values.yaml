@@ -1,5 +1,12 @@
 # Default values for mimir.
 
+# RBAC Configuration
+rbac:
+  # Create RBAC resources (Role, RoleBinding)
+  create: true
+  # Annotations to add to the RBAC resources
+  annotations: {}
+
 # Number of Mimir instances (monolithic mode)
 replicaCount: 1
 
