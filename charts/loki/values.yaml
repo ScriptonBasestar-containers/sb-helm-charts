@@ -120,3 +120,154 @@ nodeSelector: {}
 tolerations: []
 
 affinity: {}
+
+# =============================================================================
+# Backup & Recovery Configuration
+# =============================================================================
+# Note: Backup is handled via Makefile targets, not automated CronJobs
+# See: docs/loki-backup-guide.md for detailed procedures
+backup:
+  enabled: false  # Documentation only - no CronJob created
+  documentation:
+    strategy: "config + chunks + index + pvc_snapshots (filesystem) OR config + s3_versioning (S3)"
+    tools:
+      - "kubectl (for data extraction)"
+      - "tar/gzip (for compression)"
+      - "aws-cli or mc (for S3 upload)"
+      - "VolumeSnapshot API (for PVC snapshots)"
+    components:
+      configuration:
+        description: "ConfigMap and Secrets (S3 credentials)"
+        method: "ConfigMap export + Secret export"
+        frequency: "Daily or before changes"
+        retention: "90 days"
+        size: "< 100KB"
+      log_data:
+        description: "Compressed log chunks"
+        method: "tar + kubectl cp (filesystem) OR S3 versioning (S3)"
+        frequency: "Hourly (filesystem) / Continuous (S3)"
+        retention: "30 days (filesystem) / 90-365 days (S3)"
+        size: "1-100 GB (varies)"
+      index:
+        description: "BoltDB or TSDB index files"
+        method: "tar + kubectl cp (can rebuild from chunks)"
+        frequency: "Hourly"
+        retention: "30 days"
+        size: "100 MB - 10 GB"
+      pvc_snapshots:
+        description: "Complete persistent volume snapshot (filesystem mode only)"
+        method: "Kubernetes VolumeSnapshot API"
+        frequency: "Weekly"
+        retention: "7-14 days"
+        size: "Same as PVC size (typically 10-100 GB)"
+    targets:
+      rto: "< 1 hour (filesystem) / < 10 minutes (S3)"
+      rpo: "1 hour (filesystem) / 0 (S3 versioning)"
+    commands:
+      backup:
+        full: "make -f make/ops/loki.mk loki-backup-all"
+        config: "make -f make/ops/loki.mk loki-backup-config"
+        data: "make -f make/ops/loki.mk loki-backup-data"
+        index: "make -f make/ops/loki.mk loki-backup-index"
+        pvc: "make -f make/ops/loki.mk loki-backup-pvc-snapshot"
+        verify: "make -f make/ops/loki.mk loki-backup-verify BACKUP_FILE=<path>"
+      restore:
+        full: "make -f make/ops/loki.mk loki-restore-all BACKUP_FILE=<path>"
+        config: "make -f make/ops/loki.mk loki-restore-config BACKUP_FILE=<path>"
+        data: "make -f make/ops/loki.mk loki-restore-data BACKUP_FILE=<path>"
+
+# =============================================================================
+# Upgrade Configuration
+# =============================================================================
+# Note: Upgrades are performed manually via Helm, not automated
+# See: docs/loki-upgrade-guide.md for detailed procedures
+upgrade:
+  enabled: false  # Documentation only - manual process
+  preUpgradeBackup: true  # Always backup before upgrade
+  documentation:
+    strategies:
+      rolling:
+        description: "StatefulSet rolling update with zero downtime"
+        downtime: "None (with HA, replicas >= 2)"
+        complexity: "Low"
+        recommended: true
+        steps:
+          - "Pre-upgrade validation (10 checks)"
+          - "Create backup"
+          - "Helm upgrade with new image tag"
+          - "Post-upgrade validation (8 checks)"
+      blue_green:
+        description: "Parallel deployments with traffic switching"
+        downtime: "10-30 minutes (during cutover)"
+        complexity: "Medium"
+        recommended: false
+        steps:
+          - "Backup blue deployment"
+          - "Deploy green environment"
+          - "Validate green environment"
+          - "Switch traffic to green"
+          - "Decommission blue"
+      maintenance:
+        description: "Scale down, upgrade, scale up"
+        downtime: "15-30 minutes"
+        complexity: "Low"
+        recommended: false
+        steps:
+          - "Create backup"
+          - "Scale to 0 replicas"
+          - "Helm upgrade"
+          - "Scale to 1 replica"
+          - "Verify health"
+    version_notes:
+      loki_2_to_3:
+        risk: "High"
+        breaking_changes:
+          - "Index schema changed (v11 → v12)"
+          - "Storage config: boltdb-shipper → tsdb-shipper"
+          - "Query frontend configuration simplified"
+          - "Deprecated flags removed"
+        migration:
+          - "Update schema_config.configs[].store to 'tsdb'"
+          - "Update schema_config.configs[].schema to 'v12'"
+          - "Update storage_config section"
+          - "Test queries after upgrade"
+      loki_3_0_to_3_6:
+        risk: "Low"
+        breaking_changes: []
+        new_features:
+          - "Improved query performance"
+          - "Enhanced TSDB support"
+          - "Optional structured metadata"
+      loki_3_6_to_3_7:
+        risk: "Low"
+        breaking_changes: []
+        new_features:
+          - "Log volume endpoint"
+          - "Better resource utilization"
+          - "Bug fixes and stability improvements"
+    commands:
+      pre_upgrade:
+        check: "make -f make/ops/loki.mk loki-pre-upgrade-check"
+        backup: "make -f make/ops/loki.mk loki-backup-all"
+      upgrade:
+        helm: "helm upgrade loki scripton-charts/loki --set image.tag=3.7.0 --reuse-values"
+      post_upgrade:
+        validate: "make -f make/ops/loki.mk loki-post-upgrade-check"
+        health: "make -f make/ops/loki.mk loki-health-check"
+      rollback:
+        helm: "make -f make/ops/loki.mk loki-upgrade-rollback"
+    checklist:
+      pre_upgrade:
+        - "Review release notes for target version"
+        - "Run pre-upgrade check script"
+        - "Create full backup (config + data + index)"
+        - "Verify backup integrity"
+        - "Plan rollback procedure"
+        - "Check for breaking changes"
+      post_upgrade:
+        - "Run post-upgrade validation script"
+        - "Check pod status"
+        - "Test label and log queries"
+        - "Verify ring status"
+        - "Check for errors in logs"
+        - "Monitor for 24 hours"
