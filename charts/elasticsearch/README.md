@@ -799,11 +799,323 @@ Common causes:
 - Unassigned shards (check replica settings)
 - Index corruption
 
+## Backup & Recovery
+
+Elasticsearch supports comprehensive backup and recovery procedures for production deployments.
+
+### Backup Strategy
+
+Elasticsearch backup consists of **four critical components**:
+
+1. **Snapshot Repository** (indices, cluster state, snapshots)
+2. **Index-level Backups** (specific indices via `_snapshot` API)
+3. **Cluster Settings** (templates, ILM policies, ingest pipelines)
+4. **Data Volumes** (PVC snapshots for disaster recovery)
+
+### Backup Commands
+
+```bash
+# 1. Backup cluster settings (templates, ILM policies)
+make -f make/ops/elasticsearch.mk es-cluster-settings-backup
+
+# 2. Create cluster snapshot (all indices)
+make -f make/ops/elasticsearch.mk es-create-snapshot
+
+# 3. Create PVC snapshot (disaster recovery)
+make -f make/ops/elasticsearch.mk es-data-backup
+
+# 4. Verify snapshot health
+make -f make/ops/elasticsearch.mk es-verify-snapshot SNAPSHOT_NAME=snapshot_$(date +%Y%m%d)
+```
+
+### Full Cluster Backup (Recommended)
+
+**Daily backup procedure:**
+
+```bash
+# Full backup (all components)
+make -f make/ops/elasticsearch.mk es-cluster-settings-backup
+make -f make/ops/elasticsearch.mk es-create-snapshot
+make -f make/ops/elasticsearch.mk es-data-backup
+```
+
+**Expected duration:**
+- Cluster settings: < 1 minute
+- Snapshot: 5-30 minutes (depends on data size)
+- PVC snapshot: 5-15 minutes
+
+### Recovery Procedures
+
+**Full Cluster Restore:**
+
+```bash
+# 1. Deploy fresh Elasticsearch cluster (same version)
+helm install elasticsearch sb-charts/elasticsearch -f values.yaml
+
+# 2. Register snapshot repository
+make -f make/ops/elasticsearch.mk es-create-snapshot-repo
+
+# 3. Restore snapshot
+make -f make/ops/elasticsearch.mk es-restore-snapshot SNAPSHOT_NAME=snapshot_latest
+
+# 4. Monitor restore progress
+make -f make/ops/elasticsearch.mk es-restore-status
+
+# 5. Verify cluster health
+make -f make/ops/elasticsearch.mk es-post-upgrade-check
+```
+
+**Selective Index Restore:**
+
+```bash
+# Restore specific index without affecting others
+kubectl exec -it elasticsearch-0 -- curl -X POST "http://localhost:9200/_snapshot/backup_repo/snapshot_20231127/_restore?pretty" \
+  -H 'Content-Type: application/json' -d '{
+    "indices": "my-index",
+    "ignore_unavailable": true,
+    "include_global_state": false
+  }'
+```
+
+### RTO/RPO Targets
+
+| Recovery Scenario | Target RTO | Notes |
+|------------------|------------|-------|
+| Snapshot restore (single index) | < 30 minutes | Depends on index size |
+| Snapshot restore (full cluster) | < 2 hours | 100 GB cluster |
+| PVC restore (disaster recovery) | < 4 hours | Includes redeployment |
+
+| Backup Type | Target RPO | Frequency |
+|-------------|-----------|-----------|
+| Snapshot backups | 24 hours | Daily |
+| Critical indices | 1 hour | Hourly |
+| Cluster settings | 24 hours | Daily |
+
+### Comprehensive Documentation
+
+For detailed backup procedures, snapshot strategies, and recovery workflows, see:
+- **[Elasticsearch Backup Guide](../../docs/elasticsearch-backup-guide.md)** - Complete backup strategies, snapshot management, and disaster recovery
+
+**Topics covered:**
+- Snapshot/Restore API procedures
+- S3/MinIO snapshot repository configuration
+- Index-level backup and selective restore
+- Cluster settings backup (templates, ILM policies)
+- VolumeSnapshot integration
+- Best practices and troubleshooting
+
+---
+
+## Upgrading
+
+Elasticsearch supports multiple upgrade strategies with shard allocation management.
+
+### Pre-Upgrade Checklist
+
+**Always run pre-upgrade checks before upgrading:**
+
+```bash
+# 1. Pre-upgrade health check
+make -f make/ops/elasticsearch.mk es-pre-upgrade-check
+
+# 2. Create full backup
+make -f make/ops/elasticsearch.mk es-create-snapshot SNAPSHOT_NAME=pre_upgrade_$(date +%Y%m%d)
+
+# 3. Verify snapshot
+make -f make/ops/elasticsearch.mk es-verify-snapshot SNAPSHOT_NAME=pre_upgrade_$(date +%Y%m%d)
+```
+
+**Pre-upgrade check verifies:**
+- Cluster health (GREEN or YELLOW)
+- All shards allocated
+- No UNASSIGNED shards
+- Sufficient disk space
+- Current Elasticsearch version
+
+### Upgrade Methods
+
+Elasticsearch supports **three upgrade strategies**:
+
+#### Method 1: Rolling Upgrade (Zero Downtime)
+
+**Best for:** Minor version upgrades (8.10 → 8.11), production environments
+
+**Procedure:**
+
+```bash
+# 1. Disable shard allocation (prevent rebalancing)
+make -f make/ops/elasticsearch.mk es-disable-shard-allocation
+
+# 2. Upgrade with new image
+helm upgrade elasticsearch sb-charts/elasticsearch \
+  --set image.tag=8.11.0 \
+  --reuse-values
+
+# 3. Monitor pod rollout (one pod at a time)
+kubectl rollout status statefulset/elasticsearch --timeout=20m
+
+# 4. Re-enable shard allocation
+make -f make/ops/elasticsearch.mk es-enable-shard-allocation
+
+# 5. Run post-upgrade validation
+make -f make/ops/elasticsearch.mk es-post-upgrade-check
+```
+
+**Advantages:**
+- No downtime
+- Gradual rollout (detect issues early)
+- Easy rollback
+
+**Timeline:** 30-60 minutes for 3-node cluster
+
+#### Method 2: Full Cluster Restart
+
+**Best for:** Major version upgrades (7.x → 8.x), maintenance windows
+
+**Procedure:**
+
+```bash
+# 1. Disable shard allocation
+make -f make/ops/elasticsearch.mk es-disable-shard-allocation
+
+# 2. Stop all Elasticsearch pods
+kubectl scale statefulset/elasticsearch --replicas=0
+
+# 3. Upgrade with new version
+helm upgrade elasticsearch sb-charts/elasticsearch --set image.tag=8.0.0
+
+# 4. Scale back to desired replicas
+kubectl scale statefulset/elasticsearch --replicas=3
+
+# 5. Wait for cluster formation
+kubectl wait --for=condition=ready pod -l app.kubernetes.io/name=elasticsearch --timeout=10m
+
+# 6. Re-enable shard allocation
+make -f make/ops/elasticsearch.mk es-enable-shard-allocation
+
+# 7. Post-upgrade validation
+make -f make/ops/elasticsearch.mk es-post-upgrade-check
+```
+
+**Downtime:** 30-60 minutes
+
+#### Method 3: Snapshot & Restore (Blue-Green)
+
+**Best for:** Multi-version jumps (7.10 → 8.11), testing new configurations
+
+**Procedure:**
+
+```bash
+# 1. Create snapshot from old cluster
+make -f make/ops/elasticsearch.mk es-create-snapshot SNAPSHOT_NAME=migration_to_8x
+
+# 2. Deploy new cluster (8.x) in separate namespace
+helm install elasticsearch-new sb-charts/elasticsearch \
+  --set image.tag=8.11.0 \
+  --namespace elasticsearch-new
+
+# 3. Restore snapshot to new cluster
+kubectl exec -it elasticsearch-new-0 --namespace elasticsearch-new -- \
+  curl -X POST "http://localhost:9200/_snapshot/backup_repo/migration_to_8x/_restore?pretty"
+
+# 4. Validate new cluster and cutover
+```
+
+**Downtime:** 1-3 hours (including validation)
+
+### Post-Upgrade Validation
+
+```bash
+# Run comprehensive validation
+make -f make/ops/elasticsearch.mk es-post-upgrade-check
+```
+
+**Checks performed:**
+1. Cluster health (GREEN or YELLOW)
+2. All nodes joined cluster
+3. Shard allocation status
+4. Index accessibility
+5. Elasticsearch version confirmed
+6. Plugin compatibility
+
+### Rollback Procedures
+
+**Snapshot Restore Rollback:**
+
+```bash
+# 1. Uninstall current deployment
+helm uninstall elasticsearch
+
+# 2. Delete PVCs (removes upgraded data)
+kubectl delete pvc -l app.kubernetes.io/name=elasticsearch
+
+# 3. Deploy previous version
+helm install elasticsearch sb-charts/elasticsearch --set image.tag=8.10.4
+
+# 4. Restore pre-upgrade snapshot
+make -f make/ops/elasticsearch.mk es-restore-snapshot SNAPSHOT_NAME=pre_upgrade_20231127
+```
+
+**PVC Restore Rollback (Fastest):**
+
+```bash
+# 1. Restore PVCs from VolumeSnapshot
+kubectl apply -f - <<EOF
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: elasticsearch-data-0
+spec:
+  dataSource:
+    name: es-snapshot-pre-upgrade
+    kind: VolumeSnapshot
+    apiGroup: snapshot.storage.k8s.io
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 30Gi
+EOF
+
+# 2. Deploy previous version
+helm install elasticsearch sb-charts/elasticsearch --set image.tag=8.10.4
+```
+
+### Version-Specific Upgrade Notes
+
+**Elasticsearch 7.x → 8.x:**
+1. Security enabled by default (password required)
+2. Mapping types removed
+3. REST API changes
+
+**Recommended path:**
+1. Upgrade to latest 7.x first (7.17.x)
+2. Run deprecation info API: `/_migration/deprecations`
+3. Fix all warnings before 8.x upgrade
+4. Use snapshot & restore method
+
+### Comprehensive Documentation
+
+For detailed upgrade procedures, version-specific notes, and troubleshooting, see:
+- **[Elasticsearch Upgrade Guide](../../docs/elasticsearch-upgrade-guide.md)** - Complete upgrade strategies, shard allocation management, and rollback procedures
+
+**Topics covered:**
+- Three upgrade strategies (rolling, full restart, blue-green)
+- Shard allocation management
+- Version-specific breaking changes (7.x → 8.x)
+- Pre/post-upgrade validation
+- Rollback procedures (Helm, snapshot, PVC)
+- Troubleshooting (CrashLooping, unassigned shards, split-brain)
+
+---
+
 ## Additional Resources
 
 - [Elasticsearch Documentation](https://www.elastic.co/guide/en/elasticsearch/reference/current/index.html)
 - [Kibana Documentation](https://www.elastic.co/guide/en/kibana/current/index.html)
 - [Elasticsearch Client Libraries](https://www.elastic.co/guide/en/elasticsearch/client/index.html)
+- [Elasticsearch Backup Guide](../../docs/elasticsearch-backup-guide.md)
+- [Elasticsearch Upgrade Guide](../../docs/elasticsearch-upgrade-guide.md)
 - [S3 Integration Guide](../../docs/S3_INTEGRATION_GUIDE.md)
 - [Chart Development Guide](../../docs/CHART_DEVELOPMENT_GUIDE.md)
 - [Production Checklist](../../docs/PRODUCTION_CHECKLIST.md)
