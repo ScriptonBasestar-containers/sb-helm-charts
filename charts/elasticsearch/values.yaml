@@ -227,6 +227,138 @@ extraEnv: []
 
 # Extra environment variables from ConfigMaps or Secrets
 extraEnvFrom: []
+
+# =============================================================================
+# RBAC Configuration
+# =============================================================================
+rbac:
+  # Create RBAC resources (Role, RoleBinding)
+  create: true
+
+  # Annotations for RBAC resources
+  annotations: {}
+
+# =============================================================================
+# Backup & Recovery Configuration
+# =============================================================================
+# Note: Backup is handled via Makefile targets, not automated CronJobs
+# This section documents the backup strategy and available tools
+backup:
+  # Enable backup documentation (does not create automated backups)
+  enabled: false
+
+  # Backup strategy documentation
+  documentation:
+    # Three-component backup strategy
+    strategy: "snapshot_repository + index_backups + cluster_settings"
+
+    # Tools used for backup
+    tools:
+      - "Snapshot/Restore API"
+      - "/_snapshot API"
+      - "/_cluster/settings API"
+      - "/_template API"
+      - "VolumeSnapshot (PVC)"
+
+    # Backup components
+    components:
+      # 1. Snapshot repository (indices, cluster state, snapshots)
+      snapshots: "Snapshot/Restore API to S3/NFS/local repository"
+
+      # 2. Index-level backups (specific indices)
+      indices: "Index-level snapshot with _snapshot API"
+
+      # 3. Cluster settings (templates, ILM policies, ingest pipelines)
+      cluster_settings: "Export cluster settings, index templates, ILM policies"
+
+      # 4. Data volumes (PVC snapshots for disaster recovery)
+      data_volumes: "PVC VolumeSnapshot or disk-level backup"
+
+    # RTO/RPO targets
+    targets:
+      rto: "< 2 hours (snapshot restore), < 4 hours (full recovery)"
+      rpo: "24 hours (daily snapshots)"
+
+    # Retention policy
+    retention:
+      daily: "30 days"
+      weekly: "90 days"
+      monthly: "1 year"
+
+# =============================================================================
+# Upgrade Configuration
+# =============================================================================
+# Note: Upgrade is a manual process with health checks and rollback support
+# This section documents the upgrade workflow
+upgrade:
+  # Enable upgrade documentation (does not trigger automated upgrades)
+  enabled: false
+
+  # Pre-upgrade backup (recommended)
+  preUpgradeBackup: true
+
+  # Upgrade workflow documentation
+  documentation:
+    # Pre-upgrade checklist
+    preUpgrade:
+      - "Run es-pre-upgrade-check (cluster health, shard allocation)"
+      - "Disable shard allocation (prevent rebalancing during upgrade)"
+      - "Create cluster snapshot"
+      - "Review Elasticsearch upgrade guide for breaking changes"
+      - "Test upgrade in staging environment"
+
+    # Upgrade strategies
+    strategies:
+      # 1. Rolling upgrade (recommended for minor versions)
+      rolling:
+        description: "Update nodes one by one with shard reallocation"
+        downtime: "None (zero-downtime)"
+        complexity: "Medium"
+        steps:
+          - "Disable shard allocation"
+          - "Update StatefulSet with new image"
+          - "Monitor shard allocation after each node restart"
+          - "Re-enable shard allocation after upgrade"
+
+      # 2. Full cluster restart (for major versions)
+      full_restart:
+        description: "Stop all nodes, upgrade, restart cluster"
+        downtime: "30-60 minutes"
+        complexity: "Low"
+        steps:
+          - "Disable shard allocation"
+          - "Scale StatefulSet to 0 replicas"
+          - "Update StatefulSet with new image and configs"
+          - "Scale StatefulSet back to desired replicas"
+          - "Wait for cluster formation and re-enable shard allocation"
+
+      # 3. Snapshot and restore (for major version jumps)
+      snapshot_restore:
+        description: "Create snapshot, deploy new cluster, restore snapshot"
+        downtime: "1-2 hours"
+        complexity: "High"
+        steps:
+          - "Create full cluster snapshot"
+          - "Deploy new Elasticsearch cluster (new version)"
+          - "Restore snapshot to new cluster"
+          - "Update application configs to new cluster"
+          - "Decommission old cluster after validation"
+
+    # Post-upgrade validation
+    postUpgrade:
+      - "Run es-post-upgrade-check (cluster health)"
+      - "Verify all nodes joined cluster"
+      - "Check shard allocation status (all shards active)"
+      - "Verify index accessibility"
+      - "Test search queries"
+      - "Monitor cluster performance"
+
+    # Rollback procedures
+    rollback:
+      helm: "helm rollback elasticsearch (chart only, not data)"
+      snapshot_restore: "Restore cluster from pre-upgrade snapshot"
+      pvc_restore: "Restore PVC from VolumeSnapshot"
+      full_recovery: "Uninstall + reinstall with snapshot restore"
   # - configMapRef:
   #     name: extra-config
 

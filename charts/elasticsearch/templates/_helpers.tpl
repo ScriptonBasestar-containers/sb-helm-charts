@@ -133,3 +133,17 @@ Get Elasticsearch URL for Kibana
 {{- define "elasticsearch.url" -}}
 {{- printf "http://%s:9200" (include "elasticsearch.fullname" .) }}
 {{- end }}
+
+{{/*
+RBAC role name
+*/}}
+{{- define "elasticsearch.roleName" -}}
+{{- printf "%s" (include "elasticsearch.fullname" .) }}
+{{- end }}
+
+{{/*
+RBAC role binding name
+*/}}
+{{- define "elasticsearch.roleBindingName" -}}
+{{- printf "%s" (include "elasticsearch.fullname" .) }}
+{{- end }}
