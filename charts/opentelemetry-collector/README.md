@@ -260,6 +260,218 @@ affinity:
           topologyKey: kubernetes.io/hostname
 ```
 
+## Backup & Recovery Strategy
+
+This chart follows a **Makefile-driven backup approach** (no CronJob in chart) for maximum flexibility and control.
+
+### Backup Strategy
+
+The recommended backup strategy focuses on configuration (OpenTelemetry Collector is stateless):
+
+1. **Configuration backups** - Collector YAML configuration, ConfigMaps
+2. **Kubernetes resource manifests** - Deployment/DaemonSet, Service, RBAC
+3. **Custom extensions** - Custom receivers/processors/exporters (if applicable)
+
+**Backup frequency recommendations:**
+- Configuration: Before changes (RTO: < 30 minutes, RPO: 0)
+- Manifests: Weekly (RTO: < 1 hour, RPO: 1 week)
+
+**Note**: OpenTelemetry Collector is stateless. Data flows through it without persistence, so focus is on configuration backup for rapid recovery.
+
+### Backup Operations
+
+**Backup configuration:**
+```bash
+make -f make/ops/opentelemetry-collector.mk otel-backup-config
+# Saves to: tmp/otel-collector-backups/config-<timestamp>/
+```
+
+**Backup Kubernetes manifests:**
+```bash
+make -f make/ops/opentelemetry-collector.mk otel-backup-manifests
+# Saves to: tmp/otel-collector-backups/manifests-<timestamp>/
+```
+
+**Full backup (config + manifests + metadata):**
+```bash
+make -f make/ops/opentelemetry-collector.mk otel-backup-all
+# Saves to: tmp/otel-collector-backups/backup-<timestamp>/
+```
+
+**Verify backup integrity:**
+```bash
+make -f make/ops/opentelemetry-collector.mk otel-backup-verify BACKUP_DIR=tmp/otel-collector-backups/backup-<timestamp>
+```
+
+### Recovery Operations
+
+**Restore configuration:**
+```bash
+make -f make/ops/opentelemetry-collector.mk otel-restore-config BACKUP_DIR=tmp/otel-collector-backups/config-<timestamp>
+```
+
+**Full restoration workflow:**
+```bash
+make -f make/ops/opentelemetry-collector.mk otel-restore-all BACKUP_DIR=tmp/otel-collector-backups/backup-<timestamp>
+```
+
+For detailed backup/restore procedures, see [docs/opentelemetry-collector-backup-guide.md](../../docs/opentelemetry-collector-backup-guide.md).
+
+---
+
+## Security & RBAC
+
+### RBAC Configuration
+
+This chart creates ClusterRole-based RBAC permissions (required for k8sattributes processor):
+
+```yaml
+rbac:
+  create: true              # Create RBAC resources
+  clusterRole: true         # Create ClusterRole (required for k8sattributes)
+```
+
+**Default ClusterRole permissions:**
+- Read Pods (k8sattributes processor)
+- Read Namespaces (k8sattributes processor)
+- Read Nodes (k8sattributes processor)
+- Read Deployments, StatefulSets, DaemonSets (k8sattributes processor)
+- Read Events, Services, Endpoints (k8s_cluster receiver, optional)
+
+**Disable RBAC:**
+```yaml
+rbac:
+  create: false
+```
+
+**Note**: k8sattributes processor requires cluster-wide read access to enrich telemetry with Kubernetes metadata.
+
+### Security Enhancements
+
+**Security Context:**
+```yaml
+podSecurityContext:
+  runAsNonRoot: true
+  runAsUser: 10001
+  runAsGroup: 10001
+  fsGroup: 10001
+
+securityContext:
+  allowPrivilegeEscalation: false
+  capabilities:
+    drop:
+      - ALL
+  readOnlyRootFilesystem: true
+```
+
+---
+
+## Operations & Maintenance
+
+### Upgrade Operations
+
+**Pre-upgrade health check:**
+```bash
+make -f make/ops/opentelemetry-collector.mk otel-pre-upgrade-check
+```
+
+**Recommended upgrade workflow:**
+```bash
+# 1. Pre-upgrade check
+make -f make/ops/opentelemetry-collector.mk otel-pre-upgrade-check
+
+# 2. Backup (recommended)
+make -f make/ops/opentelemetry-collector.mk otel-backup-all
+
+# 3. Upgrade Helm chart
+helm upgrade otel-collector scripton-charts/opentelemetry-collector -n monitoring -f values.yaml
+
+# 4. Post-upgrade validation
+make -f make/ops/opentelemetry-collector.mk otel-post-upgrade-check
+
+# 5. Rollback if needed
+# make -f make/ops/opentelemetry-collector.mk otel-upgrade-rollback
+```
+
+**Post-upgrade validation:**
+```bash
+make -f make/ops/opentelemetry-collector.mk otel-post-upgrade-check
+# Validates: version, health, OTLP receivers, pipeline status, error logs
+```
+
+**Rollback to previous version:**
+```bash
+make -f make/ops/opentelemetry-collector.mk otel-upgrade-rollback
+# Interactive rollback with revision selection
+```
+
+For detailed upgrade procedures and strategies, see [docs/opentelemetry-collector-upgrade-guide.md](../../docs/opentelemetry-collector-upgrade-guide.md).
+
+---
+
+## Monitoring & Diagnostics
+
+### Health Checks
+
+**Check collector health:**
+```bash
+make -f make/ops/opentelemetry-collector.mk otel-health-check
+```
+
+**Check OTLP receivers:**
+```bash
+# gRPC receiver (port 4317)
+kubectl exec -n monitoring deploy/otel-collector -- nc -zv localhost 4317
+
+# HTTP receiver (port 4318)
+kubectl exec -n monitoring deploy/otel-collector -- wget -qO- http://localhost:4318
+```
+
+### Common Operations
+
+**Port-forward for local testing:**
+```bash
+# OTLP gRPC
+make -f make/ops/opentelemetry-collector.mk otel-port-forward-grpc
+# Access at localhost:4317
+
+# OTLP HTTP
+make -f make/ops/opentelemetry-collector.mk otel-port-forward-http
+# Access at localhost:4318
+
+# Metrics
+make -f make/ops/opentelemetry-collector.mk otel-port-forward-metrics
+# Access at http://localhost:8888/metrics
+```
+
+**Access collector shell:**
+```bash
+make -f make/ops/opentelemetry-collector.mk otel-shell
+```
+
+**View logs:**
+```bash
+make -f make/ops/opentelemetry-collector.mk otel-logs
+# Tail logs: make -f make/ops/opentelemetry-collector.mk otel-logs-all
+```
+
+**View configuration:**
+```bash
+make -f make/ops/opentelemetry-collector.mk otel-config
+```
+
+**View pipeline metrics:**
+```bash
+make -f make/ops/opentelemetry-collector.mk otel-pipeline-metrics
+```
+
+**View Makefile commands:**
+```bash
+make -f make/ops/opentelemetry-collector.mk help
+```
+
+---
+
 ## Troubleshooting
 
 ### Check Collector Status
