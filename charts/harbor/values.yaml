@@ -109,6 +109,13 @@ serviceAccount:
   annotations: {}
   name: ""
 
+# RBAC configuration
+rbac:
+  # Create Role and RoleBinding (namespace-scoped)
+  create: true
+  # Additional annotations for RBAC resources
+  annotations: {}
+
 # Security
 podSecurityContext:
   fsGroup: 10000
@@ -191,3 +198,29 @@ networkPolicy:
       ports:
         - protocol: TCP
           port: 443
+
+# Backup & Recovery configuration
+# Note: No CronJob in chart - use Makefile operations instead
+backup:
+  enabled: false  # Documentation only - backups managed via make targets
+  documentation:
+    strategy: "postgresql_dump + harbor_export + registry_data"
+    # Combined approach ensures complete recovery:
+    # 1. Database backup: make -f make/ops/harbor.mk harbor-db-backup
+    # 2. Registry data: Backed up via PVC snapshots
+    # 3. Configuration: make -f make/ops/harbor.mk harbor-config-backup
+    tools:
+      - "pg_dump"           # PostgreSQL database backup
+      - "harbor API"        # Export projects, users, replication policies
+      - "volume snapshots"  # Registry images and chartmuseum data
+
+# Upgrade configuration
+upgrade:
+  enabled: false  # Feature flag for upgrade automation
+  preUpgradeBackup: true  # Recommend backup before upgrades
+  # Upgrade workflow:
+  # 1. Pre-check: make -f make/ops/harbor.mk harbor-pre-upgrade-check
+  # 2. Backup: make -f make/ops/harbor.mk harbor-db-backup && harbor-config-backup
+  # 3. Upgrade: helm upgrade harbor charts/harbor -f values.yaml
+  # 4. Migrate DB: make -f make/ops/harbor.mk harbor-db-migrate
+  # 5. Post-check: make -f make/ops/harbor.mk harbor-post-upgrade-check

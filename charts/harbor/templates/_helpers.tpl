@@ -150,3 +150,17 @@ Component service names
 {{- define "harbor.registry" -}}
 {{- printf "%s-registry" (include "harbor.fullname" .) }}
 {{- end }}
+
+{{/*
+Create the name of the RBAC role to use
+*/}}
+{{- define "harbor.roleName" -}}
+{{- printf "%s" (include "harbor.fullname" .) }}
+{{- end }}
+
+{{/*
+Create the name of the RBAC role binding to use
+*/}}
+{{- define "harbor.roleBindingName" -}}
+{{- printf "%s" (include "harbor.fullname" .) }}
+{{- end }}
