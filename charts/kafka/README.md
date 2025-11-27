@@ -259,6 +259,227 @@ kafka:
       value: "-javaagent:/opt/jmx-exporter/jmx-exporter.jar=7071:/etc/jmx-exporter/config.yml"
 ```
 
+---
+
+## Backup & Recovery
+
+Kafka supports comprehensive backup and recovery procedures for production deployments.
+
+### Backup Strategy
+
+Kafka backup consists of five critical components:
+
+1. **Topic Metadata** (topic names, partitions, replication factor, configs)
+2. **Broker Configurations** (broker settings, topic-level configs)
+3. **Data Volumes** (actual message data in log.dirs)
+4. **Consumer Group Offsets** (consumer position tracking)
+5. **ACLs** (access control lists - if SASL enabled)
+
+### Backup Commands
+
+```bash
+# 1. Backup topic metadata
+make -f make/ops/kafka.mk kafka-topics-backup
+
+# 2. Backup broker and topic configurations
+make -f make/ops/kafka.mk kafka-configs-backup
+
+# 3. Backup consumer group offsets
+make -f make/ops/kafka.mk kafka-consumer-offsets-backup
+
+# 4. Backup data volumes (create PVC snapshot)
+make -f make/ops/kafka.mk kafka-data-backup
+
+# 5. Full backup (automated workflow)
+make -f make/ops/kafka.mk kafka-full-backup
+
+# 6. Verify backups
+ls -lh tmp/kafka-backups/topics/
+ls -lh tmp/kafka-backups/configs/
+ls -lh tmp/kafka-backups/offsets/
+kubectl get volumesnapshot -n default
+```
+
+**Backup storage locations:**
+```
+tmp/kafka-backups/
+├── topics/                     # Topic metadata
+│   └── YYYYMMDD-HHMMSS/
+│       └── topics-metadata.txt
+├── configs/                    # Broker and topic configurations
+│   └── YYYYMMDD-HHMMSS/
+│       ├── broker-configs.txt
+│       └── topic-configs.txt
+└── offsets/                    # Consumer group offsets
+    └── YYYYMMDD-HHMMSS/
+        ├── consumer-groups-list.txt
+        └── offsets-{group}.txt
+```
+
+### Recovery Commands
+
+```bash
+# 1. Restore data volumes from VolumeSnapshot
+kubectl scale statefulset kafka --replicas=0
+# Restore PVC from snapshot (follow VolumeSnapshot procedures)
+kubectl scale statefulset kafka --replicas=3
+
+# 2. Recreate topics from metadata backup
+# (Parse topics-metadata.txt and create topics individually)
+
+# 3. Apply configurations
+# (Apply broker and topic configs from backup)
+
+# 4. Reset consumer group offsets
+kubectl exec -it kafka-0 -- \
+  kafka-consumer-groups.sh --reset-offsets --group my-group \
+  --topic my-topic:0 --to-offset 12345 --bootstrap-server localhost:9092 --execute
+
+# 5. Verify recovery
+make -f make/ops/kafka.mk kafka-post-upgrade-check
+```
+
+### Best Practices
+
+- **Production**: Daily automated backups + pre-upgrade backups
+- **Retention**: 30 days (daily), 90 days (weekly), 1 year (monthly)
+- **Verification**: Test restores quarterly
+- **Security**: Encrypt backups at rest and in transit
+
+**📖 Complete guide**: See [docs/kafka-backup-guide.md](../../docs/kafka-backup-guide.md) for detailed backup/recovery procedures.
+
+---
+
+## Upgrading
+
+Kafka supports multiple upgrade strategies with zero-downtime rolling updates.
+
+### Pre-Upgrade Checklist
+
+```bash
+# 1. Run pre-upgrade health check
+make -f make/ops/kafka.mk kafka-pre-upgrade-check
+
+# 2. Backup everything
+make -f make/ops/kafka.mk kafka-full-backup
+
+# 3. Review changelog
+# - Check Kafka release notes: https://kafka.apache.org/downloads
+# - Review chart CHANGELOG.md
+
+# 4. Test in staging
+helm upgrade kafka-staging charts/kafka -n staging -f values-staging.yaml
+```
+
+### Upgrade Procedures
+
+**Method 1: Rolling Upgrade (Recommended for patch/minor versions)**
+```bash
+# Zero-downtime upgrade with controlled broker shutdown
+helm upgrade kafka charts/kafka -f values.yaml --wait --timeout=10m
+
+# Monitor rolling update
+kubectl get pods -l app.kubernetes.io/name=kafka -w
+
+# Verify ISR status after each broker restart
+kubectl exec -it kafka-0 -- \
+  kafka-topics.sh --describe --under-replicated-partitions --bootstrap-server localhost:9092
+
+# Verify deployment
+make -f make/ops/kafka.mk kafka-post-upgrade-check
+```
+
+**Method 2: Blue-Green Upgrade (For major versions with zero downtime)**
+```bash
+# Deploy new "green" Kafka cluster
+helm install kafka-green charts/kafka -f values.yaml \
+  --set image.tag=3.6-debian-12 --set fullnameOverride=kafka-green
+
+# Set up MirrorMaker 2.0 for topic replication (blue → green)
+# (Deploy MirrorMaker 2.0 connector)
+
+# Validate data consistency
+kubectl exec -it kafka-green-0 -- \
+  kafka-topics.sh --list --bootstrap-server localhost:9092
+
+# Update producer/consumer configs to new cluster (gradual cutover)
+
+# Decommission old cluster after validation (24-48 hours)
+helm uninstall kafka
+```
+
+**Method 3: Maintenance Window Upgrade (For major versions)**
+```bash
+# Scale down StatefulSet
+kubectl scale statefulset kafka --replicas=0
+
+# Backup data
+make -f make/ops/kafka.mk kafka-full-backup
+
+# Upgrade chart
+helm upgrade kafka charts/kafka -f values.yaml --set image.tag=3.6-debian-12
+
+# Scale up StatefulSet
+kubectl scale statefulset kafka --replicas=3
+
+# Wait for cluster formation
+kubectl wait --for=condition=ready pod -l app.kubernetes.io/name=kafka --timeout=300s
+
+# Verify cluster health
+make -f make/ops/kafka.mk kafka-post-upgrade-check
+```
+
+### Post-Upgrade Validation
+
+```bash
+# Automated validation
+make -f make/ops/kafka.mk kafka-post-upgrade-check
+
+# Manual checks
+kubectl get pods -l app.kubernetes.io/name=kafka
+kubectl exec -it kafka-0 -- \
+  kafka-broker-api-versions.sh --bootstrap-server localhost:9092 | head -1
+kubectl exec -it kafka-0 -- \
+  kafka-topics.sh --list --bootstrap-server localhost:9092
+
+# Check under-replicated partitions (should be empty)
+kubectl exec -it kafka-0 -- \
+  kafka-topics.sh --describe --under-replicated-partitions --bootstrap-server localhost:9092
+
+# Test produce/consume
+kubectl exec -it kafka-0 -- \
+  kafka-console-producer.sh --topic test-upgrade --bootstrap-server localhost:9092
+kubectl exec -it kafka-0 -- \
+  kafka-console-consumer.sh --topic test-upgrade --from-beginning --bootstrap-server localhost:9092
+```
+
+### Rollback Procedures
+
+**Option 1: Helm Rollback (Fast)**
+```bash
+make -f make/ops/kafka.mk kafka-upgrade-rollback  # Display rollback plan
+helm rollback kafka
+make -f make/ops/kafka.mk kafka-post-upgrade-check
+```
+
+**Option 2: PVC Restore (Complete - includes data)**
+```bash
+kubectl scale statefulset kafka --replicas=0
+
+# Restore PVC from VolumeSnapshot
+kubectl apply -f <pvc-from-snapshot.yaml>
+
+helm rollback kafka
+
+kubectl scale statefulset kafka --replicas=3
+
+make -f make/ops/kafka.mk kafka-post-upgrade-check
+```
+
+**📖 Complete guide**: See [docs/kafka-upgrade-guide.md](../../docs/kafka-upgrade-guide.md) for detailed upgrade procedures and version-specific notes.
+
+---
+
 ## License
 
 This Helm chart is licensed under the BSD-3-Clause License.
