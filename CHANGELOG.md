@@ -92,6 +92,20 @@ Six charts enhanced with comprehensive RBAC, backup/recovery, and upgrade capabi
 - Post-upgrade validation: `{chart}-post-upgrade-check`
 - Rollback procedures: `{chart}-upgrade-rollback`
 
+**Operational Makefiles for New Charts:**
+- **mimir.mk** (27 targets) - Comprehensive operations for Grafana Mimir
+  - Multi-tenancy support with TENANT parameter
+  - Metrics queries (PromQL via HTTP API)
+  - Storage and TSDB management
+  - Compactor and store-gateway status
+  - Tenant statistics and limits
+- **opentelemetry-collector.mk** (31 targets) - Complete OTel Collector operations
+  - OTLP gRPC (4317) and HTTP (4318) endpoints
+  - Pipeline monitoring (receivers, processors, exporters)
+  - Metrics and zpages debugging
+  - Configuration validation
+  - Deployment and DaemonSet mode support
+
 **values.yaml Configuration:**
 - `rbac` section with create/annotations options
 - `backup` section with documentation-only flags
