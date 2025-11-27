@@ -227,3 +227,168 @@ serviceMonitor:
 # Prometheus annotations (if not using ServiceMonitor)
 prometheusAnnotations:
   enabled: false
+
+# =============================================================================
+# Backup & Recovery Configuration
+# =============================================================================
+# Note: Backup is handled via Makefile targets, not automated CronJobs
+# This section documents the backup strategy and available tools
+backup:
+  # Enable backup documentation (does not create automated backups)
+  enabled: false
+
+  # Backup strategy documentation
+  documentation:
+    # Three-component backup strategy (stateless architecture)
+    strategy: "configuration + manifests + custom_extensions"
+
+    # Tools used for backup
+    tools:
+      - "kubectl get configmap (configuration)"
+      - "kubectl get deployment/daemonset (manifests)"
+      - "kubectl get clusterrole/clusterrolebinding (RBAC)"
+
+    # Backup components
+    components:
+      # 1. Configuration (ConfigMap and OTel config YAML)
+      configuration:
+        description: "OpenTelemetry Collector configuration (receivers, processors, exporters, pipelines)"
+        location: "ConfigMap + config.yaml"
+        frequency: "Before changes"
+        retention: "90 days"
+
+      # 2. Kubernetes resource manifests
+      manifests:
+        description: "Deployment/DaemonSet, Service, RBAC (ClusterRole, ClusterRoleBinding)"
+        location: "Kubernetes API resources"
+        frequency: "Weekly"
+        retention: "90 days"
+
+      # 3. Custom extensions (if applicable)
+      custom_extensions:
+        description: "Custom receivers, processors, exporters (most deployments use contrib components)"
+        location: "Custom container images"
+        frequency: "On changes"
+        retention: "90 days"
+
+    # RTO/RPO targets
+    targets:
+      rto: "< 30 minutes (config restore), < 1 hour (full restore)"
+      rpo: "0 (configuration), 1 week (manifests)"
+
+    # Backup operations (via Makefile)
+    operations:
+      backup_config: "make -f make/ops/opentelemetry-collector.mk otel-backup-config"
+      backup_manifests: "make -f make/ops/opentelemetry-collector.mk otel-backup-manifests"
+      backup_all: "make -f make/ops/opentelemetry-collector.mk otel-backup-all"
+      verify_backup: "make -f make/ops/opentelemetry-collector.mk otel-backup-verify"
+
+    # Recovery operations (via Makefile)
+    recovery:
+      restore_config: "make -f make/ops/opentelemetry-collector.mk otel-restore-config"
+      restore_all: "make -f make/ops/opentelemetry-collector.mk otel-restore-all"
+
+    # Detailed guide
+    guide: "docs/opentelemetry-collector-backup-guide.md"
+
+    # Note on stateless architecture
+    note: "OpenTelemetry Collector is stateless. Data flows through it without persistence. Focus is on configuration backup for rapid recovery."
+
+# =============================================================================
+# Upgrade Configuration
+# =============================================================================
+# Note: Upgrade is a manual process with health checks and rollback support
+# This section documents the upgrade workflow
+upgrade:
+  # Enable upgrade documentation (does not trigger automated upgrades)
+  enabled: false
+
+  # Pre-upgrade backup (recommended)
+  preUpgradeBackup: true
+
+  # Upgrade workflow documentation
+  documentation:
+    # Pre-upgrade checklist
+    preUpgrade:
+      - "Run otel-pre-upgrade-check (pod status, health, version, resource usage)"
+      - "Check recent error logs"
+      - "Create configuration backup (otel-backup-all)"
+      - "Review OpenTelemetry Collector release notes for breaking changes"
+      - "Test upgrade in staging environment (if available)"
+
+    # Upgrade strategies
+    strategies:
+      # 1. Rolling upgrade (recommended, zero downtime)
+      rolling:
+        description: "Update pods one by one with Kubernetes rolling update"
+        downtime: "None (zero-downtime)"
+        complexity: "Low"
+        steps:
+          - "Ensure replicaCount >= 2 for high availability (deployment mode)"
+          - "Run pre-upgrade backup"
+          - "Update Helm chart with new image tag"
+          - "Monitor pod rollout"
+          - "Validate with post-upgrade checks"
+
+      # 2. Blue-green deployment
+      blue_green:
+        description: "Deploy new collector alongside old, switch traffic with service selector"
+        downtime: "10-30 seconds (traffic cutover)"
+        complexity: "Medium"
+        steps:
+          - "Deploy new version with different release name"
+          - "Configure applications to dual-write (both collectors)"
+          - "Wait for new collector to stabilize (30-60 minutes)"
+          - "Switch service selector to new deployment"
+          - "Decommission old collector after validation"
+
+      # 3. Maintenance window upgrade
+      maintenance:
+        description: "Stop telemetry ingestion, upgrade, resume"
+        downtime: "5-15 minutes"
+        complexity: "Low"
+        steps:
+          - "Stop applications sending telemetry (optional)"
+          - "Upgrade Helm release"
+          - "Wait for pods to be ready"
+          - "Resume applications"
+
+      # 4. DaemonSet upgrade (agent mode)
+      daemonset:
+        description: "Node-by-node rollout for per-node collectors"
+        downtime: "Per-node brief interruption"
+        complexity: "Low"
+        steps:
+          - "Update DaemonSet via Helm upgrade"
+          - "Monitor node-by-node rollout"
+          - "Verify all nodes have new version"
+
+    # Post-upgrade validation
+    postUpgrade:
+      - "Run otel-post-upgrade-check (version, health, receivers, pipeline)"
+      - "Verify OTLP receivers (gRPC 4317, HTTP 4318)"
+      - "Check pipeline status in logs"
+      - "Send test telemetry (traces, metrics, logs)"
+      - "Monitor error logs for 30 minutes"
+
+    # Rollback procedure
+    rollback:
+      description: "Helm rollback with configuration restoration"
+      steps:
+        - "Identify issue and decide on rollback"
+        - "Run otel-upgrade-rollback (interactive Helm rollback)"
+        - "Monitor rollback progress"
+        - "Validate with health checks"
+
+    # Upgrade operations (via Makefile)
+    operations:
+      pre_check: "make -f make/ops/opentelemetry-collector.mk otel-pre-upgrade-check"
+      post_check: "make -f make/ops/opentelemetry-collector.mk otel-post-upgrade-check"
+      health_check: "make -f make/ops/opentelemetry-collector.mk otel-health-check"
+      rollback: "make -f make/ops/opentelemetry-collector.mk otel-upgrade-rollback"
+
+    # Detailed guide
+    guide: "docs/opentelemetry-collector-upgrade-guide.md"
+
+    # Note on stateless architecture
+    note: "OpenTelemetry Collector is stateless, making upgrades straightforward. No data migration required. Focus on configuration compatibility and zero downtime."
