@@ -187,10 +187,229 @@ serviceMonitor:
     release: prometheus
 ```
 
+## Backup & Recovery Strategy
+
+This chart follows a **Makefile-driven backup approach** (no CronJob in chart) for maximum flexibility and control.
+
+### Backup Strategy
+
+The recommended backup strategy combines three approaches for comprehensive data protection:
+
+1. **Block storage backups** - TSDB blocks (metrics data)
+2. **Configuration backups** - ConfigMaps and Mimir runtime configuration
+3. **PVC snapshots** - Disaster recovery with Kubernetes VolumeSnapshot API
+
+**Backup frequency recommendations:**
+- Block storage: Daily (RTO: < 2 hours, RPO: 24 hours)
+- Configuration: Before changes (RTO: < 30 minutes, RPO: 0)
+- PVC snapshots: Weekly (RTO: < 4 hours, RPO: 1 week)
+
+### Backup Operations
+
+**Backup TSDB blocks:**
+```bash
+make -f make/ops/mimir.mk mimir-backup-blocks
+# Saves to: tmp/mimir-backups/blocks-<timestamp>.tar.gz
+```
+
+**Backup configuration:**
+```bash
+make -f make/ops/mimir.mk mimir-backup-config
+# Saves to: tmp/mimir-backups/config-<timestamp>/
+```
+
+**Full backup (blocks + config + manifest):**
+```bash
+make -f make/ops/mimir.mk mimir-backup-all
+# Saves to: tmp/mimir-backups/backup-<timestamp>/
+```
+
+**Verify backup integrity:**
+```bash
+make -f make/ops/mimir.mk mimir-backup-verify BACKUP_DIR=tmp/mimir-backups/backup-<timestamp>
+```
+
+**Create PVC snapshot (requires VolumeSnapshot CRD):**
+```bash
+make -f make/ops/mimir.mk mimir-create-pvc-snapshot
+# Lists snapshots with: make -f make/ops/mimir.mk mimir-list-pvc-snapshots
+```
+
+### Recovery Operations
+
+**Restore blocks from backup:**
+```bash
+make -f make/ops/mimir.mk mimir-restore-blocks BACKUP_FILE=tmp/mimir-backups/blocks-<timestamp>.tar.gz
+```
+
+**Restore configuration:**
+```bash
+make -f make/ops/mimir.mk mimir-restore-config BACKUP_DIR=tmp/mimir-backups/config-<timestamp>
+```
+
+**Full restoration workflow:**
+```bash
+make -f make/ops/mimir.mk mimir-restore-all BACKUP_DIR=tmp/mimir-backups/backup-<timestamp>
+```
+
+For detailed backup/restore procedures, see [docs/mimir-backup-guide.md](../../docs/mimir-backup-guide.md).
+
+---
+
+## Security & RBAC
+
+### RBAC Configuration
+
+This chart creates minimal namespace-scoped RBAC permissions for Mimir pods:
+
+```yaml
+rbac:
+  create: true  # Create Role and RoleBinding
+  annotations: {}
+```
+
+**Default permissions:**
+- Read ConfigMaps (configuration access)
+- Read Secrets (credentials access)
+- Read Pods (clustering and service discovery)
+- Read PersistentVolumeClaims (storage management)
+- Read Endpoints (service discovery)
+
+**Disable RBAC:**
+```yaml
+rbac:
+  create: false
+```
+
+### Security Enhancements
+
+**Security Context:**
+```yaml
+podSecurityContext:
+  fsGroup: 10001
+  runAsUser: 10001
+  runAsNonRoot: true
+
+securityContext:
+  runAsUser: 10001
+  runAsNonRoot: true
+  readOnlyRootFilesystem: true
+  capabilities:
+    drop:
+      - ALL
+```
+
+---
+
+## Operations & Maintenance
+
+### Upgrade Operations
+
+**Pre-upgrade health check:**
+```bash
+make -f make/ops/mimir.mk mimir-pre-upgrade-check
+```
+
+**Recommended upgrade workflow:**
+```bash
+# 1. Pre-upgrade check
+make -f make/ops/mimir.mk mimir-pre-upgrade-check
+
+# 2. Backup (critical!)
+make -f make/ops/mimir.mk mimir-backup-all
+
+# 3. Upgrade Helm chart
+helm upgrade mimir sb-charts/mimir -n monitoring -f values.yaml
+
+# 4. Post-upgrade validation
+make -f make/ops/mimir.mk mimir-post-upgrade-check
+
+# 5. Rollback if needed
+# make -f make/ops/mimir.mk mimir-upgrade-rollback
+```
+
+**Post-upgrade validation:**
+```bash
+make -f make/ops/mimir.mk mimir-post-upgrade-check
+# Validates: version, health, rings, query functionality, error logs
+```
+
+**Check ring status (clustering):**
+```bash
+make -f make/ops/mimir.mk mimir-ring-status
+# Shows: ingester, compactor, store-gateway rings
+```
+
+**Test query functionality:**
+```bash
+make -f make/ops/mimir.mk mimir-query-test
+# Runs PromQL test queries
+```
+
+**Rollback to previous version:**
+```bash
+make -f make/ops/mimir.mk mimir-upgrade-rollback
+# Interactive rollback with revision selection
+```
+
+For detailed upgrade procedures and strategies, see [docs/mimir-upgrade-guide.md](../../docs/mimir-upgrade-guide.md).
+
+---
+
+## Monitoring & Diagnostics
+
+### Health Checks
+
+**Check Mimir health:**
+```bash
+make -f make/ops/mimir.mk mimir-health-check
+```
+
+**Monitor ring status:**
+```bash
+make -f make/ops/mimir.mk mimir-ring-status
+```
+
+### Common Operations
+
+**Port-forward for local access:**
+```bash
+make -f make/ops/mimir.mk mimir-port-forward
+# Access Mimir at http://localhost:8080
+```
+
+**Access Mimir shell:**
+```bash
+make -f make/ops/mimir.mk mimir-shell
+```
+
+**View logs:**
+```bash
+make -f make/ops/mimir.mk mimir-logs
+# Tail logs: make -f make/ops/mimir.mk mimir-logs-tail
+```
+
+**View configuration:**
+```bash
+make -f make/ops/mimir.mk mimir-config
+```
+
+**View Makefile commands:**
+```bash
+make -f make/ops/mimir.mk help
+```
+
+---
+
 ## Upgrading
 
 ```bash
 helm upgrade mimir sb-charts/mimir -n monitoring -f values.yaml
+```
+
+**Always backup before upgrading:**
+```bash
+make -f make/ops/mimir.mk mimir-backup-all
 ```
 
 ## Uninstalling

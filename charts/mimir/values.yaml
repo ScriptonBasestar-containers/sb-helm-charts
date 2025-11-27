@@ -213,3 +213,156 @@ autoscaling:
   maxReplicas: 10
   targetCPUUtilizationPercentage: 80
   targetMemoryUtilizationPercentage: 80
+
+# =============================================================================
+# Backup & Recovery Configuration
+# =============================================================================
+# Note: Backup is handled via Makefile targets, not automated CronJobs
+# This section documents the backup strategy and available tools
+backup:
+  # Enable backup documentation (does not create automated backups)
+  enabled: false
+
+  # Backup strategy documentation
+  documentation:
+    # Three-component backup strategy
+    strategy: "block_storage + configuration + pvc_snapshots"
+
+    # Tools used for backup
+    tools:
+      - "kubectl exec / tar (block storage)"
+      - "kubectl get configmap (configuration)"
+      - "VolumeSnapshot API (PVC snapshots)"
+
+    # Backup components
+    components:
+      # 1. Block storage (TSDB blocks)
+      blocks:
+        description: "Time-series database blocks containing metrics data"
+        location: "/data/blocks/ (filesystem) or S3/GCS/Azure (object storage)"
+        frequency: "Daily"
+        retention: "30 days"
+
+      # 2. Configuration (ConfigMaps and runtime config)
+      configuration:
+        description: "Mimir configuration, runtime config, alerting rules"
+        location: "ConfigMaps + /etc/mimir/"
+        frequency: "Before changes"
+        retention: "90 days"
+
+      # 3. Data volumes (PVC snapshots for disaster recovery)
+      data_volumes:
+        description: "PVC snapshots via Kubernetes VolumeSnapshot API"
+        location: "Kubernetes VolumeSnapshot resources"
+        frequency: "Weekly"
+        retention: "4 weeks"
+
+    # RTO/RPO targets
+    targets:
+      rto: "< 2 hours (block restore), < 30 minutes (config restore)"
+      rpo: "24 hours (blocks), 0 (configuration), 1 week (PVC snapshots)"
+
+    # Backup operations (via Makefile)
+    operations:
+      backup_blocks: "make -f make/ops/mimir.mk mimir-backup-blocks"
+      backup_config: "make -f make/ops/mimir.mk mimir-backup-config"
+      backup_all: "make -f make/ops/mimir.mk mimir-backup-all"
+      verify_backup: "make -f make/ops/mimir.mk mimir-backup-verify"
+      create_snapshot: "make -f make/ops/mimir.mk mimir-create-pvc-snapshot"
+
+    # Recovery operations (via Makefile)
+    recovery:
+      restore_blocks: "make -f make/ops/mimir.mk mimir-restore-blocks"
+      restore_config: "make -f make/ops/mimir.mk mimir-restore-config"
+      restore_all: "make -f make/ops/mimir.mk mimir-restore-all"
+
+    # Detailed guide
+    guide: "docs/mimir-backup-guide.md"
+
+# =============================================================================
+# Upgrade Configuration
+# =============================================================================
+# Note: Upgrade is a manual process with health checks and rollback support
+# This section documents the upgrade workflow
+upgrade:
+  # Enable upgrade documentation (does not trigger automated upgrades)
+  enabled: false
+
+  # Pre-upgrade backup (recommended)
+  preUpgradeBackup: true
+
+  # Upgrade workflow documentation
+  documentation:
+    # Pre-upgrade checklist
+    preUpgrade:
+      - "Run mimir-pre-upgrade-check (pod status, health, version)"
+      - "Check ring status (ingester, compactor, store-gateway)"
+      - "Verify storage health (S3 connectivity or PVC status)"
+      - "Create full backup (mimir-backup-all)"
+      - "Review Mimir release notes for breaking changes"
+
+    # Upgrade strategies
+    strategies:
+      # 1. Rolling upgrade (zero downtime)
+      rolling:
+        description: "Update pods one by one with Kubernetes rolling update"
+        downtime: "None (zero-downtime)"
+        complexity: "Low"
+        steps:
+          - "Ensure replicaCount >= 2 for high availability"
+          - "Run pre-upgrade backup"
+          - "Update Helm chart with new image tag"
+          - "Monitor pod rollout and ring stability"
+          - "Validate with post-upgrade checks"
+
+      # 2. Blue-green deployment
+      blue_green:
+        description: "Deploy new Mimir cluster alongside old, switch traffic"
+        downtime: "10-30 minutes (traffic cutover)"
+        complexity: "Medium"
+        steps:
+          - "Deploy new Mimir instance with new version"
+          - "Configure remote_write to both clusters (dual-write)"
+          - "Wait for new cluster to stabilize (2-4 hours)"
+          - "Switch Grafana datasource to new cluster"
+          - "Stop remote_write to old cluster after validation"
+
+      # 3. Maintenance window upgrade
+      maintenance:
+        description: "Stop all components, upgrade, restart"
+        downtime: "30-60 minutes"
+        complexity: "Low"
+        steps:
+          - "Stop Prometheus remote_write"
+          - "Scale Mimir StatefulSet to 0 replicas"
+          - "Update Helm chart with new version"
+          - "Scale StatefulSet back to desired replicas"
+          - "Resume Prometheus remote_write after validation"
+
+    # Post-upgrade validation
+    postUpgrade:
+      - "Run mimir-post-upgrade-check (version, health, rings)"
+      - "Verify query functionality (mimir-query-test)"
+      - "Check ingestion rate (validate Prometheus remote_write)"
+      - "Monitor error logs for 30 minutes"
+      - "Validate ring membership (all components joined)"
+
+    # Rollback procedure
+    rollback:
+      description: "Helm rollback with state preservation"
+      steps:
+        - "Identify issue and decide on rollback"
+        - "Run mimir-upgrade-rollback (interactive Helm rollback)"
+        - "Monitor rollback progress"
+        - "Validate with health checks"
+
+    # Upgrade operations (via Makefile)
+    operations:
+      pre_check: "make -f make/ops/mimir.mk mimir-pre-upgrade-check"
+      post_check: "make -f make/ops/mimir.mk mimir-post-upgrade-check"
+      ring_status: "make -f make/ops/mimir.mk mimir-ring-status"
+      query_test: "make -f make/ops/mimir.mk mimir-query-test"
+      rollback: "make -f make/ops/mimir.mk mimir-upgrade-rollback"
+
+    # Detailed guide
+    guide: "docs/mimir-upgrade-guide.md"
