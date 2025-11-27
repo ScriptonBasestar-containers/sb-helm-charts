@@ -1,7 +1,7 @@
 # Artifact Hub Statistics Dashboard
 
 <!-- AUTO-GENERATED FILE - DO NOT EDIT MANUALLY -->
-<!-- Generated: 2025-11-20 14:53:03 -->
+<!-- Generated: 2025-11-27 14:58:08 -->
 <!-- To update, run: make generate-artifacthub-dashboard -->
 
 > **Note**: This dashboard is automatically generated from `charts-metadata.yaml`.
@@ -17,9 +17,9 @@
 
 ## Quick Statistics
 
-- **Total Charts**: 22
-- **Application Charts**: 15
-- **Infrastructure Charts**: 7
+- **Total Charts**: 39
+- **Application Charts**: 20
+- **Infrastructure Charts**: 19
 
 ## Table of Contents
 
@@ -78,6 +78,38 @@
 
 ---
 
+### Grafana
+
+[![Artifact Hub](https://img.shields.io/endpoint?url=https://artifacthub.io/badge/repository/sb-helm-charts)](https://artifacthub.io/packages/helm/sb-helm-charts/grafana)
+
+**Description**: Grafana metrics visualization and dashboarding platform
+
+**Artifact Hub Package**: https://artifacthub.io/packages/helm/sb-helm-charts/grafana
+
+**Tags**: Monitoring, Visualization, Observability
+
+**Keywords**: grafana, monitoring, metrics, visualization, dashboard (+1 more)
+
+**Local Documentation**: [charts/grafana/README.md](../charts/grafana/README.md)
+
+---
+
+### Harbor
+
+[![Artifact Hub](https://img.shields.io/endpoint?url=https://artifacthub.io/badge/repository/sb-helm-charts)](https://artifacthub.io/packages/helm/sb-helm-charts/harbor)
+
+**Description**: Private container registry with vulnerability scanning and image signing
+
+**Artifact Hub Package**: https://artifacthub.io/packages/helm/sb-helm-charts/harbor
+
+**Tags**: Registry, Container, Security
+
+**Keywords**: harbor, registry, docker, container, security (+1 more)
+
+**Local Documentation**: [charts/harbor/README.md](../charts/harbor/README.md)
+
+---
+
 ### Immich
 
 [![Artifact Hub](https://img.shields.io/endpoint?url=https://artifacthub.io/badge/repository/sb-helm-charts)](https://artifacthub.io/packages/helm/sb-helm-charts/immich)
@@ -126,6 +158,22 @@
 
 ---
 
+### Loki
+
+[![Artifact Hub](https://img.shields.io/endpoint?url=https://artifacthub.io/badge/repository/sb-helm-charts)](https://artifacthub.io/packages/helm/sb-helm-charts/loki)
+
+**Description**: Loki log aggregation system with Grafana integration
+
+**Artifact Hub Package**: https://artifacthub.io/packages/helm/sb-helm-charts/loki
+
+**Tags**: Logging, Observability, Monitoring
+
+**Keywords**: loki, logging, logs, observability, grafana (+1 more)
+
+**Local Documentation**: [charts/loki/README.md](../charts/loki/README.md)
+
+---
+
 ### MLflow
 
 [![Artifact Hub](https://img.shields.io/endpoint?url=https://artifacthub.io/badge/repository/sb-helm-charts)](https://artifacthub.io/packages/helm/sb-helm-charts/mlflow)
@@ -171,6 +219,38 @@
 **Keywords**: paperless, document-management, ocr, dms
 
 **Local Documentation**: [charts/paperless-ngx/README.md](../charts/paperless-ngx/README.md)
+
+---
+
+### pgAdmin
+
+[![Artifact Hub](https://img.shields.io/endpoint?url=https://artifacthub.io/badge/repository/sb-helm-charts)](https://artifacthub.io/packages/helm/sb-helm-charts/pgadmin)
+
+**Description**: pgAdmin is a web-based PostgreSQL administration and management tool
+
+**Artifact Hub Package**: https://artifacthub.io/packages/helm/sb-helm-charts/pgadmin
+
+**Tags**: Database, PostgreSQL, Admin-Tool
+
+**Keywords**: postgresql, database, admin, gui, management
+
+**Local Documentation**: [charts/pgadmin/README.md](../charts/pgadmin/README.md)
+
+---
+
+### phpMyAdmin
+
+[![Artifact Hub](https://img.shields.io/endpoint?url=https://artifacthub.io/badge/repository/sb-helm-charts)](https://artifacthub.io/packages/helm/sb-helm-charts/phpmyadmin)
+
+**Description**: phpMyAdmin is a web-based MySQL and MariaDB administration tool
+
+**Artifact Hub Package**: https://artifacthub.io/packages/helm/sb-helm-charts/phpmyadmin
+
+**Tags**: Database, MySQL, Admin-Tool
+
+**Keywords**: mysql, mariadb, database, admin, gui (+1 more)
+
+**Local Documentation**: [charts/phpmyadmin/README.md](../charts/phpmyadmin/README.md)
 
 ---
 
@@ -272,6 +352,38 @@
 
 ## Infrastructure Charts
 
+### Alertmanager
+
+[![Artifact Hub](https://img.shields.io/endpoint?url=https://artifacthub.io/badge/repository/sb-helm-charts)](https://artifacthub.io/packages/helm/sb-helm-charts/alertmanager)
+
+**Description**: Prometheus Alertmanager for alert routing and notification with high availability support
+
+**Artifact Hub Package**: https://artifacthub.io/packages/helm/sb-helm-charts/alertmanager
+
+**Tags**: Monitoring, Alerting, Observability
+
+**Keywords**: alertmanager, prometheus, monitoring, alerting, notifications (+1 more)
+
+**Local Documentation**: [charts/alertmanager/README.md](../charts/alertmanager/README.md)
+
+---
+
+### Blackbox Exporter
+
+[![Artifact Hub](https://img.shields.io/endpoint?url=https://artifacthub.io/badge/repository/sb-helm-charts)](https://artifacthub.io/packages/helm/sb-helm-charts/blackbox-exporter)
+
+**Description**: Blackbox Exporter for probing endpoints over HTTP, HTTPS, DNS, TCP, and ICMP
+
+**Artifact Hub Package**: https://artifacthub.io/packages/helm/sb-helm-charts/blackbox-exporter
+
+**Tags**: Monitoring, Probing, Health-Check
+
+**Keywords**: blackbox-exporter, prometheus, monitoring, probing, health-check (+1 more)
+
+**Local Documentation**: [charts/blackbox-exporter/README.md](../charts/blackbox-exporter/README.md)
+
+---
+
 ### Elasticsearch
 
 [![Artifact Hub](https://img.shields.io/endpoint?url=https://artifacthub.io/badge/repository/sb-helm-charts)](https://artifacthub.io/packages/helm/sb-helm-charts/elasticsearch)
@@ -308,6 +420,22 @@
 
 ---
 
+### Kube State Metrics
+
+[![Artifact Hub](https://img.shields.io/endpoint?url=https://artifacthub.io/badge/repository/sb-helm-charts)](https://artifacthub.io/packages/helm/sb-helm-charts/kube-state-metrics)
+
+**Description**: Kube State Metrics exposes Kubernetes object state as Prometheus metrics
+
+**Artifact Hub Package**: https://artifacthub.io/packages/helm/sb-helm-charts/kube-state-metrics
+
+**Tags**: Monitoring, Metrics, Kubernetes
+
+**Keywords**: kube-state-metrics, kubernetes, monitoring, metrics, prometheus (+1 more)
+
+**Local Documentation**: [charts/kube-state-metrics/README.md](../charts/kube-state-metrics/README.md)
+
+---
+
 ### Memcached
 
 [![Artifact Hub](https://img.shields.io/endpoint?url=https://artifacthub.io/badge/repository/sb-helm-charts)](https://artifacthub.io/packages/helm/sb-helm-charts/memcached)
@@ -323,6 +451,24 @@
 > ⚠️ **Production Note**: For production, consider Memcached Operator
 
 **Local Documentation**: [charts/memcached/README.md](../charts/memcached/README.md)
+
+---
+
+### Grafana Mimir
+
+[![Artifact Hub](https://img.shields.io/endpoint?url=https://artifacthub.io/badge/repository/sb-helm-charts)](https://artifacthub.io/packages/helm/sb-helm-charts/mimir)
+
+**Description**: Grafana Mimir horizontally scalable, highly available long-term storage for Prometheus metrics
+
+**Artifact Hub Package**: https://artifacthub.io/packages/helm/sb-helm-charts/mimir
+
+**Tags**: Monitoring, Metrics, Long-Term-Storage
+
+**Keywords**: mimir, metrics, prometheus, monitoring, observability (+2 more)
+
+> ⚠️ **Production Note**: For large-scale deployments, consider microservices mode with official Grafana Mimir Helm chart
+
+**Local Documentation**: [charts/mimir/README.md](../charts/mimir/README.md)
 
 ---
 
@@ -344,6 +490,76 @@
 
 ---
 
+### MongoDB
+
+[![Artifact Hub](https://img.shields.io/endpoint?url=https://artifacthub.io/badge/repository/sb-helm-charts)](https://artifacthub.io/packages/helm/sb-helm-charts/mongodb)
+
+**Description**: MongoDB NoSQL database with replica set support (StatefulSet, replica set mode)
+
+**Artifact Hub Package**: https://artifacthub.io/packages/helm/sb-helm-charts/mongodb
+
+**Tags**: Database, NoSQL, Document
+
+**Keywords**: mongodb, nosql, database, document, replicaset (+1 more)
+
+> ⚠️ **Production Note**: For production HA, consider MongoDB Operator (Community, Enterprise, Percona)
+
+**Local Documentation**: [charts/mongodb/README.md](../charts/mongodb/README.md)
+
+---
+
+### MySQL
+
+[![Artifact Hub](https://img.shields.io/endpoint?url=https://artifacthub.io/badge/repository/sb-helm-charts)](https://artifacthub.io/packages/helm/sb-helm-charts/mysql)
+
+**Description**: MySQL relational database with replication support (StatefulSet, primary-replica mode)
+
+**Artifact Hub Package**: https://artifacthub.io/packages/helm/sb-helm-charts/mysql
+
+**Tags**: Database, SQL, Relational
+
+**Keywords**: mysql, mariadb, database, sql, replication
+
+> ⚠️ **Production Note**: For production HA, consider MySQL Operator (Oracle, Percona, Vitess)
+
+**Local Documentation**: [charts/mysql/README.md](../charts/mysql/README.md)
+
+---
+
+### Node Exporter
+
+[![Artifact Hub](https://img.shields.io/endpoint?url=https://artifacthub.io/badge/repository/sb-helm-charts)](https://artifacthub.io/packages/helm/sb-helm-charts/node-exporter)
+
+**Description**: Prometheus Node Exporter for hardware and OS metrics with Kubernetes integration
+
+**Artifact Hub Package**: https://artifacthub.io/packages/helm/sb-helm-charts/node-exporter
+
+**Tags**: Monitoring, Metrics, Hardware
+
+**Keywords**: node-exporter, prometheus, monitoring, metrics, hardware (+1 more)
+
+**Local Documentation**: [charts/node-exporter/README.md](../charts/node-exporter/README.md)
+
+---
+
+### OpenTelemetry Collector
+
+[![Artifact Hub](https://img.shields.io/endpoint?url=https://artifacthub.io/badge/repository/sb-helm-charts)](https://artifacthub.io/packages/helm/sb-helm-charts/opentelemetry-collector)
+
+**Description**: OpenTelemetry Collector for unified telemetry collection (traces, metrics, logs)
+
+**Artifact Hub Package**: https://artifacthub.io/packages/helm/sb-helm-charts/opentelemetry-collector
+
+**Tags**: Observability, Telemetry, Tracing, Metrics, Logging
+
+**Keywords**: opentelemetry, otel, telemetry, tracing, metrics (+4 more)
+
+> ⚠️ **Production Note**: For large-scale deployments, consider the official OpenTelemetry Helm chart with microservices mode
+
+**Local Documentation**: [charts/opentelemetry-collector/README.md](../charts/opentelemetry-collector/README.md)
+
+---
+
 ### PostgreSQL
 
 [![Artifact Hub](https://img.shields.io/endpoint?url=https://artifacthub.io/badge/repository/sb-helm-charts)](https://artifacthub.io/packages/helm/sb-helm-charts/postgresql)
@@ -359,6 +575,56 @@
 > ⚠️ **Production Note**: For production HA, consider PostgreSQL Operator (Zalando, Crunchy Data, CloudNativePG)
 
 **Local Documentation**: [charts/postgresql/README.md](../charts/postgresql/README.md)
+
+---
+
+### Prometheus
+
+[![Artifact Hub](https://img.shields.io/endpoint?url=https://artifacthub.io/badge/repository/sb-helm-charts)](https://artifacthub.io/packages/helm/sb-helm-charts/prometheus)
+
+**Description**: Prometheus monitoring system and time series database for Kubernetes
+
+**Artifact Hub Package**: https://artifacthub.io/packages/helm/sb-helm-charts/prometheus
+
+**Tags**: Monitoring, Metrics, Observability
+
+**Keywords**: prometheus, monitoring, metrics, timeseries, alerting (+1 more)
+
+> ⚠️ **Production Note**: For large-scale production with advanced features, consider Prometheus Operator
+
+**Local Documentation**: [charts/prometheus/README.md](../charts/prometheus/README.md)
+
+---
+
+### Promtail
+
+[![Artifact Hub](https://img.shields.io/endpoint?url=https://artifacthub.io/badge/repository/sb-helm-charts)](https://artifacthub.io/packages/helm/sb-helm-charts/promtail)
+
+**Description**: Promtail log collection agent for Loki with Kubernetes integration
+
+**Artifact Hub Package**: https://artifacthub.io/packages/helm/sb-helm-charts/promtail
+
+**Tags**: Logging, Log-Collection, Observability
+
+**Keywords**: promtail, loki, logging, logs, log-collection (+1 more)
+
+**Local Documentation**: [charts/promtail/README.md](../charts/promtail/README.md)
+
+---
+
+### Prometheus Pushgateway
+
+[![Artifact Hub](https://img.shields.io/endpoint?url=https://artifacthub.io/badge/repository/sb-helm-charts)](https://artifacthub.io/packages/helm/sb-helm-charts/pushgateway)
+
+**Description**: Prometheus Pushgateway for push-based metrics collection from batch jobs and ephemeral services
+
+**Artifact Hub Package**: https://artifacthub.io/packages/helm/sb-helm-charts/pushgateway
+
+**Tags**: Monitoring, Metrics, Batch-Jobs
+
+**Keywords**: prometheus, pushgateway, monitoring, metrics, batch-jobs (+1 more)
+
+**Local Documentation**: [charts/pushgateway/README.md](../charts/pushgateway/README.md)
 
 ---
 
@@ -395,6 +661,22 @@
 > ⚠️ **Production Note**: For production HA, consider Spotahome Redis Operator
 
 **Local Documentation**: [charts/redis/README.md](../charts/redis/README.md)
+
+---
+
+### Grafana Tempo
+
+[![Artifact Hub](https://img.shields.io/endpoint?url=https://artifacthub.io/badge/repository/sb-helm-charts)](https://artifacthub.io/packages/helm/sb-helm-charts/tempo)
+
+**Description**: Grafana Tempo distributed tracing backend with S3/MinIO storage support
+
+**Artifact Hub Package**: https://artifacthub.io/packages/helm/sb-helm-charts/tempo
+
+**Tags**: Observability, Tracing, Monitoring
+
+**Keywords**: tempo, tracing, distributed-tracing, observability, grafana (+1 more)
+
+**Local Documentation**: [charts/tempo/README.md](../charts/tempo/README.md)
 
 ---
 
@@ -470,4 +752,4 @@ Once published, you can add Artifact Hub badges to your READMEs:
 
 ---
 
-**Last Updated**: 2025-11-20
+**Last Updated**: 2025-11-27
