@@ -197,6 +197,186 @@ Modern charts include: PodDisruptionBudget, HorizontalPodAutoscaler, NetworkPoli
 
 ---
 
+## Enhanced Operational Features
+
+**6 charts** have been enhanced with comprehensive RBAC, backup/recovery, and upgrade capabilities:
+
+### Enhanced Charts
+
+| Chart | RBAC | Backup Guide | Upgrade Guide | README Sections |
+|-------|------|--------------|---------------|-----------------|
+| **Keycloak** | ✅ | [keycloak-backup-guide.md](docs/keycloak-backup-guide.md) | [keycloak-upgrade-guide.md](docs/keycloak-upgrade-guide.md) | ✅ |
+| **Airflow** | ✅ | [airflow-backup-guide.md](docs/airflow-backup-guide.md) | [airflow-upgrade-guide.md](docs/airflow-upgrade-guide.md) | ✅ |
+| **Harbor** | ✅ | [harbor-backup-guide.md](docs/harbor-backup-guide.md) | [harbor-upgrade-guide.md](docs/harbor-upgrade-guide.md) | ✅ |
+| **MLflow** | ✅ | [mlflow-backup-guide.md](docs/mlflow-backup-guide.md) | [mlflow-upgrade-guide.md](docs/mlflow-upgrade-guide.md) | ✅ |
+| **Kafka** | ✅ | [kafka-backup-guide.md](docs/kafka-backup-guide.md) | [kafka-upgrade-guide.md](docs/kafka-upgrade-guide.md) | ✅ |
+| **Elasticsearch** | ✅ | [elasticsearch-backup-guide.md](docs/elasticsearch-backup-guide.md) | [elasticsearch-upgrade-guide.md](docs/elasticsearch-upgrade-guide.md) | ✅ |
+
+### RBAC Features
+
+All enhanced charts include:
+- **Role**: Namespace-scoped read access to ConfigMaps, Secrets, Pods, PVCs
+- **RoleBinding**: Binds ServiceAccount to Role
+- **Configurable**: `rbac.create` (default: true), `rbac.annotations`
+
+**Example:**
+```yaml
+rbac:
+  create: true
+  annotations: {}
+```
+
+### Backup & Recovery Features
+
+Each chart's backup strategy is tailored to its architecture:
+
+**Keycloak:**
+- Realm exports (via Admin API)
+- PostgreSQL database dumps
+- Redis cache snapshots (optional)
+- PVC snapshots for data volumes
+
+**Airflow:**
+- DAG backups (Git-based recommended)
+- PostgreSQL database dumps (metadata, connections, variables)
+- Logs backups (S3/MinIO)
+
+**Harbor:**
+- Configuration backups (projects, users, policies)
+- PostgreSQL database dumps
+- Registry data (container images, Helm charts)
+
+**MLflow:**
+- Experiment metadata backups
+- PostgreSQL database dumps
+- Artifact storage (S3/MinIO)
+
+**Kafka:**
+- Topic metadata and configurations
+- Consumer group offsets
+- Broker configurations
+- ACLs (Access Control Lists)
+- Data volume snapshots
+
+**Elasticsearch:**
+- Snapshot repository (indices, cluster state)
+- Index-level backups (_snapshot API)
+- Cluster settings (templates, ILM policies)
+- PVC snapshots for disaster recovery
+
+### Upgrade Features
+
+Each chart includes multiple upgrade strategies:
+
+**Common Upgrade Strategies:**
+1. **Rolling Upgrade** - Zero downtime (recommended for production)
+2. **Blue-Green Deployment** - Parallel clusters with cutover
+3. **Maintenance Window** - Full cluster restart (for major versions)
+
+**Makefile Targets Available:**
+
+```bash
+# Pre-upgrade checks
+make -f make/ops/{chart}.mk {chart}-pre-upgrade-check
+
+# Post-upgrade validation
+make -f make/ops/{chart}.mk {chart}-post-upgrade-check
+
+# Backup before upgrade
+make -f make/ops/{chart}.mk {chart}-backup-all
+make -f make/ops/{chart}.mk {chart}-full-backup
+
+# Rollback procedures
+make -f make/ops/{chart}.mk {chart}-upgrade-rollback
+```
+
+**Example upgrade workflow:**
+```bash
+# 1. Pre-upgrade backup
+make -f make/ops/keycloak.mk kc-backup-all-realms
+
+# 2. Pre-upgrade validation
+make -f make/ops/keycloak.mk kc-pre-upgrade-check
+
+# 3. Upgrade via Helm
+helm upgrade keycloak sb-charts/keycloak --set image.tag=26.0.0
+
+# 4. Post-upgrade validation
+make -f make/ops/keycloak.mk kc-post-upgrade-check
+```
+
+### Documentation Structure
+
+Each enhanced chart includes:
+
+1. **Comprehensive Backup Guide** (500-600 lines):
+   - Backup strategy overview (3-5 components)
+   - Detailed procedures for each component
+   - Recovery workflows
+   - RTO/RPO targets
+   - Best practices and troubleshooting
+
+2. **Comprehensive Upgrade Guide** (600-700 lines):
+   - Pre-upgrade checklist
+   - Multiple upgrade strategies
+   - Version-specific notes
+   - Post-upgrade validation
+   - Rollback procedures
+   - Troubleshooting
+
+3. **README Sections**:
+   - Backup & Recovery (80-110 lines)
+   - Upgrading (120-200 lines)
+   - Links to detailed guides
+
+### values.yaml Configuration
+
+Each enhanced chart's `values.yaml` includes documentation sections:
+
+```yaml
+# RBAC Configuration
+rbac:
+  create: true
+  annotations: {}
+
+# Backup & Recovery Configuration
+backup:
+  enabled: false  # Documentation only - no automated CronJobs
+  documentation:
+    strategy: "component1 + component2 + component3"
+    tools: ["Tool1", "Tool2"]
+    components:
+      component1: "Description"
+      component2: "Description"
+    targets:
+      rto: "< 2 hours"
+      rpo: "24 hours"
+
+# Upgrade Configuration
+upgrade:
+  enabled: false  # Documentation only - manual process
+  preUpgradeBackup: true
+  documentation:
+    strategies:
+      rolling: { description: "...", downtime: "None" }
+      blue_green: { description: "...", downtime: "10-30 minutes" }
+```
+
+**Note:** `backup.enabled` and `upgrade.enabled` are **documentation flags only**. All backup/upgrade operations are performed via Makefile targets, never via automated CronJobs.
+
+### RTO/RPO Targets
+
+| Chart | RTO (Recovery Time) | RPO (Recovery Point) | Notes |
+|-------|---------------------|---------------------|-------|
+| Keycloak | < 1 hour | 24 hours | Realm restore via Admin API |
+| Airflow | < 2 hours | 24 hours | Metadata DB + DAGs restore |
+| Harbor | < 2 hours | 24 hours | Registry data + DB restore |
+| MLflow | < 1 hour | 24 hours | Experiments + artifacts restore |
+| Kafka | < 2 hours | 1 hour | Topic metadata + offsets |
+| Elasticsearch | < 2 hours | 24 hours | Snapshot restore |
+
+---
+
 ## Important Notes
 
 ### Kubernetes Environment Variable Precedence
@@ -238,4 +418,4 @@ extraEnv:
 
 **Additional Resources:** [Chart Analysis](docs/05-chart-analysis-2025-11.md), [Makefile Architecture](docs/CHART_DEVELOPMENT_GUIDE.md), [Automation Scripts](scripts/)
 
-**Last Updated:** 2025-11-23
+**Last Updated:** 2025-11-27
