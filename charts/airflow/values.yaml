@@ -300,3 +300,35 @@ serviceAccount:
   automount: true
   annotations: {}
   name: ""
+
+# RBAC configuration
+rbac:
+  # Create Role and RoleBinding (namespace-scoped)
+  create: true
+  # Additional annotations for RBAC resources
+  annotations: {}
+
+# Backup & Recovery configuration
+# Note: No CronJob in chart - use Makefile operations instead
+backup:
+  enabled: false  # Documentation only - backups managed via make targets
+  documentation:
+    strategy: "postgresql_dump + airflow_metadata_export"
+    # Combined approach ensures metadata and database consistency:
+    # 1. Metadata exports: make -f make/ops/airflow.mk af-backup-metadata
+    # 2. Database dumps: make -f make/ops/airflow.mk af-db-backup
+    # 3. DAGs backup: make -f make/ops/airflow.mk af-backup-dags
+    tools:
+      - "pg_dump"          # PostgreSQL database backup
+      - "airflow db export-archived"  # Airflow metadata export
+
+# Upgrade configuration
+upgrade:
+  enabled: false  # Feature flag for upgrade automation
+  preUpgradeBackup: true  # Recommend backup before upgrades
+  # Upgrade workflow:
+  # 1. Pre-check: make -f make/ops/airflow.mk af-pre-upgrade-check
+  # 2. Backup: make -f make/ops/airflow.mk af-backup-metadata && af-db-backup
+  # 3. Upgrade: helm upgrade airflow charts/airflow -f values.yaml
+  # 4. Migrate DB: make -f make/ops/airflow.mk af-db-upgrade
+  # 5. Post-check: make -f make/ops/airflow.mk af-post-upgrade-check

@@ -635,24 +635,356 @@ make -f make/ops/airflow.mk airflow-scheduler-restart
 make -f make/ops/airflow.mk airflow-status
 ```
 
+## Backup & Recovery
+
+### Backup Strategy
+
+Airflow backup consists of three critical components:
+
+1. **Airflow Metadata** (connections, variables, pools, DAG runs)
+   - Exported via `airflow db export-archived`
+   - Stored as YAML/JSON files
+
+2. **DAGs** (workflow definitions)
+   - Backed up from PVC or Git repository
+   - Critical for workflow recovery
+
+3. **PostgreSQL Database** (complete state including task history)
+   - Backed up via `pg_dump`
+   - Stored as SQL dump files
+
+**Recommended Schedule:**
+
+| Environment | Metadata Export | DAGs Backup | DB Dump | Retention |
+|-------------|-----------------|-------------|---------|-----------|
+| **Production** | Daily (2 AM) | Daily | Daily | 30 days |
+| **Staging** | Weekly | Weekly | Weekly | 14 days |
+| **Development** | On-demand | On-demand | On-demand | 7 days |
+
+### Backup Commands
+
+**Backup Airflow metadata:**
+```bash
+make -f make/ops/airflow.mk af-backup-metadata
+# Exports connections, variables, pools to tmp/airflow-backups/metadata-<timestamp>.yaml
+```
+
+**Backup DAGs from PVC:**
+```bash
+make -f make/ops/airflow.mk af-backup-dags
+# Copies DAG files to tmp/airflow-backups/dags-<timestamp>/
+```
+
+**Backup PostgreSQL database:**
+```bash
+make -f make/ops/airflow.mk af-db-backup
+# Creates SQL dump in tmp/airflow-backups/db/airflow-db-<timestamp>.sql
+```
+
+**Full backup workflow:**
+```bash
+# 1. Backup metadata
+make -f make/ops/airflow.mk af-backup-metadata
+
+# 2. Backup DAGs
+make -f make/ops/airflow.mk af-backup-dags
+
+# 3. Backup database
+make -f make/ops/airflow.mk af-db-backup
+```
+
+### Recovery Commands
+
+**Restore database from backup:**
+```bash
+make -f make/ops/airflow.mk af-db-restore FILE=tmp/airflow-backups/db/airflow-db-20251127-020000.sql
+```
+
+**Restore DAGs manually:**
+```bash
+kubectl cp tmp/airflow-backups/dags-20251127-020000/ airflow-webserver-0:/opt/airflow/dags/
+```
+
+**Restore metadata manually:**
+```bash
+# Import connections, variables from backup YAML
+kubectl exec -it airflow-webserver-0 -- airflow connections import /path/to/connections.yaml
+kubectl exec -it airflow-webserver-0 -- airflow variables import /path/to/variables.json
+```
+
+**See Also:** [Airflow Backup & Recovery Guide](../../docs/airflow-backup-guide.md)
+
+---
+
+## Security & RBAC
+
+### RBAC Configuration
+
+Airflow chart includes namespace-scoped RBAC for Kubernetes API access.
+
+**Enable RBAC (default):**
+```yaml
+rbac:
+  create: true
+  annotations: {}
+```
+
+**Role Permissions:**
+
+The chart creates a Role with these permissions:
+
+- **ConfigMaps**: `get`, `list` (for configuration access)
+- **Secrets**: `get`, `list` (for credentials)
+- **Pods**: `get`, `list` (for service discovery)
+- **PersistentVolumeClaims**: `get`, `list` (for storage)
+
+**KubernetesExecutor Additional Permissions:**
+
+When `airflow.executor=KubernetesExecutor`, the Role includes:
+
+- **Pods**: `create`, `delete`, `get`, `list`, `watch`, `update`, `patch`
+- **Pods/log**: `get`, `list`
+- **Pods/exec**: `create`, `get`
+
+**Disable RBAC (not recommended for KubernetesExecutor):**
+```yaml
+rbac:
+  create: false
+```
+
+### Security Context
+
+Airflow runs as non-root user (UID 50000):
+
+```yaml
+podSecurityContext:
+  fsGroup: 50000
+  runAsUser: 50000
+  runAsGroup: 50000
+
+securityContext:
+  runAsNonRoot: true
+  runAsUser: 50000
+  capabilities:
+    drop:
+      - ALL
+```
+
+### Admin Credentials
+
+**Set admin password during installation:**
+```bash
+helm install airflow sb-charts/airflow \
+  --set airflow.admin.password=your-secure-password
+```
+
+**Retrieve password from secret:**
+```bash
+kubectl get secret airflow-secret -o jsonpath='{.data.admin-password}' | base64 -d
+```
+
+**Use existing secret:**
+```yaml
+airflow:
+  existingSecret: "my-airflow-secret"
+  # Secret must contain keys:
+  # - admin-password
+  # - fernet-key
+  # - webserver-secret-key
+  # - postgresql-url
+```
+
+### Fernet Key Management
+
+**Auto-generate (development):**
+```yaml
+airflow:
+  fernetKey: ""  # Chart generates random key
+```
+
+**Manual generation (production):**
+```bash
+python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"
+
+helm install airflow sb-charts/airflow \
+  --set airflow.fernetKey=<generated-key>
+```
+
+**⚠️ Warning:** Changing Fernet key after installation will break existing encrypted connections.
+
+---
+
+## Operations & Maintenance
+
+### Health Checks
+
+**Check overall health:**
+```bash
+make -f make/ops/airflow.mk airflow-health
+# Checks webserver health endpoint
+```
+
+**Check Airflow version:**
+```bash
+make -f make/ops/airflow.mk airflow-version
+```
+
+**Check database connection:**
+```bash
+make -f make/ops/airflow.mk airflow-db-check
+```
+
+### Component Restarts
+
+**Restart webserver:**
+```bash
+make -f make/ops/airflow.mk airflow-webserver-restart
+```
+
+**Restart scheduler:**
+```bash
+make -f make/ops/airflow.mk airflow-scheduler-restart
+```
+
+**View all component status:**
+```bash
+make -f make/ops/airflow.mk airflow-status
+```
+
+### Log Management
+
+**View webserver logs:**
+```bash
+make -f make/ops/airflow.mk airflow-webserver-logs
+```
+
+**View scheduler logs:**
+```bash
+make -f make/ops/airflow.mk airflow-scheduler-logs
+```
+
+**View all webserver logs:**
+```bash
+make -f make/ops/airflow.mk airflow-webserver-logs-all
+```
+
+### Shell Access
+
+**Open webserver shell:**
+```bash
+make -f make/ops/airflow.mk airflow-webserver-shell
+```
+
+**Open scheduler shell:**
+```bash
+make -f make/ops/airflow.mk airflow-scheduler-shell
+```
+
+---
+
 ## Upgrading
 
+### Pre-Upgrade Checklist
+
+**1. Run pre-upgrade health check:**
 ```bash
-# Update repository
+make -f make/ops/airflow.mk af-pre-upgrade-check
+```
+
+**2. Backup before upgrade:**
+```bash
+# Backup metadata
+make -f make/ops/airflow.mk af-backup-metadata
+
+# Backup database
+make -f make/ops/airflow.mk af-db-backup
+```
+
+**3. Review changelog:**
+- Check [Apache Airflow Release Notes](https://airflow.apache.org/docs/apache-airflow/stable/release_notes.html)
+- Review chart [CHANGELOG.md](../../CHANGELOG.md)
+
+### Upgrade Procedure
+
+**1. Update Helm repository:**
+```bash
 helm repo update
+```
 
-# Upgrade release
-helm upgrade my-airflow sb-charts/airflow
-
-# Upgrade with new values
+**2. Upgrade chart:**
+```bash
 helm upgrade my-airflow sb-charts/airflow -f my-values.yaml
+```
 
+**3. Run database migrations (if needed):**
+```bash
+make -f make/ops/airflow.mk af-db-upgrade
+```
+
+**4. Post-upgrade validation:**
+```bash
+make -f make/ops/airflow.mk af-post-upgrade-check
+```
+
+**5. Verify deployment:**
+```bash
 # Check rollout status
 kubectl rollout status deployment/airflow-webserver
 kubectl rollout status deployment/airflow-scheduler
+
+# Check component health
+make -f make/ops/airflow.mk airflow-health
 ```
 
-**Note**: Database migrations run automatically in webserver init container.
+### Rollback Procedure
+
+**If upgrade fails, rollback to previous version:**
+
+**1. Display rollback plan:**
+```bash
+make -f make/ops/airflow.mk af-upgrade-rollback-plan
+```
+
+**2. Execute Helm rollback:**
+```bash
+helm rollback my-airflow
+```
+
+**3. Restore database (if needed):**
+```bash
+make -f make/ops/airflow.mk af-db-restore FILE=tmp/airflow-backups/db/airflow-db-<timestamp>.sql
+```
+
+**4. Verify rollback:**
+```bash
+make -f make/ops/airflow.mk airflow-version
+make -f make/ops/airflow.mk airflow-health
+```
+
+**See Also:** [Airflow Upgrade Guide](../../docs/airflow-upgrade-guide.md)
+
+---
+
+## Advanced Configuration
+
+### Using Custom ConfigMap
+
+```yaml
+airflow:
+  existingConfigMap: "my-airflow-config"
+```
+
+### ConfigMap and Secret Annotations
+
+For tools like [Reloader](https://github.com/stakater/Reloader) or [External Secrets](https://external-secrets.io/):
+
+```yaml
+airflow:
+  configMapAnnotations:
+    reloader.stakater.com/match: "true"
+  secretAnnotations:
+    external-secrets.io/backend: vault
+```
 
 ## Uninstalling
 

@@ -275,6 +275,120 @@ airflow-status:
 	@echo "PVCs:"
 	@kubectl get pvc -l app.kubernetes.io/name=$(CHART_NAME)
 
+# === Backup & Recovery ===
+
+.PHONY: af-backup-metadata
+af-backup-metadata:
+	@echo "Backing up Airflow metadata..."
+	@mkdir -p tmp/airflow-backups/metadata
+	@POD=$$(kubectl get pod -l app.kubernetes.io/component=webserver -o jsonpath="{.items[0].metadata.name}") && \
+		kubectl exec $$POD -- airflow db export-archived -f /tmp/metadata-backup.json && \
+		kubectl cp $$POD:/tmp/metadata-backup.json tmp/airflow-backups/metadata/metadata-$$(date +%Y%m%d-%H%M%S).json
+	@echo "Metadata backup saved to tmp/airflow-backups/metadata/"
+
+.PHONY: af-backup-dags
+af-backup-dags:
+	@echo "Backing up DAGs from PVC..."
+	@mkdir -p tmp/airflow-backups/dags
+	@POD=$$(kubectl get pod -l app.kubernetes.io/component=scheduler -o jsonpath="{.items[0].metadata.name}") && \
+		kubectl exec $$POD -- tar czf /tmp/dags-backup.tar.gz -C /opt/airflow/dags . && \
+		kubectl cp $$POD:/tmp/dags-backup.tar.gz tmp/airflow-backups/dags/dags-$$(date +%Y%m%d-%H%M%S).tar.gz
+	@echo "DAGs backup saved to tmp/airflow-backups/dags/"
+
+.PHONY: af-db-backup
+af-db-backup:
+	@echo "Creating PostgreSQL backup for Airflow database..."
+	@mkdir -p tmp/airflow-backups/db
+	@POSTGRES_POD=$$(kubectl get pod -l app.kubernetes.io/name=postgresql -o jsonpath="{.items[0].metadata.name}") && \
+		if [ -z "$$POSTGRES_POD" ]; then \
+			echo "Warning: PostgreSQL pod not found. Ensure PostgreSQL is deployed in the same namespace."; \
+			exit 1; \
+		fi && \
+		kubectl exec $$POSTGRES_POD -- sh -c 'PGPASSWORD="$$POSTGRES_PASSWORD" pg_dump -U postgres airflow' > tmp/airflow-backups/db/airflow-db-$$(date +%Y%m%d-%H%M%S).sql
+	@echo "Database backup saved to tmp/airflow-backups/db/"
+
+.PHONY: af-db-restore
+af-db-restore:
+	@if [ -z "$(FILE)" ]; then echo "Usage: make -f make/ops/airflow.mk af-db-restore FILE=path/to/backup.sql"; exit 1; fi
+	@echo "Restoring Airflow database from $(FILE)..."
+	@POSTGRES_POD=$$(kubectl get pod -l app.kubernetes.io/name=postgresql -o jsonpath="{.items[0].metadata.name}") && \
+		if [ -z "$$POSTGRES_POD" ]; then \
+			echo "Error: PostgreSQL pod not found"; \
+			exit 1; \
+		fi && \
+		cat $(FILE) | kubectl exec -i $$POSTGRES_POD -- sh -c 'PGPASSWORD="$$POSTGRES_PASSWORD" psql -U postgres airflow'
+	@echo "Database restore completed"
+
+# === Upgrade Operations ===
+
+.PHONY: af-pre-upgrade-check
+af-pre-upgrade-check:
+	@echo "=== Pre-Upgrade Health Check ==="
+	@echo "1. Checking Airflow webserver health..."
+	@POD=$$(kubectl get pod -l app.kubernetes.io/component=webserver -o jsonpath="{.items[0].metadata.name}") && \
+		kubectl exec $$POD -- curl -sf http://localhost:8080/health > /dev/null && echo "  ✓ Webserver healthy" || echo "  ✗ Webserver not healthy"
+	@echo ""
+	@echo "2. Checking database connectivity..."
+	@POD=$$(kubectl get pod -l app.kubernetes.io/component=scheduler -o jsonpath="{.items[0].metadata.name}") && \
+		kubectl exec $$POD -- airflow db check && echo "  ✓ Database OK" || echo "  ✗ Database issues"
+	@echo ""
+	@echo "3. Listing current DAGs..."
+	@POD=$$(kubectl get pod -l app.kubernetes.io/component=scheduler -o jsonpath="{.items[0].metadata.name}") && \
+		kubectl exec $$POD -- airflow dags list || echo "  ⚠ Unable to list DAGs"
+	@echo ""
+	@echo "Pre-upgrade check completed. Review results before proceeding."
+
+.PHONY: af-db-upgrade
+af-db-upgrade:
+	@echo "Running Airflow database upgrade..."
+	@POD=$$(kubectl get pod -l app.kubernetes.io/component=scheduler -o jsonpath="{.items[0].metadata.name}") && \
+		kubectl exec $$POD -- airflow db upgrade
+	@echo "Database upgrade completed"
+
+.PHONY: af-post-upgrade-check
+af-post-upgrade-check:
+	@echo "=== Post-Upgrade Validation ==="
+	@echo "1. Waiting for pods to be ready..."
+	@kubectl wait --for=condition=ready pod -l app.kubernetes.io/name=$(CHART_NAME) --timeout=300s || echo "  ⚠ Some pods not ready"
+	@echo ""
+	@echo "2. Checking webserver health..."
+	@POD=$$(kubectl get pod -l app.kubernetes.io/component=webserver -o jsonpath="{.items[0].metadata.name}") && \
+		kubectl exec $$POD -- curl -sf http://localhost:8080/health > /dev/null && echo "  ✓ Webserver healthy" || echo "  ✗ Webserver not healthy"
+	@echo ""
+	@echo "3. Verifying DAG integrity..."
+	@POD=$$(kubectl get pod -l app.kubernetes.io/component=scheduler -o jsonpath="{.items[0].metadata.name}") && \
+		kubectl exec $$POD -- airflow dags list || echo "  ⚠ Unable to verify DAGs"
+	@echo ""
+	@echo "Post-upgrade validation completed."
+
+.PHONY: af-upgrade-rollback-plan
+af-upgrade-rollback-plan:
+	@echo "=== Airflow Upgrade Rollback Plan ==="
+	@echo ""
+	@echo "Prerequisites:"
+	@echo "  1. Pre-upgrade backup exists: tmp/airflow-backups/"
+	@echo "  2. Database backup exists: tmp/airflow-backups/db/"
+	@echo ""
+	@echo "Rollback Steps:"
+	@echo "  1. Scale down Airflow:"
+	@echo "     kubectl scale deployment $(CHART_NAME)-webserver --replicas=0"
+	@echo "     kubectl scale deployment $(CHART_NAME)-scheduler --replicas=0"
+	@echo "     kubectl scale deployment $(CHART_NAME)-triggerer --replicas=0"
+	@echo ""
+	@echo "  2. Restore database:"
+	@echo "     make -f make/ops/airflow.mk af-db-restore FILE=<backup-file>"
+	@echo ""
+	@echo "  3. Downgrade Helm chart:"
+	@echo "     helm rollback $(CHART_NAME) <revision>"
+	@echo ""
+	@echo "  4. Verify rollback:"
+	@echo "     make -f make/ops/airflow.mk af-post-upgrade-check"
+	@echo ""
+	@echo "Emergency Contact:"
+	@echo "  - Check logs: kubectl logs -l app.kubernetes.io/name=$(CHART_NAME)"
+	@echo "  - Webserver shell: make -f make/ops/airflow.mk airflow-webserver-shell"
+	@echo "  - Scheduler shell: make -f make/ops/airflow.mk airflow-scheduler-shell"
+
 # Help from common makefile
 .PHONY: help-common
 help-common:
@@ -306,6 +420,18 @@ help: help-common
 	@echo "User Management:"
 	@echo "  airflow-users-list           - List all users"
 	@echo "  airflow-users-create         - Create user (USERNAME=name PASSWORD=pass EMAIL=email [ROLE=Admin])"
+	@echo ""
+	@echo "Backup & Recovery:"
+	@echo "  af-backup-metadata           - Backup Airflow metadata (connections, variables)"
+	@echo "  af-backup-dags               - Backup DAGs from PVC"
+	@echo "  af-db-backup                 - Backup PostgreSQL database"
+	@echo "  af-db-restore                - Restore database backup (requires FILE parameter)"
+	@echo ""
+	@echo "Upgrade Operations:"
+	@echo "  af-pre-upgrade-check         - Pre-upgrade health and readiness check"
+	@echo "  af-db-upgrade                - Run Airflow database upgrade (after Helm upgrade)"
+	@echo "  af-post-upgrade-check        - Post-upgrade validation"
+	@echo "  af-upgrade-rollback-plan     - Display rollback procedures"
 	@echo ""
 	@echo "Database:"
 	@echo "  airflow-db-check             - Check database connection"

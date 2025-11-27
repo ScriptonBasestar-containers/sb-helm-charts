@@ -144,3 +144,17 @@ Webserver secret key - generate if not provided
 {{- randAlphaNum 32 | b64enc }}
 {{- end }}
 {{- end }}
+
+{{/*
+Create the name of the RBAC role to use
+*/}}
+{{- define "airflow.roleName" -}}
+{{- printf "%s" (include "airflow.fullname" .) }}
+{{- end }}
+
+{{/*
+Create the name of the RBAC role binding to use
+*/}}
+{{- define "airflow.roleBindingName" -}}
+{{- printf "%s" (include "airflow.fullname" .) }}
+{{- end }}
