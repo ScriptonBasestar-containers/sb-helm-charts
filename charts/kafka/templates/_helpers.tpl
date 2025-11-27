@@ -141,3 +141,17 @@ org.apache.kafka.common.security.plain.PlainLoginModule required username="{{ .V
 {{- else }}
 {{- end }}
 {{- end }}
+
+{{/*
+RBAC role name
+*/}}
+{{- define "kafka.roleName" -}}
+{{- printf "%s" (include "kafka.fullname" .) }}
+{{- end }}
+
+{{/*
+RBAC role binding name
+*/}}
+{{- define "kafka.roleBindingName" -}}
+{{- printf "%s" (include "kafka.fullname" .) }}
+{{- end }}

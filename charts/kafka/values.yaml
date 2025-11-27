@@ -212,3 +212,133 @@ tolerations: []
 
 # Affinity
 affinity: {}
+
+# =============================================================================
+# RBAC Configuration
+# =============================================================================
+rbac:
+  # Create RBAC resources (Role, RoleBinding)
+  create: true
+
+  # Annotations for RBAC resources
+  annotations: {}
+
+# =============================================================================
+# Backup & Recovery Configuration
+# =============================================================================
+# Note: Backup is handled via Makefile targets, not automated CronJobs
+# This section documents the backup strategy and available tools
+backup:
+  # Enable backup documentation (does not create automated backups)
+  enabled: false
+
+  # Backup strategy documentation
+  documentation:
+    # Three-component backup strategy
+    strategy: "kafka_topics_metadata + kafka_configs + data_volumes"
+
+    # Tools used for backup
+    tools:
+      - "kafka-topics --describe"
+      - "kafka-configs --describe"
+      - "volumesnapshot (PVC)"
+      - "kafka-reassign-partitions"
+
+    # Backup components
+    components:
+      # 1. Topic metadata (topic names, partitions, replication factor, configs)
+      topics_metadata: "kafka-topics --describe --bootstrap-server"
+
+      # 2. Kafka broker configurations
+      broker_configs: "kafka-configs --describe --entity-type brokers"
+
+      # 3. Data volumes (log.dirs - actual message data)
+      data_volumes: "PVC VolumeSnapshot or disk-level backup"
+
+      # 4. Consumer group offsets (optional)
+      consumer_offsets: "kafka-consumer-groups --describe"
+
+      # 5. ACLs (if SASL/authorization enabled)
+      acls: "kafka-acls --list --bootstrap-server"
+
+    # RTO/RPO targets
+    targets:
+      rto: "< 60 minutes (metadata), < 4 hours (full recovery)"
+      rpo: "24 hours (daily backups)"
+
+    # Retention policy
+    retention:
+      daily: "30 days"
+      weekly: "90 days"
+      monthly: "1 year"
+
+# =============================================================================
+# Upgrade Configuration
+# =============================================================================
+# Note: Upgrade is a manual process with health checks and rollback support
+# This section documents the upgrade workflow
+upgrade:
+  # Enable upgrade documentation (does not trigger automated upgrades)
+  enabled: false
+
+  # Pre-upgrade backup (recommended)
+  preUpgradeBackup: true
+
+  # Upgrade workflow documentation
+  documentation:
+    # Pre-upgrade checklist
+    preUpgrade:
+      - "Run kafka-pre-upgrade-check (broker health, ISR status)"
+      - "Backup topic metadata and configurations"
+      - "Create PVC snapshots for data volumes"
+      - "Review Kafka release notes for breaking changes"
+      - "Test upgrade in staging environment"
+
+    # Upgrade strategies
+    strategies:
+      # 1. Rolling upgrade (recommended for minor versions)
+      rolling:
+        description: "Update brokers one by one with controlled-shutdown"
+        downtime: "None (zero-downtime)"
+        complexity: "Medium"
+        steps:
+          - "Update StatefulSet with new image"
+          - "Kafka controller will perform rolling restart"
+          - "Verify ISR status after each broker restart"
+
+      # 2. Blue-green upgrade (for major versions)
+      blue_green:
+        description: "Deploy new cluster, migrate topics, switch traffic"
+        downtime: "Minimal (brief cutover)"
+        complexity: "High"
+        steps:
+          - "Deploy new Kafka cluster (green)"
+          - "Set up MirrorMaker 2.0 for topic replication"
+          - "Validate data consistency"
+          - "Update producer/consumer configs to new cluster"
+          - "Decommission old cluster after validation"
+
+      # 3. Maintenance window upgrade
+      maintenance:
+        description: "Stop all brokers, upgrade, restart"
+        downtime: "15-30 minutes"
+        complexity: "Low"
+        steps:
+          - "Scale StatefulSet to 0 replicas"
+          - "Update StatefulSet with new image and configs"
+          - "Scale StatefulSet back to desired replicas"
+          - "Verify cluster health and ISR status"
+
+    # Post-upgrade validation
+    postUpgrade:
+      - "Run kafka-post-upgrade-check (cluster health)"
+      - "Verify all brokers in-sync (ISR == replication factor)"
+      - "Test topic produce/consume"
+      - "Check Kafka UI connectivity"
+      - "Monitor under-replicated partitions"
+
+    # Rollback procedures
+    rollback:
+      helm: "helm rollback kafka (chart only, not data)"
+      pvc_restore: "Restore PVC from VolumeSnapshot"
+      full_recovery: "Uninstall + reinstall with PVC restore"
