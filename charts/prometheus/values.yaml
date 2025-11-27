@@ -139,3 +139,146 @@ nodeSelector: {}
 tolerations: []
 
 affinity: {}
+
+# =============================================================================
+# Backup & Recovery Configuration
+# =============================================================================
+# Note: Backup is handled via Makefile targets, not automated CronJobs
+# See: docs/prometheus-backup-guide.md for detailed procedures
+backup:
+  enabled: false  # Documentation only - no CronJob created
+  documentation:
+    strategy: "tsdb_snapshots + configuration + rules + pvc_snapshots"
+    tools:
+      - "kubectl (for snapshot extraction)"
+      - "promtool (for config validation)"
+      - "tar/gzip (for compression)"
+      - "aws-cli or mc (for S3/MinIO upload)"
+    components:
+      tsdb_snapshots:
+        description: "Time-series database blocks containing metrics data"
+        method: "Admin API /api/v1/admin/tsdb/snapshot"
+        frequency: "Hourly"
+        retention: "30 days"
+        size: "Varies (100MB - 10GB depending on data)"
+      configuration:
+        description: "Prometheus configuration and scrape configs"
+        method: "ConfigMap export + runtime config"
+        frequency: "Daily or before changes"
+        retention: "90 days"
+        size: "< 1MB"
+      rules:
+        description: "Recording rules and alerting rules"
+        method: "ConfigMap export + API export"
+        frequency: "Daily or before changes"
+        retention: "90 days"
+        size: "< 500KB"
+      pvc_snapshots:
+        description: "Complete persistent volume snapshot"
+        method: "Kubernetes VolumeSnapshot API"
+        frequency: "Weekly"
+        retention: "7-14 days"
+        size: "Same as PVC size (typically 10GB - 100GB)"
+    targets:
+      rto: "< 1 hour"  # Recovery Time Objective
+      rpo: "1 hour"    # Recovery Point Objective (for TSDB snapshots)
+    commands:
+      backup:
+        full: "make -f make/ops/prometheus.mk prom-backup-all"
+        tsdb: "make -f make/ops/prometheus.mk prom-backup-tsdb"
+        config: "make -f make/ops/prometheus.mk prom-backup-config"
+        rules: "make -f make/ops/prometheus.mk prom-backup-rules"
+        verify: "make -f make/ops/prometheus.mk prom-backup-verify BACKUP_FILE=<path>"
+      restore:
+        full: "make -f make/ops/prometheus.mk prom-restore-all BACKUP_FILE=<path>"
+        config: "make -f make/ops/prometheus.mk prom-restore-config BACKUP_FILE=<path>"
+        tsdb: "make -f make/ops/prometheus.mk prom-restore-tsdb BACKUP_FILE=<path>"
+
+# =============================================================================
+# Upgrade Configuration
+# =============================================================================
+# Note: Upgrades are performed manually via Helm, not automated
+# See: docs/prometheus-upgrade-guide.md for detailed procedures
+upgrade:
+  enabled: false  # Documentation only - manual process
+  preUpgradeBackup: true  # Always backup before upgrade
+  documentation:
+    strategies:
+      rolling:
+        description: "StatefulSet rolling update with zero downtime"
+        downtime: "None (with HA, replicas >= 2)"
+        complexity: "Low"
+        recommended: true
+        steps:
+          - "Pre-upgrade validation (10 checks)"
+          - "Create backup"
+          - "Helm upgrade with new image tag"
+          - "Post-upgrade validation (8 checks)"
+      blue_green:
+        description: "Parallel deployments with traffic switching"
+        downtime: "10-30 minutes (during cutover)"
+        complexity: "Medium"
+        recommended: false
+        steps:
+          - "Backup blue deployment"
+          - "Deploy green environment"
+          - "Validate green environment"
+          - "Switch traffic to green"
+          - "Decommission blue"
+      maintenance:
+        description: "Scale down, upgrade, scale up"
+        downtime: "15-30 minutes"
+        complexity: "Low"
+        recommended: false
+        steps:
+          - "Create backup"
+          - "Scale to 0 replicas"
+          - "Helm upgrade"
+          - "Scale to 1 replica"
+          - "Verify health"
+    version_notes:
+      prometheus_2_to_3:
+        risk: "Medium-High"
+        breaking_changes:
+          - "Removed deprecated flags (--storage.tsdb.allow-overlapping-blocks)"
+          - "Renamed --query.lookback-delta to --query.lookback-time"
+          - "WAL compression enabled by default"
+          - "Stricter PromQL validation"
+        migration:
+          - "Check for deprecated flags"
+          - "Update configuration"
+          - "Test PromQL queries"
+          - "Validate with promtool"
+      prometheus_3_6_to_3_7:
+        risk: "Low"
+        breaking_changes: []
+        new_features:
+          - "Faster query execution"
+          - "Improved memory usage"
+          - "Enhanced native histograms"
+    commands:
+      pre_upgrade:
+        check: "make -f make/ops/prometheus.mk prom-pre-upgrade-check"
+        backup: "make -f make/ops/prometheus.mk prom-backup-all"
+      upgrade:
+        helm: "helm upgrade prometheus scripton-charts/prometheus --set image.tag=3.7.3 --reuse-values"
+      post_upgrade:
+        validate: "make -f make/ops/prometheus.mk prom-post-upgrade-check"
+        health: "make -f make/ops/prometheus.mk prom-health-check"
+      rollback:
+        helm: "make -f make/ops/prometheus.mk prom-upgrade-rollback"
+    checklist:
+      pre_upgrade:
+        - "Review release notes for target version"
+        - "Run pre-upgrade check script"
+        - "Create full backup (TSDB + config + rules)"
+        - "Verify backup integrity"
+        - "Plan rollback procedure"
+        - "Check for breaking changes"
+      post_upgrade:
+        - "Run post-upgrade validation script"
+        - "Check active targets"
+        - "Verify metrics collection"
+        - "Test critical queries"
+        - "Check alerting rules"
+        - "Monitor for 24 hours"

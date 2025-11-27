@@ -595,6 +595,285 @@ prometheus:
 | 1M | 100K/s | 8Gi | 2000m | 500Gi |
 | 5M | 500K/s | 32Gi | 8000m | 2.5Ti |
 
+## Backup & Recovery Strategy
+
+This chart follows a **Makefile-driven backup approach** (no CronJob in chart) for maximum flexibility and control.
+
+### Backup Strategy
+
+The recommended backup strategy combines **four approaches** for comprehensive data protection:
+
+1. **TSDB snapshots** - Time-series database blocks (metrics data)
+2. **Configuration backups** - Prometheus configuration and scrape configs
+3. **Rules backups** - Recording rules and alerting rules
+4. **PVC snapshots** - Disaster recovery with Kubernetes VolumeSnapshot API
+
+**Backup frequency recommendations:**
+- TSDB snapshots: Hourly (RTO: < 1 hour, RPO: 1 hour)
+- Configuration: Daily or before changes (RTO: < 5 minutes, RPO: 0)
+- Rules: Daily or before changes (RTO: < 5 minutes, RPO: 0)
+- PVC snapshots: Weekly (RTO: < 2 hours, RPO: 1 week)
+
+### Quick Backup Commands
+
+```bash
+# Full backup (TSDB + config + rules)
+make -f make/ops/prometheus.mk prom-backup-all
+
+# Individual component backups
+make -f make/ops/prometheus.mk prom-backup-tsdb
+make -f make/ops/prometheus.mk prom-backup-config
+make -f make/ops/prometheus.mk prom-backup-rules
+
+# Verify backup integrity
+make -f make/ops/prometheus.mk prom-backup-verify BACKUP_FILE=<path>
+```
+
+### Recovery Commands
+
+```bash
+# Restore configuration
+make -f make/ops/prometheus.mk prom-restore-config BACKUP_FILE=<path>
+
+# Restore TSDB data
+make -f make/ops/prometheus.mk prom-restore-tsdb BACKUP_FILE=<path>
+
+# Full disaster recovery
+make -f make/ops/prometheus.mk prom-restore-all BACKUP_FILE=<path>
+```
+
+**For detailed backup/recovery procedures**, see [Prometheus Backup Guide](../../docs/prometheus-backup-guide.md).
+
+---
+
+## Security & RBAC
+
+### RBAC Configuration
+
+This chart creates **ClusterRole-based RBAC** permissions (required for Kubernetes service discovery):
+
+```yaml
+rbac:
+  create: true              # Create RBAC resources
+  clusterRole: true         # Create ClusterRole for service discovery
+```
+
+**Default ClusterRole permissions:**
+- Read Pods (service discovery)
+- Read Services (service discovery)
+- Read Endpoints (service discovery)
+- Read Nodes (node metrics)
+- Read Namespaces (multi-namespace discovery)
+
+### Pod Security
+
+**Recommended Pod Security Standards:**
+
+```yaml
+podSecurityContext:
+  runAsNonRoot: true
+  runAsUser: 65534
+  fsGroup: 65534
+  seccompProfile:
+    type: RuntimeDefault
+
+securityContext:
+  allowPrivilegeEscalation: false
+  readOnlyRootFilesystem: true
+  capabilities:
+    drop:
+      - ALL
+```
+
+### Network Policies
+
+**Example NetworkPolicy for Prometheus:**
+
+```yaml
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: prometheus-network-policy
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: prometheus
+  policyTypes:
+    - Ingress
+    - Egress
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              name: monitoring
+      ports:
+        - protocol: TCP
+          port: 9090
+  egress:
+    - to:
+        - namespaceSelector: {}
+      ports:
+        - protocol: TCP
+          port: 443  # HTTPS endpoints
+        - protocol: TCP
+          port: 80   # HTTP endpoints
+    - to:
+        - namespaceSelector: {}
+        - podSelector: {}
+      ports:
+        - protocol: TCP
+          port: 9090  # Prometheus federation
+```
+
+---
+
+## Operations & Maintenance
+
+### Upgrading
+
+**Pre-upgrade workflow:**
+
+```bash
+# 1. Pre-upgrade validation (10 checks)
+make -f make/ops/prometheus.mk prom-pre-upgrade-check
+
+# 2. Create backup
+make -f make/ops/prometheus.mk prom-backup-all
+
+# 3. Upgrade via Helm
+helm upgrade prometheus scripton-charts/prometheus \
+  -n monitoring \
+  --set image.tag=3.7.3 \
+  --reuse-values
+
+# 4. Post-upgrade validation (8 checks)
+make -f make/ops/prometheus.mk prom-post-upgrade-check
+```
+
+**Rollback if needed:**
+
+```bash
+make -f make/ops/prometheus.mk prom-upgrade-rollback
+```
+
+**For detailed upgrade procedures**, see [Prometheus Upgrade Guide](../../docs/prometheus-upgrade-guide.md).
+
+### Common Operations
+
+```bash
+# View logs
+make -f make/ops/prometheus.mk prom-logs
+
+# Check health
+make -f make/ops/prometheus.mk prom-health-check
+
+# Port forward
+make -f make/ops/prometheus.mk prom-port-forward
+
+# Reload configuration
+make -f make/ops/prometheus.mk prom-reload
+
+# Scale replicas
+make -f make/ops/prometheus.mk prom-scale REPLICAS=3
+```
+
+**For all available commands:**
+```bash
+make -f make/ops/prometheus.mk help
+```
+
+---
+
+## Monitoring & Diagnostics
+
+### Health Checks
+
+**Readiness probe:**
+```bash
+curl http://localhost:9090/-/ready
+```
+
+**Liveness probe:**
+```bash
+curl http://localhost:9090/-/healthy
+```
+
+### TSDB Status
+
+```bash
+# Check TSDB status
+make -f make/ops/prometheus.mk prom-tsdb-status
+
+# Check storage usage
+make -f make/ops/prometheus.mk prom-check-storage
+```
+
+### Active Targets
+
+```bash
+# List all targets
+make -f make/ops/prometheus.mk prom-targets
+
+# List only active targets
+make -f make/ops/prometheus.mk prom-targets-active
+
+# Service discovery status
+make -f make/ops/prometheus.mk prom-sd
+```
+
+### Query Execution
+
+```bash
+# Execute PromQL query
+make -f make/ops/prometheus.mk prom-query QUERY='up'
+
+# Range query
+make -f make/ops/prometheus.mk prom-query-range \
+  QUERY='rate(http_requests_total[5m])' \
+  START='-1h' \
+  END='now' \
+  STEP='15s'
+
+# Test queries
+make -f make/ops/prometheus.mk prom-test-query
+```
+
+### Alerting Rules
+
+```bash
+# List all rules
+make -f make/ops/prometheus.mk prom-rules
+
+# Show active alerts
+make -f make/ops/prometheus.mk prom-alerts
+```
+
+### Troubleshooting
+
+**Common issues:**
+
+1. **High memory usage:**
+   ```bash
+   # Check cardinality
+   kubectl exec -n monitoring prometheus-0 -c prometheus -- \
+     wget -qO- http://localhost:9090/api/v1/status/tsdb | \
+     jq '.data.seriesCountByMetricName | to_entries | sort_by(.value) | reverse | .[0:10]'
+   ```
+
+2. **Slow queries:**
+   ```bash
+   # Check query duration
+   make -f make/ops/prometheus.mk prom-query \
+     QUERY='prometheus_engine_query_duration_seconds{quantile="0.9"}'
+   ```
+
+3. **Target scrape failures:**
+   ```bash
+   make -f make/ops/prometheus.mk prom-targets
+   ```
+
+---
+
 ## License
 
 - Chart: BSD 3-Clause License
@@ -607,9 +886,11 @@ prometheus:
 - [Recording Rules](https://prometheus.io/docs/prometheus/latest/configuration/recording_rules/)
 - [Alerting Rules](https://prometheus.io/docs/prometheus/latest/configuration/alerting_rules/)
 - [Chart Repository](https://github.com/scriptonbasestar-container/sb-helm-charts)
+- **[Prometheus Backup Guide](../../docs/prometheus-backup-guide.md)** - Comprehensive backup/recovery procedures
+- **[Prometheus Upgrade Guide](../../docs/prometheus-upgrade-guide.md)** - Upgrade strategies and procedures
 
 ---
 
 **Maintained by**: ScriptonBasestar
 **Chart Version**: 0.3.0
-**Prometheus Version**: 2.48.1
+**Prometheus Version**: 3.7.3
