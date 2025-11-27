@@ -6,7 +6,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 **Need chart operations?** → [docs/MAKEFILE_COMMANDS.md](docs/MAKEFILE_COMMANDS.md) - All chart-specific make commands
 
-**Need chart information?** → [docs/CHARTS.md](docs/CHARTS.md) - Complete catalog of 36 charts
+**Need chart information?** → [docs/CHARTS.md](docs/CHARTS.md) - Complete catalog of 39 charts
 
 **Developing charts?** → [docs/CHART_DEVELOPMENT_GUIDE.md](docs/CHART_DEVELOPMENT_GUIDE.md) - Patterns and standards
 
@@ -84,9 +84,11 @@ make generate-catalog
 
 ## Available Charts
 
-**36 Total Charts:**
+**39 Total Charts:**
 - **20 Application Charts**: Airflow, Grafana, Harbor, Immich, Jellyfin, Keycloak, Loki, MLflow, Nextcloud, Paperless-ngx, pgAdmin, phpMyAdmin, Uptime Kuma, Vaultwarden, WireGuard, WordPress, and more
-- **16 Infrastructure Charts**: Alertmanager, Blackbox Exporter, Elasticsearch, Kafka, Memcached, MinIO, MongoDB, MySQL, Node Exporter, PostgreSQL, Prometheus, Promtail, Pushgateway, RabbitMQ, Redis, RustFS
+- **19 Infrastructure Charts**: Alertmanager, Blackbox Exporter, Elasticsearch, Grafana Mimir, Kafka, Kube State Metrics, Memcached, MinIO, MongoDB, MySQL, Node Exporter, OpenTelemetry Collector, PostgreSQL, Prometheus, Promtail, Pushgateway, RabbitMQ, Redis, RustFS, Tempo
+
+**⚠️ 6 Enhanced Charts** with comprehensive RBAC, backup/recovery, and upgrade features: Keycloak, Airflow, Harbor, MLflow, Kafka, Elasticsearch (see Enhanced Operational Features section below)
 
 **⚠️ Infrastructure charts** are suitable for dev/test. For production HA, consider using Kubernetes Operators (see [docs/CHARTS.md](docs/CHARTS.md) for operator links).
 
@@ -183,7 +185,7 @@ Follows [Semantic Versioning 2.0.0](https://semver.org/). MAJOR: Breaking change
 
 **License:** BSD-3-Clause (charts). Application licenses vary (see READMEs).
 
-**Status:** All 36 charts at v0.3.0 (Mature - production-ready)
+**Status:** All 39 charts at v0.3.0 (Mature - production-ready)
 
 → **Complete policy:** [docs/CHART_VERSION_POLICY.md](docs/CHART_VERSION_POLICY.md)
 

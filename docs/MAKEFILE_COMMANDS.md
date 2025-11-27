@@ -1288,5 +1288,5 @@ make kind-delete
 
 ---
 
-**Last Updated:** 2025-11-23
-**Total Charts:** 36 (20 Application + 16 Infrastructure)
+**Last Updated:** 2025-11-27
+**Total Charts:** 39 (20 Application + 19 Infrastructure)
