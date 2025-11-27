@@ -210,6 +210,40 @@ serviceAccount:
   annotations: {}
   name: ""
 
+# RBAC configuration
+rbac:
+  # Create Role and RoleBinding (namespace-scoped)
+  create: true
+  # Additional annotations for RBAC resources
+  annotations: {}
+
+# Backup & Recovery configuration
+# Note: No CronJob in chart - use Makefile operations instead
+backup:
+  enabled: false  # Documentation only - backups managed via make targets
+  documentation:
+    strategy: "postgresql_dump + keycloak_export"
+    # Combined approach ensures realm and database consistency:
+    # 1. Realm exports: make -f make/ops/keycloak.mk kc-backup-all-realms
+    # 2. Database dumps: make -f make/ops/keycloak.mk kc-db-backup
+    # 3. Verification: make -f make/ops/keycloak.mk kc-backup-verify DIR=<backup-dir>
+    tools:
+      - "pg_dump"       # PostgreSQL database backup
+      - "kcadm.sh"      # Keycloak admin CLI
+      - "kc.sh export"  # Keycloak realm export tool
+
+# Upgrade configuration
+upgrade:
+  enabled: false  # Feature flag for upgrade automation
+  preUpgradeBackup: true  # Recommend backup before upgrades
+  healthCheckPort: 9000  # Management port in Keycloak 26.x+
+  # Upgrade workflow:
+  # 1. Pre-check: make -f make/ops/keycloak.mk kc-pre-upgrade-check
+  # 2. Backup: make -f make/ops/keycloak.mk kc-backup-all-realms && kc-db-backup
+  # 3. Upgrade: helm upgrade keycloak charts/keycloak -f values.yaml
+  # 4. Post-check: make -f make/ops/keycloak.mk kc-post-upgrade-check
+  # 5. Rollback (if needed): make -f make/ops/keycloak.mk kc-upgrade-rollback-plan
+
 # Pod annotations
 podAnnotations: {}
 
@@ -219,6 +253,9 @@ podLabels: {}
 # Pod security context
 podSecurityContext:
   fsGroup: 1000
+  # Seccomp profile for enhanced security (Kubernetes 1.19+)
+  seccompProfile:
+    type: RuntimeDefault
 
 # Container security context
 securityContext:

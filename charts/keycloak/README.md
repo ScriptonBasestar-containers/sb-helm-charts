@@ -619,6 +619,220 @@ kubectl delete pvc -l app.kubernetes.io/instance=my-keycloak
    kubectl describe configmap keycloak-realms
    ```
 
+## Backup & Recovery Strategy
+
+This chart follows a **Makefile-driven backup approach** (no CronJob in chart) for maximum flexibility and control.
+
+### Backup Strategy
+
+The recommended backup strategy combines two approaches for data consistency:
+
+1. **Realm exports** - Keycloak configuration, clients, roles, users
+2. **Database dumps** - PostgreSQL database backup
+
+### Backup Operations
+
+**Backup all realms:**
+```bash
+make -f make/ops/keycloak.mk kc-backup-all-realms
+# Saves to: tmp/keycloak-backups/<timestamp>/
+```
+
+**Backup PostgreSQL database:**
+```bash
+make -f make/ops/keycloak.mk kc-db-backup
+# Saves to: tmp/keycloak-backups/db/keycloak-db-<timestamp>.sql
+```
+
+**Verify backup integrity:**
+```bash
+make -f make/ops/keycloak.mk kc-backup-verify DIR=tmp/keycloak-backups/<timestamp>
+```
+
+**Export single realm for migration:**
+```bash
+make -f make/ops/keycloak.mk kc-realm-migrate REALM=master
+# Saves to: tmp/keycloak-backups/migration/<realm>-<timestamp>.json
+```
+
+### Recovery Operations
+
+**Restore realms from backup:**
+```bash
+make -f make/ops/keycloak.mk kc-backup-restore FILE=tmp/keycloak-backups/<timestamp>
+```
+
+**Restore database:**
+```bash
+make -f make/ops/keycloak.mk kc-db-restore FILE=tmp/keycloak-backups/db/keycloak-db-<timestamp>.sql
+```
+
+For detailed backup/restore procedures, see [docs/keycloak-backup-guide.md](../../docs/keycloak-backup-guide.md).
+
+---
+
+## Security & RBAC
+
+### RBAC Configuration
+
+This chart creates minimal namespace-scoped RBAC permissions for Keycloak pods:
+
+```yaml
+rbac:
+  create: true  # Create Role and RoleBinding
+  annotations: {}
+```
+
+**Default permissions:**
+- Read ConfigMaps (configuration access)
+- Read Secrets (credentials access)
+- Read Pods (service discovery for clustering)
+- Read Endpoints (clustering, when enabled)
+
+**Disable RBAC:**
+```yaml
+rbac:
+  create: false
+```
+
+### Security Enhancements
+
+**Seccomp Profile (Kubernetes 1.19+):**
+```yaml
+podSecurityContext:
+  fsGroup: 1000
+  seccompProfile:
+    type: RuntimeDefault
+```
+
+**Security Context:**
+```yaml
+securityContext:
+  runAsUser: 1000
+  runAsNonRoot: true
+  readOnlyRootFilesystem: false
+  capabilities:
+    drop:
+      - ALL
+```
+
+**Network Policy:**
+- Enabled by default in production scenarios
+- Restricts ingress/egress traffic
+- Allows PostgreSQL, Redis, and DNS connections
+
+---
+
+## Operations & Maintenance
+
+### Upgrade Operations
+
+**Pre-upgrade health check:**
+```bash
+make -f make/ops/keycloak.mk kc-pre-upgrade-check
+```
+
+**Recommended upgrade workflow:**
+```bash
+# 1. Pre-upgrade check
+make -f make/ops/keycloak.mk kc-pre-upgrade-check
+
+# 2. Backup (critical!)
+make -f make/ops/keycloak.mk kc-backup-all-realms
+make -f make/ops/keycloak.mk kc-db-backup
+
+# 3. Upgrade Helm chart
+helm upgrade keycloak charts/keycloak -f values.yaml
+
+# 4. Post-upgrade validation
+make -f make/ops/keycloak.mk kc-post-upgrade-check
+
+# 5. Rollback plan (if needed)
+make -f make/ops/keycloak.mk kc-upgrade-rollback-plan
+```
+
+**Post-upgrade validation:**
+```bash
+make -f make/ops/keycloak.mk kc-post-upgrade-check
+```
+
+### Monitoring Health
+
+**Health endpoints (Keycloak 26.x):**
+- `/health/live` - Liveness probe (port 9000)
+- `/health/ready` - Readiness probe (port 9000)
+- `/health/started` - Startup probe (port 9000)
+
+**Check health:**
+```bash
+make -f make/ops/keycloak.mk kc-health
+```
+
+**Check metrics:**
+```bash
+make -f make/ops/keycloak.mk kc-metrics
+```
+
+**Check cluster status:**
+```bash
+make -f make/ops/keycloak.mk kc-cluster-status
+```
+
+### Common Operations
+
+**List all realms:**
+```bash
+make -f make/ops/keycloak.mk kc-list-realms
+```
+
+**Import realm from file:**
+```bash
+make -f make/ops/keycloak.mk kc-import-realm FILE=path/to/realm.json
+```
+
+**Open shell in Keycloak pod:**
+```bash
+make -f make/ops/keycloak.mk kc-pod-shell
+```
+
+**Test database connectivity:**
+```bash
+make -f make/ops/keycloak.mk kc-db-test
+```
+
+For comprehensive operations guide, see [docs/keycloak-backup-guide.md](../../docs/keycloak-backup-guide.md).
+
+---
+
+## Upgrade Guide (Keycloak 26.x)
+
+### Breaking Changes in Keycloak 26.x
+
+**Important:** Keycloak 26.x introduces significant breaking changes. Review before upgrading.
+
+1. **Hostname v1 Removed**
+   - Old `KC_HOSTNAME` environment variable no longer supported
+   - Must use hostname v2 configuration
+   - Update your values.yaml accordingly
+
+2. **Health Endpoints Moved**
+   - Health endpoints moved from port 8080 to port 9000 (management port)
+   - Update your health check configurations:
+     - Liveness: `http://localhost:9000/health/live`
+     - Readiness: `http://localhost:9000/health/ready`
+
+3. **PostgreSQL 13+ Required**
+   - Minimum PostgreSQL version increased from 12.x to 13.x
+   - Upgrade your PostgreSQL database before upgrading Keycloak
+
+4. **CLI-Based Clustering**
+   - JGroups configuration now uses `--cache-embedded-network-*` CLI options
+   - Environment variables for clustering deprecated
+
+For detailed upgrade procedures and version-specific breaking changes, see [docs/keycloak-upgrade-guide.md](../../docs/keycloak-upgrade-guide.md).
+
+---
+
 ## Resources
 
 - [Keycloak Documentation](https://www.keycloak.org/documentation)

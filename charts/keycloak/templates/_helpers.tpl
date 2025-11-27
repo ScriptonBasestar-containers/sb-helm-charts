@@ -166,3 +166,17 @@ Headless service name for clustering
 {{- define "keycloak.headlessServiceName" -}}
 {{- printf "%s-headless" (include "keycloak.fullname" .) }}
 {{- end }}
+
+{{/*
+Create the name of the RBAC role to use
+*/}}
+{{- define "keycloak.roleName" -}}
+{{- printf "%s" (include "keycloak.fullname" .) }}
+{{- end }}
+
+{{/*
+Create the name of the RBAC role binding to use
+*/}}
+{{- define "keycloak.roleBindingName" -}}
+{{- printf "%s" (include "keycloak.fullname" .) }}
+{{- end }}
