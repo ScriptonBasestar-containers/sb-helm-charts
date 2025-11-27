@@ -80,3 +80,17 @@ s3://{{ .Values.minio.external.bucket }}
 /mlflow/artifacts
 {{- end }}
 {{- end }}
+
+{{/*
+Create the name of the RBAC role to use
+*/}}
+{{- define "mlflow.roleName" -}}
+{{- printf "%s" (include "mlflow.fullname" .) }}
+{{- end }}
+
+{{/*
+Create the name of the RBAC role binding to use
+*/}}
+{{- define "mlflow.roleBindingName" -}}
+{{- printf "%s" (include "mlflow.fullname" .) }}
+{{- end }}

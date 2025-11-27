@@ -93,6 +93,13 @@ serviceAccount:
   annotations: {}
   name: ""
 
+# RBAC configuration
+rbac:
+  # Create Role and RoleBinding (namespace-scoped)
+  create: true
+  # Additional annotations for RBAC resources
+  annotations: {}
+
 # Pod annotations
 podAnnotations: {}
 
@@ -141,3 +148,29 @@ tolerations: []
 
 # Affinity
 affinity: {}
+
+# Backup & Recovery configuration
+# Note: No CronJob in chart - use Makefile operations instead
+backup:
+  enabled: false  # Documentation only - backups managed via make targets
+  documentation:
+    strategy: "postgresql_dump + mlflow_export + artifacts_snapshot"
+    # Combined approach ensures complete recovery:
+    # 1. Database backup: make -f make/ops/mlflow.mk mlflow-db-backup
+    # 2. Experiments export: make -f make/ops/mlflow.mk mlflow-experiments-backup
+    # 3. Artifacts: Backed up via S3/MinIO versioning or PVC snapshots
+    tools:
+      - "pg_dump"          # PostgreSQL database backup (if using external DB)
+      - "mlflow export"    # Export experiments, runs, models
+      - "s3 sync"          # MinIO/S3 artifacts backup
+
+# Upgrade configuration
+upgrade:
+  enabled: false  # Feature flag for upgrade automation
+  preUpgradeBackup: true  # Recommend backup before upgrades
+  # Upgrade workflow:
+  # 1. Pre-check: make -f make/ops/mlflow.mk mlflow-pre-upgrade-check
+  # 2. Backup: make -f make/ops/mlflow.mk mlflow-db-backup && mlflow-experiments-backup
+  # 3. Upgrade: helm upgrade mlflow charts/mlflow -f values.yaml
+  # 4. Migrate DB: make -f make/ops/mlflow.mk mlflow-db-upgrade
+  # 5. Post-check: make -f make/ops/mlflow.mk mlflow-post-upgrade-check
