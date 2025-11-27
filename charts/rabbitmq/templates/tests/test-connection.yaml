@@ -1,0 +1,20 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: "{{ include "rabbitmq.fullname" . }}-test-connection"
+  labels:
+    {{- include "rabbitmq.labels" . | nindent 4 }}
+  annotations:
+    "helm.sh/hook": test
+    "helm.sh/hook-delete-policy": before-hook-creation,hook-succeeded
+spec:
+  containers:
+    - name: wget
+      image: busybox
+      command:
+        - wget
+      args:
+        - --spider
+        - --timeout=10
+        - "{{ include "rabbitmq.fullname" . }}:{{ .Values.service.managementPort | default 15672 }}"
+  restartPolicy: Never

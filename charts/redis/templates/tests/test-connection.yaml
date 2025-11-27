@@ -1,0 +1,25 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: "{{ include "redis.fullname" . }}-test-connection"
+  labels:
+    {{- include "redis.labels" . | nindent 4 }}
+  annotations:
+    "helm.sh/hook": test
+    "helm.sh/hook-delete-policy": before-hook-creation,hook-succeeded
+spec:
+  containers:
+    - name: redis-test
+      image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
+      command:
+        - sh
+        - -c
+        - |
+          # Test connection to Redis
+          redis-cli -h {{ include "redis.fullname" . }} -p {{ .Values.service.port }} ping
+
+          # Get Redis server info
+          redis-cli -h {{ include "redis.fullname" . }} -p {{ .Values.service.port }} INFO server | grep redis_version
+
+          echo "Redis connection test successful!"
+  restartPolicy: Never
