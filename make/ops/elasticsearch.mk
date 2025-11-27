@@ -310,6 +310,183 @@ es-restore-snapshot:
 help-common:
 	@$(MAKE) -f make/common.mk help CHART_NAME=$(CHART_NAME) CHART_DIR=$(CHART_DIR)
 
+# =============================================================================
+# Backup & Recovery (Enhanced)
+# =============================================================================
+
+.PHONY: es-cluster-settings-backup
+es-cluster-settings-backup:
+	@echo "Backing up Elasticsearch cluster settings..."
+	@mkdir -p tmp/elasticsearch-backups/settings
+	@TIMESTAMP=$$(date +%Y%m%d-%H%M%S); \
+	BACKUP_DIR="tmp/elasticsearch-backups/settings/$$TIMESTAMP"; \
+	mkdir -p "$$BACKUP_DIR"; \
+	POD_NAME="$(call get-es-pod-name)"; \
+	if [ -z "$$POD_NAME" ]; then exit 1; fi; \
+	echo "Exporting cluster settings..."; \
+	kubectl exec $$POD_NAME -- curl -s http://localhost:9200/_cluster/settings?pretty $(call get-auth-option) > "$$BACKUP_DIR/cluster-settings.json"; \
+	echo "Exporting index templates..."; \
+	kubectl exec $$POD_NAME -- curl -s http://localhost:9200/_template?pretty $(call get-auth-option) > "$$BACKUP_DIR/index-templates.json"; \
+	echo "Exporting ILM policies..."; \
+	kubectl exec $$POD_NAME -- curl -s http://localhost:9200/_ilm/policy?pretty $(call get-auth-option) > "$$BACKUP_DIR/ilm-policies.json" 2>/dev/null || true; \
+	echo "✓ Cluster settings backup completed: $$BACKUP_DIR"
+
+.PHONY: es-data-backup
+es-data-backup:
+	@echo "Backing up Elasticsearch data volumes (PVC snapshot)..."
+	@echo "Note: This requires VolumeSnapshot CRD and CSI driver"
+	@TIMESTAMP=$$(date +%Y%m%d-%H%M%S); \
+	SNAPSHOT_NAME="elasticsearch-data-snapshot-$$TIMESTAMP"; \
+	echo "Creating snapshot for PVC: $(CHART_NAME)-data-0"; \
+	kubectl create -f - <<EOF; \
+	apiVersion: snapshot.storage.k8s.io/v1; \
+	kind: VolumeSnapshot; \
+	metadata:; \
+	  name: $$SNAPSHOT_NAME; \
+	  namespace: $(NAMESPACE); \
+	spec:; \
+	  volumeSnapshotClassName: csi-snapclass; \
+	  source:; \
+	    persistentVolumeClaimName: $(CHART_NAME)-data-0; \
+	EOF \
+	echo "✓ Snapshot created: $$SNAPSHOT_NAME"; \
+	echo "  Verify with: kubectl get volumesnapshot -n $(NAMESPACE) $$SNAPSHOT_NAME"
+
+# =============================================================================
+# Upgrade Operations
+# =============================================================================
+
+.PHONY: es-pre-upgrade-check
+es-pre-upgrade-check:
+	@echo "=== Elasticsearch Pre-Upgrade Health Check ==="
+	@echo ""
+	@echo "1. Checking pod status..."
+	@kubectl get pods -l app.kubernetes.io/component=elasticsearch | grep -E "Running|NAME" || echo "✗ Pods not running"
+	@echo ""
+	@echo "2. Checking cluster health..."
+	@POD_NAME="$(call get-es-pod-name)"; \
+	if [ -z "$$POD_NAME" ]; then exit 1; fi; \
+	STATUS=$$(kubectl exec $$POD_NAME -- curl -s http://localhost:9200/_cluster/health $(call get-auth-option) | grep -o '"status":"[^"]*"' | cut -d: -f2 | tr -d '"'); \
+	if [ "$$STATUS" = "green" ]; then \
+		echo "✓ Cluster health: GREEN"; \
+	elif [ "$$STATUS" = "yellow" ]; then \
+		echo "⚠️  Cluster health: YELLOW (acceptable for single-node)"; \
+	else \
+		echo "✗ Cluster health: $$STATUS (not safe to upgrade)"; \
+	fi
+	@echo ""
+	@echo "3. Checking shard allocation..."
+	@POD_NAME="$(call get-es-pod-name)"; \
+	if [ -z "$$POD_NAME" ]; then exit 1; fi; \
+	UNASSIGNED=$$(kubectl exec $$POD_NAME -- curl -s "http://localhost:9200/_cat/shards" $(call get-auth-option) | grep UNASSIGNED | wc -l); \
+	if [ $$UNASSIGNED -gt 0 ]; then \
+		echo "⚠️  $$UNASSIGNED unassigned shards found"; \
+	else \
+		echo "✓ No unassigned shards"; \
+	fi
+	@echo ""
+	@echo "4. Checking Elasticsearch version..."
+	@POD_NAME="$(call get-es-pod-name)"; \
+	if [ -z "$$POD_NAME" ]; then exit 1; fi; \
+	kubectl exec $$POD_NAME -- curl -s http://localhost:9200 $(call get-auth-option) | grep version -A 3
+	@echo ""
+	@echo "✓ Pre-upgrade checks completed"
+	@echo "⚠️  Make sure to backup before upgrading!"
+	@echo "   make -f make/ops/elasticsearch.mk es-create-snapshot REPO=<repo> SNAPSHOT=pre-upgrade-$$(date +%Y%m%d-%H%M%S)"
+
+.PHONY: es-disable-shard-allocation
+es-disable-shard-allocation:
+	@echo "Disabling shard allocation (prevents rebalancing during upgrade)..."
+	@POD_NAME="$(call get-es-pod-name)"; \
+	if [ -z "$$POD_NAME" ]; then exit 1; fi; \
+	kubectl exec $$POD_NAME -- curl -X PUT "http://localhost:9200/_cluster/settings?pretty" $(call get-auth-option) \
+		-H 'Content-Type: application/json' -d'{ \
+		"persistent": { \
+			"cluster.routing.allocation.enable": "primaries" \
+		} \
+	}'
+	@echo "✓ Shard allocation disabled (primaries only)"
+
+.PHONY: es-enable-shard-allocation
+es-enable-shard-allocation:
+	@echo "Enabling shard allocation..."
+	@POD_NAME="$(call get-es-pod-name)"; \
+	if [ -z "$$POD_NAME" ]; then exit 1; fi; \
+	kubectl exec $$POD_NAME -- curl -X PUT "http://localhost:9200/_cluster/settings?pretty" $(call get-auth-option) \
+		-H 'Content-Type: application/json' -d'{ \
+		"persistent": { \
+			"cluster.routing.allocation.enable": null \
+		} \
+	}'
+	@echo "✓ Shard allocation enabled"
+
+.PHONY: es-post-upgrade-check
+es-post-upgrade-check:
+	@echo "=== Elasticsearch Post-Upgrade Validation ==="
+	@echo ""
+	@echo "1. Checking pod status..."
+	@kubectl get pods -l app.kubernetes.io/component=elasticsearch
+	@echo ""
+	@echo "2. Waiting for pods to be ready..."
+	@kubectl wait --for=condition=ready --timeout=300s pod -l app.kubernetes.io/component=elasticsearch || echo "⚠️  Pods not ready"
+	@echo ""
+	@echo "3. Checking Elasticsearch version..."
+	@POD_NAME="$(call get-es-pod-name)"; \
+	if [ -z "$$POD_NAME" ]; then exit 1; fi; \
+	kubectl exec $$POD_NAME -- curl -s http://localhost:9200 $(call get-auth-option) | grep version -A 3
+	@echo ""
+	@echo "4. Checking cluster health..."
+	@POD_NAME="$(call get-es-pod-name)"; \
+	if [ -z "$$POD_NAME" ]; then exit 1; fi; \
+	kubectl exec $$POD_NAME -- curl -s http://localhost:9200/_cluster/health?pretty $(call get-auth-option)
+	@echo ""
+	@echo "5. Checking all nodes joined..."
+	@POD_NAME="$(call get-es-pod-name)"; \
+	if [ -z "$$POD_NAME" ]; then exit 1; fi; \
+	kubectl exec $$POD_NAME -- curl -s http://localhost:9200/_cat/nodes?v $(call get-auth-option)
+	@echo ""
+	@echo "6. Checking shard allocation..."
+	@POD_NAME="$(call get-es-pod-name)"; \
+	if [ -z "$$POD_NAME" ]; then exit 1; fi; \
+	UNASSIGNED=$$(kubectl exec $$POD_NAME -- curl -s "http://localhost:9200/_cat/shards" $(call get-auth-option) | grep UNASSIGNED | wc -l); \
+	if [ $$UNASSIGNED -gt 0 ]; then \
+		echo "⚠️  $$UNASSIGNED unassigned shards found"; \
+	else \
+		echo "✓ All shards assigned"; \
+	fi
+	@echo ""
+	@echo "7. Verifying index accessibility..."
+	@POD_NAME="$(call get-es-pod-name)"; \
+	if [ -z "$$POD_NAME" ]; then exit 1; fi; \
+	kubectl exec $$POD_NAME -- curl -s http://localhost:9200/_cat/indices?v $(call get-auth-option) | head -10
+	@echo ""
+	@echo "✓ Post-upgrade validation completed"
+
+.PHONY: es-upgrade-rollback
+es-upgrade-rollback:
+	@echo "=== Elasticsearch Upgrade Rollback Procedures ==="
+	@echo ""
+	@echo "Option 1: Helm Rollback (Fast - reverts chart only)"
+	@echo "  helm rollback elasticsearch"
+	@echo "  make -f make/ops/elasticsearch.mk es-post-upgrade-check"
+	@echo ""
+	@echo "Option 2: Snapshot Restore (Complete - includes data)"
+	@echo "  kubectl scale statefulset/$(CHART_NAME) --replicas=0"
+	@echo "  make -f make/ops/elasticsearch.mk es-restore-snapshot REPO=<repo> SNAPSHOT=<snapshot>"
+	@echo "  helm rollback elasticsearch"
+	@echo "  kubectl scale statefulset/$(CHART_NAME) --replicas=<original-replicas>"
+	@echo "  make -f make/ops/elasticsearch.mk es-enable-shard-allocation"
+	@echo ""
+	@echo "Option 3: PVC Restore (Disaster recovery)"
+	@echo "  kubectl scale statefulset/$(CHART_NAME) --replicas=0"
+	@echo "  # Restore PVC from VolumeSnapshot"
+	@echo "  kubectl apply -f <pvc-from-snapshot.yaml>"
+	@echo "  helm rollback elasticsearch"
+	@echo "  kubectl scale statefulset/$(CHART_NAME) --replicas=<original-replicas>"
+	@echo ""
+	@echo "⚠️  Always verify cluster health after rollback:"
+	@echo "  make -f make/ops/elasticsearch.mk es-post-upgrade-check"
+
 .PHONY: help
 help: help-common
 	@echo ""
@@ -354,6 +531,15 @@ help: help-common
 	@echo "  es-snapshots                 - List snapshots in repository (REPO=name [POD=elasticsearch-0])"
 	@echo "  es-create-snapshot           - Create snapshot (REPO=name SNAPSHOT=name [POD=elasticsearch-0])"
 	@echo "  es-restore-snapshot          - Restore snapshot (REPO=name SNAPSHOT=name [POD=elasticsearch-0])"
+	@echo "  es-cluster-settings-backup   - Backup cluster settings, templates, ILM policies"
+	@echo "  es-data-backup               - Create PVC snapshot for data volumes"
+	@echo ""
+	@echo "Upgrade Operations:"
+	@echo "  es-pre-upgrade-check         - Pre-upgrade health and readiness check"
+	@echo "  es-disable-shard-allocation  - Disable shard allocation (before upgrade)"
+	@echo "  es-enable-shard-allocation   - Enable shard allocation (after upgrade)"
+	@echo "  es-post-upgrade-check        - Post-upgrade validation"
+	@echo "  es-upgrade-rollback          - Display rollback procedures"
 	@echo ""
 	@echo "Note: Commands default to first pod. Use POD=elasticsearch-N to target specific pod."
 	@echo "      Authentication is automatically handled based on security settings."
