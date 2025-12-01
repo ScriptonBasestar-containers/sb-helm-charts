@@ -116,3 +116,17 @@ Get replication password
 {{- randAlphaNum 16 }}
 {{- end }}
 {{- end }}
+
+{{/*
+Return the Role name
+*/}}
+{{- define "postgresql.roleName" -}}
+{{- printf "%s-role" (include "postgresql.fullname" .) }}
+{{- end }}
+
+{{/*
+Return the RoleBinding name
+*/}}
+{{- define "postgresql.roleBindingName" -}}
+{{- printf "%s-rolebinding" (include "postgresql.fullname" .) }}
+{{- end }}

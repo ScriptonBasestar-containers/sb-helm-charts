@@ -129,6 +129,13 @@ serviceAccount:
   # If not set and create is true, a name is generated using the fullname template
   name: ""
 
+# RBAC Configuration
+rbac:
+  # Specifies whether RBAC resources should be created
+  create: true
+  # Annotations to add to the Role and RoleBinding
+  annotations: {}
+
 # Pod annotations
 podAnnotations: {}
 
@@ -184,3 +191,189 @@ tolerations: []
 
 # Affinity
 affinity: {}
+
+# =============================================================================
+# Backup & Recovery Configuration
+# =============================================================================
+# Note: Backup is handled via Makefile targets, not automated CronJobs
+# See: docs/postgresql-backup-guide.md for detailed procedures
+backup:
+  enabled: false  # Documentation only - no CronJob created
+  documentation:
+    strategy: "logical_dumps + wal_archiving + replication + pvc_snapshots"
+    tools:
+      - "pg_dump / pg_dumpall (logical backups)"
+      - "pg_basebackup (physical backups)"
+      - "WAL archiving (Point-in-Time Recovery)"
+      - "kubectl (for data extraction)"
+      - "VolumeSnapshot API (for PVC snapshots)"
+    components:
+      configuration:
+        description: "ConfigMap (postgresql.conf, pg_hba.conf) and Secrets (passwords)"
+        method: "ConfigMap export + Secret export"
+        frequency: "Daily or before changes"
+        retention: "90 days"
+        size: "< 100KB"
+      logical_dumps:
+        description: "pg_dump (single DB) or pg_dumpall (cluster-wide)"
+        method: "pg_dumpall -U postgres | gzip > backup.sql.gz"
+        frequency: "Daily (small DBs) / Hourly (critical)"
+        retention: "30-90 days"
+        size: "Varies (10 MB - 100 GB+)"
+        formats: "custom, directory, tar, plain SQL"
+      wal_archiving:
+        description: "Write-Ahead Log continuous archiving for PITR"
+        method: "archive_command = 'aws s3 cp %p s3://wal-archive/%f'"
+        frequency: "Continuous (every 16MB WAL segment or timeout)"
+        retention: "7-30 days (matches base backup retention)"
+        size: "16 MB per WAL segment, ~1-10 GB/day typical"
+      physical_backup:
+        description: "pg_basebackup for complete cluster backup"
+        method: "pg_basebackup -U replicator -D /backup -Ft -z -P"
+        frequency: "Weekly (with daily WAL archiving)"
+        retention: "4 weeks"
+        size: "Full database size + indexes"
+      replication:
+        description: "Streaming replication (hot standby)"
+        method: "Built-in PostgreSQL replication"
+        frequency: "Real-time (synchronous or asynchronous)"
+        retention: "N/A (live replica)"
+        rpo: "Near-zero (sync) or seconds (async)"
+      pvc_snapshots:
+        description: "Complete persistent volume snapshot"
+        method: "Kubernetes VolumeSnapshot API"
+        frequency: "Weekly"
+        retention: "4 weeks"
+        size: "Same as PVC size"
+    targets:
+      rto: "< 1 hour (most scenarios) / < 5 minutes (with HA replica)"
+      rpo: "15 minutes (WAL archiving) / Near-zero (replication)"
+    commands:
+      backup:
+        full: "make -f make/ops/postgresql.mk pg-backup-all"
+        single_db: "make -f make/ops/postgresql.mk pg-backup DATABASE=myapp"
+        physical: "make -f make/ops/postgresql.mk pg-basebackup"
+        config: "make -f make/ops/postgresql.mk pg-backup-config"
+        pvc: "make -f make/ops/postgresql.mk pg-backup-pvc-snapshot"
+        verify: "make -f make/ops/postgresql.mk pg-backup-verify FILE=<path>"
+      restore:
+        full: "make -f make/ops/postgresql.mk pg-restore-all FILE=<path>"
+        single_db: "make -f make/ops/postgresql.mk pg-restore DATABASE=myapp FILE=<path>"
+        pitr: "make -f make/ops/postgresql.mk pg-pitr RECOVERY_TIME='2025-01-15 14:30:00'"
+
+# =============================================================================
+# Upgrade Configuration
+# =============================================================================
+# Note: Upgrades are performed manually via Helm or pg_upgrade, not automated
+# See: docs/postgresql-upgrade-guide.md for detailed procedures
+upgrade:
+  enabled: false  # Documentation only - manual process
+  preUpgradeBackup: true  # Always backup before upgrade
+  documentation:
+    strategies:
+      minor_version:
+        description: "Rolling upgrade for minor versions (16.1 -> 16.2)"
+        downtime: "None (with replicas >= 2)"
+        complexity: "Low"
+        recommended: true
+        steps:
+          - "Pre-upgrade validation (15 checks)"
+          - "Create backup"
+          - "Helm upgrade with new image tag"
+          - "Post-upgrade validation (12 checks)"
+      pg_upgrade:
+        description: "In-place major version upgrade using pg_upgrade tool"
+        downtime: "30-60 minutes (link mode) / 1-4 hours (copy mode)"
+        complexity: "Medium"
+        recommended: true
+        steps:
+          - "Backup database"
+          - "Stop applications"
+          - "Run pg_upgrade --check"
+          - "Run pg_upgrade (link or copy mode)"
+          - "Update configuration"
+          - "Run ANALYZE"
+          - "Start applications"
+      dump_restore:
+        description: "Safest method using pg_dump/pg_restore"
+        downtime: "1-4 hours (depends on database size)"
+        complexity: "Low"
+        recommended: false
+        steps:
+          - "pg_dumpall from old version"
+          - "Install new PostgreSQL version"
+          - "Initialize new cluster"
+          - "pg_restore to new version"
+          - "Verify data integrity"
+      blue_green:
+        description: "Zero-downtime upgrade with parallel clusters"
+        downtime: "5-10 minutes (DNS/service cutover)"
+        complexity: "High"
+        recommended: false
+        steps:
+          - "Deploy new PostgreSQL cluster"
+          - "Replicate data (logical replication)"
+          - "Validate new cluster"
+          - "Cutover applications"
+          - "Decommission old cluster"
+      logical_replication:
+        description: "Near-zero downtime using logical replication"
+        downtime: "< 1 minute (final sync + cutover)"
+        complexity: "High"
+        recommended: false
+        steps:
+          - "Setup logical replication"
+          - "Sync data to new version"
+          - "Monitor lag"
+          - "Quick cutover"
+    version_notes:
+      pg_15_to_16:
+        breaking_changes:
+          - "ICU library version changes (may require reindex)"
+        notable_changes:
+          - "Logical replication from standby servers"
+          - "pg_stat_statements improvements"
+          - "Parallel query enhancements"
+        recommended_steps:
+          - "Backup before upgrade"
+          - "Check extension compatibility"
+          - "Use pg_upgrade in link mode"
+          - "Run ANALYZE after upgrade"
+      pg_14_to_15:
+        breaking_changes:
+          - "Public schema permission changes (security tightening)"
+        notable_changes:
+          - "MERGE command support"
+          - "LZ4 compression"
+          - "Multirange types"
+        recommended_steps:
+          - "Review public schema grants"
+          - "Update application permissions"
+          - "Test before production"
+      pg_13_to_14:
+        breaking_changes:
+          - "recovery.conf removed (use recovery.signal)"
+          - "Replication password requirements changed"
+        notable_changes:
+          - "Btree index deduplication"
+          - "VACUUM improvements"
+          - "Subscription password requirements"
+        recommended_steps:
+          - "Update recovery configuration"
+          - "Test replication setup"
+          - "Update monitoring queries"
+    commands:
+      pre_upgrade:
+        check: "make -f make/ops/postgresql.mk pg-pre-upgrade-check"
+        backup: "make -f make/ops/postgresql.mk pg-backup-all"
+        extensions: "make -f make/ops/postgresql.mk pg-check-extensions"
+      upgrade:
+        minor: "helm upgrade postgresql sb-charts/postgresql --set image.tag=16.2"
+        major: "make -f make/ops/postgresql.mk pg-upgrade-major OLD_VERSION=15 NEW_VERSION=16"
+      post_upgrade:
+        check: "make -f make/ops/postgresql.mk pg-post-upgrade-check"
+        analyze: "make -f make/ops/postgresql.mk pg-analyze"
+      rollback:
+        helm: "helm rollback postgresql"
+        restore: "make -f make/ops/postgresql.mk pg-restore-all FILE=<path>"
+        pitr: "make -f make/ops/postgresql.mk pg-pitr RECOVERY_TIME='before upgrade'"

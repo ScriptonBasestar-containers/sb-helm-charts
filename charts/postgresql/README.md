@@ -599,10 +599,62 @@ postgresql:
 - Scrape metrics on port 9187
 - Monitor replication lag, connections, queries
 
-### 5. Backup Strategy
+### 5. Backup & Recovery Strategy
 
-**Automated backups with CronJob:**
+#### Overview
+
+PostgreSQL backup strategy depends on recovery requirements:
+
+| Backup Type | RPO | RTO | Use Case |
+|------------|-----|-----|----------|
+| **Logical Dump** | 24 hours | < 2 hours | Small databases, selective restore |
+| **Physical + WAL** | 15 minutes | < 1 hour | Production, PITR required |
+| **Streaming Replication** | Near-zero | < 5 minutes | HA, automatic failover |
+
+#### Backup Components
+
+1. **Logical Backups** - pg_dump/pg_dumpall for database dumps
+2. **Physical Backups** - pg_basebackup for complete cluster backup
+3. **WAL Archiving** - Continuous archiving for Point-in-Time Recovery
+4. **Replication** - Streaming replication for HA and read replicas
+5. **PVC Snapshots** - Volume-level backups
+
+#### Quick Backup Commands
+
+```bash
+# Full logical backup (all databases)
+make -f make/ops/postgresql.mk pg-backup-all
+
+# Single database backup
+make -f make/ops/postgresql.mk pg-backup DATABASE=myapp
+
+# Physical backup with WAL
+make -f make/ops/postgresql.mk pg-basebackup
+
+# Configuration backup
+make -f make/ops/postgresql.mk pg-backup-config
+
+# Verify backup integrity
+make -f make/ops/postgresql.mk pg-backup-verify FILE=/path/to/backup
+```
+
+#### Quick Recovery Commands
+
+```bash
+# Full cluster restore
+make -f make/ops/postgresql.mk pg-restore-all FILE=/path/to/backup
+
+# Single database restore
+make -f make/ops/postgresql.mk pg-restore DATABASE=myapp FILE=/path/to/backup
+
+# Point-in-Time Recovery
+make -f make/ops/postgresql.mk pg-pitr RECOVERY_TIME="2025-01-15 14:30:00"
+```
+
+#### Automated Backup with WAL Archiving
+
 ```yaml
+# CronJob for daily backups + continuous WAL archiving
 apiVersion: batch/v1
 kind: CronJob
 metadata:
@@ -620,7 +672,20 @@ spec:
             - sh
             - -c
             - |
-              PGPASSWORD="$POSTGRES_PASSWORD" pg_dump -h postgresql -U postgres postgres > /backup/postgres-$(date +%Y%m%d).sql
+              # Logical backup
+              pg_dumpall -U postgres | gzip > /backup/postgres-$(date +%Y%m%d).sql.gz
+
+              # Upload to S3
+              aws s3 cp /backup/postgres-$(date +%Y%m%d).sql.gz s3://backups/postgres/
+
+              # Cleanup old backups (keep 30 days)
+              find /backup -name "postgres-*.sql.gz" -mtime +30 -delete
+            env:
+            - name: PGPASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: postgresql-secret
+                  key: postgres-password
             volumeMounts:
             - name: backup
               mountPath: /backup
@@ -630,10 +695,18 @@ spec:
               claimName: postgres-backup-pvc
 ```
 
-**External backup solutions:**
-- Velero for cluster-level backups
-- pg_basebackup for physical backups
-- WAL archiving to S3/MinIO
+**WAL Archiving Configuration:**
+
+```yaml
+postgresql:
+  config:
+    archive_mode: "on"
+    archive_command: "aws s3 cp %p s3://wal-archive/postgres/%f"
+    wal_level: "replica"
+    max_wal_senders: 10
+```
+
+**Detailed documentation:** [PostgreSQL Backup Guide](../../docs/postgresql-backup-guide.md)
 
 ### 6. Security Hardening
 
@@ -672,6 +745,223 @@ postgresql:
     ssl_cert_file: "/etc/ssl/certs/server.crt"
     ssl_key_file: "/etc/ssl/private/server.key"
 ```
+
+---
+
+## Security & RBAC
+
+### RBAC Configuration
+
+This chart includes Role-Based Access Control (RBAC) resources for namespace-scoped permissions:
+
+```yaml
+rbac:
+  create: true  # Enable RBAC resources
+  annotations: {}
+```
+
+**Created resources:**
+- `Role` - Namespace-scoped permissions
+- `RoleBinding` - Binds ServiceAccount to Role
+
+**Permissions granted:**
+- `configmaps` - get, list (configuration access)
+- `secrets` - get, list (database credentials)
+- `pods` - get, list (replication and clustering)
+- `endpoints` - get, list (service discovery)
+- `persistentvolumeclaims` - get, list (storage management)
+
+### Pod Security Standards
+
+```yaml
+podSecurityContext:
+  runAsNonRoot: true
+  runAsUser: 999  # postgres user
+  fsGroup: 999
+
+securityContext:
+  allowPrivilegeEscalation: false
+  capabilities:
+    drop:
+      - ALL
+  readOnlyRootFilesystem: false  # PostgreSQL requires writable filesystem
+```
+
+---
+
+## Operations
+
+### Health Checks
+
+```bash
+# Check readiness (can accept connections)
+make -f make/ops/postgresql.mk pg-ready
+
+# Check database health
+make -f make/ops/postgresql.mk pg-health
+
+# View logs
+make -f make/ops/postgresql.mk pg-logs
+
+# Port-forward for local access
+make -f make/ops/postgresql.mk pg-port-forward
+```
+
+### Replication Management
+
+```bash
+# Check replication status
+make -f make/ops/postgresql.mk pg-replication-status
+
+# List replication slots
+make -f make/ops/postgresql.mk pg-list-replication-slots
+
+# Promote replica to primary
+make -f make/ops/postgresql.mk pg-promote-replica
+```
+
+### Database Operations
+
+```bash
+# Connect to database
+make -f make/ops/postgresql.mk pg-shell
+
+# Run SQL query
+make -f make/ops/postgresql.mk pg-query SQL="SELECT version();"
+
+# List databases
+make -f make/ops/postgresql.mk pg-list-databases
+
+# Vacuum and analyze
+make -f make/ops/postgresql.mk pg-vacuum
+make -f make/ops/postgresql.mk pg-analyze
+
+# Check database size
+make -f make/ops/postgresql.mk pg-database-size
+```
+
+### Performance Monitoring
+
+```bash
+# Check active connections
+make -f make/ops/postgresql.mk pg-active-connections
+
+# Check slow queries
+make -f make/ops/postgresql.mk pg-slow-queries
+
+# Check table bloat
+make -f make/ops/postgresql.mk pg-bloat
+
+# Check index usage
+make -f make/ops/postgresql.mk pg-index-usage
+```
+
+---
+
+## Upgrading
+
+### Upgrade Strategies
+
+| Strategy | Downtime | Complexity | Recommended For |
+|---------|----------|-----------|----------------|
+| **Minor Version** | None (rolling) | Low | 16.1 → 16.2 |
+| **pg_upgrade** | 30-60 min | Medium | 15.x → 16.x |
+| **Dump/Restore** | 1-4 hours | Low | Small databases, major jumps |
+| **Blue-Green** | 5-10 min | High | Large production databases |
+| **Logical Replication** | Near-zero | High | Minimal downtime required |
+
+### Pre-Upgrade Checklist
+
+```bash
+# 1. Run pre-upgrade validation
+make -f make/ops/postgresql.mk pg-pre-upgrade-check
+
+# 2. Create full backup
+make -f make/ops/postgresql.mk pg-backup-all
+
+# 3. Check extension compatibility
+make -f make/ops/postgresql.mk pg-check-extensions
+
+# 4. Review release notes
+echo "Check: https://www.postgresql.org/docs/16/release.html"
+```
+
+### Minor Version Upgrade (Rolling)
+
+**Prerequisites:** For 16.1 → 16.2 type upgrades
+
+```bash
+# 1. Update Helm repository
+helm repo update scripton-charts
+
+# 2. Upgrade with new version
+helm upgrade postgresql scripton-charts/postgresql \
+  --set image.tag=16.2 \
+  --reuse-values \
+  --wait \
+  --timeout=10m
+
+# 3. Verify upgrade
+make -f make/ops/postgresql.mk pg-post-upgrade-check
+```
+
+### Major Version Upgrade (pg_upgrade)
+
+**For 15.x → 16.x:**
+
+```bash
+# 1. Backup first
+make -f make/ops/postgresql.mk pg-backup-all
+
+# 2. Stop applications
+kubectl scale deployment myapp --replicas=0
+
+# 3. Run pg_upgrade
+make -f make/ops/postgresql.mk pg-upgrade-major \
+  OLD_VERSION=15 \
+  NEW_VERSION=16
+
+# 4. Start applications
+kubectl scale deployment myapp --replicas=1
+
+# 5. Validate and analyze
+make -f make/ops/postgresql.mk pg-post-upgrade-check
+make -f make/ops/postgresql.mk pg-analyze
+```
+
+### Version-Specific Notes
+
+#### PostgreSQL 15 to 16
+- ICU library changes (may require reindex)
+- Logical replication from standby servers
+- pg_stat_statements changes
+
+#### PostgreSQL 14 to 15
+- **Breaking:** Public schema permission changes
+- New multirange types
+- LZ4 compression support
+
+#### PostgreSQL 13 to 14
+- **Breaking:** recovery.conf removed (use recovery.signal)
+- Subscriptions can require passwords
+- btree deduplication enabled by default
+
+### Rollback Procedure
+
+```bash
+# If upgrade fails, rollback via Helm
+helm rollback postgresql
+
+# Or restore from backup
+make -f make/ops/postgresql.mk pg-restore-all FILE=/path/to/backup
+
+# Verify rollback
+make -f make/ops/postgresql.mk pg-post-upgrade-check
+```
+
+**Detailed documentation:** [PostgreSQL Upgrade Guide](../../docs/postgresql-upgrade-guide.md)
+
+---
 
 ## Additional Resources
 

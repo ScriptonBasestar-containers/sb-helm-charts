@@ -1,0 +1,20 @@
+{{- if .Values.rbac.create -}}
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: {{ include "postgresql.roleBindingName" . }}
+  labels:
+    {{- include "postgresql.labels" . | nindent 4 }}
+  {{- with .Values.rbac.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: {{ include "postgresql.roleName" . }}
+subjects:
+  - kind: ServiceAccount
+    name: {{ include "postgresql.serviceAccountName" . }}
+    namespace: {{ .Release.Namespace }}
+{{- end }}
