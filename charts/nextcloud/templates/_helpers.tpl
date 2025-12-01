@@ -60,3 +60,14 @@ Create the name of the service account to use
 {{- default "default" .Values.serviceAccount.name }}
 {{- end }}
 {{- end }}
+
+{{/*
+RBAC names
+*/}}
+{{- define "nextcloud.roleName" -}}
+{{- printf "%s-role" (include "nextcloud.fullname" .) }}
+{{- end }}
+
+{{- define "nextcloud.roleBindingName" -}}
+{{- printf "%s-rolebinding" (include "nextcloud.fullname" .) }}
+{{- end }}

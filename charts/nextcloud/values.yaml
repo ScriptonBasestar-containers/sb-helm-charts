@@ -104,6 +104,13 @@ imagePullSecrets: []
 nameOverride: ""
 fullnameOverride: ""
 
+# RBAC Configuration
+rbac:
+  # Specifies whether RBAC resources should be created
+  create: true
+  # Annotations to add to the Role and RoleBinding
+  annotations: {}
+
 # Service account configuration
 serviceAccount:
   create: true
