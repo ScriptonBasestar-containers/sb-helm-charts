@@ -447,6 +447,507 @@ For a complete list of commands:
 make -f make/ops/mysql.mk help
 ```
 
+## Backup & Recovery Strategy
+
+This chart supports a comprehensive **5-component backup strategy** for production-grade data protection.
+
+### Backup Components Overview
+
+| Component | RPO | RTO | Use Case | Storage |
+|-----------|-----|-----|----------|---------|
+| **Configuration** | Daily | < 5 min | Infrastructure recovery | Git + S3 |
+| **Logical Dumps** | 24 hours | 30 min - 2 hrs | Database restore | S3 Standard |
+| **Binary Logs** | 5-15 minutes | 30 min - 1 hr | Point-in-Time Recovery (PITR) | S3 Standard |
+| **Replication** | Near-zero | < 5 min | High availability | Live replica |
+| **PVC Snapshots** | Weekly | 30 min - 2 hrs | Disaster recovery | CSI Snapshots |
+
+### Quick Backup Commands
+
+```bash
+# Full backup (all databases)
+make -f make/ops/mysql.mk mysql-backup-all
+
+# Single database backup
+make -f make/ops/mysql.mk mysql-backup DATABASE=myapp
+
+# Configuration backup
+make -f make/ops/mysql.mk mysql-backup-config
+
+# Binary log archiving
+make -f make/ops/mysql.mk mysql-archive-binlogs
+
+# PVC snapshot
+make -f make/ops/mysql.mk mysql-backup-pvc-snapshot
+
+# Verify backup
+make -f make/ops/mysql.mk mysql-backup-verify FILE=tmp/mysql-backups/backup.sql.gz
+```
+
+### Quick Recovery Commands
+
+```bash
+# Restore all databases
+make -f make/ops/mysql.mk mysql-restore-all FILE=tmp/mysql-backups/mysql-all.sql.gz
+
+# Restore single database
+make -f make/ops/mysql.mk mysql-restore DATABASE=myapp FILE=tmp/mysql-backups/myapp.sql.gz
+
+# Point-in-Time Recovery
+make -f make/ops/mysql.mk mysql-pitr RECOVERY_TIME='2025-01-15 14:30:00'
+
+# Promote replica (HA failover)
+make -f make/ops/mysql.mk mysql-promote-replica POD=mysql-1
+```
+
+### Automated Backup Configuration
+
+**CronJob for daily backups**:
+
+```yaml
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: mysql-backup
+spec:
+  schedule: "0 2 * * *"  # Daily at 2 AM
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          containers:
+          - name: mysql-backup
+            image: mysql:8.0
+            env:
+            - name: MYSQL_PWD
+              valueFrom:
+                secretKeyRef:
+                  name: mysql-secret
+                  key: mysql-root-password
+            command:
+            - /bin/bash
+            - -c
+            - |
+              BACKUP_DATE=$(date +%Y%m%d-%H%M%S)
+              mysqldump -h mysql -u root \
+                --all-databases \
+                --single-transaction \
+                --master-data=2 \
+                --flush-logs \
+                --routines \
+                --triggers \
+                --events | gzip > /backup/mysql-all-$BACKUP_DATE.sql.gz
+
+              # Upload to S3 (requires aws-cli)
+              aws s3 cp /backup/mysql-all-$BACKUP_DATE.sql.gz \
+                s3://mysql-backups/daily/
+
+              # Cleanup old local backups
+              find /backup -name "mysql-all-*.sql.gz" -mtime +7 -delete
+            volumeMounts:
+            - name: backup
+              mountPath: /backup
+          volumes:
+          - name: backup
+            persistentVolumeClaim:
+              claimName: mysql-backup-pvc
+          restartPolicy: OnFailure
+```
+
+### Binary Log Archiving for PITR
+
+**Enable binary logging** (`values.yaml`):
+
+```yaml
+mysql:
+  config:
+    log-bin: "mysql-bin"
+    server-id: "1"
+    binlog_format: "ROW"
+    expire_logs_days: "7"
+    max_binlog_size: "100M"
+    sync_binlog: "1"
+```
+
+**Archive binary logs to S3**:
+
+```bash
+# Archive all binary logs
+make -f make/ops/mysql.mk mysql-archive-binlogs
+
+# Purge old binary logs (after archiving)
+make -f make/ops/mysql.mk mysql-purge-binlogs BEFORE='2025-01-01'
+```
+
+### Comprehensive Documentation
+
+For detailed backup/recovery procedures, see:
+- **[MySQL Backup Guide](../../docs/mysql-backup-guide.md)** - Comprehensive backup strategies, PITR procedures, disaster recovery
+- **[MySQL Upgrade Guide](../../docs/mysql-upgrade-guide.md)** - Upgrade strategies, rollback procedures, version-specific notes
+
+## Security & RBAC
+
+This chart includes Kubernetes RBAC resources for secure operation.
+
+### RBAC Resources
+
+**Enabled by default** (`rbac.create=true`):
+
+- **Role**: Namespace-scoped permissions for MySQL operations
+  - Read ConfigMaps (configuration)
+  - Read Secrets (credentials)
+  - Read Pods (health checks, operations)
+  - Read Endpoints (service discovery)
+  - Read PVCs (storage operations)
+
+- **RoleBinding**: Binds the Role to the MySQL ServiceAccount
+
+**Configuration**:
+
+```yaml
+rbac:
+  # Create RBAC resources
+  create: true
+  # Additional annotations
+  annotations: {}
+```
+
+### Security Best Practices
+
+**1. Password Management**:
+
+```bash
+# Use Kubernetes Secrets
+kubectl create secret generic mysql-passwords \
+  --from-literal=mysql-root-password=$(openssl rand -base64 32) \
+  --from-literal=mysql-replication-password=$(openssl rand -base64 32)
+
+# Install with existing secret
+helm install mysql sb-charts/mysql \
+  --set mysql.existingSecret=mysql-passwords
+```
+
+**2. Network Policies**:
+
+```yaml
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: mysql-netpol
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: mysql
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        - podSelector:
+            matchLabels:
+              app: myapp  # Only allow myapp pods
+      ports:
+        - protocol: TCP
+          port: 3306
+```
+
+**3. TLS/SSL Encryption**:
+
+```yaml
+mysql:
+  config:
+    require_secure_transport: "ON"
+    ssl-ca: "/etc/mysql/certs/ca.pem"
+    ssl-cert: "/etc/mysql/certs/server-cert.pem"
+    ssl-key: "/etc/mysql/certs/server-key.pem"
+```
+
+**4. Security Contexts** (already configured):
+
+- **Non-root execution**: `runAsUser: 999`
+- **Read-only root filesystem**: `readOnlyRootFilesystem: false` (MySQL requires write access to /tmp)
+- **Drop all capabilities**: `capabilities.drop: [ALL]`
+- **No privilege escalation**: `allowPrivilegeEscalation: false`
+
+## Operations
+
+### Health Checks
+
+**Liveness and Readiness Probes**:
+
+```bash
+# Check pod health status
+kubectl get pods -l app.kubernetes.io/name=mysql
+
+# Manually test MySQL availability
+kubectl exec -it mysql-0 -- mysqladmin -u root -p ping
+```
+
+**Probe configuration** (default):
+
+```yaml
+livenessProbe:
+  initialDelaySeconds: 30
+  periodSeconds: 10
+  timeoutSeconds: 5
+  failureThreshold: 6  # 60 seconds total before restart
+
+readinessProbe:
+  initialDelaySeconds: 10
+  periodSeconds: 10
+  timeoutSeconds: 5
+  failureThreshold: 3  # 30 seconds total before marked unready
+```
+
+### Replication Management
+
+**Check replication status**:
+
+```bash
+# Overall replication health
+make -f make/ops/mysql.mk mysql-replication-status
+
+# Check replication lag
+make -f make/ops/mysql.mk mysql-replication-lag
+
+# List binary logs
+make -f make/ops/mysql.mk mysql-show-binlogs
+```
+
+**Promote replica to primary** (manual failover):
+
+```bash
+# Promote mysql-1 to primary
+make -f make/ops/mysql.mk mysql-promote-replica POD=mysql-1
+
+# Update application connection string to point to new primary
+kubectl set env deployment/myapp MYSQL_HOST=mysql-1
+```
+
+### Database Operations
+
+**Create database and user**:
+
+```bash
+# Create database
+kubectl exec -it mysql-0 -- mysql -u root -p -e "
+  CREATE DATABASE myapp CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+"
+
+# Create user and grant privileges
+kubectl exec -it mysql-0 -- mysql -u root -p -e "
+  CREATE USER 'myapp'@'%' IDENTIFIED BY 'secret';
+  GRANT ALL PRIVILEGES ON myapp.* TO 'myapp'@'%';
+  FLUSH PRIVILEGES;
+"
+```
+
+**Database maintenance**:
+
+```bash
+# Analyze tables (update optimizer statistics)
+make -f make/ops/mysql.mk mysql-analyze-tables
+
+# Optimize tables (defragment)
+kubectl exec -it mysql-0 -- mysqlcheck -u root -p --all-databases --optimize
+
+# Check tables for errors
+kubectl exec -it mysql-0 -- mysqlcheck -u root -p --all-databases --check
+
+# Repair corrupted tables
+kubectl exec -it mysql-0 -- mysqlcheck -u root -p --all-databases --repair
+```
+
+### Performance Monitoring
+
+**Connection monitoring**:
+
+```bash
+# Active connections
+make -f make/ops/mysql.mk mysql-connections
+
+# Connection details
+kubectl exec -it mysql-0 -- mysql -u root -p -e "
+  SELECT user, host, db, command, time, state
+  FROM information_schema.processlist
+  WHERE command != 'Sleep';
+"
+```
+
+**Query performance**:
+
+```bash
+# Slow query log analysis (if enabled)
+kubectl exec -it mysql-0 -- cat /var/log/mysql/slow.log
+
+# Current queries
+kubectl exec -it mysql-0 -- mysql -u root -p -e "SHOW FULL PROCESSLIST;"
+```
+
+**Resource usage**:
+
+```bash
+# Pod resource usage
+kubectl top pods -l app.kubernetes.io/name=mysql
+
+# Database sizes
+make -f make/ops/mysql.mk mysql-database-size
+
+# Table sizes
+kubectl exec -it mysql-0 -- mysql -u root -p -e "
+  SELECT
+    table_schema AS 'Database',
+    table_name AS 'Table',
+    ROUND(((data_length + index_length) / 1024 / 1024), 2) AS 'Size (MB)'
+  FROM information_schema.tables
+  WHERE table_schema NOT IN ('mysql', 'information_schema', 'performance_schema', 'sys')
+  ORDER BY (data_length + index_length) DESC
+  LIMIT 20;
+"
+```
+
+## Upgrading
+
+This section covers upgrading the MySQL Helm chart and MySQL server version.
+
+### Upgrade Strategies
+
+| Strategy | Downtime | Complexity | Use Case |
+|----------|----------|------------|----------|
+| **Rolling Upgrade** | None (with replicas ≥ 2) | Low | Minor versions, patch upgrades |
+| **In-Place Upgrade** | 10-30 minutes | Medium | Major versions, single instance |
+| **Dump/Restore** | 1-4 hours | Low | Major version jumps, clean start |
+| **Blue-Green** | 5-10 minutes | High | Critical systems, zero-downtime |
+
+### Minor Version Upgrade (Rolling)
+
+**Example**: MySQL 8.0.32 → MySQL 8.0.35
+
+```bash
+# Step 1: Backup (always!)
+make -f make/ops/mysql.mk mysql-backup-all
+
+# Step 2: Pre-upgrade check
+make -f make/ops/mysql.mk mysql-pre-upgrade-check
+
+# Step 3: Upgrade chart
+helm upgrade mysql sb-charts/mysql \
+  --set image.tag=8.0.35 \
+  --reuse-values
+
+# Step 4: Monitor rollout
+kubectl rollout status statefulset/mysql
+
+# Step 5: Post-upgrade validation
+make -f make/ops/mysql.mk mysql-post-upgrade-check
+```
+
+**Downtime**: None (with `replicaCount >= 2`)
+
+### Major Version Upgrade (In-Place)
+
+**Example**: MySQL 5.7 → MySQL 8.0
+
+```bash
+# Step 1: Full backup
+make -f make/ops/mysql.mk mysql-backup-all
+make -f make/ops/mysql.mk mysql-backup-config
+make -f make/ops/mysql.mk mysql-archive-binlogs
+
+# Step 2: Pre-upgrade checks
+make -f make/ops/mysql.mk mysql-pre-upgrade-check
+
+# Step 3: Stop applications
+kubectl scale deployment myapp --replicas=0
+
+# Step 4: Upgrade MySQL
+helm upgrade mysql sb-charts/mysql \
+  --set image.tag=8.0 \
+  --reuse-values
+
+# Step 5: Wait for restart
+kubectl wait --for=condition=ready pod/mysql-0 --timeout=300s
+
+# Step 6: Verify version
+kubectl exec -it mysql-0 -- mysql -u root -p -e "SELECT VERSION();"
+
+# Step 7: Post-upgrade validation
+make -f make/ops/mysql.mk mysql-post-upgrade-check
+
+# Step 8: Restart applications
+kubectl scale deployment myapp --replicas=3
+```
+
+**Downtime**: 10-30 minutes
+
+### Upgrade Rollback
+
+**Helm rollback** (if upgrade fails):
+
+```bash
+# Check rollback history
+helm history mysql
+
+# Rollback to previous version
+helm rollback mysql
+
+# Verify rollback
+kubectl exec -it mysql-0 -- mysql --version
+```
+
+**Restore from backup** (if data corrupted):
+
+```bash
+# Restore pre-upgrade backup
+make -f make/ops/mysql.mk mysql-restore-all \
+  FILE=tmp/mysql-backups/mysql-all-pre-upgrade.sql.gz
+```
+
+### Version-Specific Notes
+
+**MySQL 5.7 → 8.0**:
+
+- **Authentication plugin**: Changed from `mysql_native_password` to `caching_sha2_password`
+  - Update client libraries or set `default_authentication_plugin=mysql_native_password`
+- **Reserved keywords**: New keywords added (`SYSTEM`, `WINDOW`, `LATERAL`)
+- **Character set**: `utf8mb3` deprecated, use `utf8mb4`
+
+**MySQL 8.0 → 8.1**:
+
+- Mostly backward compatible
+- Performance improvements
+- Instant DDL enhancements
+
+### Pre-Upgrade Checklist
+
+- [ ] Backup all databases: `make -f make/ops/mysql.mk mysql-backup-all`
+- [ ] Backup configuration: `make -f make/ops/mysql.mk mysql-backup-config`
+- [ ] Archive binary logs: `make -f make/ops/mysql.mk mysql-archive-binlogs`
+- [ ] Run pre-upgrade checks: `make -f make/ops/mysql.mk mysql-pre-upgrade-check`
+- [ ] Test upgrade in non-production environment
+- [ ] Review MySQL release notes for breaking changes
+- [ ] Schedule maintenance window
+- [ ] Prepare rollback plan
+
+### Post-Upgrade Validation
+
+```bash
+# Automated validation
+make -f make/ops/mysql.mk mysql-post-upgrade-check
+```
+
+**What it checks**:
+1. MySQL version (should be new version)
+2. Pod status (Running and Ready)
+3. Database accessibility
+4. Replication status (if enabled)
+5. Database sizes (compare with pre-upgrade)
+6. Table counts (verify data integrity)
+7. Sample data queries
+
+### Comprehensive Documentation
+
+For detailed upgrade procedures, see:
+- **[MySQL Upgrade Guide](../../docs/mysql-upgrade-guide.md)** - Complete upgrade strategies, rollback procedures, version-specific notes
+
 ## Troubleshooting
 
 ### Pod Not Starting

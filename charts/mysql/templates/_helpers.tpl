@@ -80,3 +80,14 @@ app.kubernetes.io/instance: {{ .Release.Name }}
 {{- randAlphaNum 16 }}
 {{- end }}
 {{- end }}
+
+{{/*
+RBAC names
+*/}}
+{{- define "mysql.roleName" -}}
+{{- printf "%s-role" (include "mysql.fullname" .) }}
+{{- end }}
+
+{{- define "mysql.roleBindingName" -}}
+{{- printf "%s-rolebinding" (include "mysql.fullname" .) }}
+{{- end }}

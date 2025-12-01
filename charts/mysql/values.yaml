@@ -61,6 +61,13 @@ serviceAccount:
   annotations: {}
   name: ""
 
+# RBAC Configuration
+rbac:
+  # Specifies whether RBAC resources should be created
+  create: true
+  # Annotations to add to the Role and RoleBinding
+  annotations: {}
+
 # Pod annotations
 podAnnotations: {}
 
@@ -108,3 +115,162 @@ tolerations: []
 
 # Affinity
 affinity: {}
+
+# =============================================================================
+# Backup & Recovery Configuration
+# =============================================================================
+# Note: Backup is handled via Makefile targets, not automated CronJobs
+# See: docs/mysql-backup-guide.md for detailed procedures
+backup:
+  enabled: false  # Documentation only - no CronJob created
+  documentation:
+    strategy: "logical_dumps + binary_logs + replication + pvc_snapshots"
+    tools:
+      - "mysqldump (logical backups)"
+      - "mysqlbinlog (binary log archiving)"
+      - "MySQL replication (hot standby)"
+      - "kubectl (for data extraction)"
+      - "VolumeSnapshot API (for PVC snapshots)"
+    components:
+      configuration:
+        description: "ConfigMap (my.cnf) and Secret (passwords)"
+        method: "ConfigMap export + Secret export"
+        frequency: "Daily or before changes"
+        retention: "90 days"
+        size: "< 100KB"
+      logical_dumps:
+        description: "mysqldump (single DB or all databases)"
+        method: "mysqldump --all-databases --single-transaction --master-data=2 | gzip"
+        frequency: "Daily (small DBs) / Hourly (critical)"
+        retention: "30 days"
+        size: "Varies (10 MB - 100 GB+)"
+        formats: "SQL, compressed SQL (.gz)"
+      binary_logs:
+        description: "MySQL binary logs for Point-in-Time Recovery (PITR)"
+        method: "mysqlbinlog /var/lib/mysql/mysql-bin.* | gzip"
+        frequency: "Continuous (every binlog rotation)"
+        retention: "7 days (matches full backup retention)"
+        size: "~1-10 GB/day (depends on write volume)"
+        config:
+          log-bin: "mysql-bin"
+          binlog_format: "ROW"
+          expire_logs_days: "7"
+          max_binlog_size: "100M"
+      replication:
+        description: "MySQL replication (hot standby)"
+        method: "Built-in MySQL replication"
+        frequency: "Real-time (asynchronous or semi-sync)"
+        retention: "N/A (live replica)"
+        rpo: "Near-zero (seconds)"
+      pvc_snapshots:
+        description: "Complete persistent volume snapshot"
+        method: "Kubernetes VolumeSnapshot API"
+        frequency: "Weekly"
+        retention: "4 weeks"
+        size: "Same as PVC size"
+    targets:
+      rto: "< 1 hour (most scenarios) / < 5 minutes (with replication)"
+      rpo: "5-15 minutes (binary logs) / Near-zero (replication)"
+    commands:
+      backup:
+        full: "make -f make/ops/mysql.mk mysql-backup-all"
+        single_db: "make -f make/ops/mysql.mk mysql-backup DATABASE=myapp"
+        config: "make -f make/ops/mysql.mk mysql-backup-config"
+        binlogs: "make -f make/ops/mysql.mk mysql-archive-binlogs"
+        pvc: "make -f make/ops/mysql.mk mysql-backup-pvc-snapshot"
+        verify: "make -f make/ops/mysql.mk mysql-backup-verify FILE=<path>"
+      restore:
+        full: "make -f make/ops/mysql.mk mysql-restore-all FILE=<path>"
+        single_db: "make -f make/ops/mysql.mk mysql-restore DATABASE=myapp FILE=<path>"
+        pitr: "make -f make/ops/mysql.mk mysql-pitr RECOVERY_TIME='2025-01-15 14:30:00'"
+
+# =============================================================================
+# Upgrade Configuration
+# =============================================================================
+# Note: Upgrades are performed manually via Helm, not automated
+# See: docs/mysql-upgrade-guide.md for detailed procedures
+upgrade:
+  enabled: false  # Documentation only - manual process
+  preUpgradeBackup: true  # Always backup before upgrade
+  documentation:
+    strategies:
+      rolling:
+        description: "Rolling upgrade for minor versions (zero downtime)"
+        downtime: "None (with replicas >= 2)"
+        complexity: "Low"
+        recommended: true
+        steps:
+          - "Pre-upgrade validation"
+          - "Create backup"
+          - "Helm upgrade with new image tag"
+          - "Post-upgrade validation"
+      in_place:
+        description: "In-place upgrade for major versions"
+        downtime: "10-30 minutes"
+        complexity: "Medium"
+        recommended: true
+        steps:
+          - "Backup database"
+          - "Stop applications"
+          - "Helm upgrade"
+          - "Run mysql_upgrade (if MySQL < 8.0.16)"
+          - "Verify data integrity"
+          - "Start applications"
+      dump_restore:
+        description: "Safest method using mysqldump/mysql restore"
+        downtime: "1-4 hours (depends on database size)"
+        complexity: "Low"
+        recommended: false
+        steps:
+          - "mysqldump from old version"
+          - "Install new MySQL version"
+          - "mysql restore to new version"
+          - "Verify data integrity"
+      blue_green:
+        description: "Zero-downtime upgrade with parallel clusters"
+        downtime: "5-10 minutes (service cutover)"
+        complexity: "High"
+        recommended: false
+        steps:
+          - "Deploy new MySQL cluster"
+          - "Setup replication (old -> new)"
+          - "Sync data to new version"
+          - "Cutover applications"
+          - "Decommission old cluster"
+    version_notes:
+      mysql_5_7_to_8_0:
+        breaking_changes:
+          - "Authentication plugin: mysql_native_password -> caching_sha2_password"
+          - "Reserved keywords added (SYSTEM, WINDOW, LATERAL)"
+          - "utf8mb3 deprecated (use utf8mb4)"
+        notable_changes:
+          - "Improved performance"
+          - "JSON enhancements"
+          - "Window functions"
+        recommended_steps:
+          - "Backup before upgrade"
+          - "Run mysqlcheck --check-upgrade"
+          - "Update client libraries for caching_sha2_password"
+          - "Convert character sets to utf8mb4"
+      mysql_8_0_to_8_1:
+        breaking_changes: []
+        notable_changes:
+          - "Instant DDL enhancements"
+          - "Performance improvements"
+          - "New system variables"
+        recommended_steps:
+          - "Backup before upgrade"
+          - "Test in non-production first"
+    commands:
+      pre_upgrade:
+        check: "make -f make/ops/mysql.mk mysql-pre-upgrade-check"
+        backup: "make -f make/ops/mysql.mk mysql-backup-all"
+      upgrade:
+        minor: "helm upgrade mysql sb-charts/mysql --set image.tag=8.0.35"
+        major: "helm upgrade mysql sb-charts/mysql --set image.tag=8.0"
+      post_upgrade:
+        check: "make -f make/ops/mysql.mk mysql-post-upgrade-check"
+        analyze: "make -f make/ops/mysql.mk mysql-analyze-tables"
+      rollback:
+        helm: "helm rollback mysql"
+        restore: "make -f make/ops/mysql.mk mysql-restore-all FILE=<path>"

@@ -339,6 +339,281 @@ mysql-version:
 	kubectl exec $(POD) -n $(NAMESPACE) -- bash -c \
 		"mysql -uroot -p\$$MYSQL_ROOT_PASSWORD -e 'SELECT VERSION();'"
 
+################################################################################
+# Enhanced Backup & Recovery Operations
+################################################################################
+
+.PHONY: mysql-backup-all
+mysql-backup-all:
+	@echo "Backing up all MySQL databases with binary log position..."
+	@mkdir -p tmp/mysql-backups
+	@BACKUP_FILE="tmp/mysql-backups/mysql-all-$$(date +%Y%m%d-%H%M%S).sql.gz"; \
+	kubectl exec $(POD) -n $(NAMESPACE) -- bash -c \
+		"mysqldump -uroot -p\$$MYSQL_ROOT_PASSWORD \
+			--all-databases \
+			--single-transaction \
+			--master-data=2 \
+			--flush-logs \
+			--routines \
+			--triggers \
+			--events \
+			--quick" | gzip > $$BACKUP_FILE && \
+	echo "Backup saved to: $$BACKUP_FILE"
+
+.PHONY: mysql-backup-single
+mysql-backup-single:
+ifndef DATABASE
+	@echo "Error: DATABASE variable required. Usage: make mysql-backup-single DATABASE=myapp"
+	@exit 1
+endif
+	@echo "Backing up database: $(DATABASE)"
+	@mkdir -p tmp/mysql-backups
+	@BACKUP_FILE="tmp/mysql-backups/$(DATABASE)-$$(date +%Y%m%d-%H%M%S).sql.gz"; \
+	kubectl exec $(POD) -n $(NAMESPACE) -- bash -c \
+		"mysqldump -uroot -p\$$MYSQL_ROOT_PASSWORD \
+			--single-transaction \
+			--routines \
+			--triggers \
+			--events \
+			$(DATABASE)" | gzip > $$BACKUP_FILE && \
+	echo "Backup saved to: $$BACKUP_FILE"
+
+.PHONY: mysql-backup-config
+mysql-backup-config:
+	@echo "Backing up MySQL configuration..."
+	@mkdir -p tmp/mysql-backups
+	@kubectl get configmap -n $(NAMESPACE) $(RELEASE_NAME)-config -o yaml > tmp/mysql-backups/configmap-$$(date +%Y%m%d-%H%M%S).yaml 2>/dev/null || echo "No ConfigMap found"
+	@kubectl get secret -n $(NAMESPACE) $(RELEASE_NAME)-secret -o yaml > tmp/mysql-backups/secret-$$(date +%Y%m%d-%H%M%S).yaml 2>/dev/null || echo "No Secret found"
+	@echo "Configuration backups saved to tmp/mysql-backups/"
+
+.PHONY: mysql-show-binlogs
+mysql-show-binlogs:
+	@echo "Listing binary logs..."
+	kubectl exec $(POD) -n $(NAMESPACE) -- bash -c \
+		"mysql -uroot -p\$$MYSQL_ROOT_PASSWORD -e 'SHOW BINARY LOGS;'"
+
+.PHONY: mysql-flush-logs
+mysql-flush-logs:
+	@echo "Flushing and rotating binary logs..."
+	kubectl exec $(POD) -n $(NAMESPACE) -- bash -c \
+		"mysql -uroot -p\$$MYSQL_ROOT_PASSWORD -e 'FLUSH LOGS;'"
+
+.PHONY: mysql-archive-binlogs
+mysql-archive-binlogs:
+	@echo "Archiving binary logs to tmp/mysql-backups/binlogs/"
+	@mkdir -p tmp/mysql-backups/binlogs
+	@echo "Note: This is a placeholder. Implement S3/MinIO archiving for production."
+	@echo "See docs/mysql-backup-guide.md for detailed archiving procedures."
+
+.PHONY: mysql-purge-binlogs
+mysql-purge-binlogs:
+ifndef BEFORE
+	@echo "Error: BEFORE variable required."
+	@echo "Usage: make mysql-purge-binlogs BEFORE='2025-01-01'"
+	@exit 1
+endif
+	@echo "⚠️  WARNING: This will permanently delete binary logs before $(BEFORE)"
+	@echo "Purging binary logs before: $(BEFORE)"
+	kubectl exec $(POD) -n $(NAMESPACE) -- bash -c \
+		"mysql -uroot -p\$$MYSQL_ROOT_PASSWORD -e \"PURGE BINARY LOGS BEFORE '$(BEFORE)';\""
+
+.PHONY: mysql-backup-pvc-snapshot
+mysql-backup-pvc-snapshot:
+	@echo "Creating PVC snapshot for MySQL data..."
+	@echo "⚠️  WARNING: Requires VolumeSnapshot API and snapshot class configured"
+	@kubectl get pvc -n $(NAMESPACE) -l app.kubernetes.io/name=mysql -o name | while read pvc; do \
+		pvc_name=$$(echo $$pvc | cut -d'/' -f2); \
+		snapshot_name="$$pvc_name-snapshot-$$(date +%Y%m%d-%H%M%S)"; \
+		cat <<EOF | kubectl apply -f - ; \
+apiVersion: snapshot.storage.k8s.io/v1 ; \
+kind: VolumeSnapshot ; \
+metadata: ; \
+  name: $$snapshot_name ; \
+  namespace: $(NAMESPACE) ; \
+spec: ; \
+  volumeSnapshotClassName: csi-hostpath-snapclass ; \
+  source: ; \
+    persistentVolumeClaimName: $$pvc_name ; \
+EOF \
+		echo "Created snapshot: $$snapshot_name"; \
+	done
+
+.PHONY: mysql-backup-verify
+mysql-backup-verify:
+ifndef FILE
+	@echo "Error: FILE variable required. Usage: make mysql-backup-verify FILE=path/to/backup.sql.gz"
+	@exit 1
+endif
+	@echo "Verifying backup file: $(FILE)"
+	@if [[ "$(FILE)" == *.gz ]]; then \
+		echo "Compressed SQL backup - checking first 50 lines:"; \
+		zcat $(FILE) | head -n 50; \
+	else \
+		echo "SQL backup - checking first 50 lines:"; \
+		head -n 50 $(FILE); \
+	fi
+
+.PHONY: mysql-restore-all
+mysql-restore-all:
+ifndef FILE
+	@echo "Error: FILE variable required. Usage: make mysql-restore-all FILE=path/to/backup.sql.gz"
+	@exit 1
+endif
+	@echo "⚠️  WARNING: This will restore all databases"
+	@echo "Restoring all databases from: $(FILE)"
+	@if [[ "$(FILE)" == *.gz ]]; then \
+		zcat $(FILE) | kubectl exec -i $(POD) -n $(NAMESPACE) -- \
+			mysql -uroot -p$$MYSQL_ROOT_PASSWORD; \
+	else \
+		kubectl exec -i $(POD) -n $(NAMESPACE) -- \
+			mysql -uroot -p$$MYSQL_ROOT_PASSWORD < $(FILE); \
+	fi
+	@echo "Restore completed"
+
+.PHONY: mysql-restore-single
+mysql-restore-single:
+ifndef DATABASE
+	@echo "Error: DATABASE and FILE variables required."
+	@echo "Usage: make mysql-restore-single DATABASE=myapp FILE=path/to/backup.sql.gz"
+	@exit 1
+endif
+ifndef FILE
+	@echo "Error: FILE variable required."
+	@exit 1
+endif
+	@echo "Restoring database $(DATABASE) from: $(FILE)"
+	@if [[ "$(FILE)" == *.gz ]]; then \
+		zcat $(FILE) | kubectl exec -i $(POD) -n $(NAMESPACE) -- \
+			mysql -uroot -p$$MYSQL_ROOT_PASSWORD $(DATABASE); \
+	else \
+		kubectl exec -i $(POD) -n $(NAMESPACE) -- \
+			mysql -uroot -p$$MYSQL_ROOT_PASSWORD $(DATABASE) < $(FILE); \
+	fi
+	@echo "Restore completed"
+
+.PHONY: mysql-pitr
+mysql-pitr:
+ifndef RECOVERY_TIME
+	@echo "Error: RECOVERY_TIME variable required."
+	@echo "Usage: make mysql-pitr RECOVERY_TIME='2025-01-15 14:30:00'"
+	@exit 1
+endif
+	@echo "⚠️  Point-in-Time Recovery (PITR) requires:"
+	@echo "  1. Base backup (full backup)"
+	@echo "  2. Binary logs with all transactions"
+	@echo "  3. Recovery target time: $(RECOVERY_TIME)"
+	@echo ""
+	@echo "Manual steps required:"
+	@echo "  1. Restore base backup"
+	@echo "  2. Apply binary logs up to recovery time"
+	@echo "  3. Verify data integrity"
+	@echo ""
+	@echo "See docs/mysql-backup-guide.md for detailed PITR procedures"
+
+################################################################################
+# Upgrade Operations
+################################################################################
+
+.PHONY: mysql-pre-upgrade-check
+mysql-pre-upgrade-check:
+	@echo "Running pre-upgrade checks..."
+	@echo ""
+	@echo "1. MySQL Version:"
+	@kubectl exec $(POD) -n $(NAMESPACE) -- bash -c \
+		"mysql -uroot -p\$$MYSQL_ROOT_PASSWORD -e 'SELECT VERSION();'"
+	@echo ""
+	@echo "2. Database Sizes:"
+	@kubectl exec $(POD) -n $(NAMESPACE) -- bash -c \
+		"mysql -uroot -p\$$MYSQL_ROOT_PASSWORD -e \"SELECT table_schema AS 'Database', ROUND(SUM(data_length + index_length) / 1024 / 1024, 2) AS 'Size_MB' FROM information_schema.TABLES GROUP BY table_schema ORDER BY Size_MB DESC;\""
+	@echo ""
+	@echo "3. Active Connections:"
+	@kubectl exec $(POD) -n $(NAMESPACE) -- bash -c \
+		"mysql -uroot -p\$$MYSQL_ROOT_PASSWORD -e \"SELECT COUNT(*) AS active_connections FROM information_schema.processlist WHERE command != 'Sleep';\""
+	@echo ""
+	@echo "4. Replication Status:"
+	@kubectl exec $(POD) -n $(NAMESPACE) -- bash -c \
+		"mysql -uroot -p\$$MYSQL_ROOT_PASSWORD -e 'SHOW SLAVE STATUS\G' 2>/dev/null || echo 'No replication configured'"
+	@echo ""
+	@echo "5. Binary Log Status:"
+	@kubectl exec $(POD) -n $(NAMESPACE) -- bash -c \
+		"mysql -uroot -p\$$MYSQL_ROOT_PASSWORD -e 'SHOW BINARY LOGS;' 2>/dev/null || echo 'Binary logging not enabled'"
+	@echo ""
+	@echo "✅ Pre-upgrade checks completed. Review output before proceeding."
+	@echo "📝 Recommendation: Create backup with: make mysql-backup-all"
+
+.PHONY: mysql-post-upgrade-check
+mysql-post-upgrade-check:
+	@echo "Running post-upgrade validation..."
+	@echo ""
+	@echo "1. MySQL Version (should be upgraded):"
+	@kubectl exec $(POD) -n $(NAMESPACE) -- bash -c \
+		"mysql -uroot -p\$$MYSQL_ROOT_PASSWORD -e 'SELECT VERSION();'"
+	@echo ""
+	@echo "2. Pod Status:"
+	@kubectl get pods -n $(NAMESPACE) -l app.kubernetes.io/name=mysql
+	@echo ""
+	@echo "3. Database Accessibility:"
+	@kubectl exec $(POD) -n $(NAMESPACE) -- bash -c \
+		"mysql -uroot -p\$$MYSQL_ROOT_PASSWORD -e 'SHOW DATABASES;'"
+	@echo ""
+	@echo "4. Replication Status:"
+	@kubectl exec $(POD) -n $(NAMESPACE) -- bash -c \
+		"mysql -uroot -p\$$MYSQL_ROOT_PASSWORD -e 'SHOW SLAVE STATUS\G' 2>/dev/null || echo 'No replication configured'"
+	@echo ""
+	@echo "5. Connection Test:"
+	@kubectl exec $(POD) -n $(NAMESPACE) -- bash -c \
+		"mysqladmin -uroot -p\$$MYSQL_ROOT_PASSWORD ping"
+	@echo ""
+	@echo "✅ Post-upgrade validation completed."
+	@echo "📝 Next step: Run ANALYZE with: make mysql-analyze-tables"
+
+.PHONY: mysql-analyze-tables
+mysql-analyze-tables:
+	@echo "Analyzing all tables in all databases..."
+	kubectl exec $(POD) -n $(NAMESPACE) -- bash -c \
+		"mysqlcheck -uroot -p\$$MYSQL_ROOT_PASSWORD --all-databases --analyze"
+
+.PHONY: mysql-connections
+mysql-connections:
+	@echo "Getting active connections..."
+	kubectl exec $(POD) -n $(NAMESPACE) -- bash -c \
+		"mysql -uroot -p\$$MYSQL_ROOT_PASSWORD -e \"SELECT user, host, db, command, time, state FROM information_schema.processlist WHERE command != 'Sleep' ORDER BY time DESC;\""
+
+.PHONY: mysql-database-size
+mysql-database-size:
+	@echo "Getting database sizes..."
+	kubectl exec $(POD) -n $(NAMESPACE) -- bash -c \
+		"mysql -uroot -p\$$MYSQL_ROOT_PASSWORD -e \"SELECT table_schema AS 'Database', ROUND(SUM(data_length + index_length) / 1024 / 1024, 2) AS 'Size_MB' FROM information_schema.TABLES GROUP BY table_schema ORDER BY Size_MB DESC;\""
+
+.PHONY: mysql-replication-status
+mysql-replication-status:
+	@echo "Getting comprehensive replication status..."
+	@echo ""
+	@echo "=== Master Status ==="
+	@kubectl exec $(POD) -n $(NAMESPACE) -- bash -c \
+		"mysql -uroot -p\$$MYSQL_ROOT_PASSWORD -e 'SHOW MASTER STATUS;'" 2>/dev/null || echo "Not a master or binary logging disabled"
+	@echo ""
+	@echo "=== Replica Status ==="
+	@kubectl exec $(POD) -n $(NAMESPACE) -- bash -c \
+		"mysql -uroot -p\$$MYSQL_ROOT_PASSWORD -e 'SHOW SLAVE STATUS\G'" 2>/dev/null || echo "Not a replica"
+
+.PHONY: mysql-replication-lag
+mysql-replication-lag:
+	@echo "Checking replication lag..."
+	@kubectl exec $(POD) -n $(NAMESPACE) -- bash -c \
+		"mysql -uroot -p\$$MYSQL_ROOT_PASSWORD -e \"SELECT CASE WHEN Seconds_Behind_Master IS NULL THEN 'Not Replicating' WHEN Seconds_Behind_Master = 0 THEN 'No Lag (Up to date)' ELSE CONCAT(Seconds_Behind_Master, ' seconds behind') END AS Replication_Status FROM (SHOW SLAVE STATUS) AS status;\" 2>/dev/null" || echo "No replication configured"
+
+.PHONY: mysql-promote-replica
+mysql-promote-replica:
+ifndef POD
+	@echo "Error: POD variable required. Usage: make mysql-promote-replica POD=mysql-1"
+	@exit 1
+endif
+	@echo "⚠️  Promoting replica $(POD) to master..."
+	@kubectl exec $(POD) -n $(NAMESPACE) -- bash -c \
+		"mysql -uroot -p\$$MYSQL_ROOT_PASSWORD -e 'STOP SLAVE; RESET SLAVE ALL;'"
+	@echo "Replica promoted. Verify with: make mysql-replication-status POD=$(POD)"
+
 .PHONY: mysql-restart
 mysql-restart:
 	@echo "Restarting MySQL StatefulSet..."
