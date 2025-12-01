@@ -134,3 +134,14 @@ Return the external URL
 {{- printf "http://localhost:3000" }}
 {{- end }}
 {{- end }}
+
+{{/*
+RBAC names
+*/}}
+{{- define "grafana.roleName" -}}
+{{- printf "%s-role" (include "grafana.fullname" .) }}
+{{- end }}
+
+{{- define "grafana.roleBindingName" -}}
+{{- printf "%s-rolebinding" (include "grafana.fullname" .) }}
+{{- end }}
