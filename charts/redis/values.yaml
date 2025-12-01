@@ -124,6 +124,13 @@ serviceAccount:
   annotations: {}
   name: ""
 
+# RBAC Configuration
+rbac:
+  # Specifies whether RBAC resources should be created
+  create: true
+  # Annotations to add to the Role and RoleBinding
+  annotations: {}
+
 # Pod annotations
 podAnnotations: {}
 
@@ -310,3 +317,179 @@ lifecycle: {}
 #   preStop:
 #     exec:
 #       command: ["/bin/sh", "-c", "redis-cli shutdown save"]
+
+# ============================================================================
+# Backup & Recovery Configuration
+# ============================================================================
+# IMPORTANT: This section is for DOCUMENTATION ONLY.
+# Backup/recovery operations are performed via Makefile targets, NOT CronJobs.
+# See docs/redis-backup-guide.md for comprehensive procedures.
+backup:
+  # This flag is DOCUMENTATION ONLY - no automated CronJobs are created
+  enabled: false
+
+  # Backup documentation and strategy
+  documentation:
+    # Backup strategy overview
+    strategy: "Configuration + RDB Snapshots + AOF Persistence + Replication"
+
+    # Available backup tools (via Makefile)
+    tools:
+      - "make -f make/ops/redis.mk redis-full-backup"
+      - "make -f make/ops/redis.mk redis-backup-rdb"
+      - "make -f make/ops/redis.mk redis-backup-aof"
+      - "make -f make/ops/redis.mk redis-backup-config"
+
+    # Backup components
+    components:
+      configuration:
+        description: "Redis configuration and Kubernetes manifests"
+        command: "make -f make/ops/redis.mk redis-backup-config"
+        frequency: "Before changes"
+
+      rdb_snapshots:
+        description: "Point-in-time binary snapshots (dump.rdb)"
+        command: "make -f make/ops/redis.mk redis-backup-rdb"
+        frequency: "Daily"
+        retention: "30 days"
+
+      aof_persistence:
+        description: "Append-only file for durability"
+        command: "make -f make/ops/redis.mk redis-backup-aof"
+        frequency: "Daily"
+        retention: "7 days"
+
+      replication:
+        description: "Hot standby via primary-replica architecture"
+        command: "Enable via mode: replica"
+        rpo: "Near-zero (async replication lag: < 1 second)"
+
+    # Recovery targets
+    targets:
+      rto: "< 1 hour"
+      rpo: "24 hours"
+
+    # Best practices
+    best_practices:
+      - "Enable both RDB and AOF for maximum durability"
+      - "Schedule daily backups via external tools (Velero, Kasten K10, CronJob)"
+      - "Enable replication for hot standby"
+      - "Store backups offsite (S3, MinIO, NFS)"
+      - "Test recovery procedures regularly (quarterly)"
+      - "Implement 3-2-1 backup rule (3 copies, 2 storage types, 1 offsite)"
+
+    # Quick reference
+    quick_reference:
+      full_backup: "make -f make/ops/redis.mk redis-full-backup"
+      restore_rdb: "make -f make/ops/redis.mk redis-restore-rdb BACKUP_FILE=..."
+      restore_aof: "make -f make/ops/redis.mk redis-restore-aof BACKUP_FILE=..."
+      disaster_recovery: "make -f make/ops/redis.mk redis-disaster-recovery BACKUP_DIR=..."
+
+# ============================================================================
+# Upgrade Configuration
+# ============================================================================
+# IMPORTANT: This section is for DOCUMENTATION ONLY.
+# Upgrade operations are performed manually via Helm, NOT automated.
+# See docs/redis-upgrade-guide.md for comprehensive procedures.
+upgrade:
+  # This flag is DOCUMENTATION ONLY - manual upgrade process
+  enabled: false
+
+  # Pre-upgrade backup (MANDATORY)
+  preUpgradeBackup: true
+
+  # Upgrade documentation and strategies
+  documentation:
+    # Available upgrade strategies
+    strategies:
+      rolling:
+        description: "Zero-downtime upgrade for replica mode"
+        downtime: "None (brief connection resets)"
+        best_for: "Production replica deployments"
+        command: "helm upgrade redis charts/redis --set image.tag=7.4.1-alpine --reuse-values"
+
+      in_place:
+        description: "Simple upgrade with brief downtime"
+        downtime: "1-5 minutes"
+        best_for: "Standalone mode or development"
+        command: "helm upgrade redis charts/redis --set image.tag=7.4.1-alpine --reuse-values"
+
+      blue_green:
+        description: "Parallel deployment with traffic cutover"
+        downtime: "None (requires traffic switch)"
+        best_for: "Maximum safety with easy rollback"
+        steps:
+          - "Deploy green environment with new version"
+          - "Configure green as replica of blue"
+          - "Wait for full sync"
+          - "Promote green to primary"
+          - "Switch traffic to green"
+
+      dump_restore:
+        description: "Clean state upgrade via backup/restore"
+        downtime: "10-30 minutes"
+        best_for: "Major version upgrades with breaking changes"
+        steps:
+          - "Create RDB dump from current deployment"
+          - "Uninstall old deployment"
+          - "Install new version"
+          - "Restore data from dump"
+
+    # Pre-upgrade checklist
+    pre_upgrade:
+      - "Check current Redis version: make -f make/ops/redis.mk redis-version"
+      - "Review release notes for breaking changes"
+      - "Create full backup: make -f make/ops/redis.mk redis-full-backup"
+      - "Verify current configuration: helm get values redis -n redis"
+      - "Test upgrade in non-production environment"
+      - "Schedule maintenance window (if needed)"
+
+    # Post-upgrade validation
+    post_upgrade:
+      - "Verify version: make -f make/ops/redis.mk redis-version"
+      - "Health check: make -f make/ops/redis.mk redis-health"
+      - "Replication status: make -f make/ops/redis.mk redis-replication-info"
+      - "Data integrity: make -f make/ops/redis.mk redis-dbsize"
+      - "Performance test: make -f make/ops/redis.mk redis-latency"
+
+    # Rollback procedures
+    rollback:
+      helm_rollback:
+        description: "Fastest rollback method"
+        command: "helm rollback redis -n redis"
+        downtime: "< 2 minutes"
+
+      restore_backup:
+        description: "Restore from pre-upgrade backup"
+        command: "make -f make/ops/redis.mk redis-restore-rdb BACKUP_FILE=..."
+        downtime: "5-15 minutes"
+
+      blue_green_failback:
+        description: "Switch traffic back to blue environment"
+        command: "kubectl patch service redis -n redis -p '{...}'"
+        downtime: "None"
+
+    # Version-specific notes
+    version_notes:
+      "6.x_to_7.x":
+        breaking_changes:
+          - "ACL system changes (stricter defaults)"
+          - "Replication protocol enhancements"
+          - "Some config parameters renamed"
+        recommended_strategy: "blue_green"
+
+      "7.0_to_7.2":
+        breaking_changes:
+          - "Minor internal optimizations"
+        recommended_strategy: "rolling"
+
+      "7.2_to_7.4":
+        breaking_changes:
+          - "Minimal changes"
+        recommended_strategy: "rolling"
+
+    # Quick reference
+    quick_reference:
+      pre_check: "make -f make/ops/redis.mk redis-pre-upgrade-check"
+      post_check: "make -f make/ops/redis.mk redis-post-upgrade-check"
+      rollback: "helm rollback redis -n redis"

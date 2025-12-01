@@ -71,6 +71,17 @@ Get Redis password
 {{- end }}
 
 {{/*
+RBAC names
+*/}}
+{{- define "redis.roleName" -}}
+{{- printf "%s-role" (include "redis.fullname" .) }}
+{{- end }}
+
+{{- define "redis.roleBindingName" -}}
+{{- printf "%s-rolebinding" (include "redis.fullname" .) }}
+{{- end }}
+
+{{/*
 Determine deployment mode with backward compatibility.
 Supported modes: standalone, replica.
 Sentinel/cluster are not implemented and fail fast to avoid silent misconfigurations.
