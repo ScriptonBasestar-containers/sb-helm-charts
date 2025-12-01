@@ -123,12 +123,15 @@ All charts in this phase are now complete with comprehensive RBAC, backup/recove
 
 **Target: 8 charts** | **Actual: 1/8 (13%)** ⏳
 
-7. ⏳ **Grafana** (v0.3.0 → v0.4.0) - IN PROGRESS (RBAC complete, guides pending)
-   - Enhanced RBAC (datasource management)
-   - Backup guide (dashboards, datasources, plugins, SQLite DB)
-   - Upgrade guide (plugin compatibility, database migration)
-   - Makefile targets (dashboard export, provisioning sync)
-   - RTO/RPO: < 30 minutes / 24 hours
+7. ✅ **Grafana** (v0.3.0 → v0.4.0) - COMPLETE (commit c0733a3, 2025-12-01)
+   - RBAC templates (Role for ConfigMaps, Secrets, Pods, Services, Endpoints, PVCs)
+   - Backup guide (~1,440 lines): Dashboards, datasources, SQLite DB, plugins, config, PVC snapshots
+   - Upgrade guide (~1,570 lines): 4 strategies (Rolling, In-Place, Blue-Green, DB Migration)
+   - README: 4 sections (~700+ lines) - Backup & Recovery, Security & RBAC, Operations, Upgrading
+   - values.yaml: Comprehensive backup/upgrade documentation (~290 lines)
+   - Makefile: 40+ operational targets (173 → 651 lines)
+   - RTO/RPO: < 1 hour / 24 hours
+   - Total impact: 5 files, ~4,137 lines added
 
 8. **Nextcloud** (v0.3.0 → v0.4.0)
    - Enhanced RBAC (file access, sharing)
