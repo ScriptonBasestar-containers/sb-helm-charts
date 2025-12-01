@@ -643,25 +643,281 @@ kubectl exec -it <grafana-pod> -- cat /etc/grafana/provisioning/datasources/data
 4. **High memory usage**: Increase `resources.limits.memory` or reduce `tempo.retention.days`
 5. **Multiple replicas with local storage**: Switch to S3/MinIO storage
 
-## Upgrading
+## Backup & Recovery Strategy
 
-### To v0.3.0
+### Overview
+
+Tempo backup strategy depends on storage backend:
+
+| Storage Type | Components | RTO | RPO | Complexity |
+|-------------|------------|-----|-----|-----------|
+| **Filesystem (Local)** | Config + PVC snapshot | < 2 hours | 24 hours | Medium |
+| **S3/MinIO** | Config + S3 versioning | < 30 minutes | 1 hour | Low |
+
+### Backup Components
+
+1. **Configuration** - ConfigMap, Secrets for S3 (RTO: < 5 min, RPO: 0)
+2. **Trace Data** - Blocks storage (filesystem: daily, S3: continuous)
+3. **WAL** - Write-Ahead Log (hourly, recent traces)
+4. **PVC** - Full volume snapshot (weekly, filesystem mode only)
+
+### Quick Backup Commands
 
 ```bash
-# Backup important traces (if possible)
-# Note: Tempo is designed for recent traces, not long-term storage
+# Full backup (config + data + WAL)
+make -f make/ops/tempo.mk tempo-backup-all
 
-# Upgrade chart
-helm upgrade tempo sb-charts/tempo \
-  --reuse-values \
-  --set autoscaling.enabled=true \
-  --set podDisruptionBudget.enabled=true
+# Configuration only
+make -f make/ops/tempo.mk tempo-backup-config
 
-# Verify upgrade
-kubectl rollout status deployment/tempo
+# Trace data only (blocks + WAL)
+make -f make/ops/tempo.mk tempo-backup-data
+
+# WAL only (recent traces)
+make -f make/ops/tempo.mk tempo-backup-wal
+
+# PVC snapshot (filesystem mode)
+make -f make/ops/tempo.mk tempo-backup-pvc-snapshot
+
+# Verify backup
+make -f make/ops/tempo.mk tempo-backup-verify BACKUP_FILE=/path/to/backup
 ```
 
-See [CHANGELOG.md](../../CHANGELOG.md) for version-specific upgrade notes.
+### Quick Recovery Commands
+
+```bash
+# Full recovery
+make -f make/ops/tempo.mk tempo-restore-all BACKUP_FILE=/path/to/backup
+
+# Configuration only
+make -f make/ops/tempo.mk tempo-restore-config BACKUP_FILE=/path/to/config
+
+# Data only
+make -f make/ops/tempo.mk tempo-restore-data BACKUP_FILE=/path/to/data
+```
+
+### Backup Automation
+
+```yaml
+# CronJob for daily backups
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: tempo-backup
+spec:
+  schedule: "0 2 * * *"  # Daily at 2 AM
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          containers:
+          - name: backup
+            image: bitnami/kubectl:latest
+            command:
+            - /bin/bash
+            - -c
+            - |
+              # Flush WAL
+              kubectl exec -n monitoring tempo-0 -- \
+                wget -qO- -X POST http://localhost:3200/flush
+              # Backup blocks and WAL
+              kubectl exec -n monitoring tempo-0 -- \
+                tar czf - /var/tempo | aws s3 cp - s3://backups/tempo-$(date +%Y%m%d).tar.gz
+```
+
+**Detailed documentation:** [Tempo Backup Guide](../../docs/tempo-backup-guide.md)
+
+---
+
+## Security & RBAC
+
+### RBAC Configuration
+
+This chart includes Role-Based Access Control (RBAC) resources for namespace-scoped permissions:
+
+```yaml
+rbac:
+  create: true  # Enable RBAC resources
+  annotations: {}
+```
+
+**Created resources:**
+- `Role` - Namespace-scoped permissions
+- `RoleBinding` - Binds ServiceAccount to Role
+
+**Permissions granted:**
+- `configmaps` - get, list (configuration access)
+- `secrets` - get, list (S3 credentials)
+- `pods` - get, list (service discovery)
+- `endpoints` - get, list (distributed coordination)
+- `persistentvolumeclaims` - get, list (storage management)
+
+### Pod Security Standards
+
+```yaml
+podSecurityContext:
+  runAsNonRoot: true
+  runAsUser: 10001
+  fsGroup: 10001
+
+securityContext:
+  allowPrivilegeEscalation: false
+  capabilities:
+    drop:
+      - ALL
+  readOnlyRootFilesystem: false  # Tempo requires writable filesystem
+```
+
+**Note**: `readOnlyRootFilesystem` is disabled because Tempo needs write access to `/var/tempo` for WAL and block storage.
+
+---
+
+## Operations
+
+### Health Checks
+
+```bash
+# Check readiness
+make -f make/ops/tempo.mk tempo-ready
+
+# Check liveness
+make -f make/ops/tempo.mk tempo-health
+
+# View logs
+make -f make/ops/tempo.mk tempo-logs
+
+# Port-forward for debugging
+make -f make/ops/tempo.mk tempo-port-forward
+```
+
+### WAL Management
+
+```bash
+# Flush WAL to storage
+make -f make/ops/tempo.mk tempo-flush-wal
+
+# Check WAL status
+kubectl exec -n monitoring tempo-0 -- ls -lh /var/tempo/wal
+```
+
+### Compactor Status
+
+```bash
+# View compactor logs
+kubectl logs -n monitoring -l app.kubernetes.io/name=tempo | grep compactor
+
+# Check block compaction status
+make -f make/ops/tempo.mk tempo-compactor-status
+```
+
+### Testing Trace Ingestion
+
+```bash
+# Send test trace via OTLP
+make -f make/ops/tempo.mk tempo-test-trace
+
+# Query traces
+make -f make/ops/tempo.mk tempo-query-traces
+```
+
+---
+
+## Upgrading
+
+### Upgrade Strategies
+
+| Strategy | Downtime | Complexity | Recommended For |
+|---------|----------|-----------|----------------|
+| **Rolling Upgrade** | None (HA) | Low | Production with replicas ≥ 2 |
+| **Blue-Green** | 10-20 min | Medium | Large deployments |
+| **Maintenance Window** | 15-20 min | Low | Dev/test, single replica |
+
+### Pre-Upgrade Checklist
+
+```bash
+# 1. Run pre-upgrade validation
+make -f make/ops/tempo.mk tempo-pre-upgrade-check
+
+# 2. Create backup
+make -f make/ops/tempo.mk tempo-backup-all
+
+# 3. Flush WAL to storage
+make -f make/ops/tempo.mk tempo-flush-wal
+
+# 4. Review release notes
+echo "Check: https://github.com/grafana/tempo/releases"
+```
+
+### Rolling Upgrade (Zero Downtime)
+
+**Prerequisites:** replicaCount ≥ 2, S3/MinIO storage
+
+```bash
+# 1. Update Helm repository
+helm repo update scripton-charts
+
+# 2. Upgrade with new version
+helm upgrade tempo scripton-charts/tempo \
+  --set image.tag=2.10.0 \
+  --reuse-values \
+  --wait \
+  --timeout=10m
+
+# 3. Verify upgrade
+make -f make/ops/tempo.mk tempo-post-upgrade-check
+```
+
+### Maintenance Window Upgrade
+
+```bash
+# 1. Backup first
+make -f make/ops/tempo.mk tempo-backup-all
+
+# 2. Scale down to prepare for upgrade
+kubectl scale deployment tempo --replicas=0
+
+# 3. Upgrade chart
+helm upgrade tempo scripton-charts/tempo \
+  --set image.tag=2.10.0 \
+  --reuse-values
+
+# 4. Scale up
+kubectl scale deployment tempo --replicas=1
+
+# 5. Validate
+make -f make/ops/tempo.mk tempo-post-upgrade-check
+```
+
+### Version-Specific Upgrade Notes
+
+#### Tempo 2.7.x to 2.8.x
+- WAL format changes (automatic migration)
+- Distributor configuration updates
+- No breaking changes
+
+#### Tempo 2.8.x to 2.9.x
+- TraceQL enhancements (backward compatible)
+- vParquet4 block format (automatic)
+- Query frontend improvements
+
+#### Chart v0.2.x to v0.3.0
+- Added RBAC templates (enabled by default)
+- Added backup/recovery Makefile targets
+- Enhanced monitoring and operations
+
+### Rollback Procedure
+
+```bash
+# If upgrade fails, rollback to previous version
+helm rollback tempo
+
+# Verify rollback
+make -f make/ops/tempo.mk tempo-post-upgrade-check
+```
+
+**Detailed documentation:** [Tempo Upgrade Guide](../../docs/tempo-upgrade-guide.md)
+
+See [CHANGELOG.md](../../CHANGELOG.md) for complete version history.
 
 ## Uninstalling the Chart
 

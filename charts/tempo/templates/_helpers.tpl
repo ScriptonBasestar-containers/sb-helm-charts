@@ -88,3 +88,17 @@ Return the image name
 {{- $tag := .Values.image.tag | default .Chart.AppVersion -}}
 {{- printf "%s:%s" .Values.image.repository $tag -}}
 {{- end }}
+
+{{/*
+Return the Role name
+*/}}
+{{- define "tempo.roleName" -}}
+{{- printf "%s-role" (include "tempo.fullname" .) }}
+{{- end }}
+
+{{/*
+Return the RoleBinding name
+*/}}
+{{- define "tempo.roleBindingName" -}}
+{{- printf "%s-rolebinding" (include "tempo.fullname" .) }}
+{{- end }}

@@ -111,6 +111,13 @@ serviceAccount:
   # If not set and create is true, a name is generated using the fullname template
   name: ""
 
+# RBAC Configuration
+rbac:
+  # Specifies whether RBAC resources should be created
+  create: true
+  # Annotations to add to the Role and RoleBinding
+  annotations: {}
+
 podAnnotations: {}
 
 podSecurityContext:
@@ -234,3 +241,141 @@ networkPolicy:
           port: 9000
         - protocol: TCP
           port: 443
+
+# =============================================================================
+# Backup & Recovery Configuration
+# =============================================================================
+# Note: Backup is handled via Makefile targets, not automated CronJobs
+# See: docs/tempo-backup-guide.md for detailed procedures
+backup:
+  enabled: false  # Documentation only - no CronJob created
+  documentation:
+    strategy: "config + trace_data + wal + pvc_snapshots (local) OR config + s3_versioning (S3)"
+    tools:
+      - "kubectl (for data extraction)"
+      - "tar/gzip (for compression)"
+      - "aws-cli or mc (for S3 upload)"
+      - "VolumeSnapshot API (for PVC snapshots)"
+    components:
+      configuration:
+        description: "ConfigMap and Secrets (S3 credentials)"
+        method: "ConfigMap export + Secret export"
+        frequency: "Daily or before changes"
+        retention: "90 days"
+        size: "< 100KB"
+      trace_data:
+        description: "Compressed trace blocks"
+        method: "tar + kubectl cp (local) OR S3 versioning (S3)"
+        frequency: "Daily (local) / Continuous (S3)"
+        retention: "30 days (local) / 90-365 days (S3)"
+        size: "Varies by trace volume (typically 10-100 GB)"
+      wal:
+        description: "Write-Ahead Log (recent traces)"
+        method: "Flush + tar + kubectl cp"
+        frequency: "Hourly (recent traces only)"
+        retention: "7 days"
+        size: "100 MB - 10 GB"
+      pvc_snapshots:
+        description: "Complete persistent volume snapshot (local mode only)"
+        method: "Kubernetes VolumeSnapshot API"
+        frequency: "Weekly"
+        retention: "7-14 days"
+        size: "Same as PVC size (typically 10-100 GB)"
+    targets:
+      rto: "< 2 hours (local) / < 30 minutes (S3)"
+      rpo: "24 hours (local) / 1 hour (S3 with hourly snapshots)"
+    commands:
+      backup:
+        full: "make -f make/ops/tempo.mk tempo-backup-all"
+        config: "make -f make/ops/tempo.mk tempo-backup-config"
+        data: "make -f make/ops/tempo.mk tempo-backup-data"
+        wal: "make -f make/ops/tempo.mk tempo-backup-wal"
+        pvc: "make -f make/ops/tempo.mk tempo-backup-pvc-snapshot"
+        verify: "make -f make/ops/tempo.mk tempo-backup-verify BACKUP_FILE=<path>"
+      restore:
+        full: "make -f make/ops/tempo.mk tempo-restore-all BACKUP_FILE=<path>"
+        config: "make -f make/ops/tempo.mk tempo-restore-config BACKUP_FILE=<path>"
+        data: "make -f make/ops/tempo.mk tempo-restore-data BACKUP_FILE=<path>"
+
+# =============================================================================
+# Upgrade Configuration
+# =============================================================================
+# Note: Upgrades are performed manually via Helm, not automated
+# See: docs/tempo-upgrade-guide.md for detailed procedures
+upgrade:
+  enabled: false  # Documentation only - manual process
+  preUpgradeBackup: true  # Always backup before upgrade
+  documentation:
+    strategies:
+      rolling:
+        description: "StatefulSet/Deployment rolling update with zero downtime"
+        downtime: "None (with HA, replicas >= 2, S3 storage)"
+        complexity: "Low"
+        recommended: true
+        steps:
+          - "Pre-upgrade validation (12 checks)"
+          - "Create backup"
+          - "Flush WAL to storage"
+          - "Helm upgrade with new image tag"
+          - "Post-upgrade validation (10 checks)"
+      blue_green:
+        description: "Deploy new cluster in parallel, cutover when ready"
+        downtime: "10-20 minutes (during cutover)"
+        complexity: "Medium"
+        recommended: false
+        steps:
+          - "Deploy new Tempo cluster (different namespace)"
+          - "Configure dual-write from applications"
+          - "Validate new cluster"
+          - "Update Grafana datasource to new cluster"
+          - "Decommission old cluster"
+      maintenance:
+        description: "Full cluster stop, upgrade, restart"
+        downtime: "15-20 minutes"
+        complexity: "Low"
+        recommended: false
+        steps:
+          - "Create backup"
+          - "Scale down to 0 replicas"
+          - "Helm upgrade"
+          - "Scale up replicas"
+          - "Validate"
+    version_notes:
+      tempo_2_7_to_2_8:
+        breaking_changes: []
+        notable_changes:
+          - "WAL format improvements (automatic migration)"
+          - "Distributor configuration enhancements"
+        recommended_steps:
+          - "Backup before upgrade"
+          - "Flush WAL before upgrade"
+          - "Rolling upgrade recommended"
+      tempo_2_8_to_2_9:
+        breaking_changes: []
+        notable_changes:
+          - "TraceQL query enhancements"
+          - "vParquet4 block format (automatic)"
+          - "Query frontend performance improvements"
+        recommended_steps:
+          - "Backup before upgrade"
+          - "Rolling upgrade recommended"
+      chart_0_2_to_0_3:
+        breaking_changes: []
+        notable_changes:
+          - "RBAC templates added (rbac.create: true by default)"
+          - "Backup/upgrade Makefile targets"
+          - "Enhanced operations documentation"
+        recommended_steps:
+          - "Review RBAC configuration"
+          - "Test Makefile targets"
+    commands:
+      pre_upgrade:
+        check: "make -f make/ops/tempo.mk tempo-pre-upgrade-check"
+        backup: "make -f make/ops/tempo.mk tempo-backup-all"
+        flush_wal: "make -f make/ops/tempo.mk tempo-flush-wal"
+      post_upgrade:
+        check: "make -f make/ops/tempo.mk tempo-post-upgrade-check"
+        validate: "make -f make/ops/tempo.mk tempo-test-trace"
+      rollback:
+        helm: "helm rollback tempo"
+        restore: "make -f make/ops/tempo.mk tempo-restore-all BACKUP_FILE=<path>"
