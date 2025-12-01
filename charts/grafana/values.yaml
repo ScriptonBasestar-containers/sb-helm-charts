@@ -106,6 +106,299 @@ serviceAccount:
   annotations: {}
   name: ""
 
+# ============================================================================
+# Backup & Recovery Configuration
+# ============================================================================
+# IMPORTANT: This section is for DOCUMENTATION ONLY.
+# Backup/recovery operations are performed via Makefile targets, NOT CronJobs.
+# See docs/grafana-backup-guide.md for comprehensive procedures.
+
+backup:
+  # This flag is DOCUMENTATION ONLY - no automated CronJobs are created
+  enabled: false
+
+  # Backup strategy documentation
+  documentation:
+    # 5-component backup strategy
+    strategy: "Dashboards + Datasources + Database + Configuration + Plugins + PVC Snapshots"
+
+    # Backup tools and methods
+    tools:
+      - "Grafana HTTP API (dashboard/datasource export)"
+      - "SQLite backup command (database)"
+      - "kubectl export (ConfigMaps/Secrets)"
+      - "VolumeSnapshot API (PVC snapshots)"
+
+    # Backup components
+    components:
+      dashboards_datasources:
+        description: "Export dashboards and datasources via Grafana API"
+        frequency: "Daily"
+        priority: "Critical"
+        method: "HTTP API export to JSON"
+        rto: "< 15 minutes"
+        command: "make -f make/ops/grafana.mk grafana-backup-dashboards"
+
+      database:
+        description: "SQLite database backup (users, orgs, annotations, playlists)"
+        frequency: "Daily"
+        priority: "Critical"
+        method: "SQLite .backup command or file copy"
+        rto: "< 30 minutes"
+        command: "make -f make/ops/grafana.mk grafana-backup-db"
+
+      configuration:
+        description: "ConfigMaps and Secrets (grafana.ini, admin password)"
+        frequency: "On change"
+        priority: "High"
+        method: "kubectl export to YAML"
+        rto: "< 5 minutes"
+        command: "make -f make/ops/grafana.mk grafana-backup-config"
+
+      plugins:
+        description: "Installed plugins list and plugin data"
+        frequency: "On plugin changes"
+        priority: "Medium"
+        method: "grafana-cli plugins ls and directory tar"
+        rto: "< 10 minutes"
+        command: "make -f make/ops/grafana.mk grafana-backup-plugins"
+
+      pvc_snapshot:
+        description: "Complete PVC point-in-time snapshot"
+        frequency: "Weekly"
+        priority: "High"
+        method: "Kubernetes VolumeSnapshot API"
+        rto: "< 1 hour"
+        command: "make -f make/ops/grafana.mk grafana-backup-snapshot"
+
+    # Recovery targets
+    targets:
+      rto: "< 1 hour (complete instance recovery)"
+      rpo: "24 hours (daily backups)"
+
+    # Recommended backup schedule
+    schedule:
+      dashboards: "Daily at 2 AM"
+      database: "Daily at 2 AM"
+      configuration: "On every configuration change"
+      plugins: "On plugin installation/update"
+      pvc_snapshot: "Weekly on Sunday at 3 AM"
+
+    # Backup retention policy
+    retention:
+      dashboards: "30 days"
+      database: "14 days"
+      configuration: "Indefinite (version controlled)"
+      plugins: "Indefinite"
+      pvc_snapshot: "8 weekly snapshots"
+
+  # Example backup workflow (manual execution)
+  example_workflow:
+    full_backup: |
+      # Comprehensive backup (all components)
+      make -f make/ops/grafana.mk grafana-full-backup
+
+      # Individual component backups
+      make -f make/ops/grafana.mk grafana-backup-dashboards
+      make -f make/ops/grafana.mk grafana-backup-datasources
+      make -f make/ops/grafana.mk grafana-backup-db
+      make -f make/ops/grafana.mk grafana-backup-config
+      make -f make/ops/grafana.mk grafana-backup-secrets
+      make -f make/ops/grafana.mk grafana-backup-plugins
+      make -f make/ops/grafana.mk grafana-backup-snapshot
+
+    restore_dashboards: |
+      # Restore dashboards from backup
+      make -f make/ops/grafana.mk grafana-restore-dashboards BACKUP_DIR=grafana-dashboards-backup-YYYYMMDD
+
+    restore_database: |
+      # Restore database (requires Grafana downtime)
+      make -f make/ops/grafana.mk grafana-restore-db BACKUP_FILE=grafana-db-backup-YYYYMMDD.db
+
+    disaster_recovery: |
+      # Complete instance recovery from PVC snapshot
+      # 1. Restore PVC from VolumeSnapshot
+      # 2. Update Helm release to use restored PVC
+      # 3. Verify recovery
+      # See docs/grafana-backup-guide.md for detailed procedures
+
+# ============================================================================
+# Upgrade Configuration
+# ============================================================================
+# IMPORTANT: This section is for DOCUMENTATION ONLY.
+# Upgrades are performed manually via Helm, NOT automated.
+# See docs/grafana-upgrade-guide.md for comprehensive procedures.
+
+upgrade:
+  # This flag is DOCUMENTATION ONLY - upgrades are manual processes
+  enabled: false
+
+  # CRITICAL: Always backup before upgrading
+  preUpgradeBackup: true
+
+  # Upgrade strategy documentation
+  documentation:
+    # Available upgrade strategies
+    strategies:
+      rolling:
+        description: "Zero-downtime upgrade via Helm rolling update"
+        downtime: "None"
+        complexity: "Low"
+        best_for: "Patch and minor versions (10.3.0 → 10.3.1, 10.3.x → 10.4.x)"
+        command: "helm upgrade grafana scripton-charts/grafana --set image.tag=<new-version> --reuse-values --wait"
+
+      in_place:
+        description: "Brief downtime upgrade with database migration"
+        downtime: "1-5 minutes"
+        complexity: "Medium"
+        best_for: "Minor and major versions (10.x → 11.x)"
+        steps:
+          - "Scale down Grafana"
+          - "Upgrade Helm release"
+          - "Scale up Grafana (database migration occurs)"
+          - "Verify upgrade"
+
+      blue_green:
+        description: "Zero-downtime upgrade with parallel environments"
+        downtime: "None"
+        complexity: "High"
+        best_for: "Major versions with easy rollback (10.x → 11.x)"
+        requirements:
+          - "PVC clone or VolumeSnapshot support"
+          - "2x resources temporarily"
+          - "Load balancer or Ingress for traffic switching"
+
+      database_migration:
+        description: "Clean migration to new database"
+        downtime: "30-60 minutes"
+        complexity: "Very High"
+        best_for: "Multi-major version upgrades (9.x → 11.x) or database corruption"
+        steps:
+          - "Export all dashboards and datasources"
+          - "Deploy new Grafana with new PVC"
+          - "Import dashboards and datasources"
+          - "Verify migration"
+
+    # Pre-upgrade checklist
+    pre_upgrade_checklist:
+      - "Review Grafana release notes for breaking changes"
+      - "Create comprehensive backup (MANDATORY)"
+      - "Document current state (versions, dashboard count, datasource count)"
+      - "Verify plugin compatibility with target Grafana version"
+      - "Test upgrade in staging environment (for major versions)"
+      - "Schedule maintenance window (for in-place/database migration strategies)"
+      - "Prepare rollback plan"
+
+    # Version-specific upgrade notes
+    version_notes:
+      grafana_10_to_11:
+        breaking_changes:
+          - "Angular plugin support completely removed"
+          - "Dashboard schema changes for improved panel types"
+          - "Unified alerting becomes mandatory (legacy alerting removed)"
+        action_required:
+          - "Replace Angular plugins with React alternatives (e.g., grafana-piechart-panel → piechart-panel-v2)"
+          - "Test all dashboards in staging before production upgrade"
+          - "Ensure unified alerting is enabled"
+        recommended_strategy: "Blue-Green deployment"
+
+      grafana_9_to_10:
+        breaking_changes:
+          - "Legacy alerting disabled by default"
+          - "Dashboard UID required for all dashboards"
+          - "SQL datasource query format updated"
+        action_required:
+          - "Migrate legacy alerts to unified alerting via UI"
+          - "Verify all dashboards have UID"
+          - "Test SQL datasource queries in staging"
+        recommended_strategy: "Rolling upgrade or In-Place upgrade"
+
+      grafana_8_to_9:
+        breaking_changes:
+          - "Plugin signature enforcement"
+          - "Dashboard folder permissions changes"
+        action_required:
+          - "Verify all plugins are signed or configure allow_loading_unsigned_plugins"
+          - "Verify folder permissions after upgrade"
+        recommended_strategy: "Rolling upgrade"
+
+    # Post-upgrade validation
+    post_upgrade_validation:
+      - "Verify Grafana version (kubectl exec deployment/grafana -- grafana-cli -v)"
+      - "Check pod status and logs for errors"
+      - "Verify database integrity"
+      - "Verify dashboards count matches pre-upgrade count"
+      - "Verify datasources count and connectivity"
+      - "Test dashboard functionality (load dashboards, verify queries)"
+      - "Check for plugin errors"
+      - "Monitor resource usage"
+
+    # Rollback procedures
+    rollback:
+      helm_rollback:
+        description: "Quick rollback using Helm"
+        command: "helm rollback grafana -n <namespace>"
+        limitations:
+          - "Only rolls back Helm configuration, not database schema"
+          - "Database downgrades not supported by Grafana"
+          - "If database migration occurred, may require database restore"
+
+      database_restore_rollback:
+        description: "Complete rollback with database restore"
+        steps:
+          - "Stop Grafana (scale to 0)"
+          - "Restore database from backup"
+          - "Rollback Helm release"
+          - "Start Grafana (scale to 1)"
+          - "Verify rollback"
+
+  # Example upgrade workflows (manual execution)
+  example_workflow:
+    rolling_upgrade: |
+      # Zero-downtime upgrade for patch/minor versions
+      # 1. Pre-upgrade backup
+      make -f make/ops/grafana.mk grafana-pre-upgrade-check
+      make -f make/ops/grafana.mk grafana-full-backup
+
+      # 2. Upgrade using Helm
+      helm upgrade grafana scripton-charts/grafana \
+        --set image.tag=10.4.1 \
+        --reuse-values \
+        --wait
+
+      # 3. Verify upgrade
+      make -f make/ops/grafana.mk grafana-post-upgrade-check
+
+    in_place_upgrade: |
+      # Brief downtime upgrade for major versions
+      # 1. Pre-upgrade backup
+      make -f make/ops/grafana.mk grafana-full-backup
+
+      # 2. Scale down Grafana
+      kubectl scale deployment grafana -n <namespace> --replicas=0
+
+      # 3. Upgrade Helm release
+      helm upgrade grafana scripton-charts/grafana \
+        --set image.tag=11.0.0 \
+        --reuse-values
+
+      # 4. Scale up Grafana
+      kubectl scale deployment grafana -n <namespace> --replicas=1
+
+      # 5. Wait for readiness and verify
+      kubectl wait --for=condition=ready pod -l app.kubernetes.io/name=grafana -n <namespace> --timeout=600s
+      make -f make/ops/grafana.mk grafana-post-upgrade-check
+
+    rollback: |
+      # Quick rollback using Helm
+      helm rollback grafana -n <namespace>
+
+      # Or complete rollback with database restore
+      kubectl scale deployment grafana -n <namespace> --replicas=0
+      make -f make/ops/grafana.mk grafana-restore-db BACKUP_FILE=grafana-db-backup-YYYYMMDD.db
+      helm rollback grafana -n <namespace>
+      kubectl scale deployment grafana -n <namespace> --replicas=1
+
 # Pod annotations
 podAnnotations: {}
 
