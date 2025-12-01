@@ -94,3 +94,17 @@ Return the memberlist service name
 {{- define "loki.memberlistServiceName" -}}
 {{- printf "%s-memberlist" (include "loki.fullname" .) }}
 {{- end }}
+
+{{/*
+Return the Role name
+*/}}
+{{- define "loki.roleName" -}}
+{{- printf "%s-role" (include "loki.fullname" .) }}
+{{- end }}
+
+{{/*
+Return the RoleBinding name
+*/}}
+{{- define "loki.roleBindingName" -}}
+{{- printf "%s-rolebinding" (include "loki.fullname" .) }}
+{{- end }}
