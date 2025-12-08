@@ -121,7 +121,7 @@ All charts in this phase are now complete with comprehensive RBAC, backup/recove
 
 ### Phase 2: Application Charts (IN PROGRESS)
 
-**Target: 8 charts** | **Actual: 1/8 (13%)** ⏳
+**Target: 8 charts** | **Actual: 2/8 (25%)** ⏳
 
 7. ✅ **Grafana** (v0.3.0 → v0.4.0) - COMPLETE (commit c0733a3, 2025-12-01)
    - RBAC templates (Role for ConfigMaps, Secrets, Pods, Services, Endpoints, PVCs)
@@ -133,12 +133,15 @@ All charts in this phase are now complete with comprehensive RBAC, backup/recove
    - RTO/RPO: < 1 hour / 24 hours
    - Total impact: 5 files, ~4,137 lines added
 
-8. **Nextcloud** (v0.3.0 → v0.4.0)
-   - Enhanced RBAC (file access, sharing)
-   - Backup guide (files, database, config)
-   - Upgrade guide (major version migrations, app compatibility)
-   - Makefile targets (backup, restore, occ commands)
+8. ✅ **Nextcloud** (v0.3.0 → v0.4.0) - COMPLETE (2025-12-08)
+   - RBAC templates (Role for ConfigMaps, Secrets, Pods, Services, Endpoints, PVCs) - ALREADY ADDED (commit 34d029c)
+   - Backup guide (~953 lines): User files, PostgreSQL DB, Redis cache, config.php, custom apps, PVC snapshots
+   - Upgrade guide (~1,084 lines): 4 strategies (Rolling, In-Place with Maintenance, Blue-Green, Database Migration)
+   - README: 4 sections (~387 lines) - Backup & Recovery, Security & RBAC, Operations, Upgrading
+   - values.yaml: Comprehensive backup/upgrade documentation (~243 lines)
+   - Makefile: 50+ operational targets (31 → 643 lines)
    - RTO/RPO: < 2 hours / 24 hours
+   - Total impact: 5 files, ~2,667 lines added (excl. RBAC which was added earlier)
 
 9. **Vaultwarden** (v0.3.0 → v0.4.0)
    - RBAC templates (namespace-scoped)

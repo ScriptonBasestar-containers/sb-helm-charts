@@ -313,3 +313,246 @@ cronjob:
     requests:
       cpu: 50m
       memory: 128Mi
+
+# ============================================================================
+# Backup & Recovery Configuration
+# ============================================================================
+# NOTE: This is DOCUMENTATION ONLY - backups are performed via Makefile targets
+# The chart does NOT create automated backup CronJobs
+# See docs/nextcloud-backup-guide.md for detailed procedures
+
+backup:
+  # Documentation flag - does not enable automated backups
+  enabled: false
+
+  # Backup strategy overview
+  documentation:
+    # Backup components (5 layers)
+    strategy: "User Files + PostgreSQL Database + Configuration + Custom Apps + PVC Snapshots"
+
+    # Backup tools/methods
+    tools:
+      - "rsync/tar for user files"
+      - "pg_dump for PostgreSQL"
+      - "kubectl cp for config.php"
+      - "VolumeSnapshot API for PVC snapshots"
+
+    # Components to backup
+    components:
+      userFiles:
+        description: "User data, uploads, thumbnails"
+        location: "Data PVC (/var/www/html/data)"
+        size: "Large (GB-TB)"
+        method: "tar, rsync (incremental supported)"
+        priority: "Critical"
+
+      database:
+        description: "User metadata, sharing permissions, file versions"
+        location: "External PostgreSQL"
+        size: "Medium (MB-GB)"
+        method: "pg_dump, WAL archiving"
+        priority: "Critical"
+
+      configuration:
+        description: "config.php, Kubernetes resources"
+        location: "Config PVC (/var/www/html/config)"
+        size: "Small (KB)"
+        method: "kubectl cp, ConfigMap export"
+        priority: "High"
+
+      customApps:
+        description: "Installed Nextcloud apps"
+        location: "Apps PVC (/var/www/html/custom_apps)"
+        size: "Small (MB)"
+        method: "tar archive"
+        priority: "Medium"
+
+      redisCache:
+        description: "Session data, file locks (optional)"
+        location: "External Redis"
+        size: "Small (MB)"
+        method: "SAVE/BGSAVE"
+        priority: "Low"
+
+    # Recovery Time/Point Objectives
+    targets:
+      rto: "< 2 hours (complete instance recovery)"
+      rpo: "24 hours (with daily backups)"
+      filesRecovery: "< 1 hour"
+      databaseRecovery: "< 30 minutes"
+      configRecovery: "< 15 minutes"
+
+    # Backup frequency recommendations
+    frequency:
+      userFiles: "Daily (incremental), Weekly (full)"
+      database: "Daily"
+      configuration: "On every change"
+      customApps: "On app installation/update"
+      pvcSnapshots: "Weekly"
+
+    # Makefile commands for backup
+    commands:
+      fullBackup: "make -f make/ops/nextcloud.mk nc-full-backup"
+      backupData: "make -f make/ops/nextcloud.mk nc-backup-data"
+      backupDatabase: "make -f make/ops/nextcloud.mk nc-backup-database"
+      backupConfig: "make -f make/ops/nextcloud.mk nc-backup-config"
+      backupApps: "make -f make/ops/nextcloud.mk nc-backup-apps"
+      snapshotAll: "make -f make/ops/nextcloud.mk nc-snapshot-all"
+
+    # Makefile commands for recovery
+    recovery:
+      restoreData: "make -f make/ops/nextcloud.mk nc-restore-data BACKUP_FILE=..."
+      restoreDatabase: "make -f make/ops/nextcloud.mk nc-restore-database BACKUP_FILE=..."
+      restoreConfig: "make -f make/ops/nextcloud.mk nc-restore-config BACKUP_FILE=..."
+      restoreApps: "make -f make/ops/nextcloud.mk nc-restore-apps BACKUP_FILE=..."
+
+    # Best practices
+    bestPractices:
+      - "Test restore procedures quarterly"
+      - "Store backups in different availability zone"
+      - "Encrypt sensitive backups (config.php contains credentials)"
+      - "Always backup before upgrades"
+      - "Verify backup integrity regularly"
+      - "Document backup locations and encryption keys"
+
+    # Complete guide reference
+    guide: "docs/nextcloud-backup-guide.md"
+
+# ============================================================================
+# Upgrade Configuration
+# ============================================================================
+# NOTE: This is DOCUMENTATION ONLY - upgrades are performed via Helm and occ
+# The chart does NOT perform automated upgrades
+# See docs/nextcloud-upgrade-guide.md for detailed procedures
+
+upgrade:
+  # Documentation flag - does not enable automated upgrades
+  enabled: false
+
+  # Always backup before upgrade
+  preUpgradeBackup: true
+
+  # Upgrade strategy overview
+  documentation:
+    # Upgrade philosophy
+    philosophy:
+      - "Never skip major versions (upgrade sequentially)"
+      - "Always backup first (CRITICAL)"
+      - "Test in staging environment"
+      - "Verify app compatibility"
+      - "Check system requirements (PHP, PostgreSQL, Redis)"
+
+    # Upgrade strategies
+    strategies:
+      rollingUpgrade:
+        description: "Zero-downtime upgrade for patch/minor versions"
+        bestFor: "31.0.0 → 31.0.10 (patch) or 31.0.x → 31.1.x (minor)"
+        downtime: "None"
+        complexity: "Low"
+        method: "Helm upgrade with image tag update"
+
+      inPlaceUpgrade:
+        description: "Upgrade with maintenance mode for major versions"
+        bestFor: "30.x → 31.x (major version)"
+        downtime: "10-30 minutes"
+        complexity: "Medium"
+        method: "Enable maintenance mode → Helm upgrade → occ upgrade → Disable maintenance"
+
+      blueGreenDeployment:
+        description: "Zero-downtime major version upgrade"
+        bestFor: "Production with zero-downtime requirement"
+        downtime: "None (brief DNS/Ingress switch)"
+        complexity: "High"
+        method: "Deploy to separate namespace → Test → Switch ingress"
+
+      databaseMigration:
+        description: "Clean migration for multi-major version upgrades"
+        bestFor: "29.x → 31.x (skip version upgrade)"
+        downtime: "2-6 hours"
+        complexity: "Very High"
+        method: "Full backup → New database → occ upgrade → Data migration"
+
+    # System requirements
+    requirements:
+      nextcloud31:
+        php: "8.2+ (8.1 no longer supported)"
+        postgresql: "13+ (12 no longer supported)"
+        redis: "6+ or 8.x"
+      nextcloud30:
+        php: "8.1+"
+        postgresql: "12+"
+        redis: "6+ or 7.x"
+
+    # Version-specific notes
+    versionNotes:
+      "30.x → 31.x":
+        - "PHP 8.2+ required"
+        - "PostgreSQL 13+ required"
+        - "New dashboard widgets framework"
+        - "Enhanced Files app with AI features"
+        - "Changed default file locking mechanism (Redis recommended)"
+      "29.x → 30.x":
+        - "PHP 8.1+ required"
+        - "Enhanced Activity app"
+        - "Improved search performance"
+        - "New Whiteboard app integration"
+      "28.x → 29.x":
+        - "PHP 8.0+ required"
+        - "New Photos app features"
+        - "Enhanced collaboration features"
+
+    # Pre-upgrade checklist
+    preUpgradeChecklist:
+      - "Review Nextcloud release notes"
+      - "Check PHP version compatibility"
+      - "Check PostgreSQL version compatibility"
+      - "Check Redis version compatibility"
+      - "Verify app compatibility (all installed apps)"
+      - "Create full backup (nc-full-backup)"
+      - "Create PVC snapshots (nc-snapshot-all)"
+      - "Test backup restore in test environment"
+      - "Run database health checks (occ db:*)"
+
+    # Post-upgrade validation
+    postUpgradeValidation:
+      - "Verify Nextcloud status (occ status)"
+      - "Check code integrity (occ integrity:check-core)"
+      - "Add missing database indices (occ db:add-missing-indices)"
+      - "Add missing database columns (occ db:add-missing-columns)"
+      - "Rescan files (occ files:scan --all)"
+      - "Update all apps (occ app:update --all)"
+      - "Test web UI access"
+      - "Test file upload/download"
+      - "Monitor logs for errors"
+
+    # Makefile commands
+    commands:
+      preUpgradeCheck: "make -f make/ops/nextcloud.mk nc-pre-upgrade-check"
+      fullBackup: "make -f make/ops/nextcloud.mk nc-full-backup"
+      postUpgradeCheck: "make -f make/ops/nextcloud.mk nc-post-upgrade-check"
+      maintenanceOn: "make -f make/ops/nextcloud.mk nc-maintenance-on"
+      maintenanceOff: "make -f make/ops/nextcloud.mk nc-maintenance-off"
+      dbIndices: "make -f make/ops/nextcloud.mk nc-db-indices"
+      dbColumns: "make -f make/ops/nextcloud.mk nc-db-columns"
+      scanFiles: "make -f make/ops/nextcloud.mk nc-scan-files"
+      updateApps: "make -f make/ops/nextcloud.mk nc-update-apps"
+
+    # Rollback procedures
+    rollback:
+      simple:
+        description: "For patch/minor upgrades (database not migrated)"
+        method: "helm rollback nextcloud"
+        downtime: "2-5 minutes"
+
+      fullDatabaseRestore:
+        description: "For major upgrades (database migrated)"
+        method: "Restore database → Rollback image → Restart"
+        downtime: "30-60 minutes"
+
+      blueGreen:
+        description: "For blue-green deployments"
+        method: "Switch ingress back to blue environment"
+        downtime: "None"
+
+    # Complete guide reference
+    guide: "docs/nextcloud-upgrade-guide.md"

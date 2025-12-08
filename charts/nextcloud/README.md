@@ -600,6 +600,394 @@ persistence:
     storageClass: "fast-ssd"  # Use SSD-backed storage
 ```
 
+## Backup & Recovery
+
+Nextcloud data consists of multiple critical components that require different backup strategies.
+
+### Backup Components
+
+The chart supports backing up five key components:
+
+1. **User Files** (Critical)
+   - Location: Data PVC (`/var/www/html/data`)
+   - Size: Large (GB-TB)
+   - Method: rsync, tar, or file-level backup
+
+2. **PostgreSQL Database** (Critical)
+   - Contains: User metadata, sharing permissions, file versions
+   - Size: Medium (MB-GB)
+   - Method: pg_dump, WAL archiving
+
+3. **Configuration Files** (High Priority)
+   - Contains: config.php, Kubernetes resources
+   - Size: Small (KB)
+   - Method: ConfigMap/Secret export
+
+4. **Custom Apps** (Medium Priority)
+   - Location: Apps PVC (`/var/www/html/custom_apps`)
+   - Size: Small (MB)
+   - Method: Directory copy
+
+5. **Redis Cache** (Optional)
+   - Contains: Session data, file locks
+   - Size: Small (MB)
+   - Method: SAVE/BGSAVE
+
+### Quick Backup Commands
+
+```bash
+# Full backup (all components)
+make -f make/ops/nextcloud.mk nc-full-backup
+
+# Individual component backups
+make -f make/ops/nextcloud.mk nc-backup-data          # User files
+make -f make/ops/nextcloud.mk nc-backup-database      # PostgreSQL
+make -f make/ops/nextcloud.mk nc-backup-config        # Configuration
+make -f make/ops/nextcloud.mk nc-backup-apps          # Custom apps
+
+# Create PVC snapshots (weekly recommended)
+make -f make/ops/nextcloud.mk nc-snapshot-all
+```
+
+### Recovery Procedures
+
+**Full Disaster Recovery:**
+```bash
+# 1. Restore database
+make -f make/ops/nextcloud.mk nc-restore-database BACKUP_FILE=nextcloud-db-20250101.dump
+
+# 2. Restore files
+make -f make/ops/nextcloud.mk nc-restore-data BACKUP_FILE=nextcloud-data-20250101.tar.gz
+
+# 3. Restore configuration
+make -f make/ops/nextcloud.mk nc-restore-config BACKUP_FILE=config-20250101.php
+
+# 4. Rescan files
+kubectl exec -n default deployment/nextcloud -- php occ files:scan --all
+```
+
+**Recovery Time/Point Objectives:**
+- RTO (Recovery Time): < 2 hours
+- RPO (Recovery Point): 24 hours (with daily backups)
+
+For comprehensive backup procedures, recovery workflows, and disaster recovery testing, see the [Nextcloud Backup Guide](../../docs/nextcloud-backup-guide.md).
+
+---
+
+## Security & RBAC
+
+### RBAC Configuration
+
+This chart includes Role-Based Access Control (RBAC) resources for secure Kubernetes operations.
+
+**RBAC Features:**
+- Namespace-scoped Role for least-privilege access
+- ServiceAccount with minimal permissions
+- Read-only access to ConfigMaps, Secrets, Pods, Services
+- PVC access for volume operations
+
+**Enable RBAC:**
+```yaml
+rbac:
+  create: true
+  annotations:
+    description: "Nextcloud service account with minimal permissions"
+
+serviceAccount:
+  create: true
+  name: "nextcloud-sa"
+```
+
+**RBAC Permissions:**
+- ConfigMaps: read
+- Secrets: read
+- Pods: read
+- Services: read
+- Endpoints: read
+- PersistentVolumeClaims: read
+
+### Security Best Practices
+
+1. **Strong Authentication**
+   ```yaml
+   nextcloud:
+     adminPassword: "Use-Strong-Password-Here"
+   ```
+
+2. **HTTPS Only**
+   ```yaml
+   ingress:
+     enabled: true
+     tls:
+       - secretName: nextcloud-tls
+         hosts:
+           - nextcloud.example.com
+   ```
+
+3. **External Secrets**
+   ```yaml
+   postgresql:
+     external:
+       existingSecret:
+         enabled: true
+         secretName: postgres-credentials
+   ```
+
+4. **Redis Password**
+   ```yaml
+   redis:
+     external:
+       password: "secure-redis-password"
+   ```
+
+5. **Network Policy**
+   ```yaml
+   networkPolicy:
+     enabled: true  # Restrict network access
+   ```
+
+6. **Security Context**
+   ```yaml
+   securityContext:
+     runAsNonRoot: true
+     runAsUser: 33  # www-data
+     readOnlyRootFilesystem: false
+   ```
+
+---
+
+## Operations
+
+### Common Administrative Tasks
+
+**Enable Maintenance Mode:**
+```bash
+kubectl exec -n default deployment/nextcloud -- php occ maintenance:mode --on
+```
+
+**Disable Maintenance Mode:**
+```bash
+kubectl exec -n default deployment/nextcloud -- php occ maintenance:mode --off
+```
+
+**Check Nextcloud Status:**
+```bash
+kubectl exec -n default deployment/nextcloud -- php occ status
+```
+
+**Rescan Files:**
+```bash
+# Rescan all users
+kubectl exec -n default deployment/nextcloud -- php occ files:scan --all
+
+# Rescan specific user
+kubectl exec -n default deployment/nextcloud -- php occ files:scan admin
+```
+
+**Manage Apps:**
+```bash
+# List installed apps
+kubectl exec -n default deployment/nextcloud -- php occ app:list
+
+# Install app
+kubectl exec -n default deployment/nextcloud -- php occ app:install calendar
+
+# Update all apps
+kubectl exec -n default deployment/nextcloud -- php occ app:update --all
+```
+
+**Database Maintenance:**
+```bash
+# Add missing database indices
+kubectl exec -n default deployment/nextcloud -- php occ db:add-missing-indices
+
+# Add missing database columns
+kubectl exec -n default deployment/nextcloud -- php occ db:add-missing-columns
+
+# Convert filecache to bigint
+kubectl exec -n default deployment/nextcloud -- php occ db:convert-filecache-bigint
+```
+
+**User Management:**
+```bash
+# List users
+kubectl exec -n default deployment/nextcloud -- php occ user:list
+
+# Create user
+kubectl exec -n default deployment/nextcloud -- php occ user:add --password-from-env username
+```
+
+### Monitoring
+
+**Port Forwarding for Local Access:**
+```bash
+make -f make/ops/nextcloud.mk nc-port-forward
+# Access at http://localhost:8080
+```
+
+**View Logs:**
+```bash
+# Pod logs
+kubectl logs -n default -l app.kubernetes.io/name=nextcloud --tail=100 -f
+
+# Nextcloud application logs
+kubectl exec -n default deployment/nextcloud -- tail -f /var/www/html/data/nextcloud.log
+```
+
+**Resource Usage:**
+```bash
+# Check pod resource usage
+kubectl top pod -n default -l app.kubernetes.io/name=nextcloud
+
+# Check PVC usage
+kubectl exec -n default deployment/nextcloud -- df -h
+```
+
+### Complete Operations Guide
+
+For all available operational commands, see [Makefile Commands](../../docs/MAKEFILE_COMMANDS.md#nextcloud).
+
+---
+
+## Upgrading
+
+### Upgrade Philosophy
+
+- **Never skip major versions**: Upgrade sequentially (e.g., 30.x → 31.x, not 29.x → 31.x)
+- **Always backup first**: Full backup before any upgrade
+- **Test in staging**: Validate upgrades in test environment first
+- **Verify app compatibility**: Check all installed apps support new version
+- **Check requirements**: Verify PHP, PostgreSQL, Redis versions
+
+### Pre-Upgrade Checklist
+
+```bash
+# 1. Check current version
+kubectl exec -n default deployment/nextcloud -- php occ status
+
+# 2. Create full backup
+make -f make/ops/nextcloud.mk nc-pre-upgrade-check
+make -f make/ops/nextcloud.mk nc-full-backup
+
+# 3. Verify system requirements
+kubectl exec -n default deployment/nextcloud -- php -v         # PHP version
+kubectl exec -n default deployment/postgresql -- psql --version  # PostgreSQL version
+kubectl exec -n default deployment/redis -- redis-server --version  # Redis version
+
+# 4. Check database health
+kubectl exec -n default deployment/nextcloud -- php occ db:convert-filecache-bigint --no-interaction
+kubectl exec -n default deployment/nextcloud -- php occ db:add-missing-indices
+```
+
+### Upgrade Strategies
+
+#### 1. Rolling Upgrade (Recommended for Patch/Minor)
+
+**Best for:** 31.0.0 → 31.0.10 (patch) or 31.0.x → 31.1.x (minor)
+
+```bash
+# Update image tag
+helm upgrade nextcloud ./charts/nextcloud \
+  -f values-production.yaml \
+  --set image.tag="31.0.10-apache" \
+  --wait
+
+# Run database migrations
+kubectl exec -n default deployment/nextcloud -- php occ upgrade
+```
+
+**Downtime:** None
+
+#### 2. In-Place Upgrade with Maintenance Mode (Major Version)
+
+**Best for:** 30.x → 31.x (major version)
+
+```bash
+# 1. Enable maintenance mode
+kubectl exec -n default deployment/nextcloud -- php occ maintenance:mode --on
+
+# 2. Upgrade
+helm upgrade nextcloud ./charts/nextcloud \
+  -f values-production.yaml \
+  --set image.tag="31.0.0-apache" \
+  --wait
+
+# 3. Run database upgrade
+kubectl exec -n default deployment/nextcloud -- php occ upgrade --no-interaction
+
+# 4. Update apps
+kubectl exec -n default deployment/nextcloud -- php occ app:update --all
+
+# 5. Disable maintenance mode
+kubectl exec -n default deployment/nextcloud -- php occ maintenance:mode --off
+```
+
+**Downtime:** 10-30 minutes
+
+#### 3. Blue-Green Deployment (Zero-Downtime Major Upgrade)
+
+**Best for:** Production with zero-downtime requirement
+
+```bash
+# Deploy new version to separate namespace
+helm install nextcloud-green ./charts/nextcloud \
+  --namespace nextcloud-green \
+  --set image.tag="31.0.0-apache" \
+  -f values-production.yaml
+
+# Test green environment
+# Switch ingress to green when validated
+```
+
+**Downtime:** None (brief DNS/Ingress switch)
+
+### Post-Upgrade Validation
+
+```bash
+# Run post-upgrade checks
+make -f make/ops/nextcloud.mk nc-post-upgrade-check
+
+# Verify status
+kubectl exec -n default deployment/nextcloud -- php occ status
+
+# Check integrity
+kubectl exec -n default deployment/nextcloud -- php occ integrity:check-core
+
+# Rescan files
+kubectl exec -n default deployment/nextcloud -- php occ files:scan --all
+```
+
+### Version-Specific Notes
+
+**Nextcloud 31.x Requirements:**
+- PHP 8.2+ (8.1 no longer supported)
+- PostgreSQL 13+ (12 no longer supported)
+- Redis 6+ or 8.x
+
+**Nextcloud 30.x → 31.x Changes:**
+- New dashboard widgets framework
+- Enhanced Files app with AI features
+- Changed default file locking mechanism (Redis recommended)
+
+### Rollback Procedure
+
+If upgrade fails:
+
+```bash
+# Option 1: Helm rollback (if database not migrated)
+helm rollback nextcloud
+
+# Option 2: Full database restore (if database migrated)
+make -f make/ops/nextcloud.mk nc-restore-database BACKUP_FILE=nextcloud-db-pre-upgrade.dump
+helm upgrade nextcloud ./charts/nextcloud --set image.tag="30.0.10-apache"
+```
+
+### Complete Upgrade Guide
+
+For detailed upgrade procedures, version-specific notes, troubleshooting, and rollback strategies, see the [Nextcloud Upgrade Guide](../../docs/nextcloud-upgrade-guide.md).
+
+---
+
 ## Contributing
 
 Contributions are welcome! Please submit issues and pull requests.
