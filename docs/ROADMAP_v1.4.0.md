@@ -121,7 +121,7 @@ All charts in this phase are now complete with comprehensive RBAC, backup/recove
 
 ### Phase 2: Application Charts (IN PROGRESS)
 
-**Target: 8 charts** | **Actual: 5/8 (63%)** ⏳
+**Target: 8 charts** | **Actual: 6/8 (75%)** ⏳
 
 7. ✅ **Grafana** (v0.3.0 → v0.4.0) - COMPLETE (commit c0733a3, 2025-12-01)
    - RBAC templates (Role for ConfigMaps, Secrets, Pods, Services, Endpoints, PVCs)
@@ -173,12 +173,15 @@ All charts in this phase are now complete with comprehensive RBAC, backup/recove
     - RTO/RPO: < 2 hours / 24 hours
     - Total impact: 7 files, ~4,369 lines added
 
-12. **Immich** (v0.3.0 → v0.4.0)
-    - RBAC templates (namespace-scoped)
-    - Backup guide (photos, videos, database, ML models)
-    - Upgrade guide (v1 to v2 migration, breaking changes)
-    - Makefile targets (backup, restore, library sync)
-    - RTO/RPO: < 2 hours / 24 hours
+12. ✅ **Immich** (v0.3.0 → v0.4.0) - COMPLETE (2025-12-08)
+   - RBAC templates (Role for ConfigMaps, Secrets, Pods, Services, Endpoints, PVCs)
+   - Backup guide (~1,046 lines): Library PVC, PostgreSQL DB, Redis cache, ML model cache, config, PVC snapshots
+   - Upgrade guide (~1,101 lines): 3 strategies (Rolling, Blue-Green, Maintenance Window)
+   - README: 4 sections (~479 lines) - Backup & Recovery, Security & RBAC, Operations, Upgrading
+   - values.yaml: Comprehensive backup/upgrade documentation (~124 lines)
+   - Makefile: 50+ operational targets (185 → 512 lines)
+   - RTO/RPO: < 2 hours / 24 hours
+   - Total impact: 6 files, ~3,077 lines added
 
 13. **Jellyfin** (v0.3.0 → v0.4.0)
     - RBAC templates (namespace-scoped)
