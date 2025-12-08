@@ -146,6 +146,15 @@ serviceAccount:
   name: ""
 
 # ========================================
+# 6a. RBAC Configuration
+# ========================================
+rbac:
+  # Specifies whether RBAC resources should be created
+  create: true
+  # Annotations to add to the Role and RoleBinding
+  annotations: {}
+
+# ========================================
 # 7. Pod Configuration
 # ========================================
 podAnnotations: {}

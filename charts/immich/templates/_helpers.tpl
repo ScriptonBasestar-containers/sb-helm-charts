@@ -193,3 +193,14 @@ PVC name for ML model cache
 {{- define "immich.ml.pvcName" -}}
 {{- printf "%s-ml-cache" (include "immich.fullname" .) }}
 {{- end }}
+
+{{/*
+RBAC names
+*/}}
+{{- define "immich.roleName" -}}
+{{- printf "%s-role" (include "immich.fullname" .) }}
+{{- end }}
+
+{{- define "immich.roleBindingName" -}}
+{{- printf "%s-rolebinding" (include "immich.fullname" .) }}
+{{- end }}
