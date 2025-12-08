@@ -249,7 +249,130 @@ nameOverride: ""
 fullnameOverride: ""
 
 # ========================================
-# 14. Monitoring (Optional)
+# 14. Backup & Recovery Configuration
+# ========================================
+# NOTE: This is DOCUMENTATION ONLY - backups are performed via Makefile targets
+# The chart does NOT create automated backup CronJobs
+# See docs/immich-backup-guide.md for detailed procedures
+backup:
+  # Documentation flag - does not enable automated backups
+  enabled: false
+
+  # Backup strategy overview
+  documentation:
+    # Backup components (5 layers)
+    strategy: "Library PVC + PostgreSQL Database + Redis Cache + ML Model Cache + Configuration"
+
+    # Backup tools/methods
+    tools:
+      - "tar/Restic for library PVC"
+      - "pg_dump for PostgreSQL"
+      - "VolumeSnapshot API for PVC snapshots"
+      - "redis-cli BGSAVE for Redis"
+
+    # Components to backup
+    components:
+      library:
+        description: "Photos, videos, profile pictures, thumbnails"
+        location: "Library PVC (/data)"
+        size: "Large (100GB - 5TB)"
+        method: "tar, Restic (incremental recommended)"
+        priority: "Critical"
+      database:
+        description: "Photo metadata, albums, sharing, users, ML embeddings"
+        location: "External PostgreSQL"
+        size: "Medium (1-10GB)"
+        method: "pg_dump (custom format)"
+        priority: "Critical"
+      redisCache:
+        description: "Session cache, job queues"
+        location: "External Redis"
+        size: "Small (< 100MB)"
+        method: "RDB snapshot"
+        priority: "Low (can rebuild)"
+      mlCache:
+        description: "Downloaded ML models (face recognition, CLIP)"
+        location: "ML Cache PVC (/cache)"
+        size: "Medium (~10GB)"
+        method: "tar"
+        priority: "Medium (can re-download)"
+      configuration:
+        description: "Helm values, ConfigMaps, Secrets"
+        location: "Kubernetes resources"
+        size: "Small (< 1MB)"
+        method: "helm get values, kubectl get"
+        priority: "High"
+
+    # Recovery targets
+    targets:
+      rto: "< 2 hours"  # Recovery Time Objective
+      rpo: "24 hours"   # Recovery Point Objective (with daily backups)
+
+  # Makefile commands (for documentation)
+  commands:
+    fullBackup: "make -f make/ops/immich.mk immich-full-backup"
+    incrementalBackup: "make -f make/ops/immich.mk immich-backup-library-restic"
+    snapshotBackup: "make -f make/ops/immich.mk immich-snapshot-library"
+    restoreDatabase: "make -f make/ops/immich.mk immich-restore-db BACKUP_FILE=/path/to/backup"
+    restoreLibrary: "make -f make/ops/immich.mk immich-restore-library BACKUP_FILE=/path/to/backup"
+    verifyBackup: "make -f make/ops/immich.mk immich-verify-backup BACKUP_FILE=/path/to/backup"
+
+# ========================================
+# 15. Upgrade Configuration
+# ========================================
+# NOTE: This is DOCUMENTATION ONLY - upgrades are manual processes
+# The chart does NOT perform automatic upgrades
+# See docs/immich-upgrade-guide.md for detailed procedures
+upgrade:
+  # Documentation flag - does not enable automated upgrades
+  enabled: false
+
+  # Upgrade strategy documentation
+  documentation:
+    # Available upgrade strategies
+    strategies:
+      rolling:
+        description: "Zero-downtime upgrade with gradual pod replacement"
+        downtime: "None"
+        risk: "Low to Medium"
+        bestFor: "Patch and minor version upgrades (v1.119.x → v1.120.x)"
+      blueGreen:
+        description: "Parallel deployment with traffic cutover"
+        downtime: "10-30 minutes (cutover)"
+        risk: "Low"
+        bestFor: "Major version upgrades (v1.x → v2.x)"
+      maintenanceWindow:
+        description: "Full cluster restart during scheduled downtime"
+        downtime: "30 minutes - 2 hours"
+        risk: "Medium to High"
+        bestFor: "Major upgrades with breaking changes"
+
+    # Pre-upgrade requirements
+    preUpgrade:
+      - "Full backup (MANDATORY)"
+      - "Review Immich release notes"
+      - "Test in staging environment"
+      - "Plan rollback strategy"
+      - "Schedule maintenance window (if needed)"
+
+    # Post-upgrade validation
+    postUpgrade:
+      - "Verify all pods running"
+      - "Check image versions"
+      - "Test database connectivity"
+      - "Verify photo count"
+      - "Test web interface"
+      - "Check ML functionality"
+
+  # Makefile commands (for documentation)
+  commands:
+    preUpgradeCheck: "make -f make/ops/immich.mk immich-pre-upgrade-check"
+    rollingUpgrade: "make -f make/ops/immich.mk immich-rolling-upgrade VERSION=v1.120.0"
+    postUpgradeCheck: "make -f make/ops/immich.mk immich-post-upgrade-check"
+    rollback: "make -f make/ops/immich.mk immich-upgrade-rollback"
+
+# ========================================
+# 16. Monitoring (Optional)
 # ========================================
 # NOTE: Immich does not natively expose Prometheus metrics
 # Consider using a third-party exporter if monitoring is required
