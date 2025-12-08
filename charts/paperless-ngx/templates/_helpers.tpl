@@ -179,3 +179,14 @@ PVC name for export
 {{- printf "%s-export" (include "paperless-ngx.fullname" .) }}
 {{- end }}
 {{- end }}
+
+{{/*
+RBAC names
+*/}}
+{{- define "paperless-ngx.roleName" -}}
+{{- printf "%s-role" (include "paperless-ngx.fullname" .) }}
+{{- end }}
+
+{{- define "paperless-ngx.roleBindingName" -}}
+{{- printf "%s-rolebinding" (include "paperless-ngx.fullname" .) }}
+{{- end }}
