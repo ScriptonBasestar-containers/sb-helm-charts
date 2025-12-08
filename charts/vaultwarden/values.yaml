@@ -151,7 +151,16 @@ nameOverride: ""
 fullnameOverride: ""
 
 # ========================================
-# 6. Service Account
+# 6. RBAC Configuration
+# ========================================
+rbac:
+  # Specifies whether RBAC resources should be created
+  create: true
+  # Annotations to add to the Role and RoleBinding
+  annotations: {}
+
+# ========================================
+# 7. Service Account
 # ========================================
 serviceAccount:
   # Specifies whether a service account should be created
@@ -165,7 +174,7 @@ serviceAccount:
   name: ""
 
 # ========================================
-# 7. Pod Configuration
+# 8. Pod Configuration
 # ========================================
 podAnnotations: {}
 podLabels: {}
@@ -184,7 +193,7 @@ securityContext:
   readOnlyRootFilesystem: false  # Vaultwarden needs write access to /data
 
 # ========================================
-# 8. Service Configuration
+# 9. Service Configuration
 # ========================================
 service:
   type: ClusterIP
@@ -200,7 +209,7 @@ service:
       protocol: TCP
 
 # ========================================
-# 9. Ingress Configuration
+# 10. Ingress Configuration
 # ========================================
 ingress:
   enabled: false
@@ -219,7 +228,7 @@ ingress:
   #      - vault.example.com
 
 # ========================================
-# 10. Resource Configuration
+# 11. Resource Configuration
 # ========================================
 resources:
   limits:
@@ -230,7 +239,7 @@ resources:
     memory: 128Mi
 
 # ========================================
-# 11. Health Probes
+# 12. Health Probes
 # ========================================
 livenessProbe:
   enabled: true
@@ -263,7 +272,7 @@ startupProbe:
   failureThreshold: 30
 
 # ========================================
-# 12. Autoscaling (Deployment mode only)
+# 13. Autoscaling (Deployment mode only)
 # ========================================
 autoscaling:
   enabled: false
@@ -273,7 +282,7 @@ autoscaling:
   targetMemoryUtilizationPercentage: 80
 
 # ========================================
-# 13. Pod Disruption Budget
+# 14. Pod Disruption Budget
 # ========================================
 podDisruptionBudget:
   enabled: false
@@ -281,7 +290,7 @@ podDisruptionBudget:
   # maxUnavailable: 1
 
 # ========================================
-# 14. Network Policy
+# 15. Network Policy
 # ========================================
 networkPolicy:
   enabled: false
@@ -303,7 +312,7 @@ networkPolicy:
   #     port: 5432  # PostgreSQL
 
 # ========================================
-# 15. Scheduling
+# 16. Scheduling
 # ========================================
 nodeSelector: {}
 
@@ -311,22 +320,232 @@ tolerations: []
 
 affinity: {}
 
-# ========================================
-# 16. Backup Configuration (Optional)
-# ========================================
-backup:
-  enabled: false
-  # Backup schedule (CronJob)
-  schedule: "0 2 * * *"  # Daily at 2 AM
-  # Backup retention (days)
-  retention: 7
-  # Storage for backups
-  storageClass: ""
-  size: 5Gi
+# ============================================================================
+# 17. Backup & Recovery Configuration
+# ============================================================================
+# NOTE: This is DOCUMENTATION ONLY - backups are performed via Makefile targets
+# The chart does NOT create automated backup CronJobs
+# See docs/vaultwarden-backup-guide.md for detailed procedures
 
-# ========================================
-# 17. Monitoring (Optional)
-# ========================================
+backup:
+  # Documentation flag - does not enable automated backups
+  enabled: false
+
+  # Backup strategy overview
+  documentation:
+    # Backup components (4 layers)
+    strategy: "Data Directory + Database + Configuration + PVC Snapshots"
+
+    # Backup tools/methods
+    tools:
+      - "rsync/tar for data directory"
+      - "sqlite3 .backup for SQLite"
+      - "pg_dump for PostgreSQL"
+      - "mysqldump for MySQL"
+      - "kubectl cp for configuration"
+      - "VolumeSnapshot API for PVC snapshots"
+
+    # Components to backup
+    components:
+      dataDirectory:
+        description: "Vault database (SQLite), attachments, icons, RSA keys, Sends"
+        location: "Data PVC (/data)"
+        size: "Small to medium (MB-GB)"
+        method: "tar (full), rsync (incremental)"
+        priority: "Critical"
+
+      database:
+        description: "Vault metadata, items (PostgreSQL/MySQL mode)"
+        location: "External database"
+        size: "Small to medium (MB-GB)"
+        method: "pg_dump, mysqldump"
+        priority: "Critical (external DB mode)"
+
+      configuration:
+        description: "Kubernetes resources, Helm values, environment variables"
+        location: "ConfigMaps, Secrets, Helm release"
+        size: "Very small (KB)"
+        method: "kubectl export, helm get"
+        priority: "High"
+
+      pvcSnapshots:
+        description: "Point-in-time storage snapshots"
+        location: "Storage backend"
+        size: "Same as data directory"
+        method: "VolumeSnapshot API"
+        priority: "Medium (disaster recovery)"
+
+    # Recovery Time/Point Objectives
+    targets:
+      rto: "< 1 hour (complete instance recovery)"
+      rpo: "24 hours (daily backups), 1 hour (hourly critical)"
+      dataRecovery: "< 30 minutes"
+      databaseRecovery: "< 15 minutes"
+      configRecovery: "< 10 minutes"
+
+    # Backup frequency recommendations
+    frequency:
+      dataDirectory: "Hourly or Daily (depending on criticality)"
+      database: "Daily (hourly for critical deployments)"
+      configuration: "On every change"
+      pvcSnapshots: "Weekly"
+
+    # Makefile commands for backup
+    commands:
+      fullBackup: "make -f make/ops/vaultwarden.mk vw-full-backup"
+      backupData: "make -f make/ops/vaultwarden.mk vw-backup-data-full"
+      backupDataIncremental: "make -f make/ops/vaultwarden.mk vw-backup-data-incremental"
+      backupSQLite: "make -f make/ops/vaultwarden.mk vw-backup-sqlite"
+      backupPostgreSQL: "make -f make/ops/vaultwarden.mk vw-backup-postgres"
+      backupMySQL: "make -f make/ops/vaultwarden.mk vw-backup-mysql"
+      backupConfig: "make -f make/ops/vaultwarden.mk vw-backup-config"
+      snapshotData: "make -f make/ops/vaultwarden.mk vw-snapshot-data"
+
+    # Makefile commands for recovery
+    recovery:
+      restoreData: "make -f make/ops/vaultwarden.mk vw-restore-data BACKUP_FILE=..."
+      restorePostgreSQL: "make -f make/ops/vaultwarden.mk vw-restore-postgres BACKUP_FILE=..."
+      restoreMySQL: "make -f make/ops/vaultwarden.mk vw-restore-mysql BACKUP_FILE=..."
+      restoreConfig: "make -f make/ops/vaultwarden.mk vw-restore-config BACKUP_FILE=..."
+      fullRecovery: "make -f make/ops/vaultwarden.mk vw-full-recovery DATA_BACKUP=... DB_BACKUP=..."
+
+    # Best practices
+    bestPractices:
+      - "Test restore procedures quarterly"
+      - "Store backups in different availability zone"
+      - "Encrypt sensitive backups (config contains admin token, SMTP passwords)"
+      - "Always backup before upgrades"
+      - "Verify backup integrity regularly"
+      - "Document backup locations and encryption keys"
+      - "Use SQLite .backup command, never direct file copy while running"
+      - "Monitor backup success and alert on failures"
+
+    # Complete guide reference
+    guide: "docs/vaultwarden-backup-guide.md"
+
+# ============================================================================
+# 18. Upgrade Configuration
+# ============================================================================
+# NOTE: This is DOCUMENTATION ONLY - upgrades are performed via Helm and validation
+# The chart does NOT perform automated upgrades
+# See docs/vaultwarden-upgrade-guide.md for detailed procedures
+
+upgrade:
+  # Documentation flag - does not enable automated upgrades
+  enabled: false
+
+  # Always backup before upgrade
+  preUpgradeBackup: true
+
+  # Upgrade strategy overview
+  documentation:
+    # Upgrade philosophy
+    philosophy:
+      - "Minimize downtime (use rolling upgrades when possible)"
+      - "Always backup first (CRITICAL - vault data is irreplaceable)"
+      - "Test in staging environment"
+      - "Database schema automatically migrated on startup"
+      - "Rollback requires database restore (schema downgrades not supported)"
+
+    # Upgrade strategies
+    strategies:
+      rollingUpgrade:
+        description: "Zero-downtime upgrade for patch/minor versions"
+        bestFor: "1.34.0 → 1.34.3 (patch) or 1.34.x → 1.35.x (minor)"
+        downtime: "None"
+        complexity: "Low"
+        method: "Helm upgrade with new image tag"
+
+      inPlaceUpgrade:
+        description: "Upgrade with brief downtime for major versions"
+        bestFor: "1.30.x → 1.34.x (major version)"
+        downtime: "10-15 minutes"
+        complexity: "Medium"
+        method: "Scale down → Helm upgrade → Scale up"
+
+      blueGreenDeployment:
+        description: "Zero-downtime major version upgrade"
+        bestFor: "Production with zero-downtime requirement"
+        downtime: "None (instant cutover)"
+        complexity: "High"
+        method: "Deploy to separate namespace → Test → Switch ingress"
+
+      databaseMigration:
+        description: "Migrate database backend (SQLite → PostgreSQL)"
+        bestFor: "Moving to high-availability setup"
+        downtime: "1-2 hours"
+        complexity: "Very High"
+        method: "Export SQLite → Convert → Import PostgreSQL"
+
+    # Version-specific upgrade notes
+    versionNotes:
+      "1.32.x → 1.34.x":
+        - "Alpine Linux 3.20 update (may require permission fixes)"
+        - "Database migration adds indices (< 1 minute)"
+        - "WebAuthn improvements"
+        - "Organization enhancements"
+        - "No breaking changes"
+      "1.30.x → 1.32.x":
+        - "Emergency access feature added"
+        - "Event logging improvements"
+        - "SQLite performance optimizations"
+        - "No breaking changes"
+
+    # Pre-upgrade checklist
+    preUpgradeChecklist:
+      - "Review Vaultwarden release notes"
+      - "Create full backup (vw-full-backup)"
+      - "Create PVC snapshot (vw-snapshot-data)"
+      - "Check database health (vw-db-integrity)"
+      - "Export current Helm values"
+      - "Test backup restore (recommended)"
+      - "Plan maintenance window (if downtime required)"
+      - "Notify users of upgrade schedule"
+
+    # Post-upgrade validation
+    postUpgradeValidation:
+      - "Verify pod health (kubectl get pods)"
+      - "Check Vaultwarden version (vw-version)"
+      - "Test database integrity (vw-db-integrity)"
+      - "Login to web vault"
+      - "Verify password items load correctly"
+      - "Test password creation/update"
+      - "Verify file attachments work"
+      - "Test Send feature"
+      - "Test organization features (if used)"
+      - "Sync from mobile app"
+      - "Monitor logs for errors (vw-logs)"
+
+    # Makefile commands
+    commands:
+      preUpgradeCheck: "make -f make/ops/vaultwarden.mk vw-pre-upgrade-check"
+      fullBackup: "make -f make/ops/vaultwarden.mk vw-full-backup"
+      postUpgradeCheck: "make -f make/ops/vaultwarden.mk vw-post-upgrade-check"
+      snapshotData: "make -f make/ops/vaultwarden.mk vw-snapshot-data"
+
+    # Rollback procedures
+    rollback:
+      helmOnly:
+        description: "For upgrades without database migration"
+        method: "helm rollback vaultwarden"
+        downtime: "2-5 minutes"
+
+      fullDatabaseRestore:
+        description: "For upgrades with database migration"
+        method: "Restore database → Rollback Helm → Restart"
+        downtime: "15-30 minutes"
+
+      pvcSnapshot:
+        description: "Fastest rollback using storage snapshot"
+        method: "Restore from PVC snapshot → Rollback Helm"
+        downtime: "5-10 minutes"
+
+    # Complete guide reference
+    guide: "docs/vaultwarden-upgrade-guide.md"
+
+# ============================================================================
+# 19. Monitoring (Optional)
+# ============================================================================
 # NOTE: Vaultwarden does not natively expose Prometheus metrics
 # Consider using a third-party exporter if monitoring is required
 monitoring:

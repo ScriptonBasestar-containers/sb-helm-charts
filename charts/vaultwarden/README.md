@@ -515,6 +515,438 @@ vaultwarden:
     disableAdminToken: true  # WARNING: Insecure!
 ```
 
+---
+
+## Backup & Recovery
+
+This chart includes comprehensive backup and recovery capabilities for Vaultwarden deployments.
+
+### Backup Strategy
+
+Vaultwarden backups consist of **4 complementary components**:
+
+| Component | Priority | Frequency | RTO | Method |
+|-----------|----------|-----------|-----|--------|
+| **Data Directory** | CRITICAL | Hourly/Daily | 30 min | rsync/tar |
+| **Database** (External) | CRITICAL | Daily | 15 min | pg_dump/mysqldump |
+| **Configuration** | HIGH | On change | 10 min | kubectl export |
+| **PVC Snapshots** | MEDIUM | Weekly | 30 min | VolumeSnapshot API |
+
+**Recovery Targets:**
+- **RTO**: < 1 hour (complete instance recovery)
+- **RPO**: 24 hours (daily backups), 1 hour (critical deployments)
+
+### Quick Backup Commands
+
+```bash
+# Full backup (all components)
+make -f make/ops/vaultwarden.mk vw-full-backup
+
+# Individual component backups
+make -f make/ops/vaultwarden.mk vw-backup-data-full       # Data directory (tar)
+make -f make/ops/vaultwarden.mk vw-backup-data-incremental # Data directory (rsync)
+make -f make/ops/vaultwarden.mk vw-backup-sqlite          # SQLite database
+make -f make/ops/vaultwarden.mk vw-backup-postgres        # PostgreSQL database
+make -f make/ops/vaultwarden.mk vw-backup-mysql           # MySQL database
+make -f make/ops/vaultwarden.mk vw-backup-config          # Kubernetes resources
+
+# PVC snapshots (requires VolumeSnapshot API)
+make -f make/ops/vaultwarden.mk vw-snapshot-data
+make -f make/ops/vaultwarden.mk vw-list-snapshots
+```
+
+### Quick Recovery Commands
+
+```bash
+# Restore from backups
+make -f make/ops/vaultwarden.mk vw-restore-data BACKUP_FILE=/path/to/backup.tar.gz
+make -f make/ops/vaultwarden.mk vw-restore-postgres BACKUP_FILE=/path/to/backup.sql.gz
+make -f make/ops/vaultwarden.mk vw-restore-mysql BACKUP_FILE=/path/to/backup.sql.gz
+make -f make/ops/vaultwarden.mk vw-restore-config BACKUP_FILE=/path/to/config.tar.gz
+
+# Full disaster recovery
+make -f make/ops/vaultwarden.mk vw-full-recovery \
+  DATA_BACKUP=/path/to/data.tar.gz \
+  DB_BACKUP=/path/to/database.sql.gz \
+  CONFIG_BACKUP=/path/to/config.tar.gz
+```
+
+### Backup Components in Detail
+
+**1. Data Directory (`/data`):**
+- Vault database (SQLite mode) or attachments (external DB mode)
+- File attachments uploaded by users
+- Send temporary files
+- Website icon cache
+- RSA keys for JWT signing
+
+**2. Database (External mode):**
+- Vault metadata and items (PostgreSQL/MySQL)
+- User accounts and organizations
+- Collection and group permissions
+- Audit logs and events
+
+**3. Configuration:**
+- Kubernetes Deployment/StatefulSet manifests
+- Helm values and release configuration
+- Environment variables and secrets
+- Ingress and service definitions
+
+**4. PVC Snapshots:**
+- Point-in-time storage snapshots
+- Fast disaster recovery
+- Storage-level consistency
+
+### Best Practices
+
+- ✅ **Test restore quarterly**: Schedule disaster recovery drills
+- ✅ **Store off-site**: Use different availability zone or S3/MinIO
+- ✅ **Encrypt backups**: Config contains admin tokens and SMTP passwords
+- ✅ **Automate retention**: Keep 7 daily, 4 weekly, 12 monthly, 1 yearly
+- ✅ **Monitor success**: Alert on failed backups
+- ✅ **Document locations**: Maintain inventory with encryption keys
+
+**Complete Guide:** [docs/vaultwarden-backup-guide.md](../../docs/vaultwarden-backup-guide.md)
+
+---
+
+## Security & RBAC
+
+### RBAC Configuration
+
+This chart creates namespace-scoped Role and RoleBinding for Vaultwarden operations.
+
+**RBAC Resources Created:**
+- **Role**: Read access to ConfigMaps, Secrets, Pods, Services, Endpoints, PVCs
+- **RoleBinding**: Binds ServiceAccount to Role
+- **ServiceAccount**: Dedicated service account for Vaultwarden pods
+
+**Configuration:**
+```yaml
+rbac:
+  create: true              # Create RBAC resources (default: true)
+  annotations: {}           # Annotations for Role and RoleBinding
+```
+
+**Permissions Granted:**
+| Resource | Verbs | Purpose |
+|----------|-------|---------|
+| configmaps | get, list, watch | Read configuration |
+| secrets | get, list, watch | Read credentials (DB, SMTP, admin token) |
+| pods | get, list, watch | Health checks and operations |
+| services | get, list, watch | Service discovery |
+| endpoints | get, list, watch | Service discovery |
+| persistentvolumeclaims | get, list, watch | Storage operations |
+
+**Security Considerations:**
+- Namespace-scoped (not cluster-wide)
+- Read-only permissions (no create/update/delete)
+- Minimal permissions principle
+- Compatible with Pod Security Standards (PSS)
+
+### Pod Security
+
+**Pod Security Context:**
+```yaml
+podSecurityContext:
+  fsGroup: 1000              # File ownership for /data
+
+securityContext:
+  runAsUser: 1000            # Non-root user
+  runAsGroup: 1000
+  runAsNonRoot: true
+  readOnlyRootFilesystem: false  # Vaultwarden needs /data write access
+  capabilities:
+    drop:
+      - ALL
+```
+
+**Security Hardening:**
+- ✅ Runs as non-root user (UID 1000)
+- ✅ Drops all capabilities
+- ✅ Read-only root filesystem (except /data volume)
+- ✅ No privilege escalation
+- ✅ Seccomp profile (if available)
+
+### Network Security
+
+**NetworkPolicy (optional):**
+```yaml
+networkPolicy:
+  enabled: true
+  ingress:
+    - from:
+      - podSelector:
+          matchLabels: {}
+      ports:
+        - protocol: TCP
+          port: 80
+        - protocol: TCP
+          port: 3012  # WebSocket
+  egress:
+    - to:
+      - namespaceSelector:
+          matchLabels:
+            name: database-namespace
+      ports:
+        - protocol: TCP
+          port: 5432  # PostgreSQL
+```
+
+**Ingress Security:**
+- TLS termination recommended
+- HTTPS required for WebAuthn/Passkeys
+- Rate limiting via ingress controller
+- IP allowlisting for admin panel
+
+---
+
+## Operations
+
+### Common Operational Tasks
+
+**Status and Logs:**
+```bash
+make -f make/ops/vaultwarden.mk vw-status     # Pod status
+make -f make/ops/vaultwarden.mk vw-logs       # View logs
+make -f make/ops/vaultwarden.mk vw-logs-follow # Follow logs
+make -f make/ops/vaultwarden.mk vw-shell      # Interactive shell
+```
+
+**Restart and Scaling:**
+```bash
+make -f make/ops/vaultwarden.mk vw-restart    # Restart pods
+make -f make/ops/vaultwarden.mk vw-scale REPLICAS=2  # Scale replicas
+```
+
+**Admin Operations:**
+```bash
+make -f make/ops/vaultwarden.mk vw-admin-url  # Get admin panel URL
+make -f make/ops/vaultwarden.mk vw-get-admin-token  # Retrieve admin token
+make -f make/ops/vaultwarden.mk vw-disable-admin    # Disable admin panel
+make -f make/ops/vaultwarden.mk vw-enable-admin     # Enable admin panel
+```
+
+**Database Operations:**
+
+*SQLite mode:*
+```bash
+make -f make/ops/vaultwarden.mk vw-db-size         # Check database size
+make -f make/ops/vaultwarden.mk vw-db-integrity    # Integrity check
+make -f make/ops/vaultwarden.mk vw-db-vacuum       # Optimize database
+```
+
+*PostgreSQL mode:*
+```bash
+make -f make/ops/vaultwarden.mk vw-db-shell        # PostgreSQL shell
+make -f make/ops/vaultwarden.mk vw-db-connections  # Active connections
+make -f make/ops/vaultwarden.mk vw-db-table-sizes  # Table sizes
+```
+
+**User Management:**
+```bash
+make -f make/ops/vaultwarden.mk vw-list-users      # List all users
+make -f make/ops/vaultwarden.mk vw-delete-user EMAIL=user@example.com
+make -f make/ops/vaultwarden.mk vw-invite-user EMAIL=user@example.com
+```
+
+**Monitoring:**
+```bash
+make -f make/ops/vaultwarden.mk vw-disk-usage      # Data directory usage
+make -f make/ops/vaultwarden.mk vw-resource-usage  # CPU/memory usage
+make -f make/ops/vaultwarden.mk vw-port-forward    # Port forward to localhost
+```
+
+**Cleanup:**
+```bash
+make -f make/ops/vaultwarden.mk vw-cleanup-trashed # Delete trashed items
+make -f make/ops/vaultwarden.mk vw-cleanup-sends   # Delete expired Sends
+make -f make/ops/vaultwarden.mk vw-cleanup-icons   # Clear icon cache
+```
+
+### Health Checks
+
+**Manual health check:**
+```bash
+# Check pod health
+kubectl get pods -n default -l app.kubernetes.io/name=vaultwarden
+
+# Check liveness
+curl http://localhost:8080/alive
+
+# Check readiness
+curl http://localhost:8080/alive
+
+# View health probe status
+kubectl describe pod -n default -l app.kubernetes.io/name=vaultwarden | grep -A5 "Liveness\|Readiness"
+```
+
+**Configured probes:**
+- **Liveness**: `GET /alive` - Pod is running
+- **Readiness**: `GET /alive` - Pod can accept traffic
+- **Startup**: `GET /alive` - Initial startup complete (300s timeout)
+
+### Troubleshooting Commands
+
+```bash
+# Describe pod for events
+make -f make/ops/vaultwarden.mk vw-describe
+
+# Check resource usage
+make -f make/ops/vaultwarden.mk vw-top
+
+# View all events
+kubectl get events -n default --field-selector involvedObject.name=vaultwarden
+
+# Debug with temporary pod
+kubectl run -it --rm debug --image=busybox --restart=Never -- sh
+```
+
+---
+
+## Upgrading
+
+This chart supports multiple upgrade strategies for different scenarios.
+
+### Upgrade Strategies
+
+| Strategy | Downtime | Risk | Best For |
+|----------|----------|------|----------|
+| **Rolling Upgrade** | None | Low | Patch/minor versions |
+| **In-Place Upgrade** | 10-15 min | Medium | Major versions, StatefulSet |
+| **Blue-Green** | None | Low | Zero-downtime major upgrades |
+
+### Pre-Upgrade Checklist
+
+**CRITICAL steps before ANY upgrade:**
+
+- [ ] Review release notes: https://github.com/dani-garcia/vaultwarden/releases
+- [ ] Create full backup: `make -f make/ops/vaultwarden.mk vw-full-backup`
+- [ ] Create PVC snapshot: `make -f make/ops/vaultwarden.mk vw-snapshot-data`
+- [ ] Check database health: `make -f make/ops/vaultwarden.mk vw-db-integrity`
+- [ ] Export current values: `helm get values vaultwarden > backup-values.yaml`
+- [ ] Test backup restore (recommended): See [backup guide](../../docs/vaultwarden-backup-guide.md)
+- [ ] Plan maintenance window (if downtime required)
+- [ ] Notify users of upgrade schedule
+
+### Quick Upgrade (Rolling)
+
+**Best for:** Patch versions (1.34.0 → 1.34.3)
+
+```bash
+# 1. Pre-upgrade checks
+make -f make/ops/vaultwarden.mk vw-pre-upgrade-check
+
+# 2. Backup
+make -f make/ops/vaultwarden.mk vw-full-backup
+
+# 3. Upgrade
+helm repo update sb-charts
+helm upgrade vaultwarden sb-charts/vaultwarden \
+  -n default \
+  -f values.yaml \
+  --set image.tag=1.34.3 \
+  --wait
+
+# 4. Verify
+make -f make/ops/vaultwarden.mk vw-post-upgrade-check
+```
+
+### Major Version Upgrade (In-Place)
+
+**Best for:** Major versions (1.30.x → 1.34.x)
+
+```bash
+# 1. Pre-upgrade checks and backup
+make -f make/ops/vaultwarden.mk vw-pre-upgrade-check
+make -f make/ops/vaultwarden.mk vw-full-backup
+make -f make/ops/vaultwarden.mk vw-snapshot-data
+
+# 2. Stop service (downtime begins)
+kubectl scale deployment/vaultwarden -n default --replicas=0
+
+# 3. Upgrade
+helm upgrade vaultwarden sb-charts/vaultwarden \
+  -n default \
+  -f values.yaml \
+  --set image.tag=1.34.3 \
+  --wait
+
+# 4. Verify and restart
+make -f make/ops/vaultwarden.mk vw-post-upgrade-check
+```
+
+### Database Backend Migration
+
+**Migrating from SQLite to PostgreSQL:**
+
+See detailed procedure in [upgrade guide](../../docs/vaultwarden-upgrade-guide.md#database-backend-migration-sqlite--postgresql)
+
+**Estimated time:** 1-2 hours (full downtime)
+
+### Post-Upgrade Validation
+
+```bash
+# Automated checks
+make -f make/ops/vaultwarden.mk vw-post-upgrade-check
+
+# Manual verification:
+# 1. Login to web vault
+# 2. Verify password items load correctly
+# 3. Test password creation/update
+# 4. Verify file attachments work
+# 5. Test Send feature
+# 6. Test organization features (if used)
+# 7. Sync from mobile app
+# 8. Check logs for errors: make -f make/ops/vaultwarden.mk vw-logs
+```
+
+### Rollback Procedures
+
+**Scenario 1: Rollback via Helm (no database changes)**
+```bash
+helm rollback vaultwarden -n default
+kubectl rollout status deployment/vaultwarden -n default
+```
+
+**Scenario 2: Rollback with database restore**
+```bash
+# Stop service
+kubectl scale deployment/vaultwarden -n default --replicas=0
+
+# Restore database
+make -f make/ops/vaultwarden.mk vw-restore-data BACKUP_FILE=/path/to/backup.tar.gz
+
+# Rollback Helm
+helm rollback vaultwarden -n default
+```
+
+**Scenario 3: Rollback via PVC snapshot (fastest)**
+```bash
+kubectl scale deployment/vaultwarden -n default --replicas=0
+make -f make/ops/vaultwarden.mk vw-restore-from-snapshot SNAPSHOT_NAME=vaultwarden-data-snapshot-*
+helm rollback vaultwarden -n default
+```
+
+### Version-Specific Notes
+
+**Vaultwarden 1.32.x → 1.34.x:**
+- Alpine Linux 3.20 update (may require permission fixes)
+- Database migration adds indices (< 1 minute)
+- WebAuthn improvements
+- Organization enhancements
+- No breaking changes
+
+**Vaultwarden 1.30.x → 1.32.x:**
+- Emergency access feature added
+- Event logging improvements
+- SQLite performance optimizations
+- No breaking changes
+
+**Complete Guide:** [docs/vaultwarden-upgrade-guide.md](../../docs/vaultwarden-upgrade-guide.md)
+
+---
+
 ## Migration from Other Charts
 
 ### From k8s-at-home/vaultwarden

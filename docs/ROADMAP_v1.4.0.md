@@ -121,7 +121,7 @@ All charts in this phase are now complete with comprehensive RBAC, backup/recove
 
 ### Phase 2: Application Charts (IN PROGRESS)
 
-**Target: 8 charts** | **Actual: 2/8 (25%)** ⏳
+**Target: 8 charts** | **Actual: 3/8 (38%)** ⏳
 
 7. ✅ **Grafana** (v0.3.0 → v0.4.0) - COMPLETE (commit c0733a3, 2025-12-01)
    - RBAC templates (Role for ConfigMaps, Secrets, Pods, Services, Endpoints, PVCs)
@@ -143,12 +143,15 @@ All charts in this phase are now complete with comprehensive RBAC, backup/recove
    - RTO/RPO: < 2 hours / 24 hours
    - Total impact: 5 files, ~2,667 lines added (excl. RBAC which was added earlier)
 
-9. **Vaultwarden** (v0.3.0 → v0.4.0)
-   - RBAC templates (namespace-scoped)
-   - Backup guide (vault data, attachments, database)
-   - Upgrade guide (encryption key migration)
-   - Makefile targets (backup, restore, vault commands)
+9. ✅ **Vaultwarden** (v0.3.0 → v0.4.0) - COMPLETE (2025-12-08)
+   - RBAC templates (Role for ConfigMaps, Secrets, Pods, Services, Endpoints, PVCs)
+   - Backup guide (~1,050 lines): Data directory (SQLite/attachments), PostgreSQL/MySQL DB, configuration, PVC snapshots
+   - Upgrade guide (~1,150 lines): 4 strategies (Rolling, In-Place, Blue-Green, Database Migration SQLite→PostgreSQL)
+   - README: 4 sections (~432 lines) - Backup & Recovery, Security & RBAC, Operations, Upgrading
+   - values.yaml: Comprehensive backup/upgrade documentation (~212 lines)
+   - Makefile: 50+ operational targets (222 → 587 lines)
    - RTO/RPO: < 1 hour / 24 hours
+   - Total impact: 8 files, ~3,279 lines added
 
 10. **WordPress** (v0.3.0 → v0.4.0)
     - RBAC templates (namespace-scoped)

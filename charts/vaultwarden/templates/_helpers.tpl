@@ -119,3 +119,14 @@ PVC name for data directory (StatefulSet mode)
 {{- printf "%s-data" (include "vaultwarden.fullname" .) }}
 {{- end }}
 {{- end }}
+
+{{/*
+RBAC names
+*/}}
+{{- define "vaultwarden.roleName" -}}
+{{- printf "%s-role" (include "vaultwarden.fullname" .) }}
+{{- end }}
+
+{{- define "vaultwarden.roleBindingName" -}}
+{{- printf "%s-rolebinding" (include "vaultwarden.fullname" .) }}
+{{- end }}
