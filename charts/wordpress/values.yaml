@@ -99,6 +99,13 @@ serviceAccount:
   annotations: {}
   name: ""
 
+# RBAC configuration
+rbac:
+  # Specifies whether RBAC resources should be created
+  create: true
+  # Annotations to add to the Role and RoleBinding
+  annotations: {}
+
 # Pod annotations
 podAnnotations: {}
 
@@ -259,3 +266,219 @@ extraVolumeMounts: []
 # Example:
 # - name: custom-config
 #   mountPath: /etc/wordpress-custom
+
+# ============================================================================
+# Backup & Recovery Configuration
+# ============================================================================
+# NOTE: This is DOCUMENTATION ONLY - backups are performed via Makefile targets
+# The chart does NOT create automated backup CronJobs
+# See docs/wordpress-backup-guide.md for detailed procedures
+
+backup:
+  # Documentation flag - does not enable automated backups
+  enabled: false
+
+  # Backup strategy overview
+  documentation:
+    # Backup components (4 layers)
+    strategy: "WordPress Content + MySQL Database + Configuration + PVC Snapshots"
+
+    # Backup tools/methods
+    tools:
+      - "tar for WordPress content (uploads, plugins, themes)"
+      - "rsync for incremental content backups"
+      - "mysqldump for MySQL database"
+      - "kubectl cp for configuration"
+      - "VolumeSnapshot API for PVC snapshots"
+
+    # Components to backup
+    components:
+      wordpressContent:
+        description: "Uploads, plugins, themes, wp-config.php"
+        location: "Content PVC (/var/www/html/wp-content)"
+        size: "Variable (1GB - 100GB+)"
+        method: "tar (full), rsync (incremental)"
+        priority: "Critical"
+
+      mysqlDatabase:
+        description: "Posts, pages, settings, users, comments, metadata"
+        location: "External MySQL database"
+        size: "Small to medium (10MB - 10GB)"
+        method: "mysqldump --single-transaction"
+        priority: "Critical"
+
+      configuration:
+        description: "Kubernetes resources, Helm values, environment variables"
+        location: "ConfigMaps, Secrets, Helm release"
+        size: "Very small (KB)"
+        method: "kubectl export, helm get"
+        priority: "High"
+
+      pvcSnapshots:
+        description: "Point-in-time storage snapshots"
+        location: "Storage backend"
+        size: "Same as content directory"
+        method: "VolumeSnapshot API"
+        priority: "Medium (disaster recovery)"
+
+    # Recovery Time/Point Objectives
+    targets:
+      rto: "< 2 hours (complete instance recovery)"
+      rpo: "24 hours (daily backups), 1 hour (hourly critical)"
+      contentRecovery: "< 30 minutes"
+      databaseRecovery: "< 15 minutes"
+      configRecovery: "< 10 minutes"
+
+    # Backup frequency recommendations
+    frequency:
+      wordpressContent: "Hourly or Daily (depending on criticality)"
+      mysqlDatabase: "Daily (hourly for critical deployments)"
+      configuration: "On every change"
+      pvcSnapshots: "Weekly"
+
+    # Makefile commands for backup
+    commands:
+      fullBackup: "make -f make/ops/wordpress.mk wp-full-backup"
+      backupContent: "make -f make/ops/wordpress.mk wp-backup-content-full"
+      backupContentIncremental: "make -f make/ops/wordpress.mk wp-backup-content-incremental"
+      backupMySQL: "make -f make/ops/wordpress.mk wp-backup-mysql"
+      backupConfig: "make -f make/ops/wordpress.mk wp-backup-config"
+      snapshotContent: "make -f make/ops/wordpress.mk wp-snapshot-content"
+
+    # Makefile commands for recovery
+    recovery:
+      restoreContent: "make -f make/ops/wordpress.mk wp-restore-content BACKUP_FILE=..."
+      restoreMySQL: "make -f make/ops/wordpress.mk wp-restore-mysql BACKUP_FILE=..."
+      restoreConfig: "make -f make/ops/wordpress.mk wp-restore-config BACKUP_FILE=..."
+      fullRecovery: "make -f make/ops/wordpress.mk wp-full-recovery CONTENT_BACKUP=... MYSQL_BACKUP=..."
+
+    # Best practices
+    bestPractices:
+      - "Test restore procedures quarterly"
+      - "Store backups in different availability zone (S3, MinIO)"
+      - "Encrypt backups (wp-config.php contains database credentials)"
+      - "Always backup before upgrades"
+      - "Verify backup integrity regularly"
+      - "Document backup locations and encryption keys"
+      - "Use mysqldump --single-transaction for consistency"
+      - "Monitor backup success and alert on failures"
+
+    # Complete guide reference
+    guide: "docs/wordpress-backup-guide.md"
+
+# ============================================================================
+# Upgrade Configuration
+# ============================================================================
+# NOTE: This is DOCUMENTATION ONLY - upgrades are performed via Helm and validation
+# The chart does NOT perform automated upgrades
+# See docs/wordpress-upgrade-guide.md for detailed procedures
+
+upgrade:
+  # Documentation flag - does not enable automated upgrades
+  enabled: false
+
+  # Always backup before upgrade
+  preUpgradeBackup: true
+
+  # Upgrade strategy overview
+  documentation:
+    # Upgrade philosophy
+    philosophy:
+      - "Minimize downtime (use rolling upgrades when possible)"
+      - "Always backup first (CRITICAL - content and database irreplaceable)"
+      - "Test in staging environment"
+      - "Database schema automatically migrated on WordPress startup"
+      - "Rollback requires database restore (schema downgrades not supported)"
+
+    # Upgrade strategies
+    strategies:
+      rollingUpgrade:
+        description: "Zero-downtime upgrade for patch/minor versions"
+        bestFor: "6.7.1 → 6.7.2 (patch) or 6.7.x → 6.8.x (minor)"
+        downtime: "None"
+        complexity: "Low"
+        method: "Helm upgrade with new image tag"
+
+      maintenanceMode:
+        description: "Brief downtime upgrade for major versions"
+        bestFor: "5.x → 6.x (major) or PHP version upgrades (8.1 → 8.3)"
+        downtime: "10-15 minutes"
+        complexity: "Medium"
+        method: "Enable maintenance → Scale down → Helm upgrade → Scale up"
+
+      blueGreen:
+        description: "Zero-downtime upgrade with parallel deployment"
+        bestFor: "Production with strict zero-downtime requirement"
+        downtime: "None (instant cutover)"
+        complexity: "High"
+        method: "Deploy to separate namespace → Test → Switch ingress"
+
+      databaseMigration:
+        description: "Migrate MySQL database version"
+        bestFor: "MySQL 5.7 → 8.0 upgrade"
+        downtime: "30 minutes - 2 hours"
+        complexity: "Very High"
+        method: "Export → Deploy new MySQL → Import → Update config"
+
+    # Version-specific upgrade notes
+    versionNotes:
+      "6.7 → 6.8":
+        - "Performance improvements in block editor"
+        - "No breaking changes"
+        - "Database schema updated to 57155"
+        - "Rolling upgrade recommended"
+      "6.x → 7.x (future)":
+        - "Expected: Block-first architecture"
+        - "Expected: Minimum PHP 8.0 requirement"
+        - "Test thoroughly in staging"
+
+    # Pre-upgrade checklist
+    preUpgradeChecklist:
+      - "Review WordPress release notes"
+      - "Create full backup (wp-full-backup)"
+      - "Create PVC snapshot (wp-snapshot-content)"
+      - "Check plugin/theme compatibility"
+      - "Check database integrity (wp-db-check)"
+      - "Export current Helm values"
+      - "Test in staging environment (recommended)"
+      - "Plan maintenance window (if downtime required)"
+
+    # Post-upgrade validation
+    postUpgradeValidation:
+      - "Verify pod health (kubectl get pods)"
+      - "Check WordPress version (wp-version)"
+      - "Test database integrity (wp-db-check)"
+      - "Login to /wp-admin"
+      - "Verify posts and pages load"
+      - "Test media library (upload image)"
+      - "Test plugin functionality"
+      - "Test theme rendering"
+      - "Check for PHP errors in logs"
+      - "Monitor logs for 1 hour"
+
+    # Makefile commands
+    commands:
+      preUpgradeCheck: "make -f make/ops/wordpress.mk wp-pre-upgrade-check"
+      fullBackup: "make -f make/ops/wordpress.mk wp-full-backup"
+      postUpgradeCheck: "make -f make/ops/wordpress.mk wp-post-upgrade-check"
+      snapshotContent: "make -f make/ops/wordpress.mk wp-snapshot-content"
+
+    # Rollback procedures
+    rollback:
+      helmOnly:
+        description: "For chart-only upgrades"
+        method: "helm rollback wordpress"
+        downtime: "None"
+
+      fullDatabaseRestore:
+        description: "For WordPress core upgrades with database migration"
+        method: "Restore database → Rollback Helm → Restart"
+        downtime: "10-15 minutes"
+
+      pvcSnapshot:
+        description: "Fastest rollback using storage snapshot"
+        method: "Restore from PVC snapshot → Rollback Helm"
+        downtime: "5-10 minutes"
+
+    # Complete guide reference
+    guide: "docs/wordpress-upgrade-guide.md"

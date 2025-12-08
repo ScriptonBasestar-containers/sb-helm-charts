@@ -60,3 +60,14 @@ Create the name of the service account to use
 {{- default "default" .Values.serviceAccount.name }}
 {{- end }}
 {{- end }}
+
+{{/*
+RBAC names
+*/}}
+{{- define "wordpress.roleName" -}}
+{{- printf "%s-role" (include "wordpress.fullname" .) }}
+{{- end }}
+
+{{- define "wordpress.roleBindingName" -}}
+{{- printf "%s-rolebinding" (include "wordpress.fullname" .) }}
+{{- end }}

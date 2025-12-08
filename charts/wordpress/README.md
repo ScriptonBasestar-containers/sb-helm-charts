@@ -587,6 +587,477 @@ persistence:
     storageClass: "fast-ssd"  # Use SSD-backed storage
 ```
 
+## Backup & Recovery
+
+WordPress chart includes comprehensive backup and recovery capabilities for complete disaster recovery.
+
+### Backup Components
+
+WordPress backups consist of 4 critical components:
+
+| Component | What's Included | Backup Method | Recovery Time |
+|-----------|----------------|---------------|---------------|
+| **WordPress Content** | Uploads, plugins, themes, wp-config.php | tar (full), rsync (incremental) | 10-30 min |
+| **MySQL Database** | Posts, pages, settings, users | mysqldump | 5-15 min |
+| **Configuration** | ConfigMaps, Secrets, Helm values | kubectl export | 5-10 min |
+| **PVC Snapshots** | Point-in-time storage snapshots | VolumeSnapshot API | 5-10 min |
+
+### Quick Backup Commands
+
+```bash
+# Full backup (all components)
+make -f make/ops/wordpress.mk wp-full-backup
+
+# Component-specific backups
+make -f make/ops/wordpress.mk wp-backup-content-full       # WordPress files
+make -f make/ops/wordpress.mk wp-backup-content-incremental # Changed files only
+make -f make/ops/wordpress.mk wp-backup-mysql              # Database
+make -f make/ops/wordpress.mk wp-backup-config             # Kubernetes config
+make -f make/ops/wordpress.mk wp-snapshot-content          # PVC snapshot
+```
+
+### Quick Recovery Commands
+
+```bash
+# Restore WordPress content
+make -f make/ops/wordpress.mk wp-restore-content BACKUP_FILE=backups/wordpress-content-full-20250108-143022.tar.gz
+
+# Restore MySQL database
+make -f make/ops/wordpress.mk wp-restore-mysql BACKUP_FILE=backups/wordpress-mysql-20250108-143022.sql.gz
+
+# Restore Kubernetes configuration
+make -f make/ops/wordpress.mk wp-restore-config BACKUP_FILE=backups/wordpress-config-20250108-143022.tar.gz
+
+# Full disaster recovery
+make -f make/ops/wordpress.mk wp-full-recovery \
+  CONTENT_BACKUP=backups/wordpress-content-full-20250108-143022.tar.gz \
+  MYSQL_BACKUP=backups/wordpress-mysql-20250108-143022.sql.gz \
+  CONFIG_BACKUP=backups/wordpress-config-20250108-143022.tar.gz
+```
+
+### Recovery Objectives
+
+- **RTO (Recovery Time Objective)**: < 2 hours (complete instance recovery)
+- **RPO (Recovery Point Objective)**: 24 hours (daily backups), 1 hour (hourly for critical)
+
+**Recommended Backup Frequency:**
+- WordPress Content: Hourly or Daily
+- MySQL Database: Daily (hourly for critical deployments)
+- Configuration: On every change
+- PVC Snapshots: Weekly
+
+### Backup Best Practices
+
+1. ✅ **Store backups offsite** (different availability zone, S3, MinIO)
+2. ✅ **Test restore procedures quarterly** in isolated namespace
+3. ✅ **Encrypt backups** (wp-config.php contains database credentials)
+4. ✅ **Always backup before upgrades** (critical!)
+5. ✅ **Monitor backup success/failure** (alerting)
+
+**Complete Backup Guide**: [docs/wordpress-backup-guide.md](../../docs/wordpress-backup-guide.md)
+
+---
+
+## Security & RBAC
+
+WordPress chart implements comprehensive security controls following Kubernetes best practices.
+
+### RBAC Permissions
+
+The chart creates namespace-scoped RBAC resources with minimal read-only permissions:
+
+| Resource | Permissions | Purpose |
+|----------|-------------|---------|
+| **ConfigMaps** | get, list, watch | Read WordPress environment variables |
+| **Secrets** | get, list, watch | Access database credentials, SMTP passwords, WordPress salts |
+| **Pods** | get, list, watch | Health checks and operations |
+| **Services** | get, list, watch | Service discovery |
+| **Endpoints** | get, list, watch | Service discovery |
+| **PersistentVolumeClaims** | get, list, watch | Storage operations |
+
+**Enable RBAC** (enabled by default):
+
+```yaml
+rbac:
+  create: true
+  annotations: {}
+```
+
+### Pod Security
+
+**Security Context (non-root execution)**:
+
+```yaml
+podSecurityContext:
+  fsGroup: 33  # www-data group
+  runAsUser: 33  # www-data user
+  runAsGroup: 33
+  runAsNonRoot: true
+
+securityContext:
+  readOnlyRootFilesystem: false  # WordPress needs write access to /var/www/html
+  allowPrivilegeEscalation: false
+  capabilities:
+    drop:
+      - ALL
+```
+
+### Network Policies
+
+Restrict network access to WordPress pods:
+
+```yaml
+networkPolicy:
+  enabled: true
+  ingress:
+    # Allow only from ingress controller
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              name: ingress-nginx
+      ports:
+        - protocol: TCP
+          port: 80
+  egress:
+    # Allow DNS
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              name: kube-system
+      ports:
+        - protocol: UDP
+          port: 53
+    # Allow MySQL
+    - to:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: mysql
+      ports:
+        - protocol: TCP
+          port: 3306
+```
+
+### Security Checklist
+
+- ✅ **Strong Passwords**: Use unique, complex passwords for admin and database
+- ✅ **HTTPS Only**: Enable TLS via Ingress (`ingress.tls`)
+- ✅ **Disable Debug Mode**: Set `wordpress.debug: "false"` in production
+- ✅ **Use Secrets**: Never put passwords in values.yaml
+- ✅ **WordPress Salts**: Generate unique salts at https://api.wordpress.org/secret-key/1.1/salt/
+- ✅ **Regular Updates**: Keep WordPress, plugins, and themes updated
+- ✅ **RBAC Enabled**: Use `rbac.create: true` (default)
+- ✅ **Network Policies**: Restrict pod-to-pod communication
+- ✅ **Monitor Logs**: Watch for suspicious activities
+
+---
+
+## Operations
+
+WordPress chart includes 50+ operational commands via Makefile for administration, monitoring, and troubleshooting.
+
+### Basic Operations
+
+```bash
+# WordPress status
+make -f make/ops/wordpress.mk wp-status                # Pod status
+make -f make/ops/wordpress.mk wp-version               # WordPress version
+make -f make/ops/wordpress.mk wp-php-version           # PHP version
+make -f make/ops/wordpress.mk wp-logs                  # View logs
+make -f make/ops/wordpress.mk wp-logs-follow           # Follow logs
+make -f make/ops/wordpress.mk wp-shell                 # Shell access to pod
+make -f make/ops/wordpress.mk wp-restart               # Restart WordPress
+make -f make/ops/wordpress.mk wp-port-forward          # Port-forward to localhost:8080
+```
+
+### Database Operations
+
+```bash
+# Database health
+make -f make/ops/wordpress.mk wp-db-check              # Test database connectivity
+make -f make/ops/wordpress.mk wp-db-version            # Database schema version
+make -f make/ops/wordpress.mk wp-db-size               # Database size
+make -f make/ops/wordpress.mk wp-db-table-count        # Count tables
+make -f make/ops/wordpress.mk wp-db-list-tables        # List all tables
+make -f make/ops/wordpress.mk wp-db-shell              # MySQL shell access
+
+# Database operations
+make -f make/ops/wordpress.mk wp-db-optimize           # Optimize database tables
+make -f make/ops/wordpress.mk wp-db-repair             # Repair database tables
+make -f make/ops/wordpress.mk wp-db-upgrade            # Trigger database upgrade
+```
+
+### WordPress Management (WP-CLI)
+
+```bash
+# Plugin management
+make -f make/ops/wordpress.mk wp-list-plugins          # List installed plugins
+make -f make/ops/wordpress.mk wp-plugin-activate PLUGIN=woocommerce
+make -f make/ops/wordpress.mk wp-plugin-deactivate PLUGIN=woocommerce
+make -f make/ops/wordpress.mk wp-plugin-update PLUGIN=woocommerce
+
+# Theme management
+make -f make/ops/wordpress.mk wp-list-themes           # List installed themes
+make -f make/ops/wordpress.mk wp-theme-activate THEME=twentytwentyfour
+
+# User management
+make -f make/ops/wordpress.mk wp-list-users            # List users
+make -f make/ops/wordpress.mk wp-create-user USER=john EMAIL=john@example.com ROLE=editor
+make -f make/ops/wordpress.mk wp-delete-user USER=john
+
+# Content management
+make -f make/ops/wordpress.mk wp-list-posts            # List posts
+make -f make/ops/wordpress.mk wp-list-pages            # List pages
+make -f make/ops/wordpress.mk wp-media-regenerate      # Regenerate thumbnails
+```
+
+### Maintenance Mode
+
+```bash
+# Enable maintenance mode (shows "Site under maintenance" to users)
+make -f make/ops/wordpress.mk wp-enable-maintenance
+
+# Disable maintenance mode
+make -f make/ops/wordpress.mk wp-disable-maintenance
+
+# Check maintenance status
+make -f make/ops/wordpress.mk wp-maintenance-status
+```
+
+### Monitoring & Troubleshooting
+
+```bash
+# Resource monitoring
+make -f make/ops/wordpress.mk wp-disk-usage            # Disk usage
+make -f make/ops/wordpress.mk wp-resource-usage        # CPU/memory usage
+make -f make/ops/wordpress.mk wp-top                   # Resource usage (live)
+make -f make/ops/wordpress.mk wp-describe              # Pod details
+
+# Health checks
+make -f make/ops/wordpress.mk wp-health-check          # All health checks
+make -f make/ops/wordpress.mk wp-liveness-check        # Liveness probe
+make -f make/ops/wordpress.mk wp-readiness-check       # Readiness probe
+
+# Cleanup
+make -f make/ops/wordpress.mk wp-cleanup-revisions     # Delete post revisions
+make -f make/ops/wordpress.mk wp-cleanup-spam          # Delete spam comments
+make -f make/ops/wordpress.mk wp-cleanup-trash         # Empty trash
+make -f make/ops/wordpress.mk wp-cache-flush           # Flush WordPress cache
+```
+
+### Backup & Recovery Operations
+
+See [Backup & Recovery](#backup--recovery) section for backup commands.
+
+### Upgrade Operations
+
+```bash
+# Pre-upgrade validation
+make -f make/ops/wordpress.mk wp-pre-upgrade-check     # Pre-upgrade checklist
+
+# Post-upgrade validation
+make -f make/ops/wordpress.mk wp-post-upgrade-check    # Post-upgrade validation
+```
+
+**Complete Makefile**: [make/ops/wordpress.mk](../../make/ops/wordpress.mk)
+
+---
+
+## Upgrading
+
+WordPress chart supports multiple upgrade strategies based on upgrade complexity and downtime requirements.
+
+### Upgrade Strategies
+
+| Strategy | Downtime | Best For | Complexity |
+|----------|----------|----------|------------|
+| **Rolling Upgrade** | None | Patch/minor versions (6.7.1 → 6.7.2) | Low |
+| **Maintenance Mode** | 10-15 min | Major versions (5.x → 6.x), PHP upgrades | Medium |
+| **Blue-Green** | None | Zero-downtime major upgrades | High |
+| **Database Migration** | 30 min - 2 hours | MySQL version upgrades (5.7 → 8.0) | Very High |
+
+### Quick Upgrade Guide
+
+**1. Patch Upgrade (e.g., 6.7.1 → 6.7.2)**
+
+Zero-downtime rolling upgrade:
+
+```bash
+# 1. Pre-upgrade backup
+make -f make/ops/wordpress.mk wp-full-backup
+
+# 2. Pre-upgrade check
+make -f make/ops/wordpress.mk wp-pre-upgrade-check
+
+# 3. Upgrade via Helm
+helm upgrade wordpress scripton-charts/wordpress \
+  --namespace wordpress \
+  --set image.tag=6.7.2-apache \
+  --reuse-values
+
+# 4. Post-upgrade validation
+make -f make/ops/wordpress.mk wp-post-upgrade-check
+```
+
+**2. Minor Upgrade (e.g., 6.7.x → 6.8.x)**
+
+Recommended: Maintenance mode (10-15 minutes downtime):
+
+```bash
+# 1. Full backup
+make -f make/ops/wordpress.mk wp-full-backup
+
+# 2. Enable maintenance mode
+make -f make/ops/wordpress.mk wp-enable-maintenance
+
+# 3. Scale down
+kubectl scale deployment wordpress -n wordpress --replicas=0
+
+# 4. Upgrade
+helm upgrade wordpress scripton-charts/wordpress \
+  --set image.tag=6.8-apache \
+  --reuse-values
+
+# 5. Scale up
+kubectl scale deployment wordpress -n wordpress --replicas=1
+
+# 6. Disable maintenance mode
+make -f make/ops/wordpress.mk wp-disable-maintenance
+
+# 7. Validation
+make -f make/ops/wordpress.mk wp-post-upgrade-check
+```
+
+**3. Major Upgrade (e.g., 5.x → 6.x)**
+
+CRITICAL: Test in staging first!
+
+```bash
+# 1. Review WordPress 6.x release notes
+# 2. Check plugin/theme compatibility
+# 3. Full backup
+make -f make/ops/wordpress.mk wp-full-backup
+
+# 4. Create PVC snapshot for fast rollback
+make -f make/ops/wordpress.mk wp-snapshot-content
+
+# 5. Follow maintenance mode upgrade procedure (same as minor upgrade)
+# 6. Extensive post-upgrade validation (test all plugins, themes, features)
+```
+
+### Pre-Upgrade Checklist
+
+**CRITICAL**: Complete ALL steps before upgrading:
+
+```bash
+# 1. Review release notes
+# Check: https://wordpress.org/news/category/releases/
+
+# 2. Check current versions
+make -f make/ops/wordpress.mk wp-version
+make -f make/ops/wordpress.mk wp-php-version
+make -f make/ops/wordpress.mk wp-db-version
+
+# 3. Full backup (CRITICAL!)
+make -f make/ops/wordpress.mk wp-full-backup
+
+# 4. PVC snapshot (optional but recommended)
+make -f make/ops/wordpress.mk wp-snapshot-content
+
+# 5. Check plugin/theme compatibility
+make -f make/ops/wordpress.mk wp-list-plugins
+make -f make/ops/wordpress.mk wp-list-themes
+
+# 6. Test database integrity
+make -f make/ops/wordpress.mk wp-db-check
+
+# 7. Export Helm values
+helm get values wordpress -n wordpress > backups/helm-values-pre-upgrade.yaml
+```
+
+### Post-Upgrade Validation
+
+```bash
+# 1. Automated validation
+make -f make/ops/wordpress.mk wp-post-upgrade-check
+
+# 2. Manual validation
+# - Login to /wp-admin
+# - Verify posts/pages load
+# - Test media library (upload image)
+# - Test plugin functionality
+# - Test theme rendering
+# - Check for PHP errors in logs
+
+# 3. Monitor logs for 1 hour
+kubectl logs -f -l app.kubernetes.io/name=wordpress -n wordpress
+```
+
+### Rollback Procedures
+
+**Rollback Decision Matrix:**
+
+| Scenario | Rollback Method | Downtime | Data Loss Risk |
+|----------|----------------|----------|----------------|
+| Chart upgrade only | Helm rollback | None | None |
+| WordPress patch/minor | Helm rollback + DB restore | 10-15 min | Data since upgrade |
+| WordPress major | Helm rollback + DB restore | 10-15 min | Data since upgrade |
+| Database corruption | PVC snapshot restore | 5-10 min | Data since snapshot |
+
+**Quick Rollback (Helm only)**:
+
+```bash
+helm rollback wordpress -n wordpress
+```
+
+**Full Rollback (WordPress core upgrade)**:
+
+```bash
+# 1. Enable maintenance mode
+make -f make/ops/wordpress.mk wp-enable-maintenance
+
+# 2. Scale down
+kubectl scale deployment wordpress -n wordpress --replicas=0
+
+# 3. Restore database
+make -f make/ops/wordpress.mk wp-restore-mysql BACKUP_FILE=backups/wordpress-mysql-20250108-143022.sql.gz
+
+# 4. Rollback Helm
+helm rollback wordpress -n wordpress
+
+# 5. Scale up
+kubectl scale deployment wordpress -n wordpress --replicas=1
+
+# 6. Disable maintenance mode
+make -f make/ops/wordpress.mk wp-disable-maintenance
+```
+
+### Version-Specific Notes
+
+**WordPress 6.7 → 6.8**:
+- Performance improvements in block editor
+- No breaking changes
+- Database schema updated to 57155
+- Rolling upgrade recommended
+
+**WordPress 6.x → 7.x** (future):
+- Expected major changes: Block-first architecture
+- Minimum PHP 8.0 expected
+- Test thoroughly in staging
+
+### Upgrade Best Practices
+
+1. ✅ **Always backup first** (wp-full-backup)
+2. ✅ **Test in staging environment** before production
+3. ✅ **Read release notes** (https://wordpress.org/news/)
+4. ✅ **Check plugin/theme compatibility**
+5. ✅ **Monitor logs for 1 hour** after upgrade
+6. ✅ **Plan maintenance window** for major upgrades
+7. ✅ **Incremental upgrades** (don't skip versions: 6.6 → 6.7 → 6.8)
+
+**Complete Upgrade Guide**: [docs/wordpress-upgrade-guide.md](../../docs/wordpress-upgrade-guide.md)
+
+---
+
 ## Contributing
 
 Contributions are welcome! Please submit issues and pull requests.

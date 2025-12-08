@@ -121,7 +121,7 @@ All charts in this phase are now complete with comprehensive RBAC, backup/recove
 
 ### Phase 2: Application Charts (IN PROGRESS)
 
-**Target: 8 charts** | **Actual: 3/8 (38%)** ⏳
+**Target: 8 charts** | **Actual: 4/8 (50%)** ⏳
 
 7. ✅ **Grafana** (v0.3.0 → v0.4.0) - COMPLETE (commit c0733a3, 2025-12-01)
    - RBAC templates (Role for ConfigMaps, Secrets, Pods, Services, Endpoints, PVCs)
@@ -153,12 +153,15 @@ All charts in this phase are now complete with comprehensive RBAC, backup/recove
    - RTO/RPO: < 1 hour / 24 hours
    - Total impact: 8 files, ~3,279 lines added
 
-10. **WordPress** (v0.3.0 → v0.4.0)
-    - RBAC templates (namespace-scoped)
-    - Backup guide (files, uploads, database, plugins, themes)
-    - Upgrade guide (PHP version, WordPress core, plugin updates)
-    - Makefile targets (backup, restore, WP-CLI commands)
-    - RTO/RPO: < 1 hour / 24 hours
+10. ✅ **WordPress** (v0.3.0 → v0.4.0) - COMPLETE (2025-12-08)
+    - RBAC templates (Role for ConfigMaps, Secrets, Pods, Services, Endpoints, PVCs)
+    - Backup guide (~916 lines): WordPress content (uploads, plugins, themes), MySQL DB, configuration, PVC snapshots
+    - Upgrade guide (~1,010 lines): 4 strategies (Rolling, Maintenance Mode, Blue-Green, Database Migration MySQL 5.7→8.0)
+    - README: 4 sections (~468 lines) - Backup & Recovery, Security & RBAC, Operations, Upgrading
+    - values.yaml: Comprehensive backup/upgrade documentation (~216 lines)
+    - Makefile: 60+ operational targets (39 → 707 lines)
+    - RTO/RPO: < 2 hours / 24 hours
+    - Total impact: 7 files, ~3,278 lines added
 
 11. **Paperless-ngx** (v0.3.0 → v0.4.0)
     - RBAC templates (namespace-scoped)
