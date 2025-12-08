@@ -135,6 +135,232 @@ rbac:
   # Annotations to add to the Role and RoleBinding
   annotations: {}
 
+# 6a. Backup & Recovery Configuration
+# Note: These are documentation flags only. Actual backup/recovery operations are performed
+# via Makefile targets (make -f make/ops/paperless-ngx.mk), never via automated CronJobs.
+backup:
+  # Documentation flag - actual backups are manual/scripted operations
+  enabled: false
+
+  # Backup strategy documentation
+  documentation:
+    # Backup strategy: Documents + Database + Redis (optional) + Configuration + PVC Snapshots
+    strategy: "Documents (PVCs) + PostgreSQL Database + Redis (optional) + Configuration + PVC Snapshots"
+
+    # Recommended backup tools
+    tools:
+      - "kubectl exec with tar/rsync for documents"
+      - "pg_dump for PostgreSQL database"
+      - "redis-cli BGSAVE for Redis (optional)"
+      - "helm get values for configuration"
+      - "VolumeSnapshot API for PVC snapshots"
+
+    # Backup components
+    components:
+      documents:
+        description: "PDF files, images, OCR data (consume, data, media, export PVCs)"
+        backup_method: "tar/rsync + PVC snapshots"
+        priority: "CRITICAL"
+      database:
+        description: "PostgreSQL containing document metadata, tags, correspondents, custom fields"
+        backup_method: "pg_dump with --format=custom --compress=9"
+        priority: "CRITICAL"
+      redis:
+        description: "Task queue state and caching (optional, can be rebuilt)"
+        backup_method: "RDB snapshots via BGSAVE"
+        priority: "LOW"
+      configuration:
+        description: "Kubernetes resources, Helm values, application settings"
+        backup_method: "helm get values, kubectl get"
+        priority: "HIGH"
+      pvc_snapshots:
+        description: "Volume-level backups for disaster recovery"
+        backup_method: "VolumeSnapshot API"
+        priority: "CRITICAL"
+
+    # Recovery Time Objective / Recovery Point Objective
+    targets:
+      rto: "< 2 hours (full disaster recovery)"
+      rpo: "24 hours (daily backups)"
+      document_recovery_time: "30-60 minutes"
+      database_recovery_time: "15-30 minutes"
+      config_recovery_time: "10-15 minutes"
+
+    # Makefile commands reference
+    commands:
+      full_backup: "make -f make/ops/paperless-ngx.mk paperless-full-backup"
+      backup_documents: "make -f make/ops/paperless-ngx.mk paperless-backup-documents"
+      backup_database: "make -f make/ops/paperless-ngx.mk paperless-backup-database"
+      create_pvc_snapshots: "make -f make/ops/paperless-ngx.mk paperless-create-pvc-snapshots"
+      restore_documents: "make -f make/ops/paperless-ngx.mk paperless-restore-documents BACKUP_DATE=<date>"
+      restore_database: "make -f make/ops/paperless-ngx.mk paperless-restore-database BACKUP_DATE=<date>"
+      full_recovery: "make -f make/ops/paperless-ngx.mk paperless-full-recovery BACKUP_DATE=<date>"
+
+    # Backup best practices
+    best_practices:
+      - "Daily backups at low-traffic periods (2 AM recommended)"
+      - "Store backups off-cluster (S3/MinIO/NFS)"
+      - "Follow 3-2-1 rule: 3 copies, 2 media types, 1 off-site"
+      - "Retention: Daily (7d), Weekly (4w), Monthly (12m)"
+      - "Test recovery monthly in non-production namespace"
+      - "Encrypt backups containing sensitive documents (GPG)"
+
+    # Storage requirements for backups
+    storage_requirements:
+      consume: "~512MB - 1GB (incoming documents)"
+      data: "~256MB - 512MB (application data, search index)"
+      media: "~2.5GB - 5GB (largest - processed documents, OCR)"
+      export: "~128MB - 256MB (document exports)"
+      database: "~128MB - 256MB (metadata, tags, users)"
+      total_estimate: "~3.5GB - 7GB per backup"
+
+# 6b. Upgrade Configuration
+# Note: These are documentation flags only. Actual upgrades are manual operations
+# performed via Helm or Makefile targets, never via automated processes.
+upgrade:
+  # Documentation flag - actual upgrades are manual/scripted operations
+  enabled: false
+
+  # Pre-upgrade backup (CRITICAL - always required)
+  preUpgradeBackup: true
+
+  # Upgrade strategy documentation
+  documentation:
+    # Available upgrade strategies
+    strategies:
+      rolling:
+        description: "Zero-downtime rolling upgrade for patch/minor versions"
+        use_case: "Patch updates (2.14.0 → 2.14.1) or minor updates (2.14.x → 2.15.x)"
+        downtime: "None"
+        complexity: "Low"
+        database_migrations: "Automatic on pod startup (Django migrations)"
+        command: "make -f make/ops/paperless-ngx.mk paperless-upgrade-rolling VERSION=2.15.0"
+
+      maintenance_mode:
+        description: "Controlled upgrade with application downtime for major versions"
+        use_case: "Major version changes (2.x → 3.x) with breaking changes"
+        downtime: "10-30 minutes (depends on migration time)"
+        complexity: "Medium"
+        database_migrations: "Run during maintenance window"
+        command: "make -f make/ops/paperless-ngx.mk paperless-upgrade-maintenance VERSION=3.0.0"
+
+      blue_green:
+        description: "Zero-downtime deployment with instant rollback capability"
+        use_case: "Major versions requiring full testing before cutover"
+        downtime: "None (instant cutover)"
+        complexity: "High"
+        database_migrations: "Run in green environment, test before cutover"
+        command: "make -f make/ops/paperless-ngx.mk paperless-upgrade-blue-green VERSION=3.0.0"
+
+      database_migration:
+        description: "PostgreSQL version upgrade (e.g., PostgreSQL 13 → 17)"
+        use_case: "External database version upgrades"
+        downtime: "30-60 minutes (depends on database size)"
+        complexity: "High"
+        database_migrations: "Full database backup, restore to new version"
+        command: "make -f make/ops/paperless-ngx.mk paperless-upgrade-database-migration"
+
+    # Upgrade workflow
+    workflow:
+      - step: 1
+        action: "Full backup"
+        command: "make -f make/ops/paperless-ngx.mk paperless-full-backup"
+      - step: 2
+        action: "Pre-upgrade validation"
+        command: "make -f make/ops/paperless-ngx.mk paperless-pre-upgrade-check"
+      - step: 3
+        action: "Review release notes"
+        notes: "Check https://github.com/paperless-ngx/paperless-ngx/releases"
+      - step: 4
+        action: "Choose upgrade strategy"
+        notes: "Based on version change magnitude (patch/minor/major)"
+      - step: 5
+        action: "Execute upgrade"
+        notes: "Use appropriate Makefile target for chosen strategy"
+      - step: 6
+        action: "Post-upgrade validation"
+        command: "make -f make/ops/paperless-ngx.mk paperless-post-upgrade-check"
+      - step: 7
+        action: "Monitor and validate"
+        notes: "Check logs, test functionality, verify document count"
+
+    # Version-specific upgrade notes
+    version_notes:
+      v2_15_x:
+        breaking_changes: "None"
+        new_features: "Improved OCR performance, new tags UI, enhanced search"
+        migration_notes: "Standard rolling upgrade applies"
+        database_changes: "Minimal"
+
+      v3_0_x_future:
+        breaking_changes: "PostgreSQL 16+ required, Redis 7+ required, new document storage format"
+        new_features: "TBD"
+        migration_notes: "Use maintenance mode or blue-green strategy. Allow 30-60 minutes for migration on large document sets"
+        database_changes: "Significant - automatic migration on startup"
+
+      postgresql_13_to_17:
+        breaking_changes: "PostgreSQL major version change"
+        migration_strategy: "Use database migration upgrade strategy"
+        notes: "Cannot use in-place upgrade. Requires new PostgreSQL instance, backup/restore cycle"
+        downtime: "30-60 minutes"
+
+    # Rollback procedures
+    rollback:
+      helm_rollback:
+        description: "Rollback to previous Helm release"
+        command: "helm rollback -n <namespace> <release-name>"
+        use_case: "Rolling upgrade failed or issues detected"
+
+      database_rollback:
+        description: "Restore database from pre-upgrade backup"
+        command: "make -f make/ops/paperless-ngx.mk paperless-rollback-database BACKUP_DATE=<date>"
+        use_case: "Database migration failed or data corruption"
+
+      full_system_rollback:
+        description: "Complete system restore from PVC snapshots"
+        command: "make -f make/ops/paperless-ngx.mk paperless-rollback-full BACKUP_DATE=<date>"
+        use_case: "Catastrophic failure, need complete system restore"
+
+    # Post-upgrade validation checklist
+    validation_checklist:
+      - "Pod running (1/1 Ready)"
+      - "Image version matches target"
+      - "No errors in logs"
+      - "Database connectivity OK"
+      - "Document count matches pre-upgrade"
+      - "Health endpoint returns 200 OK"
+      - "Search functionality working"
+      - "OCR processing functional"
+      - "Upload test document"
+      - "API access working"
+
+    # Troubleshooting common upgrade issues
+    troubleshooting:
+      stuck_rollout:
+        symptom: "kubectl rollout status times out"
+        causes:
+          - "Database migration taking long (expected, increase timeout)"
+          - "Database connectivity issues (verify credentials)"
+          - "Insufficient resources (check node resources)"
+          - "ImagePullBackOff (verify image tag exists)"
+        solution: "Check pod events, logs, and resource availability"
+
+      migration_failed:
+        symptom: "django.db.migrations.exceptions errors in logs"
+        causes:
+          - "Database connectivity lost"
+          - "Migration conflicts"
+          - "Corrupted migration state"
+        solution: "Manually run migrations: kubectl exec -- python manage.py migrate --noinput"
+
+      document_count_mismatch:
+        symptom: "Document count differs from pre-upgrade"
+        causes:
+          - "Search index outdated"
+          - "Database integrity issues"
+          - "Media files missing"
+        solution: "Rebuild search index: make paperless-reindex"
+
 # 7. Pod Configuration
 podAnnotations: {}
 podLabels: {}

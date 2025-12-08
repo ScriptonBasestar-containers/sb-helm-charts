@@ -409,6 +409,942 @@ resources:
 
 For full configuration options, see [values.yaml](./values.yaml).
 
+## Backup & Recovery
+
+Comprehensive backup procedures ensure document safety and system recoverability.
+
+### Backup Strategy
+
+**4-Layer Backup Approach:**
+1. **Documents** - PDF files, images, OCR data (PVCs: consume, data, media, export)
+2. **Database** - PostgreSQL (document metadata, tags, correspondents, custom fields)
+3. **Redis** - Task queue state (optional, can be rebuilt)
+4. **Configuration** - Kubernetes manifests, Helm values, PVC snapshots
+
+**RTO/RPO Targets:**
+- **RTO (Recovery Time Objective)**: < 2 hours
+- **RPO (Recovery Point Objective)**: 24 hours (daily backups)
+
+### Quick Backup Commands
+
+```bash
+# Full backup (all components)
+make -f make/ops/paperless-ngx.mk paperless-full-backup
+
+# Component-specific backups
+make -f make/ops/paperless-ngx.mk paperless-backup-documents
+make -f make/ops/paperless-ngx.mk paperless-backup-database
+make -f make/ops/paperless-ngx.mk paperless-backup-helm-values
+
+# Create PVC snapshots (requires VolumeSnapshot CRD)
+make -f make/ops/paperless-ngx.mk paperless-create-pvc-snapshots
+
+# Incremental document backup (rsync)
+make -f make/ops/paperless-ngx.mk paperless-backup-documents-incremental
+
+# Backup to S3/MinIO
+make -f make/ops/paperless-ngx.mk paperless-backup-documents-s3
+```
+
+### Recovery Procedures
+
+```bash
+# Restore documents from backup
+make -f make/ops/paperless-ngx.mk paperless-restore-documents BACKUP_DATE=20241208_100000
+
+# Restore database from backup
+make -f make/ops/paperless-ngx.mk paperless-restore-database BACKUP_DATE=20241208_100000
+
+# Restore Helm configuration
+make -f make/ops/paperless-ngx.mk paperless-restore-helm-values BACKUP_DATE=20241208_100000
+
+# Full disaster recovery (complete system rebuild)
+make -f make/ops/paperless-ngx.mk paperless-full-recovery BACKUP_DATE=20241208_100000
+```
+
+### Document Backup Components
+
+| Component | Path | Purpose | Backup Method |
+|-----------|------|---------|---------------|
+| **Consume** | `/usr/src/paperless/consume` | Incoming documents | tar/rsync + PVC snapshot |
+| **Data** | `/usr/src/paperless/data` | App data, search index | tar/rsync + PVC snapshot |
+| **Media** | `/usr/src/paperless/media` | Processed docs, OCR | tar/rsync + PVC snapshot |
+| **Export** | `/usr/src/paperless/export` | Document exports | tar/rsync + PVC snapshot |
+
+### Database Backup
+
+**PostgreSQL backup via pg_dump:**
+```bash
+# Custom format (recommended for recovery)
+make -f make/ops/paperless-ngx.mk paperless-backup-database
+
+# Plain SQL format (for version control)
+make -f make/ops/paperless-ngx.mk paperless-backup-database-sql
+
+# Schema only (for testing)
+make -f make/ops/paperless-ngx.mk paperless-backup-database-schema
+```
+
+**Key database tables:**
+- `documents_document` - Document metadata
+- `documents_tag` - Tags
+- `documents_correspondent` - Correspondents
+- `documents_documenttype` - Document types
+- `documents_customfield` - Custom fields
+- `auth_user` - User accounts and permissions
+
+### Redis Backup (Optional)
+
+Redis stores task queue state and caching data. Can be rebuilt from database if lost.
+
+```bash
+# Trigger Redis BGSAVE
+make -f make/ops/paperless-ngx.mk paperless-backup-redis
+```
+
+### PVC Snapshots (VolumeSnapshot API)
+
+**Requirements:**
+- CSI driver with snapshot support
+- VolumeSnapshotClass configured
+
+```bash
+# Create snapshots for all PVCs
+make -f make/ops/paperless-ngx.mk paperless-create-pvc-snapshots
+
+# List existing snapshots
+kubectl get volumesnapshot -n default
+
+# Restore from snapshot (disaster recovery)
+# See full procedure in backup guide
+```
+
+### Backup Best Practices
+
+1. **Daily Backups**: Automate daily backups at low-traffic periods
+2. **Off-Cluster Storage**: Store backups in S3/MinIO/NFS (not same cluster)
+3. **3-2-1 Rule**: 3 copies, 2 media types, 1 off-site
+4. **Retention Policy**:
+   - Daily: 7 days
+   - Weekly: 4 weeks
+   - Monthly: 12 months
+5. **Test Recovery**: Monthly test restore in non-production namespace
+6. **Encrypt Backups**: Use GPG for sensitive document backups
+
+### Backup Automation Example
+
+```bash
+# Automated daily backup (cron example)
+# Add to cluster automation:
+
+# Daily full backup at 2 AM
+0 2 * * * /path/to/scripts/paperless-full-backup.sh
+
+# Weekly off-cluster backup to S3 (Sunday 3 AM)
+0 3 * * 0 /path/to/scripts/paperless-backup-s3.sh
+
+# Cleanup old backups (keep last 7 days)
+0 4 * * * find /backups/paperless -type d -name "202*" -mtime +7 -exec rm -rf {} \;
+```
+
+### Backup Validation
+
+```bash
+# Verify backup integrity
+ls -lh /backups/paperless-ngx/20241208_100000/
+
+# Expected files:
+# - consume.tar.gz
+# - data.tar.gz
+# - media.tar.gz (largest file)
+# - export.tar.gz
+# - paperless-db.dump
+# - helm-values.yaml
+# - volumesnapshots.yaml
+
+# Test database backup readability
+pg_restore --list /backups/paperless-ngx/20241208_100000/paperless-db.dump | head -20
+```
+
+**For detailed backup procedures, recovery workflows, and troubleshooting, see:**
+- **[Paperless-ngx Backup Guide](../../docs/paperless-ngx-backup-guide.md)** - Comprehensive backup and recovery procedures
+
+---
+
+## Security & RBAC
+
+Paperless-ngx chart includes comprehensive RBAC (Role-Based Access Control) templates for production security.
+
+### RBAC Configuration
+
+**Enable RBAC (default: enabled):**
+```yaml
+rbac:
+  create: true
+  annotations: {}
+```
+
+**What RBAC Provides:**
+- **ServiceAccount**: Dedicated identity for Paperless-ngx pods
+- **Role**: Namespace-scoped permissions (read-only access)
+- **RoleBinding**: Links ServiceAccount to Role
+
+### RBAC Permissions
+
+The Role grants **read-only** access to:
+
+| Resource | Permissions | Purpose |
+|----------|-------------|---------|
+| **ConfigMaps** | get, list, watch | Read configuration |
+| **Secrets** | get, list, watch | Access credentials (database, Redis, admin password) |
+| **Pods** | get, list, watch | Health checks and operations |
+| **Services** | get, list, watch | Service discovery |
+| **Endpoints** | get, list, watch | Service discovery |
+| **PersistentVolumeClaims** | get, list, watch | Storage operations |
+
+**Security Principle**: Least privilege - only read access, no write/delete permissions.
+
+### ServiceAccount Usage
+
+The chart automatically creates and uses a ServiceAccount:
+
+```yaml
+serviceAccount:
+  create: true
+  automount: true
+  annotations: {}
+  name: ""  # Auto-generated: paperless-ngx-{release-name}
+```
+
+**Custom ServiceAccount:**
+```yaml
+serviceAccount:
+  create: false
+  name: "my-custom-sa"
+```
+
+### Pod Security Context
+
+**Default security settings:**
+```yaml
+podSecurityContext:
+  fsGroup: 1000
+  runAsUser: 1000
+  runAsGroup: 1000
+  runAsNonRoot: true
+
+securityContext:
+  capabilities:
+    drop:
+      - ALL
+  readOnlyRootFilesystem: false  # Paperless needs write access to temp dirs
+  runAsNonRoot: true
+  runAsUser: 1000
+  runAsGroup: 1000
+  allowPrivilegeEscalation: false
+```
+
+**Why `readOnlyRootFilesystem: false`:**
+- Paperless-ngx requires write access to `/tmp` for document processing
+- OCR operations create temporary files
+- Media file processing requires writable directories
+
+### Network Security
+
+**Enable NetworkPolicy for traffic control:**
+```yaml
+networkPolicy:
+  enabled: true
+  ingress:
+    - from:
+        - podSelector: {}
+        - namespaceSelector: {}
+      ports:
+        - protocol: TCP
+          port: 8000
+  egress:
+    # Allow DNS
+    - to:
+        - namespaceSelector: {}
+      ports:
+        - protocol: UDP
+          port: 53
+    # Allow PostgreSQL
+    - to:
+        - namespaceSelector: {}
+      ports:
+        - protocol: TCP
+          port: 5432
+    # Allow Redis
+    - to:
+        - namespaceSelector: {}
+      ports:
+        - protocol: TCP
+          port: 6379
+    # Allow HTTP/HTTPS (for email, OCR packages)
+    - to:
+        - namespaceSelector: {}
+      ports:
+        - protocol: TCP
+          port: 80
+        - protocol: TCP
+          port: 443
+```
+
+**NetworkPolicy Benefits:**
+- Restrict pod-to-pod communication
+- Control egress to external services
+- Compliance with security policies (PCI-DSS, SOC 2)
+
+### Secrets Management
+
+**Required Secrets:**
+1. **Admin Password** - Initial admin account
+2. **Secret Key** - Django secret key for encryption
+3. **Database Credentials** - PostgreSQL password
+4. **Redis Password** - Redis authentication (optional)
+5. **Email Credentials** - SMTP password (if email enabled)
+
+**Using External Secret Management:**
+```yaml
+# Example: Using Sealed Secrets
+extraEnvFrom:
+  - secretRef:
+      name: paperless-sealed-secrets
+
+# Example: Using Vault
+extraEnv:
+  - name: PAPERLESS_DBPASS
+    valueFrom:
+      secretKeyRef:
+        name: vault-database-credentials
+        key: password
+```
+
+### TLS/SSL Configuration
+
+**Ingress TLS:**
+```yaml
+ingress:
+  enabled: true
+  className: "nginx"
+  annotations:
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
+  hosts:
+    - host: paperless.example.com
+      paths:
+        - path: /
+          pathType: Prefix
+  tls:
+    - secretName: paperless-tls
+      hosts:
+        - paperless.example.com
+```
+
+**PostgreSQL SSL:**
+```yaml
+postgresql:
+  external:
+    host: "postgres.example.com"
+    sslMode: "require"  # disable, allow, prefer, require, verify-ca, verify-full
+```
+
+### Security Best Practices
+
+1. **Strong Passwords**: Use 32+ character passwords for admin and database
+2. **Secret Key**: Generate with `openssl rand -base64 32` and **never reuse**
+3. **Database SSL**: Always use `sslMode: require` or higher in production
+4. **Network Policies**: Enable NetworkPolicy in multi-tenant environments
+5. **RBAC**: Never disable RBAC (`rbac.create: false`) in production
+6. **Image Security**:
+   - Use specific image tags (not `latest`)
+   - Enable image pull secrets for private registries
+   - Scan images for vulnerabilities (Trivy, Clair)
+7. **Secrets Rotation**: Rotate admin password and secret key annually
+8. **Audit Logging**: Enable Kubernetes audit logging for sensitive namespaces
+
+### Compliance Considerations
+
+**GDPR/Privacy:**
+- Paperless-ngx stores documents with potentially sensitive PII
+- Enable encryption at rest for PVCs
+- Configure data retention policies
+- Document data processing activities
+
+**SOC 2/ISO 27001:**
+- Enable RBAC and NetworkPolicy
+- Use Secrets management (Vault/Sealed Secrets)
+- Enable audit logging
+- Regular security patching and updates
+
+---
+
+## Operations
+
+Comprehensive operational tooling via Makefile for day-2 operations.
+
+### Makefile Overview
+
+The chart includes 60+ operational targets organized in 11 sections:
+
+```bash
+# Display all available commands
+make -f make/ops/paperless-ngx.mk help
+```
+
+### Basic Operations
+
+```bash
+# View pod information
+make -f make/ops/paperless-ngx.mk paperless-info
+make -f make/ops/paperless-ngx.mk paperless-describe
+
+# Stream logs (real-time)
+make -f make/ops/paperless-ngx.mk paperless-logs
+make -f make/ops/paperless-ngx.mk paperless-logs-follow
+
+# Access shell
+make -f make/ops/paperless-ngx.mk paperless-shell
+
+# Port forward to localhost:8000
+make -f make/ops/paperless-ngx.mk paperless-port-forward
+
+# Restart deployment
+make -f make/ops/paperless-ngx.mk paperless-restart
+
+# Get pod events
+make -f make/ops/paperless-ngx.mk paperless-events
+```
+
+### Database Operations
+
+```bash
+# Database connectivity check
+make -f make/ops/paperless-ngx.mk paperless-check-db
+
+# PostgreSQL shell (psql)
+make -f make/ops/paperless-ngx.mk paperless-db-shell
+
+# Run database migrations
+make -f make/ops/paperless-ngx.mk paperless-migrate
+
+# Database statistics
+make -f make/ops/paperless-ngx.mk paperless-db-stats
+
+# Document count
+make -f make/ops/paperless-ngx.mk paperless-document-count
+
+# Database size
+make -f make/ops/paperless-ngx.mk paperless-db-size
+
+# Vacuum database (performance)
+make -f make/ops/paperless-ngx.mk paperless-db-vacuum
+```
+
+### Redis Operations
+
+```bash
+# Redis connectivity check
+make -f make/ops/paperless-ngx.mk paperless-check-redis
+
+# Redis CLI
+make -f make/ops/paperless-ngx.mk paperless-redis-cli
+
+# Redis info
+make -f make/ops/paperless-ngx.mk paperless-redis-info
+
+# Clear Redis cache
+make -f make/ops/paperless-ngx.mk paperless-redis-flushdb
+
+# Monitor Redis commands
+make -f make/ops/paperless-ngx.mk paperless-redis-monitor
+```
+
+### Document Management
+
+```bash
+# List documents in consume directory
+make -f make/ops/paperless-ngx.mk paperless-consume-list
+
+# Document processing status
+make -f make/ops/paperless-ngx.mk paperless-process-status
+
+# Document exporter (export all documents)
+make -f make/ops/paperless-ngx.mk paperless-document-exporter
+
+# Rebuild search index
+make -f make/ops/paperless-ngx.mk paperless-reindex
+
+# Create document classifier
+make -f make/ops/paperless-ngx.mk paperless-create-classifier
+
+# OCR re-processing
+make -f make/ops/paperless-ngx.mk paperless-ocr-redo
+```
+
+### User Management
+
+```bash
+# Create superuser (admin)
+make -f make/ops/paperless-ngx.mk paperless-create-superuser
+
+# List users
+make -f make/ops/paperless-ngx.mk paperless-list-users
+
+# Change user password
+make -f make/ops/paperless-ngx.mk paperless-change-password
+
+# Create API token
+make -f make/ops/paperless-ngx.mk paperless-create-api-token
+```
+
+### Storage Operations
+
+```bash
+# Check storage usage
+make -f make/ops/paperless-ngx.mk paperless-check-storage
+
+# Consume directory size
+make -f make/ops/paperless-ngx.mk paperless-consume-size
+
+# Data directory size
+make -f make/ops/paperless-ngx.mk paperless-data-size
+
+# Media directory size
+make -f make/ops/paperless-ngx.mk paperless-media-size
+
+# Export directory size
+make -f make/ops/paperless-ngx.mk paperless-export-size
+
+# Total storage usage
+make -f make/ops/paperless-ngx.mk paperless-total-storage
+
+# PVC status
+make -f make/ops/paperless-ngx.mk paperless-pvc-status
+```
+
+### Backup Operations
+
+```bash
+# Full backup (all components)
+make -f make/ops/paperless-ngx.mk paperless-full-backup
+
+# Component backups
+make -f make/ops/paperless-ngx.mk paperless-backup-documents
+make -f make/ops/paperless-ngx.mk paperless-backup-database
+make -f make/ops/paperless-ngx.mk paperless-backup-helm-values
+make -f make/ops/paperless-ngx.mk paperless-backup-k8s-resources
+
+# PVC snapshots
+make -f make/ops/paperless-ngx.mk paperless-create-pvc-snapshots
+
+# S3 backup
+make -f make/ops/paperless-ngx.mk paperless-backup-documents-s3
+```
+
+### Restore Operations
+
+```bash
+# Restore documents
+make -f make/ops/paperless-ngx.mk paperless-restore-documents BACKUP_DATE=20241208_100000
+
+# Restore database
+make -f make/ops/paperless-ngx.mk paperless-restore-database BACKUP_DATE=20241208_100000
+
+# Restore Helm values
+make -f make/ops/paperless-ngx.mk paperless-restore-helm-values BACKUP_DATE=20241208_100000
+
+# Full disaster recovery
+make -f make/ops/paperless-ngx.mk paperless-full-recovery BACKUP_DATE=20241208_100000
+```
+
+### Upgrade Operations
+
+```bash
+# Pre-upgrade check
+make -f make/ops/paperless-ngx.mk paperless-pre-upgrade-check
+
+# Check latest version
+make -f make/ops/paperless-ngx.mk paperless-check-latest-version
+
+# Rolling upgrade
+make -f make/ops/paperless-ngx.mk paperless-upgrade-rolling VERSION=2.15.0
+
+# Maintenance mode upgrade
+make -f make/ops/paperless-ngx.mk paperless-upgrade-maintenance VERSION=3.0.0
+
+# Blue-green deployment
+make -f make/ops/paperless-ngx.mk paperless-upgrade-blue-green VERSION=3.0.0
+
+# Post-upgrade validation
+make -f make/ops/paperless-ngx.mk paperless-post-upgrade-check
+
+# Upgrade rollback
+make -f make/ops/paperless-ngx.mk paperless-upgrade-rollback
+```
+
+### Monitoring & Troubleshooting
+
+```bash
+# Health checks
+make -f make/ops/paperless-ngx.mk paperless-health-check
+
+# Resource usage
+make -f make/ops/paperless-ngx.mk paperless-top
+
+# Network connectivity tests
+make -f make/ops/paperless-ngx.mk paperless-test-connectivity
+
+# OCR test
+make -f make/ops/paperless-ngx.mk paperless-test-ocr
+
+# Check application settings
+make -f make/ops/paperless-ngx.mk paperless-check-settings
+
+# Django system check
+make -f make/ops/paperless-ngx.mk paperless-django-check
+```
+
+### Cleanup Operations
+
+```bash
+# Clean old documents from consume
+make -f make/ops/paperless-ngx.mk paperless-cleanup-consume
+
+# Clean export directory
+make -f make/ops/paperless-ngx.mk paperless-cleanup-export
+
+# Clean thumbnails (will be regenerated)
+make -f make/ops/paperless-ngx.mk paperless-cleanup-thumbnails
+
+# Database cleanup (remove orphaned records)
+make -f make/ops/paperless-ngx.mk paperless-db-cleanup
+```
+
+### Common Operational Tasks
+
+**Daily Operations:**
+```bash
+# Morning health check
+make -f make/ops/paperless-ngx.mk paperless-health-check
+make -f make/ops/paperless-ngx.mk paperless-check-storage
+
+# Process new documents
+make -f make/ops/paperless-ngx.mk paperless-consume-list
+make -f make/ops/paperless-ngx.mk paperless-process-status
+```
+
+**Weekly Operations:**
+```bash
+# Database maintenance
+make -f make/ops/paperless-ngx.mk paperless-db-vacuum
+make -f make/ops/paperless-ngx.mk paperless-db-stats
+
+# Storage cleanup
+make -f make/ops/paperless-ngx.mk paperless-cleanup-export
+make -f make/ops/paperless-ngx.mk paperless-total-storage
+```
+
+**Monthly Operations:**
+```bash
+# Full backup
+make -f make/ops/paperless-ngx.mk paperless-full-backup
+
+# Test backup restore (in test namespace)
+export NAMESPACE="paperless-test"
+make -f make/ops/paperless-ngx.mk paperless-full-recovery BACKUP_DATE=<latest>
+
+# Rebuild search index (if search performance degrades)
+make -f make/ops/paperless-ngx.mk paperless-reindex
+```
+
+**Before Upgrades:**
+```bash
+# 1. Full backup
+make -f make/ops/paperless-ngx.mk paperless-full-backup
+
+# 2. Pre-upgrade check
+make -f make/ops/paperless-ngx.mk paperless-pre-upgrade-check
+
+# 3. Perform upgrade
+make -f make/ops/paperless-ngx.mk paperless-upgrade-rolling VERSION=2.15.0
+
+# 4. Post-upgrade validation
+make -f make/ops/paperless-ngx.mk paperless-post-upgrade-check
+```
+
+### Makefile Environment Variables
+
+```bash
+# Override defaults
+export RELEASE_NAME="my-paperless"
+export NAMESPACE="documents"
+export BACKUP_DIR="/mnt/backups/paperless"
+export BACKUP_TIMESTAMP=$(date +%Y%m%d_%H%M%S)
+
+# Run command with overrides
+make -f make/ops/paperless-ngx.mk paperless-backup-documents
+```
+
+**For complete Makefile reference and advanced usage, see:**
+- **[Makefile Commands Guide](../../docs/MAKEFILE_COMMANDS.md)** - All available commands
+
+---
+
+## Upgrading
+
+Comprehensive upgrade procedures for all Paperless-ngx version changes.
+
+### Upgrade Strategy Selection
+
+| Version Change | Strategy | Downtime | Complexity |
+|----------------|----------|----------|------------|
+| **Patch** (2.14.0 → 2.14.1) | Rolling Upgrade | None | Low |
+| **Minor** (2.14.x → 2.15.x) | Rolling Upgrade | None | Low |
+| **Major** (2.x → 3.x) | Maintenance Mode | 10-30 min | Medium |
+| **Breaking** (PostgreSQL 13 → 17) | Database Migration | 30-60 min | High |
+
+### Pre-Upgrade Requirements
+
+**⚠️ CRITICAL: Always backup before upgrading!**
+
+```bash
+# 1. Full backup
+make -f make/ops/paperless-ngx.mk paperless-full-backup
+
+# 2. Pre-upgrade validation
+make -f make/ops/paperless-ngx.mk paperless-pre-upgrade-check
+
+# 3. Review release notes
+# Visit: https://github.com/paperless-ngx/paperless-ngx/releases
+```
+
+### Rolling Upgrade (Recommended)
+
+**Use Case:** Patch and minor version upgrades with no breaking changes
+
+**Advantages:**
+- Zero downtime
+- Automatic rollback on failure
+- Simple procedure
+
+**Procedure:**
+```bash
+# Step 1: Backup
+make -f make/ops/paperless-ngx.mk paperless-full-backup
+
+# Step 2: Update chart repository
+helm repo update scripton-charts
+
+# Step 3: Perform rolling upgrade
+helm upgrade paperless-ngx scripton-charts/paperless-ngx \
+  --set image.tag=2.15.0 \
+  --reuse-values \
+  --wait --timeout 10m
+
+# Or use Makefile target:
+make -f make/ops/paperless-ngx.mk paperless-upgrade-rolling VERSION=2.15.0
+
+# Step 4: Verify upgrade
+make -f make/ops/paperless-ngx.mk paperless-post-upgrade-check
+```
+
+**Database migrations run automatically** on pod startup via Django migrations.
+
+### Maintenance Mode Upgrade
+
+**Use Case:** Major version upgrades with breaking changes or significant database schema changes
+
+**Downtime:** 10-30 minutes (depends on migration time)
+
+**Procedure:**
+```bash
+# Step 1: Backup
+make -f make/ops/paperless-ngx.mk paperless-full-backup
+
+# Step 2: Scale down to 0 (enter maintenance mode)
+kubectl scale deployment paperless-ngx --replicas=0
+
+# Step 3: Backup database one final time (while app is down)
+make -f make/ops/paperless-ngx.mk paperless-backup-database
+
+# Step 4: Perform upgrade
+helm upgrade paperless-ngx scripton-charts/paperless-ngx \
+  --set image.tag=3.0.0 \
+  --reuse-values \
+  --wait --timeout 15m
+
+# Or use Makefile target:
+make -f make/ops/paperless-ngx.mk paperless-upgrade-maintenance VERSION=3.0.0
+
+# Step 5: Verify upgrade
+make -f make/ops/paperless-ngx.mk paperless-post-upgrade-check
+```
+
+### Blue-Green Deployment
+
+**Use Case:** Zero-downtime upgrades for major versions with instant rollback capability
+
+**Downtime:** None (instant cutover)
+
+**Advantages:**
+- Zero downtime
+- Instant rollback (switch back to "blue")
+- Full testing before cutover
+
+**High-Level Procedure:**
+1. Deploy "green" environment with new version
+2. Copy data from "blue" to "green" PVCs
+3. Test green environment thoroughly
+4. Cutover traffic to green (update Ingress/Service)
+5. Monitor and validate
+6. Keep blue for 24-48 hours, then decommission
+
+```bash
+# Use Makefile target (handles all steps)
+make -f make/ops/paperless-ngx.mk paperless-upgrade-blue-green VERSION=3.0.0
+```
+
+### Database Migration Upgrade
+
+**Use Case:** PostgreSQL version upgrades (e.g., PostgreSQL 13 → 17)
+
+**Downtime:** 30-60 minutes (depends on database size)
+
+**High-Level Procedure:**
+1. Full backup
+2. Scale down Paperless-ngx
+3. Deploy new PostgreSQL instance
+4. Restore database to new instance
+5. Update Paperless-ngx to use new database
+6. Verify and test
+7. Decommission old database after 7 days
+
+```bash
+# Use Makefile target (handles all steps)
+make -f make/ops/paperless-ngx.mk paperless-upgrade-database-migration
+```
+
+### Post-Upgrade Validation
+
+**Automated Validation:**
+```bash
+make -f make/ops/paperless-ngx.mk paperless-post-upgrade-check
+```
+
+**Manual Validation Checklist:**
+- [ ] Pod running (1/1 Ready)
+- [ ] Image version matches target
+- [ ] No errors in logs
+- [ ] Database connectivity OK
+- [ ] Document count matches pre-upgrade
+- [ ] Health endpoint returns 200 OK
+- [ ] Search functionality working
+- [ ] OCR processing functional
+- [ ] Upload test document
+- [ ] API access working
+
+**Smoke Tests:**
+```bash
+make -f make/ops/paperless-ngx.mk paperless-smoke-test
+```
+
+### Rollback Procedures
+
+**Rolling Upgrade Rollback:**
+```bash
+# Helm automatic rollback
+helm rollback paperless-ngx
+
+# Or use Makefile target:
+make -f make/ops/paperless-ngx.mk paperless-upgrade-rollback
+```
+
+**Database Rollback (from backup):**
+```bash
+make -f make/ops/paperless-ngx.mk paperless-rollback-database BACKUP_DATE=20241208_100000
+```
+
+**Full System Rollback (from PVC snapshots):**
+```bash
+make -f make/ops/paperless-ngx.mk paperless-rollback-full BACKUP_DATE=20241208_100000
+```
+
+### Version-Specific Notes
+
+**Upgrading to Paperless-ngx 2.15.x:**
+- No breaking changes
+- Standard rolling upgrade applies
+- Database migrations are minimal
+
+**Upgrading to Paperless-ngx 3.0.x (Future):**
+- PostgreSQL 16+ required
+- Redis 7+ required
+- New document storage format (automatic migration)
+- Allow 30-60 minutes for migration on large document sets
+
+**PostgreSQL 13 → 17 Upgrade:**
+- Use Database Migration strategy
+- Cannot use in-place upgrade (requires new instance)
+- Test restore before production cutover
+
+### Upgrade Best Practices
+
+1. **Always Backup**: Full backup before every upgrade (documents, database, config, snapshots)
+2. **Read Release Notes**: Review breaking changes and migration notes
+3. **Test in Non-Production**: Upgrade dev/staging environment first
+4. **Choose Right Strategy**: Match strategy to version change magnitude
+5. **Monitor Migrations**: Watch logs during database migrations
+6. **Validate Thoroughly**: Run post-upgrade checks before declaring success
+7. **Keep Backups**: Retain pre-upgrade backups for 7 days minimum
+8. **Plan Downtime**: Communicate maintenance windows for major upgrades
+
+### Upgrade Troubleshooting
+
+**Issue: Upgrade stuck on "Waiting for rollout"**
+```bash
+# Check pod status
+kubectl get pods -l app.kubernetes.io/name=paperless-ngx
+
+# Check pod events
+kubectl describe pod -l app.kubernetes.io/name=paperless-ngx
+
+# Check logs
+make -f make/ops/paperless-ngx.mk paperless-logs
+
+# Common causes:
+# - Database migration taking long (expected, wait longer)
+# - Database connectivity issues (verify credentials)
+# - Insufficient resources (check node resources)
+# - ImagePullBackOff (verify image tag exists)
+```
+
+**Issue: Database migration fails**
+```bash
+# Manually run migrations
+kubectl exec deployment/paperless-ngx -- python manage.py migrate --noinput
+
+# If fails, restore from backup
+make -f make/ops/paperless-ngx.mk paperless-rollback-database BACKUP_DATE=$BACKUP_TIMESTAMP
+```
+
+**Issue: Document count mismatch after upgrade**
+```bash
+# Rebuild search index
+make -f make/ops/paperless-ngx.mk paperless-reindex
+
+# Verify database integrity
+make -f make/ops/paperless-ngx.mk paperless-document-count
+
+# If media files missing, restore from backup
+make -f make/ops/paperless-ngx.mk paperless-restore-documents BACKUP_DATE=$BACKUP_TIMESTAMP
+```
+
+**For detailed upgrade procedures, strategies, and troubleshooting, see:**
+- **[Paperless-ngx Upgrade Guide](../../docs/paperless-ngx-upgrade-guide.md)** - Comprehensive upgrade procedures
+
+---
+
 ## Additional Resources
 
 - [Troubleshooting Guide](../../docs/TROUBLESHOOTING.md) - Common issues and solutions
