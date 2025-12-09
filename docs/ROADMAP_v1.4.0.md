@@ -207,7 +207,7 @@ All charts in this phase are now complete with comprehensive RBAC, backup/recove
 
 ### Phase 3: Supporting Infrastructure (Lower Priority)
 
-**Target: 6 charts** | **Progress: 1/6 (17%)** 🔄
+**Target: 6 charts** | **Progress: 2/6 (33%)** 🔄
 
 15. ✅ **MinIO** (v0.3.0 → v0.4.0) - COMPLETE (2025-12-09)
     - RBAC templates (Role for ConfigMaps, Secrets, Pods, Services, Endpoints, PVCs)
@@ -220,12 +220,16 @@ All charts in this phase are now complete with comprehensive RBAC, backup/recove
     - Total impact: 6 files, ~3,303 lines added
     - Key features: Object storage (S3-compatible), Distributed/Standalone modes, IAM policies, Site replication, MinIO Client (mc)
 
-16. **MongoDB** (v0.3.0 → v0.4.0)
-    - RBAC templates (namespace-scoped)
-    - Backup guide (mongodump, oplog, replica sets)
-    - Upgrade guide (major version changes, feature compatibility)
-    - Makefile targets (backup, restore, replica management)
-    - RTO/RPO: < 1 hour / 15 minutes (oplog)
+16. ✅ **MongoDB** (v0.3.0 → v0.4.0) - COMPLETE (2025-12-09)
+    - RBAC templates (Role for ConfigMaps, Secrets, Pods, Services, Endpoints, PVCs)
+    - Backup guide (~976 lines): Database Data (mongodump), Oplog (PITR for replica sets), Configuration, Users & Roles, 5 backup methods (mongodump, PVC Snapshots, Filesystem Copy, Delayed Secondary, Cloud Manager)
+    - Upgrade guide (~1,050 lines): 4 strategies (Rolling, In-Place, Blue-Green, Dump & Restore), Feature Compatibility Version (FCV), Version-specific notes
+    - README: 4 sections (~653 lines) - Backup & Recovery, Security & RBAC, Operations, Upgrading
+    - values.yaml: Comprehensive backup/upgrade documentation (~151 lines)
+    - Makefile: 47 operational targets (664 lines) - Database ops, Replica sets, Users, Indexes, Backup/restore, Monitoring
+    - RTO/RPO: < 2 hours / 24 hours (full DR), < 1 hour / 15 minutes (PITR with oplog)
+    - Total impact: 6 files, ~3,242 lines added
+    - Key features: NoSQL document database, Replica sets with automatic failover, Oplog for PITR, mongodump/mongorestore, WiredTiger storage
 
 17. **RabbitMQ** (v0.3.0 → v0.4.0)
     - RBAC templates (namespace-scoped)
