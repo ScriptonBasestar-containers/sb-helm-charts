@@ -175,3 +175,197 @@ affinity: {}
 
 # Priority class for pod scheduling
 priorityClassName: ""
+
+# ==============================================================================
+# Backup & Recovery Configuration
+# ==============================================================================
+# Note: Promtail is stateless. Backup focuses on configuration and positions file.
+#
+# For complete backup procedures and disaster recovery strategies, see:
+# - Backup Guide: docs/promtail-backup-guide.md
+# - Upgrade Guide: docs/promtail-upgrade-guide.md
+# - Chart README: charts/promtail/README.md (Backup & Recovery section)
+#
+# Makefile commands:
+#   make -f make/ops/promtail.mk pt-backup-config
+#   make -f make/ops/promtail.mk pt-backup-positions
+#   make -f make/ops/promtail.mk pt-full-backup
+#
+backup:
+  # Note: This section is for documentation only. Promtail backup is performed
+  # via Makefile targets, not automated CronJobs.
+  enabled: false  # Documentation only - no automated backups
+
+  documentation:
+    # Backup strategy overview
+    strategy: "Configuration + Positions File + Kubernetes Manifests"
+
+    # Components to backup
+    components:
+      configuration: "ConfigMap, Helm values.yaml (Critical, <10 KB)"
+      positions_file: "Tracks which logs have been read (Important, <1 MB)"
+      kubernetes_manifests: "DaemonSet, RBAC, Service (Critical, <50 KB)"
+
+    # Backup methods (recommended approach)
+    methods:
+      configmap_export: "kubectl get configmap -n default promtail-config -o yaml"
+      git_based: "Store values.yaml in Git repository (best practice)"
+      positions_backup: "kubectl exec POD -- cat /run/promtail/positions.yaml (optional)"
+
+    # Quick backup commands
+    quick_commands:
+      config: "make -f make/ops/promtail.mk pt-backup-config"
+      positions: "make -f make/ops/promtail.mk pt-backup-positions"
+      manifest: "make -f make/ops/promtail.mk pt-backup-manifest"
+      full: "make -f make/ops/promtail.mk pt-full-backup"
+
+    # Recovery Time Objective (RTO) and Recovery Point Objective (RPO)
+    targets:
+      configuration_restore:
+        rto: "< 5 minutes"
+        rpo: "Based on backup frequency"
+      full_cluster_recovery:
+        rto: "< 30 minutes"
+        rpo: "0 (stateless, no data loss)"
+
+    # Automated backup (example CronJob)
+    automation: |
+      apiVersion: batch/v1
+      kind: CronJob
+      metadata:
+        name: promtail-backup
+      spec:
+        schedule: "0 2 * * *"  # Daily at 2 AM
+        jobTemplate:
+          spec:
+            template:
+              spec:
+                containers:
+                - name: backup
+                  image: bitnami/kubectl:latest
+                  command:
+                  - /bin/sh
+                  - -c
+                  - kubectl get configmap -n default promtail-config -o yaml > /backups/config.yaml
+
+# ==============================================================================
+# Upgrade Procedures Configuration
+# ==============================================================================
+# Note: Promtail is stateless and supports rolling updates with minimal disruption.
+#
+# For complete upgrade procedures and version-specific notes, see:
+# - Upgrade Guide: docs/promtail-upgrade-guide.md
+# - Chart README: charts/promtail/README.md (Upgrading section)
+#
+# Makefile commands:
+#   make -f make/ops/promtail.mk pt-pre-upgrade-check
+#   make -f make/ops/promtail.mk pt-post-upgrade-check
+#   make -f make/ops/promtail.mk pt-upgrade-rollback
+#
+upgrade:
+  # Note: This section is for documentation only. Upgrades are performed
+  # via Helm commands, not automated processes.
+  enabled: false  # Documentation only - manual upgrade process
+
+  # Pre-upgrade backup (recommended)
+  preUpgradeBackup: true  # Always backup before upgrades
+
+  documentation:
+    # Upgrade strategies
+    strategies:
+      rolling_update:
+        description: "Rolling update via DaemonSet (zero downtime)"
+        command: "helm upgrade my-promtail scripton-charts/promtail --version 0.4.0 --wait"
+        downtime: "None (rolling update per node)"
+        risk: "Low"
+        use_case: "Production upgrades"
+
+      configuration_only:
+        description: "Update configuration without version change"
+        command: "helm upgrade my-promtail scripton-charts/promtail -f values.yaml"
+        downtime: "None (rolling update)"
+        risk: "Low"
+        use_case: "Config changes only"
+
+      blue_green:
+        description: "Deploy new version in parallel, then switch"
+        command: "helm install my-promtail-green scripton-charts/promtail --version 0.4.0"
+        downtime: "< 1 minute (switch traffic)"
+        risk: "Very Low"
+        use_case: "Major version jumps"
+
+    # Pre-upgrade checklist
+    pre_upgrade:
+      - step: "Backup current configuration"
+        command: "make -f make/ops/promtail.mk pt-full-backup"
+      - step: "Check version compatibility with Loki"
+        note: "Promtail should be within 2 minor versions of Loki"
+      - step: "Review release notes"
+        link: "https://github.com/grafana/loki/releases"
+      - step: "Test in staging environment"
+        command: "helm upgrade promtail-staging scripton-charts/promtail --version 0.4.0 -n staging"
+      - step: "Verify current state"
+        command: "make -f make/ops/promtail.mk pt-pre-upgrade-check"
+
+    # Upgrade execution (Rolling Update)
+    execution:
+      - step: "Upgrade via Helm"
+        command: "helm upgrade my-promtail scripton-charts/promtail --version 0.4.0 --set image.tag=3.3.0 --wait"
+      - step: "Monitor rollout"
+        command: "kubectl rollout status daemonset/my-promtail -n default"
+      - step: "Watch pod updates"
+        command: "watch kubectl get pods -n default -l app.kubernetes.io/name=promtail"
+
+    # Post-upgrade validation
+    post_upgrade:
+      - step: "Check DaemonSet status"
+        command: "kubectl get daemonset -n default my-promtail"
+      - step: "Verify all pods are running"
+        command: "kubectl get pods -n default -l app.kubernetes.io/name=promtail"
+      - step: "Check Promtail version"
+        command: "kubectl get pods -n default -l app.kubernetes.io/name=promtail -o jsonpath='{.items[0].spec.containers[0].image}'"
+      - step: "Verify log shipping"
+        command: "make -f make/ops/promtail.mk pt-test-log-shipping"
+      - step: "Run post-upgrade validation"
+        command: "make -f make/ops/promtail.mk pt-post-upgrade-check"
+
+    # Rollback procedures
+    rollback:
+      via_helm_history:
+        description: "Rollback using Helm history"
+        commands:
+          - "helm history my-promtail -n default"
+          - "helm rollback my-promtail <REVISION> -n default"
+          - "kubectl rollout status daemonset/my-promtail -n default"
+        rto: "< 5 minutes"
+
+      via_backup:
+        description: "Restore from backup"
+        commands:
+          - "helm uninstall my-promtail -n default"
+          - "helm install my-promtail scripton-charts/promtail --version 0.3.0 -f promtail-values-backup.yaml"
+        rto: "< 10 minutes"
+
+      makefile:
+        description: "Automated rollback via Makefile"
+        command: "make -f make/ops/promtail.mk pt-upgrade-rollback"
+
+    # Version-specific notes
+    version_notes:
+      "3.3.x":
+        - "New: OTel logs support"
+        - "Memory: 20-30% reduction"
+        - "No breaking changes"
+      "3.0.x":
+        - "BREAKING: Docker scrape config removed"
+        - "BREAKING: Pipeline stage syntax changed (stages → pipeline)"
+        - "Migration: Review Promtail 3.0 Migration Guide"
+
+    # Best practices
+    best_practices:
+      - "Keep Promtail within 2 minor versions of Loki"
+      - "Test upgrades in dev/staging first"
+      - "Review release notes before upgrading"
+      - "Backup configuration before upgrade"
+      - "Monitor rollout progress"
+      - "Never use 'latest' tag in production"
