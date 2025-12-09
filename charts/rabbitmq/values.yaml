@@ -385,3 +385,190 @@ lifecycle: {}
 #   preStop:
 #     exec:
 #       command: ["/bin/sh", "-c", "sleep 5"]
+
+# ==============================================================================
+# Backup & Recovery Configuration
+# ==============================================================================
+# NOTE: This section is for documentation only. All backup/recovery operations
+# are performed manually via Makefile targets. No automated CronJobs are created.
+
+backup:
+  # enabled: false - Documentation only, no automated backups
+  # All backups are performed manually via make -f make/ops/rabbitmq.mk commands
+
+  documentation:
+    # Backup strategy: 4-component approach
+    strategy: "Definitions + Messages + Configuration + Mnesia Database"
+
+    # Backup tools used
+    tools:
+      - "rabbitmqadmin (Management Plugin API)"
+      - "kubectl (Kubernetes CLI)"
+      - "VolumeSnapshots (CSI driver)"
+      - "curl (Management API)"
+
+    # Backup components (4 total)
+    components:
+      definitions: "Exchanges, queues, bindings, vhosts, users, policies (Critical, <10 MB)"
+      messages: "Queue contents via persistent queues or shovel plugin (Important, variable GB-TB)"
+      configuration: "rabbitmq.conf, enabled_plugins, ConfigMaps, Secrets (Important, <1 MB)"
+      mnesia_database: "Complete RabbitMQ state including definitions + messages (Critical, 100 MB - 10 GB)"
+
+    # Backup methods (5 total)
+    methods:
+      definitions_export: "rabbitmqadmin export via Management API (recommended for quick recovery)"
+      pvc_snapshots: "VolumeSnapshots via CSI driver (fastest recovery, includes everything)"
+      mnesia_copy: "Filesystem copy with rabbitmqctl stop_app (requires downtime)"
+      federation_shovel: "Continuous replication to backup cluster (near-zero RPO)"
+      restic: "Incremental backups to S3/MinIO with encryption and deduplication"
+
+    # Quick backup commands
+    quick_commands:
+      full_backup: "make -f make/ops/rabbitmq.mk rmq-full-backup"
+      definitions_backup: "make -f make/ops/rabbitmq.mk rmq-backup-definitions"
+      config_backup: "make -f make/ops/rabbitmq.mk rmq-backup-config"
+      snapshot_create: "make -f make/ops/rabbitmq.mk rmq-snapshot-create"
+      restore_definitions: "make -f make/ops/rabbitmq.mk rmq-restore-definitions BACKUP_FILE=/path/to/definitions.json"
+      backup_status: "make -f make/ops/rabbitmq.mk rmq-backup-status"
+
+    # RTO/RPO targets
+    targets:
+      definitions_restore:
+        rto: "< 15 minutes"
+        rpo: "6 hours (based on backup frequency)"
+      messages_restore:
+        rto: "< 2 hours"
+        rpo: "24 hours (daily backups) or near-zero (with federation/shovel)"
+      configuration_restore:
+        rto: "< 10 minutes"
+        rpo: "24 hours (on change)"
+      full_disaster_recovery:
+        rto: "< 1 hour"
+        rpo: "24 hours (daily snapshots)"
+      mnesia_restore:
+        rto: "< 30 minutes"
+        rpo: "24 hours"
+
+    # Additional notes
+    notes:
+      - "Use persistent queues (durable=true) for critical messages"
+      - "Enable shovel/federation plugin for continuous message replication"
+      - "Test backup restoration quarterly"
+      - "Follow 3-2-1 backup rule: 3 copies, 2 different media, 1 off-site"
+      - "Encrypt backups at rest (S3 server-side encryption)"
+      - "Monitor backup health with Prometheus metrics"
+
+# ==============================================================================
+# Upgrade Procedures
+# ==============================================================================
+# NOTE: This section is for documentation only. All upgrades are performed
+# manually via Helm and Makefile targets. No automated upgrades are performed.
+
+upgrade:
+  # enabled: false - Documentation only, manual upgrade process
+  # preUpgradeBackup: true - Always backup before upgrading
+
+  documentation:
+    # Upgrade strategies (3 total for single-node deployments)
+    strategies:
+      in_place:
+        description: "Upgrade single-node deployment with pod restart"
+        downtime: "5-15 minutes"
+        risk: "Medium"
+        use_case: "Development, staging"
+        steps:
+          - "Run pre-upgrade backup: make -f make/ops/rabbitmq.mk rmq-full-backup"
+          - "Run pre-upgrade checks: make -f make/ops/rabbitmq.mk rmq-pre-upgrade-check"
+          - "Upgrade via Helm: helm upgrade my-rabbitmq scripton-charts/rabbitmq --set image.tag=3.13.1-management --reuse-values"
+          - "Wait for rollout: kubectl rollout status deployment my-rabbitmq"
+          - "Run post-upgrade validation: make -f make/ops/rabbitmq.mk rmq-post-upgrade-check"
+
+      blue_green:
+        description: "Deploy new version alongside old, switch traffic after validation"
+        downtime: "< 1 minute (traffic switch only)"
+        risk: "Low (instant rollback available)"
+        use_case: "Production, zero-downtime requirement"
+        steps:
+          - "Backup definitions: make -f make/ops/rabbitmq.mk rmq-backup-definitions"
+          - "Deploy green: helm install my-rabbitmq-green scripton-charts/rabbitmq --set image.tag=3.13.1-management --set fullnameOverride=rabbitmq-green"
+          - "Import definitions to green: make -f make/ops/rabbitmq.mk rmq-restore-definitions BACKUP_FILE=/path/to/definitions.json"
+          - "Test green deployment thoroughly (15-30 minutes)"
+          - "Switch traffic: kubectl patch service my-rabbitmq -p '{\"spec\":{\"selector\":{\"app.kubernetes.io/instance\":\"rabbitmq-green\"}}}'"
+          - "Monitor for 24 hours, then decommission blue"
+
+      backup_restore:
+        description: "Export definitions, fresh install, import definitions"
+        downtime: "1-2 hours"
+        risk: "Medium (requires testing)"
+        use_case: "Major version jumps (3.9.x → 3.13.x)"
+        steps:
+          - "Export definitions: POD=$(kubectl get pods -l app.kubernetes.io/name=rabbitmq -o jsonpath='{.items[0].metadata.name}'); kubectl exec $POD -- curl -u guest:guest http://localhost:15672/api/definitions -o /tmp/definitions.json"
+          - "Uninstall old version: helm uninstall my-rabbitmq"
+          - "Delete PVC: kubectl delete pvc my-rabbitmq"
+          - "Install new version: helm install my-rabbitmq scripton-charts/rabbitmq --set image.tag=3.13.1-management"
+          - "Import definitions: make -f make/ops/rabbitmq.mk rmq-restore-definitions BACKUP_FILE=/path/to/definitions.json"
+
+    # Pre-upgrade checklist
+    pre_upgrade_checklist:
+      - "Backup all components (definitions, config, PVC snapshot)"
+      - "Check current version and target version compatibility"
+      - "Verify node health (rabbitmqctl node_health_check)"
+      - "Check alarm status (rabbitmqctl alarm_status)"
+      - "Record queue counts and message depths"
+      - "Schedule maintenance window (for in-place upgrades)"
+      - "Notify application owners"
+      - "Test upgrade in staging environment first"
+
+    # Post-upgrade validation
+    post_upgrade_validation:
+      - "Verify new version: rabbitmqctl version"
+      - "Check node health: rabbitmqctl node_health_check"
+      - "Verify alarm status: rabbitmqctl alarm_status"
+      - "Verify queues: rabbitmqctl list_queues"
+      - "Verify users: rabbitmqctl list_users"
+      - "Verify plugins: rabbitmq-plugins list -E"
+      - "Test application connectivity (send/receive test messages)"
+      - "Monitor for 24 hours after upgrade"
+
+    # Rollback procedures
+    rollback:
+      helm_rollback: "helm rollback my-rabbitmq"
+      blue_green_rollback: "kubectl patch service my-rabbitmq -p '{\"spec\":{\"selector\":{\"app.kubernetes.io/instance\":\"my-rabbitmq\"}}}'"
+      snapshot_restore: "Create PVC from VolumeSnapshot, reinstall with old version"
+
+    # Important notes
+    important_notes:
+      - "⚠️ Always backup before upgrading (definitions + PVC snapshot)"
+      - "⚠️ Test upgrades in staging environment first"
+      - "⚠️ Erlang version compatibility: RabbitMQ 3.13.x requires Erlang 25.0+ (bundled in Docker image)"
+      - "⚠️ Direct upgrade from 3.9.x to 3.13.x NOT recommended (use backup & restore)"
+      - "⚠️ Connections will drop during in-place upgrades (configure application retry logic)"
+      - "✅ Blue-Green deployment provides zero-downtime upgrades"
+      - "✅ Keep blue deployment for 7 days after green validation"
+      - "✅ Monitor metrics (queue depth, connections, memory) during and after upgrade"
+
+    # Version-specific notes
+    version_notes:
+      v3_13_x:
+        - "Khepri metadata store (experimental, opt-in)"
+        - "Improved Quorum queues performance"
+        - "Enhanced stream plugin"
+        - "OAuth 2.0 enhancements"
+      v3_12_x:
+        - "Quorum queues scalability improvements"
+        - "Classic queue v2 (CQv2) - optional new implementation"
+        - "Enhanced management plugin"
+      v3_11_x:
+        - "Stream support (pub/sub with replay)"
+        - "Super Streams (partitioned streams)"
+        - "Improved memory management"
+      v3_10_x:
+        - "Improved Quorum queues (non-mirrored queues)"
+        - "Classic mirrored queues deprecated (use Quorum queues)"
+
+    # Additional resources
+    resources:
+      backup_guide: "docs/rabbitmq-backup-guide.md"
+      upgrade_guide: "docs/rabbitmq-upgrade-guide.md"
+      readme_backup_section: "charts/rabbitmq/README.md#backup--recovery"
+      readme_upgrade_section: "charts/rabbitmq/README.md#upgrading"
