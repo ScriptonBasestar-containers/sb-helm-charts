@@ -123,3 +123,153 @@ tolerations: []
 
 # Affinity
 affinity: {}
+
+# ==================================================================================
+# BACKUP & RECOVERY
+# ==================================================================================
+# This section is for documentation only. MongoDB backups are performed manually
+# via Makefile targets (make -f make/ops/mongodb.mk mongo-*-backup).
+# See: docs/mongodb-backup-guide.md for comprehensive backup/recovery procedures.
+#
+# Backup Components:
+# - Database Data: mongodump, all databases or selective (Critical)
+# - Oplog: mongodump --oplog for PITR (Critical, replica sets only)
+# - Configuration: mongod.conf, ConfigMaps, Secrets (Important)
+# - Users & Roles: system.users, system.roles collections (Important)
+#
+# Backup Methods:
+# - mongodump: Regular backups, selective database support, PITR with oplog
+# - PVC Snapshots: Fast storage-level snapshots via VolumeSnapshot
+# - Filesystem Copy: Hot backup with fsync lock
+# - Replica Set Delayed Secondary: Continuous replication with time delay
+# - MongoDB Cloud Manager/Ops Manager: Enterprise automated backups
+#
+# Quick Commands:
+#   make -f make/ops/mongodb.mk mongo-full-backup          # All components
+#   make -f make/ops/mongodb.mk mongo-backup-database      # Database data
+#   make -f make/ops/mongodb.mk mongo-backup-oplog         # Oplog (replica sets)
+#   make -f make/ops/mongodb.mk mongo-backup-config        # Configuration
+#   make -f make/ops/mongodb.mk mongo-backup-users         # Users & roles
+#
+# Recovery Time Objectives (RTO) / Recovery Point Objectives (RPO):
+# - Database Dump: RTO <1 hour, RPO 24 hours
+# - Oplog Backup: RTO <30 min, RPO 15 minutes (replica sets)
+# - Configuration: RTO <15 min, RPO 24 hours
+# - Users & Roles: RTO <15 min, RPO 24 hours
+# - Full Disaster Recovery: RTO <2 hours, RPO 24 hours
+# - Point-in-Time Recovery: RTO <1 hour, RPO 15 minutes (replica sets with oplog)
+# ==================================================================================
+backup:
+  # enabled: false - Documentation only, no automated CronJobs
+  # All backups are performed manually via Makefile targets
+  documentation:
+    strategy: "Database Data + Oplog + Configuration + Users & Roles"
+    tools:
+      - "mongodump/mongorestore"
+      - "kubectl (Kubernetes CLI)"
+      - "VolumeSnapshots (CSI driver)"
+    components:
+      database_data: "All databases, collections, indexes, documents (Critical)"
+      oplog: "Operation log for PITR, replica sets only (Critical)"
+      configuration: "mongod.conf, ConfigMaps, Secrets, replica set config (Important)"
+      users_roles: "User accounts, roles, permissions (Important)"
+    targets:
+      rto: "< 2 hours (full disaster recovery)"
+      rpo: "24 hours (daily backups), 15 minutes (oplog for PITR)"
+
+# ==================================================================================
+# UPGRADE PROCEDURES
+# ==================================================================================
+# This section is for documentation only. MongoDB upgrades are performed manually
+# via Helm upgrade commands with pre/post validation via Makefile targets.
+# See: docs/mongodb-upgrade-guide.md for comprehensive upgrade procedures.
+#
+# Upgrade Strategies:
+# 1. Rolling Upgrade (Zero Downtime):
+#    - For replica sets (3+ nodes)
+#    - Secondaries upgraded first, then primary
+#    - Recommended for production deployments
+#    - Downtime: None
+#
+# 2. In-Place Upgrade (Planned Downtime):
+#    - For standalone deployments (1 node)
+#    - Simple upgrade with brief service interruption
+#    - Downtime: 5-15 minutes
+#
+# 3. Blue-Green Deployment (Minimal Risk):
+#    - Deploy new cluster parallel to existing
+#    - Test thoroughly before cutover
+#    - Instant rollback capability
+#    - Downtime: <1 minute (DNS/traffic switch)
+#
+# 4. Dump and Restore (Major Version Jumps):
+#    - Export data, upgrade MongoDB, import data
+#    - Recommended for major version jumps
+#    - Downtime: 1-4 hours (depends on data size)
+#
+# Pre-Upgrade Checklist:
+#   make -f make/ops/mongodb.mk mongo-pre-upgrade-check   # Validation
+#   make -f make/ops/mongodb.mk mongo-full-backup         # Backup all components
+#
+# Post-Upgrade Validation:
+#   make -f make/ops/mongodb.mk mongo-post-upgrade-check  # Automated validation
+#
+# Rollback:
+#   make -f make/ops/mongodb.mk mongo-upgrade-rollback    # Helm rollback
+#
+# Important Notes:
+# - Feature Compatibility Version (FCV) must be upgraded after binaries
+# - FCV upgrade is irreversible without restore
+# - Test upgrades in non-production environment first
+# - Review MongoDB release notes for version-specific changes
+# - Ensure driver compatibility (application dependencies)
+#
+# Version-Specific Notes:
+# - MongoDB 6.0 → 7.0: Improved Time Series, new aggregation operators, driver updates required
+# - MongoDB 5.0 → 6.0: Time Series GA, native array filters, improved sharding
+# - MongoDB 4.4 → 5.0: Native time series, versioned API, removed geoNear/mapReduce
+# ==================================================================================
+upgrade:
+  # enabled: false - Documentation only, upgrades are manual via Helm
+  # Always backup before upgrading: make -f make/ops/mongodb.mk mongo-full-backup
+  preUpgradeBackup: true  # Strongly recommended
+  documentation:
+    strategies:
+      rolling:
+        description: "Zero downtime upgrade for replica sets (3+ nodes)"
+        downtime: "None"
+        steps:
+          - "Verify replica set health (rs.status())"
+          - "Upgrade secondaries first using partition strategy"
+          - "Step down primary to force election"
+          - "Upgrade former primary"
+          - "Upgrade Feature Compatibility Version (FCV)"
+      in_place:
+        description: "Planned downtime upgrade for standalone (1 node)"
+        downtime: "5-15 minutes"
+        steps:
+          - "Stop applications (optional)"
+          - "Backup database"
+          - "helm upgrade with new image.tag"
+          - "Wait for pod restart"
+          - "Upgrade FCV"
+          - "Restart applications"
+      blue_green:
+        description: "Parallel cluster deployment with traffic switch"
+        downtime: "<1 minute (traffic switch)"
+        steps:
+          - "Deploy new 'green' cluster (different namespace)"
+          - "Restore data to green cluster"
+          - "Test green cluster thoroughly"
+          - "Switch traffic (update DNS/ingress)"
+          - "Monitor green cluster"
+          - "Decommission blue cluster after validation"
+      dump_restore:
+        description: "Export/import for major version jumps"
+        downtime: "1-4 hours (depends on data size)"
+        steps:
+          - "Export data with mongodump"
+          - "Upgrade MongoDB chart"
+          - "Import data with mongorestore"
+          - "Upgrade FCV"
+          - "Verify data integrity"
