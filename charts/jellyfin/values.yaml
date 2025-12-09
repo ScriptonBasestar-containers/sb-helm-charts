@@ -342,3 +342,271 @@ extraVolumeMounts: []
 initContainers: []
 
 lifecycle: {}
+
+# ========================================
+# 17. Backup Configuration
+# ========================================
+# Documentation section for backup and recovery procedures.
+# This section provides reference information only - no automated backups are created.
+# All backup operations are performed via Makefile targets in make/ops/jellyfin.mk
+#
+# For comprehensive backup procedures, see:
+# docs/jellyfin-backup-guide.md
+backup:
+  # Documentation flag - does not enable automated backups
+  # All backups are manual via: make -f make/ops/jellyfin.mk jellyfin-full-backup
+  enabled: false
+
+  # Backup strategy overview
+  documentation:
+    # Backup components (4 layers)
+    strategy: "Config PVC + Media Files + Transcoding Cache (skip) + Configuration"
+
+    # Backup tools/methods
+    tools:
+      - "tar for config PVC"
+      - "Restic for incremental backups"
+      - "VolumeSnapshot API for PVC snapshots"
+      - "SQLite .backup command for database"
+
+    # Components to backup
+    components:
+      config:
+        description: "SQLite database (library.db), metadata, posters, plugins, settings"
+        location: "Config PVC (/config)"
+        size: "Medium (100MB - 1GB)"
+        method: "tar, Restic (incremental recommended)"
+        priority: "Critical"
+      media:
+        description: "Movies, TV shows, music files"
+        location: "External NAS/NFS or Media PVC"
+        size: "Very Large (1TB - 100TB)"
+        method: "NAS backup solution (not Jellyfin chart concern)"
+        priority: "Critical (managed separately)"
+      transcodingCache:
+        description: "Temporary transcoded files"
+        location: "Cache PVC (/cache)"
+        size: "Medium (5-50GB)"
+        method: "Not backed up (rebuildable)"
+        priority: "Skip (temporary data)"
+      configuration:
+        description: "Helm values, ConfigMaps, Secrets, RBAC resources"
+        location: "Kubernetes resources"
+        size: "Small (< 1MB)"
+        method: "helm get values, kubectl get"
+        priority: "Important"
+
+    # Recovery targets
+    targets:
+      rto: "< 4 hours"  # Recovery Time Objective
+      rpo: "24 hours"    # Recovery Point Objective
+
+    # Backup methods comparison
+    methods:
+      directPVC:
+        description: "Direct tar backup from config PVC"
+        command: "make -f make/ops/jellyfin.mk jellyfin-backup-config"
+        pros: ["Simple", "No dependencies", "Full control"]
+        cons: ["No incremental", "Requires pod access", "No deduplication"]
+        useCase: "Quick backups, dev/test environments"
+      restic:
+        description: "Incremental backups with deduplication"
+        command: "restic backup --stdin < backup.tar.gz"
+        pros: ["Incremental", "Deduplication", "Encryption", "Cloud storage support"]
+        cons: ["External dependency", "More complex setup"]
+        useCase: "Production environments, frequent backups"
+      volumeSnapshot:
+        description: "Kubernetes VolumeSnapshot API"
+        command: "kubectl create -f volumesnapshot.yaml"
+        pros: ["Instant snapshots", "Storage-native", "Space-efficient"]
+        cons: ["Requires CSI driver", "Storage-specific"]
+        useCase: "Production with CSI-compatible storage"
+
+    # SQLite database specifics
+    database:
+      engine: "SQLite"
+      file: "/config/data/library.db"
+      backupMethod: "SQLite .backup command or file copy"
+      backupCommand: "make -f make/ops/jellyfin.mk jellyfin-backup-database"
+      maintenanceCommands:
+        vacuum: "make -f make/ops/jellyfin.mk jellyfin-db-vacuum"
+        integrity: "make -f make/ops/jellyfin.mk jellyfin-db-check"
+        analyze: "make -f make/ops/jellyfin.mk jellyfin-db-analyze"
+
+    # Backup automation (optional)
+    automation:
+      cronJob:
+        description: "Kubernetes CronJob for automated backups"
+        schedule: "0 2 * * *"  # 2 AM daily
+        retention: "7 days"
+        example: "See docs/jellyfin-backup-guide.md for CronJob template"
+      velero:
+        description: "Velero for cluster-wide backup/restore"
+        features: ["Application-consistent backups", "Disaster recovery", "Migration"]
+        example: "velero backup create jellyfin-backup --include-namespaces default"
+
+# ========================================
+# 18. Upgrade Configuration
+# ========================================
+# Documentation section for upgrade procedures and version-specific notes.
+# This section provides reference information only - no automated upgrades are performed.
+# All upgrade operations are manual via Helm commands.
+#
+# For comprehensive upgrade procedures, see:
+# docs/jellyfin-upgrade-guide.md
+upgrade:
+  # Documentation flag - does not enable automated upgrades
+  # All upgrades are manual via: helm upgrade jellyfin sb-charts/jellyfin
+  enabled: false
+
+  # Always backup before upgrading
+  preUpgradeBackup: true
+
+  # Upgrade strategy overview
+  documentation:
+    # Supported upgrade strategies
+    strategies:
+      rolling:
+        description: "Rolling upgrade with minimal downtime (3-5 minutes)"
+        downtime: "Minimal (pod restart only)"
+        complexity: "Low"
+        recommended: true
+        command: "helm upgrade jellyfin sb-charts/jellyfin --reuse-values --set image.tag=10.11.0"
+        limitations:
+          - "Brief interruption during pod restart (SQLite locking)"
+          - "Active transcodes will be interrupted"
+      blueGreen:
+        description: "Deploy new version alongside old, switch traffic after validation"
+        downtime: "None (controlled cutover)"
+        complexity: "Medium"
+        recommended: false
+        useCase: "Low-risk upgrades with instant rollback capability"
+        steps:
+          - "Deploy green (new) version with different release name"
+          - "Share same PVCs between blue and green"
+          - "Validate green version"
+          - "Switch ingress/service to green"
+          - "Keep blue for 24h, then delete"
+      maintenanceWindow:
+        description: "Full uninstall/install with downtime"
+        downtime: "10-20 minutes"
+        complexity: "Low"
+        recommended: false
+        useCase: "Major version upgrades, database schema changes"
+        command: "helm uninstall jellyfin && helm install jellyfin sb-charts/jellyfin"
+
+    # Pre-upgrade checklist
+    preUpgradeChecklist:
+      - step: "Backup everything"
+        command: "make -f make/ops/jellyfin.mk jellyfin-full-backup"
+        critical: true
+      - step: "Check plugin compatibility"
+        command: "make -f make/ops/jellyfin.mk jellyfin-plugin-compatibility TARGET_VERSION=10.11.0"
+        critical: true
+      - step: "Review release notes"
+        url: "https://github.com/jellyfin/jellyfin/releases"
+        critical: true
+      - step: "Verify current state"
+        command: "make -f make/ops/jellyfin.mk jellyfin-pre-upgrade-check"
+        critical: false
+      - step: "Check storage space"
+        command: "kubectl exec deployment/jellyfin -- df -h /config /cache"
+        critical: false
+      - step: "Test in staging environment"
+        description: "Deploy same version to staging, restore prod backup, test upgrade"
+        critical: false
+      - step: "Plan maintenance window"
+        description: "Choose strategy based on downtime tolerance"
+        critical: true
+      - step: "Notify users"
+        description: "Announce upgrade window and expected downtime"
+        critical: false
+
+    # Post-upgrade validation
+    postUpgradeValidation:
+      automated:
+        command: "make -f make/ops/jellyfin.mk jellyfin-post-upgrade-check"
+        checks:
+          - "Pod status and readiness"
+          - "Image version verification"
+          - "Log error scanning"
+          - "Database integrity check"
+          - "GPU acceleration verification (if enabled)"
+          - "Web UI accessibility"
+      manual:
+        - "Test video playback (verify transcoding works)"
+        - "Verify all libraries visible and accessible"
+        - "Check plugin compatibility and functionality"
+        - "Test hardware acceleration (if enabled)"
+
+    # Rollback procedures
+    rollback:
+      helm:
+        description: "Rollback to previous Helm revision (preferred)"
+        command: "helm rollback jellyfin"
+        automated: "make -f make/ops/jellyfin.mk jellyfin-upgrade-rollback"
+      full:
+        description: "Full rollback with config restore"
+        steps:
+          - "helm uninstall jellyfin"
+          - "helm install jellyfin sb-charts/jellyfin --set image.tag=10.10.3"
+          - "make -f make/ops/jellyfin.mk jellyfin-restore-config FILE=backup.tar.gz"
+      blueGreen:
+        description: "Switch ingress back to old version"
+        command: "kubectl patch ingress jellyfin ..."
+
+    # Version-specific upgrade notes
+    versionNotes:
+      minor:
+        example: "10.10.x → 10.11.x"
+        changes:
+          - "FFmpeg version updates"
+          - "New plugin API versions"
+          - "Improved hardware acceleration"
+        strategy: "Rolling upgrade"
+        warnings:
+          - "Check plugin compatibility (some plugins may need updates)"
+          - "Verify hardware acceleration still works after upgrade"
+      major:
+        example: "10.x → 11.x"
+        changes:
+          - "Database schema changes"
+          - "Plugin API v3 (incompatible with v2 plugins)"
+          - "FFmpeg 8.x required"
+        strategy: "Maintenance window (expect 20-30 min downtime)"
+        warnings:
+          - "MANDATORY: Full backup before upgrade"
+          - "Update all plugins to v3-compatible versions"
+          - "Database migration automatic on first start"
+          - "Test all features thoroughly after upgrade"
+
+    # Common upgrade issues
+    troubleshooting:
+      pluginIncompatibility:
+        symptom: "Plugins not loading after upgrade"
+        solution: "Update plugins via Jellyfin web UI or restore old version"
+        prevention: "Check plugin compatibility before upgrading"
+      databaseCorruption:
+        symptom: "Jellyfin fails to start, database errors in logs"
+        solution: "Restore database from backup"
+        command: "make -f make/ops/jellyfin.mk jellyfin-restore-database FILE=backup.db"
+      hardwareAccelerationBroken:
+        symptom: "GPU transcoding not working after upgrade"
+        solution: "Verify GPU device access and FFmpeg version compatibility"
+        command: "make -f make/ops/jellyfin.mk jellyfin-check-gpu"
+      ffmpegVersionChange:
+        symptom: "Transcoding fails or quality issues"
+        solution: "Check FFmpeg version compatibility, update hardware acceleration settings"
+        reference: "docs/jellyfin-upgrade-guide.md#ffmpeg-version-changes"
+
+    # Best practices
+    bestPractices:
+      - "Always backup before upgrading"
+      - "Test upgrades in staging environment first"
+      - "Review release notes for breaking changes"
+      - "Check plugin compatibility for target version"
+      - "Verify hardware acceleration after upgrade"
+      - "Keep old backups for 30 days after upgrade"
+      - "Upgrade during low-usage periods"
+      - "Never upgrade multiple major versions at once"
+      - "Monitor logs closely for first 24 hours after upgrade"
