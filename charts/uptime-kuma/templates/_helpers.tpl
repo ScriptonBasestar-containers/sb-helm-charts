@@ -83,3 +83,14 @@ PVC name
 {{- printf "%s-data" (include "uptime-kuma.fullname" .) }}
 {{- end }}
 {{- end }}
+
+{{/*
+RBAC names
+*/}}
+{{- define "uptime-kuma.roleName" -}}
+{{- printf "%s-role" (include "uptime-kuma.fullname" .) }}
+{{- end }}
+
+{{- define "uptime-kuma.roleBindingName" -}}
+{{- printf "%s-rolebinding" (include "uptime-kuma.fullname" .) }}
+{{- end }}
