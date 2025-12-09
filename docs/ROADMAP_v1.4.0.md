@@ -207,7 +207,7 @@ All charts in this phase are now complete with comprehensive RBAC, backup/recove
 
 ### Phase 3: Supporting Infrastructure (Lower Priority)
 
-**Target: 6 charts** | **Progress: 3/6 (50%)** 🔄
+**Target: 6 charts** | **Progress: 4/6 (67%)** 🔄
 
 15. ✅ **MinIO** (v0.3.0 → v0.4.0) - COMPLETE (2025-12-09)
     - RBAC templates (Role for ConfigMaps, Secrets, Pods, Services, Endpoints, PVCs)
@@ -242,12 +242,16 @@ All charts in this phase are now complete with comprehensive RBAC, backup/recove
     - Total impact: 6 files, ~3,615 lines added
     - Key features: Message broker (AMQP 0-9-1), Management UI, Definitions export/import, Persistent queues, Shovel/Federation plugins, Quorum queues
 
-18. **Promtail** (v0.3.0 → v0.4.0)
-    - RBAC templates (ClusterRole for pod log access)
-    - Backup guide (configuration, positions file)
-    - Upgrade guide (pipeline changes, label updates)
-    - Makefile targets (config validation, log testing)
-    - RTO/RPO: < 30 minutes / 0 (stateless)
+18. ✅ **Promtail** (v0.3.0 → v0.4.0) - COMPLETE (2025-12-09)
+    - RBAC templates (ClusterRole for cluster-wide pod log access, ClusterRoleBinding)
+    - Backup guide (~964 lines): Configuration (ConfigMap, values.yaml), Positions File (log read tracking), Kubernetes Manifests, 4 backup methods (ConfigMap export, Git-based, Helm values, Positions file)
+    - Upgrade guide (~1,003 lines): 3 strategies (Rolling update, Configuration-only, Blue-green), Version compatibility matrix (Promtail/Loki), Version-specific notes (5 versions: 3.3.x, 3.2.x, 3.1.x, 3.0.x, 2.9.x)
+    - README: 4 sections (~679 lines) - Backup & Recovery, Security & RBAC, Operations, Upgrading
+    - values.yaml: Comprehensive backup/upgrade documentation (~195 lines)
+    - Makefile: 40+ operational targets (592 lines) - DaemonSet ops, Node-specific commands, Config validation, Loki integration testing, Positions file management
+    - RTO/RPO: < 30 minutes / 0 (stateless, no data loss)
+    - Total impact: 6 files, ~3,535 lines added
+    - Key features: Stateless log shipper, DaemonSet deployment (one pod per node), Loki integration, CRI parser, Pipeline stages, Positions file tracking
 
 19. **Alertmanager** (v0.3.0 → v0.4.0)
     - RBAC templates (namespace-scoped)
