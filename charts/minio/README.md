@@ -387,6 +387,460 @@ See [S3 Integration Guide](../../docs/S3_INTEGRATION_GUIDE.md) for integrating w
 - Paperless-ngx (document storage)
 - Nextcloud (primary storage)
 
+## Backup & Recovery
+
+### Backup Strategy
+
+MinIO supports multiple backup strategies for comprehensive data protection:
+
+| Component | Priority | Backup Method | Frequency |
+|-----------|----------|---------------|-----------|
+| Bucket Data | Critical | Site replication / mc mirror | Daily/Continuous |
+| Bucket Metadata | Critical | mc admin policy export | Daily |
+| Configuration | Important | kubectl export / mc admin config | On change |
+| IAM Policies | Important | mc admin user/policy list | Daily |
+
+### Quick Backup Commands
+
+```bash
+# Full backup (all components)
+make -f make/ops/minio.mk minio-full-backup
+
+# Bucket data backup
+make -f make/ops/minio.mk minio-backup-buckets
+
+# Configuration backup
+make -f make/ops/minio.mk minio-backup-config
+
+# IAM backup
+make -f make/ops/minio.mk minio-backup-iam
+
+# List backups
+make -f make/ops/minio.mk minio-backup-status
+```
+
+### Backup Methods
+
+**1. Site Replication (Recommended for Production)**
+
+Best for multi-site deployments with continuous replication:
+
+```bash
+# Configure site replication
+mc admin replicate add minio-primary minio-secondary
+
+# Verify replication status
+mc admin replicate status minio-primary
+```
+
+**2. Bucket Replication**
+
+For selective bucket-level replication:
+
+```bash
+# Enable versioning (required)
+mc version enable minio-primary/mybucket
+mc version enable minio-backup/mybucket-backup
+
+# Set up replication
+mc replicate add minio-primary/mybucket \
+  --remote-bucket "minio-backup/mybucket-backup" \
+  --priority 1
+
+# Verify replication
+mc replicate status minio-primary/mybucket
+```
+
+**3. Scheduled Mirror (Cron-based)**
+
+For periodic backups:
+
+```bash
+# Mirror bucket to remote location
+mc mirror minio-primary/mybucket s3/backup-bucket
+
+# With bandwidth limit
+mc mirror --limit-upload 10MiB minio-primary/mybucket s3/backup-bucket
+```
+
+**4. PVC Snapshots**
+
+For Kubernetes-native snapshots (requires CSI driver):
+
+```bash
+# Create VolumeSnapshot
+kubectl apply -f - <<EOF
+apiVersion: snapshot.storage.k8s.io/v1
+kind: VolumeSnapshot
+metadata:
+  name: minio-data-snapshot-$(date +%Y%m%d)
+spec:
+  volumeSnapshotClassName: csi-snapclass
+  source:
+    persistentVolumeClaimName: data-minio-0
+EOF
+```
+
+### Recovery Procedures
+
+**Bucket Metadata Restore:**
+
+```bash
+# Restore bucket policy
+mc admin policy set minio-primary mybucket < metadata/mybucket-policy.json
+
+# Restore lifecycle rules
+mc ilm import minio-primary/mybucket < metadata/mybucket-lifecycle.json
+```
+
+**IAM Policy Restore:**
+
+```bash
+# Restore users
+make -f make/ops/minio.mk minio-restore-users FILE=backup/users-20250109.json
+
+# Restore policies
+make -f make/ops/minio.mk minio-restore-policies FILE=backup/policies-20250109.json
+```
+
+**Full Disaster Recovery:**
+
+```bash
+# 1. Deploy new cluster
+helm install minio sb-charts/minio -f values-prod-distributed.yaml
+
+# 2. Restore configuration
+make -f make/ops/minio.mk minio-restore-config FILE=backup/config-20250109.json
+
+# 3. Restore IAM
+make -f make/ops/minio.mk minio-restore-iam FILE=backup/iam-20250109.tar.gz
+
+# 4. Restore bucket data (from site replication or backup)
+mc mirror s3/backup-bucket minio-primary
+```
+
+### RTO/RPO Targets
+
+| Scenario | RTO | RPO |
+|----------|-----|-----|
+| Bucket metadata restore | < 30 min | 24 hours |
+| Configuration restore | < 15 min | 24 hours |
+| IAM policy restore | < 15 min | 24 hours |
+| Full disaster recovery | < 2 hours | 24 hours |
+| Object-level restore | < 1 hour | Real-time (with versioning) |
+
+**Comprehensive Guide:** See [MinIO Backup Guide](../../docs/minio-backup-guide.md) for detailed backup and recovery procedures.
+
+## Security & RBAC
+
+### RBAC Resources
+
+This chart creates the following RBAC resources:
+
+**Role** (`minio-role`):
+- Namespace-scoped read-only permissions
+- Access to ConfigMaps, Secrets, Pods, Services, Endpoints, PVCs
+
+**RoleBinding** (`minio-rolebinding`):
+- Binds Role to ServiceAccount
+
+**ServiceAccount** (`minio`):
+- Pod identity for MinIO operations
+
+### RBAC Configuration
+
+```yaml
+# Enable RBAC (default: true)
+rbac:
+  create: true
+  annotations: {}
+```
+
+### Security Best Practices
+
+**DO** ✅
+
+- ✅ Use TLS/SSL for production deployments
+- ✅ Enable encryption at rest (SSE-S3, SSE-KMS)
+- ✅ Rotate access keys regularly
+- ✅ Use IAM policies for granular access control
+- ✅ Enable bucket versioning for critical data
+- ✅ Implement object lock for compliance
+- ✅ Monitor access logs and audit trails
+- ✅ Use NetworkPolicy to restrict traffic
+
+**DON'T** ❌
+
+- ❌ Don't use default credentials in production
+- ❌ Don't disable TLS for external access
+- ❌ Don't grant overly permissive IAM policies
+- ❌ Don't store credentials in plain text
+- ❌ Don't skip backup encryption
+- ❌ Don't expose console publicly without authentication
+
+### Pod Security Context
+
+MinIO runs as non-root user (UID 1000):
+
+```yaml
+podSecurityContext:
+  fsGroup: 1000
+  runAsUser: 1000
+  runAsGroup: 1000
+
+securityContext:
+  allowPrivilegeEscalation: false
+  capabilities:
+    drop: ["ALL"]
+  readOnlyRootFilesystem: false
+```
+
+### NetworkPolicy Example
+
+Restrict MinIO access to specific namespaces:
+
+```yaml
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: minio-network-policy
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: minio
+  policyTypes:
+    - Ingress
+    - Egress
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              name: allowed-namespace
+      ports:
+        - port: 9000
+          protocol: TCP
+  egress:
+    - to:
+        - namespaceSelector: {}
+      ports:
+        - port: 53
+          protocol: UDP
+```
+
+### TLS/SSL Configuration
+
+Enable TLS for secure communication:
+
+```yaml
+# values.yaml
+tls:
+  enabled: true
+  certSecret: "minio-tls-cert"
+
+# Create TLS secret
+kubectl create secret tls minio-tls-cert \
+  --cert=path/to/tls.crt \
+  --key=path/to/tls.key \
+  -n default
+```
+
+### RBAC Verification
+
+```bash
+# Verify Role permissions
+kubectl describe role minio-role -n default
+
+# Check RoleBinding
+kubectl describe rolebinding minio-rolebinding -n default
+
+# Verify ServiceAccount
+kubectl get serviceaccount minio -n default
+```
+
+## Operations
+
+### Daily Operations
+
+**Access MinIO:**
+
+```bash
+# Port forward API (S3 endpoint)
+make -f make/ops/minio.mk minio-port-forward-api
+
+# Port forward Console (Web UI)
+make -f make/ops/minio.mk minio-port-forward-console
+# Access at: http://localhost:9001
+
+# Get credentials
+make -f make/ops/minio.mk minio-get-credentials
+```
+
+**Shell Access:**
+
+```bash
+# Open shell in MinIO container
+make -f make/ops/minio.mk minio-shell
+
+# View logs
+make -f make/ops/minio.mk minio-logs
+```
+
+### Monitoring & Health Checks
+
+**Cluster Health:**
+
+```bash
+# Check cluster status
+make -f make/ops/minio.mk minio-health
+
+# Check node status
+make -f make/ops/minio.mk minio-cluster-info
+
+# Monitor heal operations
+make -f make/ops/minio.mk minio-heal-status
+```
+
+**Resource Monitoring:**
+
+```bash
+# Check resource usage
+kubectl top pods -n default -l app.kubernetes.io/name=minio
+
+# Check disk usage
+make -f make/ops/minio.mk minio-disk-usage
+
+# View Prometheus metrics
+make -f make/ops/minio.mk minio-metrics
+```
+
+### Bucket Management
+
+**Bucket Operations:**
+
+```bash
+# List buckets
+make -f make/ops/minio.mk minio-list-buckets
+
+# Create bucket
+make -f make/ops/minio.mk minio-create-bucket BUCKET=my-bucket
+
+# Delete bucket (WARNING: destructive!)
+make -f make/ops/minio.mk minio-delete-bucket BUCKET=my-bucket
+
+# Get bucket size
+make -f make/ops/minio.mk minio-bucket-size BUCKET=my-bucket
+```
+
+**Bucket Policies:**
+
+```bash
+# Set bucket policy
+make -f make/ops/minio.mk minio-set-policy BUCKET=my-bucket POLICY=public
+
+# Get bucket policy
+make -f make/ops/minio.mk minio-get-policy BUCKET=my-bucket
+
+# Remove bucket policy
+make -f make/ops/minio.mk minio-remove-policy BUCKET=my-bucket
+```
+
+### IAM Management
+
+**User Management:**
+
+```bash
+# List users
+make -f make/ops/minio.mk minio-list-users
+
+# Create user
+make -f make/ops/minio.mk minio-create-user USER=john ACCESS_KEY=xxx SECRET_KEY=yyy
+
+# Delete user
+make -f make/ops/minio.mk minio-delete-user USER=john
+```
+
+**Policy Management:**
+
+```bash
+# List policies
+make -f make/ops/minio.mk minio-list-policies
+
+# Create policy
+make -f make/ops/minio.mk minio-create-policy POLICY=mypolicy FILE=policy.json
+
+# Attach policy to user
+make -f make/ops/minio.mk minio-attach-policy USER=john POLICY=readwrite
+```
+
+### Maintenance Operations
+
+**Restart MinIO:**
+
+```bash
+# Rolling restart (distributed mode - zero downtime)
+make -f make/ops/minio.mk minio-restart
+
+# Full restart (standalone mode)
+kubectl rollout restart statefulset minio -n default
+```
+
+**Storage Maintenance:**
+
+```bash
+# Run heal operation (repair corrupted data)
+make -f make/ops/minio.mk minio-heal
+
+# Check disk free space
+make -f make/ops/minio.mk minio-disk-free
+
+# Clean up incomplete uploads
+make -f make/ops/minio.mk minio-cleanup-incomplete
+```
+
+### Troubleshooting
+
+**Common Issues:**
+
+| Issue | Diagnosis | Solution |
+|-------|-----------|----------|
+| Pod not starting | `kubectl describe pod minio-0` | Check PVC binding, resources |
+| Quorum lost | `mc admin cluster info` | Ensure n/2+1 nodes online |
+| Slow performance | `mc admin prometheus metrics` | Check heal status, disk I/O |
+| Access denied | `mc admin user list` | Verify IAM policies |
+
+**Debug Commands:**
+
+```bash
+# Check pod status
+kubectl get pods -n default -l app.kubernetes.io/name=minio
+
+# View pod events
+kubectl describe pod minio-0 -n default
+
+# Check persistent volumes
+kubectl get pvc -n default -l app.kubernetes.io/name=minio
+
+# View detailed logs
+kubectl logs minio-0 -n default --tail=100
+```
+
+**Performance Tuning:**
+
+```yaml
+# Increase resources for better performance
+resources:
+  requests:
+    memory: 4Gi
+    cpu: 2000m
+  limits:
+    memory: 8Gi
+    cpu: 4000m
+
+# Adjust drive configuration
+minio:
+  drivesPerNode: 4  # More drives = better performance
+```
+
 ## Operational Commands
 
 Using Makefile:
