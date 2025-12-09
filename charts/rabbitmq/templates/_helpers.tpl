@@ -132,3 +132,14 @@ Return the PVC name
 {{- include "rabbitmq.fullname" . }}
 {{- end }}
 {{- end }}
+
+{{/*
+RBAC names
+*/}}
+{{- define "rabbitmq.roleName" -}}
+{{- printf "%s-role" (include "rabbitmq.fullname" .) }}
+{{- end }}
+
+{{- define "rabbitmq.roleBindingName" -}}
+{{- printf "%s-rolebinding" (include "rabbitmq.fullname" .) }}
+{{- end }}
