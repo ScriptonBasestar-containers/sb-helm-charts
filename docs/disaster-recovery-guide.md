@@ -21,16 +21,43 @@ This guide provides comprehensive disaster recovery (DR) procedures for managing
 
 ### Scope
 
-**Enhanced Charts with DR Support (9 charts):**
-1. Keycloak (Identity & Access Management)
-2. Airflow (Workflow Orchestration)
-3. Harbor (Container Registry)
-4. MLflow (ML Model Management)
-5. Kafka (Event Streaming)
-6. Elasticsearch (Search & Analytics)
-7. Mimir (Metrics Storage)
-8. OpenTelemetry Collector (Telemetry Gateway)
-9. Prometheus (Metrics & Monitoring)
+**Enhanced Charts with DR Support (28 charts):**
+
+**Tier 1 - Critical Infrastructure (6 charts):**
+1. PostgreSQL (Primary Database)
+2. MySQL (Primary Database)
+3. Redis (Cache & Session Store)
+4. Prometheus (Metrics Collection)
+5. Loki (Log Aggregation)
+6. Tempo (Distributed Tracing)
+
+**Tier 2 - Application Platform (8 charts):**
+7. Keycloak (Identity & Access Management)
+8. Airflow (Workflow Orchestration)
+9. Harbor (Container Registry)
+10. MLflow (ML Model Management)
+11. Grafana (Visualization)
+12. Nextcloud (File Storage)
+13. Vaultwarden (Password Management)
+14. WordPress (CMS)
+
+**Tier 3 - Supporting Services (8 charts):**
+15. Kafka (Event Streaming)
+16. Elasticsearch (Search & Analytics)
+17. Mimir (Long-term Metrics Storage)
+18. MinIO (Object Storage)
+19. MongoDB (Document Database)
+20. RabbitMQ (Message Broker)
+21. Paperless-ngx (Document Management)
+22. Immich (Photo Management)
+
+**Tier 4 - Auxiliary Services (6 charts):**
+23. OpenTelemetry Collector (Telemetry Gateway)
+24. Promtail (Log Shipper)
+25. Alertmanager (Alert Routing)
+26. Jellyfin (Media Server)
+27. Uptime Kuma (Status Monitoring)
+28. Memcached (Distributed Cache)
 
 ### DR Objectives
 
@@ -114,8 +141,11 @@ echo "Namespace: $NAMESPACE"
 echo "Parallel: $PARALLEL"
 echo ""
 
-# Create backup directory structure
-mkdir -p $BACKUP_ROOT/{prometheus,mimir,loki,tempo,keycloak,elasticsearch,kafka,harbor,mlflow}
+# Create backup directory structure for all 28 charts
+mkdir -p $BACKUP_ROOT/{postgresql,mysql,redis,prometheus,loki,tempo}
+mkdir -p $BACKUP_ROOT/{keycloak,airflow,harbor,mlflow,grafana,nextcloud,vaultwarden,wordpress}
+mkdir -p $BACKUP_ROOT/{kafka,elasticsearch,mimir,minio,mongodb,rabbitmq,paperless-ngx,immich}
+mkdir -p $BACKUP_ROOT/{otel-collector,promtail,alertmanager,jellyfin,uptime-kuma,memcached}
 
 # Backup function for each chart
 backup_chart() {
@@ -138,15 +168,40 @@ backup_chart() {
 export -f backup_chart
 export BACKUP_ROOT TIMESTAMP NAMESPACE
 
-# Define backup jobs
+# Define backup jobs for all 28 charts
 declare -A BACKUP_JOBS=(
+    # Tier 1: Critical Infrastructure
+    ["postgresql"]="postgresql.mk:pg-backup-all"
+    ["mysql"]="mysql.mk:mysql-backup-all"
+    ["redis"]="redis.mk:redis-backup-all"
     ["prometheus"]="prometheus.mk:prom-backup-all"
-    ["mimir"]="mimir.mk:mimir-backup-all"
+    ["loki"]="loki.mk:loki-backup-all"
+    ["tempo"]="tempo.mk:tempo-backup-all"
+    # Tier 2: Application Platform
     ["keycloak"]="keycloak.mk:kc-backup-all-realms"
-    ["elasticsearch"]="elasticsearch.mk:es-backup-snapshot"
-    ["kafka"]="kafka.mk:kafka-backup-all"
+    ["airflow"]="airflow.mk:airflow-backup-all"
     ["harbor"]="harbor.mk:harbor-backup-all"
     ["mlflow"]="mlflow.mk:mlflow-backup-all"
+    ["grafana"]="grafana.mk:grafana-backup-all"
+    ["nextcloud"]="nextcloud.mk:nc-backup-all"
+    ["vaultwarden"]="vaultwarden.mk:vw-backup-all"
+    ["wordpress"]="wordpress.mk:wp-backup-all"
+    # Tier 3: Supporting Services
+    ["kafka"]="kafka.mk:kafka-backup-all"
+    ["elasticsearch"]="elasticsearch.mk:es-backup-snapshot"
+    ["mimir"]="mimir.mk:mimir-backup-all"
+    ["minio"]="minio.mk:minio-backup-all"
+    ["mongodb"]="mongodb.mk:mongo-backup-all"
+    ["rabbitmq"]="rabbitmq.mk:rmq-backup-all"
+    ["paperless-ngx"]="paperless-ngx.mk:paperless-backup-all"
+    ["immich"]="immich.mk:immich-backup-all"
+    # Tier 4: Auxiliary Services
+    ["otel-collector"]="opentelemetry-collector.mk:otel-backup-config"
+    ["promtail"]="promtail.mk:promtail-backup-config"
+    ["alertmanager"]="alertmanager.mk:am-backup-all"
+    ["jellyfin"]="jellyfin.mk:jf-backup-all"
+    ["uptime-kuma"]="uptime-kuma.mk:uk-backup-all"
+    ["memcached"]="memcached.mk:mc-backup-config"
 )
 
 # Execute backups
@@ -270,14 +325,32 @@ if [ $(expr $(date +%H) % 6) -eq 0 ] && [ $(date +%M) -eq 0 ]; then
     make -f make/ops/kafka.mk kafka-backup-topics NAMESPACE=$NAMESPACE
 fi
 
+# Database PITR backups (every 6 hours)
+if [ $(expr $(date +%H) % 6) -eq 0 ] && [ $(date +%M) -eq 0 ]; then
+    echo "Backing up PostgreSQL WAL archives..."
+    make -f make/ops/postgresql.mk pg-backup-wal NAMESPACE=$NAMESPACE
+    echo "Backing up MySQL binary logs..."
+    make -f make/ops/mysql.mk mysql-backup-binlog NAMESPACE=$NAMESPACE
+    echo "Backing up MongoDB oplog..."
+    make -f make/ops/mongodb.mk mongo-backup-oplog NAMESPACE=$NAMESPACE
+fi
+
 # Configuration backups (on change detection)
-for chart in prometheus mimir loki; do
-    CURRENT_HASH=$(kubectl get configmap -n $NAMESPACE ${chart}-server -o yaml 2>/dev/null | md5sum | cut -d' ' -f1)
+for chart in prometheus mimir loki tempo grafana alertmanager promtail; do
+    CURRENT_HASH=$(kubectl get configmap -n $NAMESPACE ${chart}-config -o yaml 2>/dev/null | md5sum | cut -d' ' -f1)
     LAST_HASH=$(cat $BACKUP_ROOT/${chart}-config.hash 2>/dev/null || echo "")
 
     if [ "$CURRENT_HASH" != "$LAST_HASH" ]; then
         echo "Configuration changed for $chart, backing up..."
-        make -f make/ops/${chart}.mk ${chart:0:4}-backup-config NAMESPACE=$NAMESPACE
+        case $chart in
+            prometheus) make -f make/ops/prometheus.mk prom-backup-config NAMESPACE=$NAMESPACE ;;
+            mimir) make -f make/ops/mimir.mk mimir-backup-config NAMESPACE=$NAMESPACE ;;
+            loki) make -f make/ops/loki.mk loki-backup-config NAMESPACE=$NAMESPACE ;;
+            tempo) make -f make/ops/tempo.mk tempo-backup-config NAMESPACE=$NAMESPACE ;;
+            grafana) make -f make/ops/grafana.mk grafana-backup-config NAMESPACE=$NAMESPACE ;;
+            alertmanager) make -f make/ops/alertmanager.mk am-backup-config NAMESPACE=$NAMESPACE ;;
+            promtail) make -f make/ops/promtail.mk promtail-backup-config NAMESPACE=$NAMESPACE ;;
+        esac
         echo "$CURRENT_HASH" > $BACKUP_ROOT/${chart}-config.hash
     fi
 done
@@ -332,44 +405,19 @@ aws s3 sync s3://$S3_BUCKET/ ./recovery/ \
     --exclude "*" \
     --include "*/$BACKUP_DATE.tar.gz"
 
-# Phase 3: Infrastructure charts (databases, message queues)
-echo "[3/6] Restoring infrastructure charts..."
+# Phase 3: Tier 1 - Critical Infrastructure
+echo "[3/7] Restoring Tier 1 - Critical Infrastructure..."
 
-declare -a INFRA_CHARTS=(
+declare -a TIER1_CHARTS=(
     "postgresql:postgresql.mk:pg-restore-all"
     "mysql:mysql.mk:mysql-restore-all"
     "redis:redis.mk:redis-restore-all"
-    "kafka:kafka.mk:kafka-restore-all"
-    "elasticsearch:elasticsearch.mk:es-restore-snapshot"
-)
-
-for entry in "${INFRA_CHARTS[@]}"; do
-    IFS=':' read -r chart makefile target <<< "$entry"
-    echo "  Restoring $chart..."
-
-    if [ "$DRY_RUN" = "false" ]; then
-        make -f make/ops/$makefile $target \
-            BACKUP_FILE=./recovery/$chart/full/$BACKUP_DATE.tar.gz \
-            NAMESPACE=$NAMESPACE || echo "Warning: $chart restoration failed"
-    fi
-done
-
-# Wait for infrastructure to be ready
-echo "  Waiting for infrastructure charts to be ready..."
-sleep 30
-
-# Phase 4: Storage and observability
-echo "[4/6] Restoring storage and observability..."
-
-declare -a STORAGE_CHARTS=(
-    "minio:minio.mk:minio-restore-all"
     "prometheus:prometheus.mk:prom-restore-all"
-    "mimir:mimir.mk:mimir-restore-all"
     "loki:loki.mk:loki-restore-all"
     "tempo:tempo.mk:tempo-restore-all"
 )
 
-for entry in "${STORAGE_CHARTS[@]}"; do
+for entry in "${TIER1_CHARTS[@]}"; do
     IFS=':' read -r chart makefile target <<< "$entry"
     echo "  Restoring $chart..."
 
@@ -380,17 +428,25 @@ for entry in "${STORAGE_CHARTS[@]}"; do
     fi
 done
 
-# Phase 5: Application charts
-echo "[5/6] Restoring application charts..."
+# Wait for Tier 1 to be ready (critical dependency)
+echo "  Waiting for Tier 1 charts to be ready..."
+sleep 60
 
-declare -a APP_CHARTS=(
+# Phase 4: Tier 2 - Application Platform
+echo "[4/7] Restoring Tier 2 - Application Platform..."
+
+declare -a TIER2_CHARTS=(
     "keycloak:keycloak.mk:kc-restore-all-realms"
+    "airflow:airflow.mk:airflow-restore-all"
     "harbor:harbor.mk:harbor-restore-all"
     "mlflow:mlflow.mk:mlflow-restore-all"
-    "airflow:airflow.mk:airflow-restore-all"
+    "grafana:grafana.mk:grafana-restore-all"
+    "nextcloud:nextcloud.mk:nc-restore-all"
+    "vaultwarden:vaultwarden.mk:vw-restore-all"
+    "wordpress:wordpress.mk:wp-restore-all"
 )
 
-for entry in "${APP_CHARTS[@]}"; do
+for entry in "${TIER2_CHARTS[@]}"; do
     IFS=':' read -r chart makefile target <<< "$entry"
     echo "  Restoring $chart..."
 
@@ -401,15 +457,71 @@ for entry in "${APP_CHARTS[@]}"; do
     fi
 done
 
-# Phase 6: Verification
-echo "[6/6] Verifying recovery..."
+# Wait for Tier 2 to stabilize
+echo "  Waiting for Tier 2 charts to stabilize..."
+sleep 30
+
+# Phase 5: Tier 3 - Supporting Services
+echo "[5/7] Restoring Tier 3 - Supporting Services..."
+
+declare -a TIER3_CHARTS=(
+    "kafka:kafka.mk:kafka-restore-all"
+    "elasticsearch:elasticsearch.mk:es-restore-snapshot"
+    "mimir:mimir.mk:mimir-restore-all"
+    "minio:minio.mk:minio-restore-all"
+    "mongodb:mongodb.mk:mongo-restore-all"
+    "rabbitmq:rabbitmq.mk:rmq-restore-all"
+    "paperless-ngx:paperless-ngx.mk:paperless-restore-all"
+    "immich:immich.mk:immich-restore-all"
+)
+
+for entry in "${TIER3_CHARTS[@]}"; do
+    IFS=':' read -r chart makefile target <<< "$entry"
+    echo "  Restoring $chart..."
+
+    if [ "$DRY_RUN" = "false" ]; then
+        make -f make/ops/$makefile $target \
+            BACKUP_FILE=./recovery/$chart/full/$BACKUP_DATE.tar.gz \
+            NAMESPACE=$NAMESPACE || echo "Warning: $chart restoration failed"
+    fi
+done
+
+# Wait for Tier 3 to stabilize
+echo "  Waiting for Tier 3 charts to stabilize..."
+sleep 30
+
+# Phase 6: Tier 4 - Auxiliary Services
+echo "[6/7] Restoring Tier 4 - Auxiliary Services..."
+
+declare -a TIER4_CHARTS=(
+    "otel-collector:opentelemetry-collector.mk:otel-restore-config"
+    "promtail:promtail.mk:promtail-restore-config"
+    "alertmanager:alertmanager.mk:am-restore-all"
+    "jellyfin:jellyfin.mk:jf-restore-all"
+    "uptime-kuma:uptime-kuma.mk:uk-restore-all"
+    "memcached:memcached.mk:mc-restore-config"
+)
+
+for entry in "${TIER4_CHARTS[@]}"; do
+    IFS=':' read -r chart makefile target <<< "$entry"
+    echo "  Restoring $chart..."
+
+    if [ "$DRY_RUN" = "false" ]; then
+        make -f make/ops/$makefile $target \
+            BACKUP_FILE=./recovery/$chart/full/$BACKUP_DATE.tar.gz \
+            NAMESPACE=$NAMESPACE || echo "Warning: $chart restoration failed"
+    fi
+done
+
+# Phase 7: Verification
+echo "[7/7] Verifying recovery..."
 
 if [ "$DRY_RUN" = "false" ]; then
-    sleep 60  # Allow time for pods to stabilize
+    sleep 90  # Allow time for all pods to stabilize
 
     echo ""
     echo "Checking pod status:"
-    kubectl get pods -n $NAMESPACE
+    kubectl get pods -n $NAMESPACE -o wide
 
     echo ""
     echo "Checking PVC status:"
@@ -418,15 +530,41 @@ if [ "$DRY_RUN" = "false" ]; then
     echo ""
     echo "Running health checks:"
 
-    # Prometheus
-    make -f make/ops/prometheus.mk prom-health-check NAMESPACE=$NAMESPACE || echo "  ✗ Prometheus health check failed"
+    # Tier 1 - Critical Infrastructure
+    echo "  Tier 1 Health Checks:"
+    make -f make/ops/postgresql.mk pg-health-check NAMESPACE=$NAMESPACE || echo "    ✗ PostgreSQL failed"
+    make -f make/ops/mysql.mk mysql-health-check NAMESPACE=$NAMESPACE || echo "    ✗ MySQL failed"
+    make -f make/ops/redis.mk redis-health-check NAMESPACE=$NAMESPACE || echo "    ✗ Redis failed"
+    make -f make/ops/prometheus.mk prom-health-check NAMESPACE=$NAMESPACE || echo "    ✗ Prometheus failed"
+    make -f make/ops/loki.mk loki-health-check NAMESPACE=$NAMESPACE || echo "    ✗ Loki failed"
+    make -f make/ops/tempo.mk tempo-health-check NAMESPACE=$NAMESPACE || echo "    ✗ Tempo failed"
 
-    # Keycloak
-    kubectl exec -n $NAMESPACE keycloak-0 -- curl -f http://localhost:8080/health/ready >/dev/null 2>&1 && \
-        echo "  ✓ Keycloak is ready" || echo "  ✗ Keycloak health check failed"
+    # Tier 2 - Application Platform
+    echo "  Tier 2 Health Checks:"
+    kubectl exec -n $NAMESPACE keycloak-0 -- curl -f http://localhost:9000/health/ready >/dev/null 2>&1 && \
+        echo "    ✓ Keycloak ready" || echo "    ✗ Keycloak failed"
+    make -f make/ops/grafana.mk grafana-health-check NAMESPACE=$NAMESPACE || echo "    ✗ Grafana failed"
+    kubectl exec -n $NAMESPACE nextcloud-0 -- curl -f http://localhost/status.php >/dev/null 2>&1 && \
+        echo "    ✓ Nextcloud ready" || echo "    ✗ Nextcloud failed"
 
-    # Elasticsearch
-    make -f make/ops/elasticsearch.mk es-health-check NAMESPACE=$NAMESPACE || echo "  ✗ Elasticsearch health check failed"
+    # Tier 3 - Supporting Services
+    echo "  Tier 3 Health Checks:"
+    make -f make/ops/kafka.mk kafka-health-check NAMESPACE=$NAMESPACE || echo "    ✗ Kafka failed"
+    make -f make/ops/elasticsearch.mk es-health-check NAMESPACE=$NAMESPACE || echo "    ✗ Elasticsearch failed"
+    make -f make/ops/mimir.mk mimir-health-check NAMESPACE=$NAMESPACE || echo "    ✗ Mimir failed"
+    make -f make/ops/mongodb.mk mongo-health-check NAMESPACE=$NAMESPACE || echo "    ✗ MongoDB failed"
+    make -f make/ops/rabbitmq.mk rmq-health-check NAMESPACE=$NAMESPACE || echo "    ✗ RabbitMQ failed"
+
+    # Summary statistics
+    echo ""
+    echo "Recovery Statistics:"
+    TOTAL_PODS=$(kubectl get pods -n $NAMESPACE --no-headers | wc -l)
+    RUNNING_PODS=$(kubectl get pods -n $NAMESPACE --field-selector=status.phase=Running --no-headers | wc -l)
+    echo "  Pods: $RUNNING_PODS/$TOTAL_PODS running"
+
+    TOTAL_PVCS=$(kubectl get pvc -n $NAMESPACE --no-headers | wc -l)
+    BOUND_PVCS=$(kubectl get pvc -n $NAMESPACE --field-selector=status.phase=Bound --no-headers | wc -l)
+    echo "  PVCs: $BOUND_PVCS/$TOTAL_PVCS bound"
 fi
 
 # Cleanup
@@ -456,10 +594,11 @@ NAMESPACE="${NAMESPACE:-monitoring}"
 if [ -z "$CHART" ] || [ -z "$BACKUP_FILE" ]; then
     echo "Usage: ./partial-recovery.sh <chart-name> <backup-file>"
     echo ""
-    echo "Available charts:"
-    echo "  prometheus, mimir, loki, tempo"
-    echo "  keycloak, harbor, mlflow, airflow"
-    echo "  kafka, elasticsearch"
+    echo "Available charts (28 total):"
+    echo "  Tier 1: postgresql, mysql, redis, prometheus, loki, tempo"
+    echo "  Tier 2: keycloak, airflow, harbor, mlflow, grafana, nextcloud, vaultwarden, wordpress"
+    echo "  Tier 3: kafka, elasticsearch, mimir, minio, mongodb, rabbitmq, paperless-ngx, immich"
+    echo "  Tier 4: otel-collector, promtail, alertmanager, jellyfin, uptime-kuma, memcached"
     echo ""
     echo "Example:"
     echo "  ./partial-recovery.sh prometheus ./backups/prometheus/full/20231127-120000.tar.gz"
@@ -479,36 +618,45 @@ fi
 
 # Map chart to makefile and target
 case $CHART in
-    prometheus)
-        MAKEFILE="prometheus.mk"
-        TARGET="prom-restore-all"
-        ;;
-    mimir)
-        MAKEFILE="mimir.mk"
-        TARGET="mimir-restore-all"
-        ;;
-    keycloak)
-        MAKEFILE="keycloak.mk"
-        TARGET="kc-restore-all-realms"
-        ;;
-    elasticsearch)
-        MAKEFILE="elasticsearch.mk"
-        TARGET="es-restore-snapshot"
-        ;;
-    kafka)
-        MAKEFILE="kafka.mk"
-        TARGET="kafka-restore-all"
-        ;;
-    harbor)
-        MAKEFILE="harbor.mk"
-        TARGET="harbor-restore-all"
-        ;;
-    mlflow)
-        MAKEFILE="mlflow.mk"
-        TARGET="mlflow-restore-all"
-        ;;
+    # Tier 1: Critical Infrastructure
+    postgresql) MAKEFILE="postgresql.mk"; TARGET="pg-restore-all" ;;
+    mysql) MAKEFILE="mysql.mk"; TARGET="mysql-restore-all" ;;
+    redis) MAKEFILE="redis.mk"; TARGET="redis-restore-all" ;;
+    prometheus) MAKEFILE="prometheus.mk"; TARGET="prom-restore-all" ;;
+    loki) MAKEFILE="loki.mk"; TARGET="loki-restore-all" ;;
+    tempo) MAKEFILE="tempo.mk"; TARGET="tempo-restore-all" ;;
+
+    # Tier 2: Application Platform
+    keycloak) MAKEFILE="keycloak.mk"; TARGET="kc-restore-all-realms" ;;
+    airflow) MAKEFILE="airflow.mk"; TARGET="airflow-restore-all" ;;
+    harbor) MAKEFILE="harbor.mk"; TARGET="harbor-restore-all" ;;
+    mlflow) MAKEFILE="mlflow.mk"; TARGET="mlflow-restore-all" ;;
+    grafana) MAKEFILE="grafana.mk"; TARGET="grafana-restore-all" ;;
+    nextcloud) MAKEFILE="nextcloud.mk"; TARGET="nc-restore-all" ;;
+    vaultwarden) MAKEFILE="vaultwarden.mk"; TARGET="vw-restore-all" ;;
+    wordpress) MAKEFILE="wordpress.mk"; TARGET="wp-restore-all" ;;
+
+    # Tier 3: Supporting Services
+    kafka) MAKEFILE="kafka.mk"; TARGET="kafka-restore-all" ;;
+    elasticsearch) MAKEFILE="elasticsearch.mk"; TARGET="es-restore-snapshot" ;;
+    mimir) MAKEFILE="mimir.mk"; TARGET="mimir-restore-all" ;;
+    minio) MAKEFILE="minio.mk"; TARGET="minio-restore-all" ;;
+    mongodb) MAKEFILE="mongodb.mk"; TARGET="mongo-restore-all" ;;
+    rabbitmq) MAKEFILE="rabbitmq.mk"; TARGET="rmq-restore-all" ;;
+    paperless-ngx) MAKEFILE="paperless-ngx.mk"; TARGET="paperless-restore-all" ;;
+    immich) MAKEFILE="immich.mk"; TARGET="immich-restore-all" ;;
+
+    # Tier 4: Auxiliary Services
+    otel-collector) MAKEFILE="opentelemetry-collector.mk"; TARGET="otel-restore-config" ;;
+    promtail) MAKEFILE="promtail.mk"; TARGET="promtail-restore-config" ;;
+    alertmanager) MAKEFILE="alertmanager.mk"; TARGET="am-restore-all" ;;
+    jellyfin) MAKEFILE="jellyfin.mk"; TARGET="jf-restore-all" ;;
+    uptime-kuma) MAKEFILE="uptime-kuma.mk"; TARGET="uk-restore-all" ;;
+    memcached) MAKEFILE="memcached.mk"; TARGET="mc-restore-config" ;;
+
     *)
         echo "Error: Unknown chart: $CHART"
+        echo "Run without arguments to see available charts"
         exit 1
         ;;
 esac
@@ -553,20 +701,53 @@ echo "=== Partial Recovery Completed ==="
 
 ### RTO/RPO Targets by Chart
 
-| Chart | RTO | RPO | Backup Frequency | Critical Data |
-|-------|-----|-----|------------------|---------------|
-| **Prometheus** | < 1h | 1h | Hourly (TSDB) | ✅ Metrics |
-| **Mimir** | < 2h | 24h | Daily (blocks) | ✅ Long-term metrics |
-| **Loki** | < 2h | 24h | Daily (chunks) | ⚠️ Logs |
-| **Tempo** | < 2h | 24h | Daily (traces) | ⚠️ Traces |
-| **Keycloak** | < 1h | 24h | Daily (realms) | ✅ Identity data |
-| **Elasticsearch** | < 2h | 24h | Daily (snapshots) | ✅ Search indices |
-| **Kafka** | < 2h | 1h | Hourly (topics) | ✅ Events |
-| **Harbor** | < 2h | 24h | Daily (registry) | ✅ Container images |
-| **MLflow** | < 1h | 24h | Daily (experiments) | ✅ ML models |
-| **PostgreSQL** | < 1h | 15min | Continuous (WAL) | ✅ Database |
-| **MySQL** | < 1h | 15min | Continuous (binlog) | ✅ Database |
-| **Redis** | < 30min | 1h | Hourly (RDB) | ⚠️ Cache |
+**Tier 1 - Critical Infrastructure:**
+
+| Chart | RTO | RPO | Backup Frequency | Critical Data | Notes |
+|-------|-----|-----|------------------|---------------|-------|
+| **PostgreSQL** | < 1h | 15min | Continuous (WAL) + Daily | ✅ Database | PITR with WAL archiving |
+| **MySQL** | < 1h | 15min | Continuous (binlog) + Daily | ✅ Database | PITR with binary logs |
+| **Redis** | < 30min | 1h | Hourly (RDB/AOF) | ⚠️ Cache | Ephemeral, acceptable data loss |
+| **Prometheus** | < 1h | 1h | Hourly (TSDB) | ✅ Metrics | Critical for monitoring |
+| **Loki** | < 2h | 24h | Daily (chunks) | ⚠️ Logs | Can replay from sources |
+| **Tempo** | < 2h | 24h | Daily (traces) | ⚠️ Traces | Can replay from sources |
+
+**Tier 2 - Application Platform:**
+
+| Chart | RTO | RPO | Backup Frequency | Critical Data | Notes |
+|-------|-----|-----|------------------|---------------|-------|
+| **Keycloak** | < 1h | 24h | Daily (realms + DB) | ✅ Identity | Business critical |
+| **Airflow** | < 2h | 24h | Daily (metadata DB + DAGs) | ✅ Workflows | DAGs in Git recommended |
+| **Harbor** | < 2h | 24h | Daily (registry + DB) | ✅ Images | Large data volumes |
+| **MLflow** | < 1h | 24h | Daily (metadata + artifacts) | ✅ Models | S3-backed artifacts |
+| **Grafana** | < 1h | 24h | Daily (SQLite + dashboards) | ✅ Dashboards | User-facing |
+| **Nextcloud** | < 2h | 24h | Daily (files + DB + Redis) | ✅ User data | Personal storage |
+| **Vaultwarden** | < 1h | 24h | Daily (vault + DB) | ✅ Passwords | Security critical |
+| **WordPress** | < 2h | 24h | Daily (content + DB) | ✅ Content | Public-facing |
+
+**Tier 3 - Supporting Services:**
+
+| Chart | RTO | RPO | Backup Frequency | Critical Data | Notes |
+|-------|-----|-----|------------------|---------------|-------|
+| **Kafka** | < 2h | 1h | Hourly (metadata) + Daily | ✅ Events | High throughput |
+| **Elasticsearch** | < 2h | 24h | Daily (snapshots) | ✅ Indices | Large data volumes |
+| **Mimir** | < 2h | 24h | Daily (blocks) | ✅ Long-term metrics | Block storage |
+| **MinIO** | < 2h | 24h | Daily (buckets + metadata) | ✅ Objects | S3-compatible storage |
+| **MongoDB** | < 2h | 24h | Daily (dumps) + Hourly (oplog) | ✅ Documents | PITR with oplog |
+| **RabbitMQ** | < 1h | 24h | Daily (definitions) | ✅ Messages | Queue persistence |
+| **Paperless-ngx** | < 2h | 24h | Daily (documents + DB) | ✅ Documents | User documents |
+| **Immich** | < 2h | 24h | Daily (library + DB) | ✅ Photos | Personal photos |
+
+**Tier 4 - Auxiliary Services:**
+
+| Chart | RTO | RPO | Backup Frequency | Critical Data | Notes |
+|-------|-----|-----|------------------|---------------|-------|
+| **OpenTelemetry** | < 30min | 0 | Config only | ⚠️ Stateless | Telemetry gateway |
+| **Promtail** | < 30min | 0 | Config only | ⚠️ Stateless | Log shipper |
+| **Alertmanager** | < 30min | 1h | Hourly (silences) + Daily | ⚠️ Alerts | Silences via API |
+| **Jellyfin** | < 4h | 24h | Daily (config + DB) | ⚠️ Media | Media on NAS/PVC |
+| **Uptime Kuma** | < 1h | 24h | Daily (SQLite) | ⚠️ Monitoring | Status monitors |
+| **Memcached** | < 15min | 0 | Config only | ⚠️ Cache | Stateless cache |
 
 ### RTO/RPO Monitoring
 
@@ -1036,18 +1217,58 @@ aws s3api put-bucket-lifecycle-configuration \
 
 ### B. Backup Size Estimates
 
-| Chart | Daily Backup Size | 30-Day Total |
-|-------|-------------------|--------------|
-| Prometheus | 500MB - 2GB | 15GB - 60GB |
-| Mimir | 1GB - 5GB | 30GB - 150GB |
-| Loki | 500MB - 3GB | 15GB - 90GB |
-| Tempo | 200MB - 1GB | 6GB - 30GB |
-| Elasticsearch | 1GB - 10GB | 30GB - 300GB |
-| Kafka | 500MB - 5GB | 15GB - 150GB |
-| Keycloak | 50MB - 200MB | 1.5GB - 6GB |
-| Harbor | 5GB - 50GB | 150GB - 1.5TB |
-| PostgreSQL | 100MB - 1GB | 3GB - 30GB |
-| Total | ~10GB - 80GB | ~300GB - 2.4TB |
+**Tier 1 - Critical Infrastructure:**
+
+| Chart | Daily Backup Size | 30-Day Total | Notes |
+|-------|-------------------|--------------|-------|
+| PostgreSQL | 100MB - 1GB | 3GB - 30GB | Plus WAL archives |
+| MySQL | 100MB - 1GB | 3GB - 30GB | Plus binary logs |
+| Redis | 50MB - 500MB | 1.5GB - 15GB | RDB + AOF |
+| Prometheus | 500MB - 2GB | 15GB - 60GB | TSDB snapshots |
+| Loki | 500MB - 3GB | 15GB - 90GB | Log chunks |
+| Tempo | 200MB - 1GB | 6GB - 30GB | Trace data |
+
+**Tier 2 - Application Platform:**
+
+| Chart | Daily Backup Size | 30-Day Total | Notes |
+|-------|-------------------|--------------|-------|
+| Keycloak | 50MB - 200MB | 1.5GB - 6GB | Realms + PostgreSQL |
+| Airflow | 200MB - 1GB | 6GB - 30GB | Metadata DB + DAGs |
+| Harbor | 5GB - 50GB | 150GB - 1.5TB | Container images + charts |
+| MLflow | 500MB - 5GB | 15GB - 150GB | Experiments + artifacts |
+| Grafana | 100MB - 500MB | 3GB - 15GB | SQLite + dashboards |
+| Nextcloud | 1GB - 20GB | 30GB - 600GB | User files + DB |
+| Vaultwarden | 50MB - 500MB | 1.5GB - 15GB | Vault + DB |
+| WordPress | 500MB - 5GB | 15GB - 150GB | Content + media + DB |
+
+**Tier 3 - Supporting Services:**
+
+| Chart | Daily Backup Size | 30-Day Total | Notes |
+|-------|-------------------|--------------|-------|
+| Kafka | 500MB - 5GB | 15GB - 150GB | Topic data + metadata |
+| Elasticsearch | 1GB - 10GB | 30GB - 300GB | Index snapshots |
+| Mimir | 1GB - 5GB | 30GB - 150GB | TSDB blocks |
+| MinIO | 2GB - 50GB | 60GB - 1.5TB | Object storage |
+| MongoDB | 500MB - 5GB | 15GB - 150GB | Document dumps + oplog |
+| RabbitMQ | 100MB - 1GB | 3GB - 30GB | Definitions + messages |
+| Paperless-ngx | 500MB - 10GB | 15GB - 300GB | Documents + DB |
+| Immich | 1GB - 20GB | 30GB - 600GB | Photo library + DB |
+
+**Tier 4 - Auxiliary Services:**
+
+| Chart | Daily Backup Size | 30-Day Total | Notes |
+|-------|-------------------|--------------|-------|
+| OpenTelemetry | 10MB - 50MB | 300MB - 1.5GB | Config only |
+| Promtail | 10MB - 50MB | 300MB - 1.5GB | Config only |
+| Alertmanager | 50MB - 200MB | 1.5GB - 6GB | Silences + config |
+| Jellyfin | 200MB - 1GB | 6GB - 30GB | Config + DB (media on NAS) |
+| Uptime Kuma | 50MB - 200MB | 1.5GB - 6GB | SQLite DB |
+| Memcached | 10MB - 50MB | 300MB - 1.5GB | Config only |
+
+**Grand Total:**
+- **Minimum**: ~15GB daily, ~450GB/month
+- **Typical**: ~60GB daily, ~1.8TB/month
+- **Maximum**: ~200GB daily, ~6TB/month
 
 ### C. Critical Commands Reference
 
@@ -1073,6 +1294,6 @@ find ./backups -name "*.tar.gz" -mtime -1 -ls
 
 ---
 
-**Document Version**: 1.0.0
-**Last Updated**: 2025-11-27
-**Charts Covered**: 9 enhanced charts
+**Document Version**: 2.0.0
+**Last Updated**: 2025-12-09
+**Charts Covered**: 28 enhanced charts (v1.4.0)
