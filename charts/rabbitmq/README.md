@@ -532,6 +532,663 @@ kubectl get svc my-rabbitmq
 kubectl get endpoints my-rabbitmq
 ```
 
+## Backup & Recovery
+
+### Backup Strategy
+
+RabbitMQ backup covers 4 critical components:
+
+| Component | Priority | Backup Method | Frequency |
+|-----------|----------|---------------|-----------|
+| **Definitions** | Critical | rabbitmqadmin export | Every 6 hours |
+| **Messages** | Important | Persistent queues + Shovel | Daily or continuous |
+| **Configuration** | Important | ConfigMaps, Secrets | On change |
+| **Mnesia Database** | Critical | PVC Snapshots | Daily |
+
+### Quick Backup Commands
+
+```bash
+# Full backup (all components)
+make -f make/ops/rabbitmq.mk rmq-full-backup
+
+# Definitions backup (exchanges, queues, bindings, users, policies)
+make -f make/ops/rabbitmq.mk rmq-backup-definitions
+
+# Configuration backup (rabbitmq.conf, enabled_plugins)
+make -f make/ops/rabbitmq.mk rmq-backup-config
+
+# Mnesia database backup (via PVC snapshot)
+make -f make/ops/rabbitmq.mk rmq-snapshot-create
+
+# Check backup status
+make -f make/ops/rabbitmq.mk rmq-backup-status
+```
+
+### Backup Methods
+
+**1. Definitions Export (Recommended for Quick Recovery)**
+```bash
+POD=$(kubectl get pods -n default -l app.kubernetes.io/name=rabbitmq -o jsonpath='{.items[0].metadata.name}')
+
+# Export definitions via Management API
+kubectl exec -n default $POD -- curl -u guest:guest \
+  http://localhost:15672/api/definitions \
+  -o /tmp/definitions.json
+
+# Copy from pod
+kubectl cp default/$POD:/tmp/definitions.json ./definitions-backup.json
+```
+
+**2. PVC Snapshots (Fastest Recovery)**
+```yaml
+apiVersion: snapshot.storage.k8s.io/v1
+kind: VolumeSnapshot
+metadata:
+  name: rabbitmq-snapshot-20251209
+spec:
+  volumeSnapshotClassName: csi-snapclass
+  source:
+    persistentVolumeClaimName: my-rabbitmq
+```
+
+**3. Persistent Queues (Message Durability)**
+```bash
+# Ensure durable queues
+kubectl exec -n default $POD -- rabbitmqctl list_queues name durable
+
+# Publish persistent messages (delivery_mode=2)
+```
+
+**4. Federation/Shovel (Continuous Replication)**
+```bash
+# Enable shovel plugin for message backup
+kubectl exec -n default $POD -- rabbitmq-plugins enable rabbitmq_shovel
+
+# Configure shovel to backup cluster
+```
+
+**5. Restic (Incremental Backups to S3)**
+```bash
+# Backup to S3/MinIO with encryption and deduplication
+restic -r s3:https://s3.amazonaws.com/bucket/rabbitmq backup /var/lib/rabbitmq
+```
+
+### Recovery Procedures
+
+**Restore Definitions**:
+```bash
+# Import definitions
+kubectl cp ./definitions-backup.json default/$POD:/tmp/definitions.json
+
+kubectl exec -n default $POD -- curl -u guest:guest \
+  -X POST http://localhost:15672/api/definitions \
+  -H "Content-Type: application/json" \
+  -d @/tmp/definitions.json
+```
+
+**Full Disaster Recovery**:
+```bash
+# 1. Create PVC from snapshot
+kubectl apply -f - <<EOF
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: rabbitmq-restored
+spec:
+  dataSource:
+    name: rabbitmq-snapshot-20251209
+    kind: VolumeSnapshot
+  accessModes: [ReadWriteOnce]
+  resources:
+    requests:
+      storage: 10Gi
+EOF
+
+# 2. Deploy with restored PVC
+helm install my-rabbitmq scripton-charts/rabbitmq \
+  --set persistence.existingClaim=rabbitmq-restored
+
+# 3. Verify data integrity
+kubectl exec -n default $POD -- rabbitmqctl list_queues
+kubectl exec -n default $POD -- rabbitmqctl list_users
+```
+
+### RTO/RPO Targets
+
+| Scenario | RTO (Recovery Time) | RPO (Recovery Point) |
+|----------|---------------------|---------------------|
+| Definitions restore | < 15 minutes | 6 hours |
+| Messages restore | < 2 hours | 24 hours |
+| Configuration restore | < 10 minutes | 24 hours |
+| Full disaster recovery | < 1 hour | 24 hours |
+
+For comprehensive backup procedures, see the [RabbitMQ Backup Guide](../../docs/rabbitmq-backup-guide.md).
+
+---
+
+## Security & RBAC
+
+### RBAC Resources
+
+This chart creates the following RBAC resources by default:
+
+- **ServiceAccount**: Pod identity for RabbitMQ
+- **Role**: Namespace-scoped permissions for ConfigMaps, Secrets, Pods, Services, Endpoints, PVCs
+- **RoleBinding**: Binds Role to ServiceAccount
+
+### RBAC Configuration
+
+```yaml
+# Enable/disable RBAC (default: enabled)
+rbac:
+  create: true
+  annotations: {}
+
+# ServiceAccount configuration
+serviceAccount:
+  create: true
+  name: ""  # Auto-generated if empty
+  annotations: {}
+```
+
+### Security Best Practices
+
+**DO**:
+- ✅ Use strong admin passwords (minimum 16 characters)
+- ✅ Enable network policies to restrict access
+- ✅ Run RabbitMQ as non-root user (UID 999)
+- ✅ Use TLS/SSL for AMQP and Management UI connections
+- ✅ Enable audit logging
+- ✅ Regularly rotate credentials
+- ✅ Use persistent queues for critical messages
+- ✅ Limit user permissions (vhost-specific)
+
+**DON'T**:
+- ❌ Use default credentials (guest/guest)
+- ❌ Expose Management UI publicly without authentication
+- ❌ Run RabbitMQ as root
+- ❌ Store credentials in plain text
+- ❌ Grant administrator tags to application users
+- ❌ Allow unrestricted network access
+
+### Pod Security Context
+
+```yaml
+podSecurityContext:
+  fsGroup: 999
+  runAsUser: 999
+  runAsGroup: 999
+  runAsNonRoot: true
+
+securityContext:
+  capabilities:
+    drop: [ALL]
+  readOnlyRootFilesystem: false
+  allowPrivilegeEscalation: false
+```
+
+### Network Policy Example
+
+```yaml
+networkPolicy:
+  enabled: true
+  ingress:
+    - from:
+      - podSelector:
+          matchLabels:
+            app: my-app
+      ports:
+        - protocol: TCP
+          port: 5672  # AMQP
+        - protocol: TCP
+          port: 15672  # Management UI
+```
+
+### TLS/SSL Configuration
+
+```yaml
+# Configure TLS for AMQP
+rabbitmq:
+  conf: |
+    listeners.ssl.default = 5671
+    ssl_options.cacertfile = /etc/rabbitmq/ca_certificate.pem
+    ssl_options.certfile = /etc/rabbitmq/server_certificate.pem
+    ssl_options.keyfile = /etc/rabbitmq/server_key.pem
+    ssl_options.verify = verify_peer
+    ssl_options.fail_if_no_peer_cert = false
+
+# Mount TLS certificates
+extraVolumes:
+  - name: tls-certs
+    secret:
+      secretName: rabbitmq-tls
+
+extraVolumeMounts:
+  - name: tls-certs
+    mountPath: /etc/rabbitmq/certs
+    readOnly: true
+```
+
+### Verify RBAC
+
+```bash
+# Check ServiceAccount
+kubectl get serviceaccount -l app.kubernetes.io/name=rabbitmq
+
+# Check Role
+kubectl get role -l app.kubernetes.io/name=rabbitmq
+
+# Check RoleBinding
+kubectl get rolebinding -l app.kubernetes.io/name=rabbitmq
+
+# Verify permissions
+kubectl auth can-i get configmaps --as=system:serviceaccount:default:my-rabbitmq
+```
+
+---
+
+## Operations
+
+### Daily Operations
+
+**Access RabbitMQ shell**:
+```bash
+make -f make/ops/rabbitmq.mk rmq-shell
+# Or manually:
+kubectl exec -it deployment/my-rabbitmq -- bash
+```
+
+**Port-forward services**:
+```bash
+# Management UI (http://localhost:15672)
+make -f make/ops/rabbitmq.mk rmq-port-forward
+
+# AMQP (amqp://localhost:5672)
+kubectl port-forward svc/my-rabbitmq 5672:5672
+
+# Metrics (http://localhost:15692/metrics)
+kubectl port-forward svc/my-rabbitmq 15692:15692
+```
+
+**View logs**:
+```bash
+# Tail logs
+make -f make/ops/rabbitmq.mk rmq-logs
+
+# All logs
+kubectl logs deployment/my-rabbitmq --all-containers=true
+```
+
+### Monitoring & Health Checks
+
+**Check cluster status**:
+```bash
+make -f make/ops/rabbitmq.mk rmq-status
+# Or manually:
+kubectl exec -it deployment/my-rabbitmq -- rabbitmqctl cluster_status
+```
+
+**Node health check**:
+```bash
+kubectl exec -it deployment/my-rabbitmq -- rabbitmqctl node_health_check
+```
+
+**List queues**:
+```bash
+make -f make/ops/rabbitmq.mk rmq-list-queues
+# Or manually:
+kubectl exec -it deployment/my-rabbitmq -- rabbitmqctl list_queues name messages consumers memory
+```
+
+**List exchanges**:
+```bash
+make -f make/ops/rabbitmq.mk rmq-list-exchanges
+```
+
+**Check connections**:
+```bash
+make -f make/ops/rabbitmq.mk rmq-list-connections
+```
+
+**Check memory usage**:
+```bash
+kubectl exec -it deployment/my-rabbitmq -- rabbitmqctl status | grep -A 10 "Memory"
+```
+
+### Queue Management
+
+**Declare queue**:
+```bash
+# Durable queue
+kubectl exec -it deployment/my-rabbitmq -- rabbitmqctl eval \
+  'rabbit_amqqueue:declare({resource, <<"/">>, queue, <<"my-queue">>}, true, false, [], none, "guest").'
+
+# Quorum queue (HA)
+kubectl exec -it deployment/my-rabbitmq -- rabbitmqctl eval \
+  'rabbit_amqqueue:declare({resource, <<"/">>, queue, <<"my-quorum-queue">>}, quorum, true, false, [], none, "guest").'
+```
+
+**Purge queue**:
+```bash
+kubectl exec -it deployment/my-rabbitmq -- rabbitmqctl purge_queue my-queue
+```
+
+**Delete queue**:
+```bash
+kubectl exec -it deployment/my-rabbitmq -- rabbitmqctl delete_queue my-queue
+```
+
+### User Management
+
+**List users**:
+```bash
+make -f make/ops/rabbitmq.mk rmq-list-users
+```
+
+**Create user**:
+```bash
+kubectl exec -it deployment/my-rabbitmq -- rabbitmqctl add_user myuser mypassword
+
+# Set permissions
+kubectl exec -it deployment/my-rabbitmq -- rabbitmqctl set_permissions -p / myuser ".*" ".*" ".*"
+
+# Set tags (administrator, monitoring, etc.)
+kubectl exec -it deployment/my-rabbitmq -- rabbitmqctl set_user_tags myuser administrator
+```
+
+**Delete user**:
+```bash
+kubectl exec -it deployment/my-rabbitmq -- rabbitmqctl delete_user myuser
+```
+
+**Change password**:
+```bash
+kubectl exec -it deployment/my-rabbitmq -- rabbitmqctl change_password myuser newpassword
+```
+
+### Virtual Host Management
+
+**Create vhost**:
+```bash
+kubectl exec -it deployment/my-rabbitmq -- rabbitmqctl add_vhost /my-vhost
+```
+
+**List vhosts**:
+```bash
+kubectl exec -it deployment/my-rabbitmq -- rabbitmqctl list_vhosts
+```
+
+**Delete vhost**:
+```bash
+kubectl exec -it deployment/my-rabbitmq -- rabbitmqctl delete_vhost /my-vhost
+```
+
+### Policy Management
+
+**Set policy**:
+```bash
+# HA policy (mirroring)
+kubectl exec -it deployment/my-rabbitmq -- rabbitmqctl set_policy ha-all \
+  "^ha\\." '{"ha-mode":"all"}' --apply-to queues
+
+# TTL policy
+kubectl exec -it deployment/my-rabbitmq -- rabbitmqctl set_policy ttl-policy \
+  "^ttl\\." '{"message-ttl":60000}' --apply-to queues
+
+# Max-length policy
+kubectl exec -it deployment/my-rabbitmq -- rabbitmqctl set_policy max-length \
+  "^limited\\." '{"max-length":10000}' --apply-to queues
+```
+
+**List policies**:
+```bash
+kubectl exec -it deployment/my-rabbitmq -- rabbitmqctl list_policies
+```
+
+### Plugin Management
+
+**List enabled plugins**:
+```bash
+kubectl exec -it deployment/my-rabbitmq -- rabbitmq-plugins list -E
+```
+
+**Enable plugin**:
+```bash
+kubectl exec -it deployment/my-rabbitmq -- rabbitmq-plugins enable rabbitmq_stream
+```
+
+**Disable plugin**:
+```bash
+kubectl exec -it deployment/my-rabbitmq -- rabbitmq-plugins disable rabbitmq_stream
+```
+
+### Maintenance Operations
+
+**Restart RabbitMQ application** (no pod restart):
+```bash
+kubectl exec -it deployment/my-rabbitmq -- rabbitmqctl stop_app
+kubectl exec -it deployment/my-rabbitmq -- rabbitmqctl start_app
+```
+
+**Restart pod**:
+```bash
+kubectl rollout restart deployment my-rabbitmq
+```
+
+**Reset RabbitMQ** (⚠️ DESTRUCTIVE - deletes all data):
+```bash
+kubectl exec -it deployment/my-rabbitmq -- rabbitmqctl stop_app
+kubectl exec -it deployment/my-rabbitmq -- rabbitmqctl reset
+kubectl exec -it deployment/my-rabbitmq -- rabbitmqctl start_app
+```
+
+### Troubleshooting
+
+| Issue | Command | Notes |
+|-------|---------|-------|
+| Pod not starting | `kubectl describe pod -l app.kubernetes.io/name=rabbitmq` | Check events |
+| Permission denied | `kubectl logs -l app.kubernetes.io/name=rabbitmq` | Verify fsGroup: 999 |
+| Connection refused | `kubectl get svc,endpoints my-rabbitmq` | Verify service |
+| High memory | `kubectl exec $POD -- rabbitmqctl status \| grep Memory` | Check watermark |
+| Alarms | `kubectl exec $POD -- rabbitmqctl alarm_status` | Clear alarms |
+
+**Debug commands**:
+```bash
+# Get pod events
+kubectl describe pod -l app.kubernetes.io/name=rabbitmq
+
+# Check service endpoints
+kubectl get endpoints my-rabbitmq
+
+# Test connectivity
+kubectl run test --rm -it --restart=Never --image=curlimages/curl -- \
+  curl -u guest:guest http://my-rabbitmq:15672/api/overview
+
+# Check alarms
+kubectl exec $POD -- rabbitmqctl alarm_status
+
+# Force alarm clear (if false positive)
+kubectl exec $POD -- rabbitmqctl eval 'rabbit_alarm:clear_alarm(disk).'
+```
+
+---
+
+## Upgrading
+
+### Upgrade Strategies
+
+| Strategy | Downtime | Complexity | Use Case |
+|----------|----------|------------|----------|
+| **In-Place** | 5-15 minutes | Low | Development, staging |
+| **Blue-Green** | < 1 minute | Medium | Production, zero-risk |
+| **Backup & Restore** | 1-2 hours | Low | Major version jumps |
+
+### Pre-Upgrade Checklist
+
+```bash
+# 1. Check current version
+kubectl exec $POD -- rabbitmqctl version
+
+# 2. Backup all components
+make -f make/ops/rabbitmq.mk rmq-full-backup
+
+# 3. Verify cluster health
+kubectl exec $POD -- rabbitmqctl node_health_check
+
+# 4. Record current state
+kubectl exec $POD -- rabbitmqctl list_queues > pre-upgrade-queues.txt
+kubectl exec $POD -- rabbitmqctl list_users > pre-upgrade-users.txt
+```
+
+### Upgrade Procedures
+
+**In-Place Upgrade** (Single-Node):
+```bash
+# 1. Backup
+make -f make/ops/rabbitmq.mk rmq-full-backup
+
+# 2. Upgrade via Helm
+helm upgrade my-rabbitmq scripton-charts/rabbitmq \
+  --set image.tag=3.13.1-management \
+  --reuse-values
+
+# 3. Wait for pod restart
+kubectl rollout status deployment my-rabbitmq
+
+# 4. Verify upgrade
+kubectl exec $POD -- rabbitmqctl version
+kubectl exec $POD -- rabbitmqctl list_queues
+```
+
+**Blue-Green Deployment**:
+```bash
+# 1. Deploy green environment (new version)
+helm install my-rabbitmq-green scripton-charts/rabbitmq \
+  --set image.tag=3.13.1-management \
+  --set fullnameOverride=rabbitmq-green
+
+# 2. Import definitions to green
+kubectl cp ./definitions-backup.json $GREEN_POD:/tmp/definitions.json
+kubectl exec $GREEN_POD -- curl -u guest:guest \
+  -X POST http://localhost:15672/api/definitions \
+  -d @/tmp/definitions.json
+
+# 3. Test green deployment thoroughly
+
+# 4. Switch traffic
+kubectl patch service my-rabbitmq \
+  -p '{"spec":{"selector":{"app.kubernetes.io/instance":"rabbitmq-green"}}}'
+
+# 5. Monitor for 24 hours, then decommission blue
+helm uninstall my-rabbitmq
+```
+
+**Major Version Upgrade** (Export/Import):
+```bash
+# 1. Export definitions
+kubectl exec $POD -- curl -u guest:guest \
+  http://localhost:15672/api/definitions \
+  -o /tmp/definitions.json
+kubectl cp $POD:/tmp/definitions.json ./definitions-v3.12.json
+
+# 2. Uninstall old version
+helm uninstall my-rabbitmq
+
+# 3. Install new version
+helm install my-rabbitmq scripton-charts/rabbitmq \
+  --set image.tag=3.13.1-management
+
+# 4. Import definitions
+kubectl cp ./definitions-v3.12.json $NEW_POD:/tmp/definitions.json
+kubectl exec $NEW_POD -- curl -u guest:guest \
+  -X POST http://localhost:15672/api/definitions \
+  -d @/tmp/definitions.json
+```
+
+### Post-Upgrade Validation
+
+```bash
+# Run automated validation
+make -f make/ops/rabbitmq.mk rmq-post-upgrade-check
+
+# Manual checks
+kubectl exec $POD -- rabbitmqctl version  # Verify version
+kubectl exec $POD -- rabbitmqctl node_health_check  # Health
+kubectl exec $POD -- rabbitmqctl list_queues  # Queues
+kubectl exec $POD -- rabbitmqctl list_users  # Users
+kubectl exec $POD -- rabbitmq-plugins list -E  # Plugins
+```
+
+### Rollback Procedures
+
+**Helm Rollback**:
+```bash
+# Check rollback history
+helm history my-rabbitmq
+
+# Rollback to previous revision
+helm rollback my-rabbitmq
+
+# Verify rollback
+kubectl exec $POD -- rabbitmqctl version
+```
+
+**Blue-Green Rollback** (instant):
+```bash
+# Switch traffic back to blue
+kubectl patch service my-rabbitmq \
+  -p '{"spec":{"selector":{"app.kubernetes.io/instance":"my-rabbitmq"}}}'
+```
+
+**Restore from Backup**:
+```bash
+# Uninstall broken deployment
+helm uninstall my-rabbitmq
+
+# Restore from VolumeSnapshot
+kubectl apply -f - <<EOF
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: my-rabbitmq
+spec:
+  dataSource:
+    name: rabbitmq-pre-upgrade-snapshot
+    kind: VolumeSnapshot
+  accessModes: [ReadWriteOnce]
+  resources:
+    requests:
+      storage: 10Gi
+EOF
+
+# Reinstall with old version
+helm install my-rabbitmq scripton-charts/rabbitmq \
+  --set image.tag=3.12.14-management
+```
+
+### Version-Specific Notes
+
+**RabbitMQ 3.13.x** (Latest):
+- Khepri metadata store (experimental, opt-in)
+- Improved Quorum queues performance
+- Enhanced stream plugin
+
+**RabbitMQ 3.12.x**:
+- Quorum queues scalability improvements
+- Classic queue v2 (CQv2) - optional
+
+**RabbitMQ 3.11.x**:
+- Stream support (pub/sub with replay)
+- Super Streams (partitioned streams)
+
+**RabbitMQ 3.10.x**:
+- Improved Quorum queues
+- Classic mirrored queues deprecated
+
+For comprehensive upgrade procedures, see the [RabbitMQ Upgrade Guide](../../docs/rabbitmq-upgrade-guide.md).
+
+---
+
 ## Limitations
 
 - **Single-node only**: Clustering is not yet supported in this release
