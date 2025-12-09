@@ -207,14 +207,18 @@ All charts in this phase are now complete with comprehensive RBAC, backup/recove
 
 ### Phase 3: Supporting Infrastructure (Lower Priority)
 
-**Target: 6 charts**
+**Target: 6 charts** | **Progress: 1/6 (17%)** 🔄
 
-15. **MinIO** (v0.3.0 → v0.4.0)
-    - RBAC templates (namespace-scoped)
-    - Backup guide (bucket metadata, policies, multi-site replication)
-    - Upgrade guide (storage backend changes)
-    - Makefile targets (bucket management, replication)
-    - RTO/RPO: < 1 hour / 1 hour
+15. ✅ **MinIO** (v0.3.0 → v0.4.0) - COMPLETE (2025-12-09)
+    - RBAC templates (Role for ConfigMaps, Secrets, Pods, Services, Endpoints, PVCs)
+    - Backup guide (~1,020 lines): Bucket Data, Bucket Metadata, Configuration, IAM Policies, 6 backup methods (Site Replication, Bucket Replication, mc mirror, mc cp, PVC Snapshots, Restic)
+    - Upgrade guide (~1,070 lines): 4 strategies (Rolling, In-Place, Blue-Green, Canary), Version-specific notes, Quorum management, Erasure coding
+    - README: 4 sections (~454 lines) - Backup & Recovery, Security & RBAC, Operations, Upgrading
+    - values.yaml: Comprehensive backup/upgrade documentation (~144 lines)
+    - Makefile: 52 operational targets (591 lines) - Bucket ops, IAM, Replication, Monitoring, Storage maintenance
+    - RTO/RPO: < 2 hours / 24 hours
+    - Total impact: 6 files, ~3,303 lines added
+    - Key features: Object storage (S3-compatible), Distributed/Standalone modes, IAM policies, Site replication, MinIO Client (mc)
 
 16. **MongoDB** (v0.3.0 → v0.4.0)
     - RBAC templates (namespace-scoped)
