@@ -207,7 +207,7 @@ All charts in this phase are now complete with comprehensive RBAC, backup/recove
 
 ### Phase 3: Supporting Infrastructure (Lower Priority)
 
-**Target: 6 charts** | **Progress: 4/6 (67%)** 🔄
+**Target: 6 charts** | **Progress: 5/6 (83%)** 🔄
 
 15. ✅ **MinIO** (v0.3.0 → v0.4.0) - COMPLETE (2025-12-09)
     - RBAC templates (Role for ConfigMaps, Secrets, Pods, Services, Endpoints, PVCs)
@@ -253,12 +253,16 @@ All charts in this phase are now complete with comprehensive RBAC, backup/recove
     - Total impact: 6 files, ~3,535 lines added
     - Key features: Stateless log shipper, DaemonSet deployment (one pod per node), Loki integration, CRI parser, Pipeline stages, Positions file tracking
 
-19. **Alertmanager** (v0.3.0 → v0.4.0)
-    - RBAC templates (namespace-scoped)
-    - Backup guide (configuration, silences, notification templates)
-    - Upgrade guide (routing changes, inhibition rules)
-    - Makefile targets (silence management, alert testing)
+19. ✅ **Alertmanager** (v0.3.0 → v0.4.0) - COMPLETE (2025-12-09)
+    - RBAC templates (Role for ConfigMaps, Secrets, Pods, Services, Endpoints, PVCs)
+    - Backup guide (~920 lines): Configuration (alertmanager.yml), Silences (API export), Notification Templates, Data Directory, 4 backup methods (ConfigMap export, API-based silence export via amtool, PVC snapshot, Git-based config)
+    - Upgrade guide (~1,003 lines): 3 strategies (Rolling update HA, Blue-green, Maintenance window), Version-specific notes (5 versions: 0.27.x, 0.26.x, 0.25.x, 0.24.x, API v1→v2), Version compatibility matrix (Alertmanager/Prometheus)
+    - README: 4 sections (~738 lines) - Backup & Recovery, Security & RBAC, Upgrading
+    - values.yaml: Comprehensive backup/upgrade documentation (~93 lines)
+    - Makefile: 26 operational targets (194 → 381 lines) - Alerts/Silences/Receivers management, Cluster status, Backup/restore, Upgrade support
     - RTO/RPO: < 30 minutes / 1 hour
+    - Total impact: 6 files, ~2,754 lines added
+    - Key features: Alert routing & notification, StatefulSet deployment, HA clustering with Gossip protocol, API v2 (silences/alerts), Multiple receivers (Email/Slack/PagerDuty/Webhook)
 
 20. **Memcached** (v0.3.0 → v0.4.0)
     - RBAC templates (namespace-scoped)
