@@ -53,6 +53,31 @@ entries:
     version: 0.1.0
   alertmanager:
   - apiVersion: v2
+    appVersion: 0.29.0
+    created: "2025-12-09T07:55:36.020529436Z"
+    description: Prometheus Alertmanager for alert routing and notification with high
+      availability support
+    digest: 2daf86e0903f526c4a695a5ea2fa8d41bbd1abf37de9f9fb718b7a25b3b1c276
+    home: https://github.com/scriptonbasestar-container/sb-helm-charts
+    icon: https://raw.githubusercontent.com/prometheus/prometheus/main/documentation/images/prometheus-logo.svg
+    keywords:
+    - alertmanager
+    - prometheus
+    - monitoring
+    - alerting
+    - notifications
+    - observability
+    maintainers:
+    - name: ScriptonBasestar
+    name: alertmanager
+    sources:
+    - https://github.com/scriptonbasestar-container/sb-helm-charts/tree/master/charts/alertmanager
+    - https://github.com/prometheus/alertmanager
+    type: application
+    urls:
+    - https://github.com/ScriptonBasestar-containers/sb-helm-charts/releases/download/alertmanager-0.4.0/alertmanager-0.4.0.tgz
+    version: 0.4.0
+  - apiVersion: v2
     appVersion: 0.27.0
     created: "2025-11-21T06:34:55.251973948Z"
     description: Prometheus Alertmanager for alert routing and notification with high
@@ -294,6 +319,31 @@ entries:
     version: 0.1.0
   grafana:
   - apiVersion: v2
+    appVersion: 12.2.2
+    created: "2025-12-09T07:55:36.318478807Z"
+    description: Grafana metrics visualization and dashboarding platform
+    digest: d84cad8eeeba70ec0241a33632af23bad56390c3317d77051c1e906568f79744
+    home: https://github.com/scriptonbasestar-container/sb-helm-charts
+    icon: https://raw.githubusercontent.com/cncf/artwork/master/projects/grafana/icon/color/grafana-icon-color.svg
+    keywords:
+    - grafana
+    - monitoring
+    - metrics
+    - visualization
+    - dashboard
+    - observability
+    maintainers:
+    - email: scriptonbasestar@gmail.com
+      name: ScriptonBasestar
+    name: grafana
+    sources:
+    - https://github.com/scriptonbasestar-container/sb-helm-charts/tree/master/charts/grafana
+    - https://github.com/grafana/grafana
+    type: application
+    urls:
+    - https://github.com/ScriptonBasestar-containers/sb-helm-charts/releases/download/grafana-0.4.0/grafana-0.4.0.tgz
+    version: 0.4.0
+  - apiVersion: v2
     appVersion: 10.2.3
     created: "2025-11-21T01:42:07.44019642Z"
     description: Grafana metrics visualization and dashboarding platform
@@ -370,6 +420,59 @@ entries:
     - https://github.com/ScriptonBasestar-containers/sb-helm-charts/releases/download/harbor-0.2.0/harbor-0.2.0.tgz
     version: 0.2.0
   immich:
+  - annotations:
+      artifacthub.io/changes: |
+        - kind: changed
+          description: Promoted to version 0.3.0 (Mature - production-ready)
+        - kind: added
+          description: Microservices architecture (separate server and machine-learning deployments)
+        - kind: added
+          description: External PostgreSQL with pgvecto.rs extension and Redis support
+        - kind: added
+          description: Hardware acceleration support (CUDA, ROCm, OpenVINO, ARMNN)
+        - kind: added
+          description: Model cache persistence for ML worker
+        - kind: added
+          description: Complete Makefile operational commands (logs, shell, restart for both services)
+      artifacthub.io/license: BSD-3-Clause
+      artifacthub.io/links: |
+        - name: Chart Source
+          url: https://github.com/scriptonbasestar-container/sb-helm-charts/tree/master/charts/immich
+        - name: Immich Documentation
+          url: https://immich.app/docs
+      artifacthub.io/prerelease: "false"
+      artifacthub.io/recommendations: |
+        - url: https://github.com/scriptonbasestar-container/sb-helm-charts/blob/master/docs/SCENARIO_VALUES_GUIDE.md
+          description: Scenario Values Deployment Guide
+        - url: https://github.com/scriptonbasestar-container/sb-helm-charts/blob/master/docs/CHART_DEVELOPMENT_GUIDE.md
+          description: Chart Development Guide
+      category: Media
+    apiVersion: v2
+    appVersion: v1.122.3
+    created: "2025-12-09T07:55:36.658089888Z"
+    description: High-performance self-hosted photo and video management solution
+      with AI-powered features
+    digest: f5c55027bc295a257bc21755e8dee9fb8585e66cb226a7b88157fe2141a6bf3a
+    home: https://immich.app
+    icon: https://raw.githubusercontent.com/immich-app/immich/main/design/immich-logo.svg
+    keywords:
+    - immich
+    - photos
+    - media
+    - gallery
+    - ai
+    - machine-learning
+    maintainers:
+    - email: archmagece@users.noreply.github.com
+      name: archmagece
+    name: immich
+    sources:
+    - https://github.com/scriptonbasestar-container/sb-helm-charts/tree/master/charts/immich
+    - https://github.com/immich-app/immich
+    type: application
+    urls:
+    - https://github.com/ScriptonBasestar-containers/sb-helm-charts/releases/download/immich-0.4.0/immich-0.4.0.tgz
+    version: 0.4.0
   - annotations:
       artifacthub.io/changes: |
         - kind: changed
@@ -507,6 +610,58 @@ entries:
     - https://github.com/ScriptonBasestar-containers/sb-helm-charts/releases/download/immich-0.1.0/immich-0.1.0.tgz
     version: 0.1.0
   jellyfin:
+  - annotations:
+      artifacthub.io/changes: |
+        - kind: added
+          description: AMD VAAPI GPU acceleration support (in addition to Intel QSV and NVIDIA NVENC)
+        - kind: added
+          description: values-home-single.yaml optimized for home servers (Raspberry Pi, Intel NUC)
+        - kind: added
+          description: Comprehensive README with GPU acceleration guide for all vendors
+        - kind: changed
+          description: Enhanced jellyfin-check-gpu command to support AMD VAAPI
+        - kind: changed
+          description: Updated Chart.yaml to version 0.3.0 (production-ready)
+      artifacthub.io/license: BSD-3-Clause
+      artifacthub.io/links: |
+        - name: Chart Source
+          url: https://github.com/scriptonbasestar-container/sb-helm-charts/tree/master/charts/jellyfin
+        - name: Jellyfin Documentation
+          url: https://jellyfin.org/docs
+      artifacthub.io/prerelease: "false"
+      artifacthub.io/recommendations: |
+        - url: https://github.com/scriptonbasestar-container/sb-helm-charts/blob/master/docs/SCENARIO_VALUES_GUIDE.md
+          description: Scenario Values Deployment Guide
+        - url: https://github.com/scriptonbasestar-container/sb-helm-charts/blob/master/docs/CHART_DEVELOPMENT_GUIDE.md
+          description: Chart Development Guide
+      category: Media
+    apiVersion: v2
+    appVersion: 10.11.3
+    created: "2025-12-09T07:55:36.816732431Z"
+    description: Jellyfin - The Free Software Media System (Plex Alternative)
+    digest: b2dd3372df132c16e1844df78f2b112df3cb41247deecc969d357f63f50da041
+    home: https://github.com/scriptonbasestar-container/sb-helm-charts
+    icon: https://raw.githubusercontent.com/jellyfin/jellyfin-ux/master/branding/SVG/icon-transparent.svg
+    keywords:
+    - jellyfin
+    - media-server
+    - streaming
+    - plex-alternative
+    - transcoding
+    - gpu-acceleration
+    maintainers:
+    - email: archmagece@users.noreply.github.com
+      name: archmagece
+    name: jellyfin
+    sources:
+    - https://github.com/scriptonbasestar-container/sb-helm-charts
+    - https://scriptonbasestar-container.github.io/sb-helm-charts
+    - https://github.com/jellyfin/jellyfin
+    - https://hub.docker.com/r/jellyfin/jellyfin
+    type: application
+    urls:
+    - https://github.com/ScriptonBasestar-containers/sb-helm-charts/releases/download/jellyfin-0.4.0/jellyfin-0.4.0.tgz
+    version: 0.4.0
   - annotations:
       artifacthub.io/changes: |
         - kind: added
@@ -720,6 +875,31 @@ entries:
     version: 0.3.0
   loki:
   - apiVersion: v2
+    appVersion: 3.6.1
+    created: "2025-12-09T07:55:37.300994823Z"
+    description: Loki log aggregation system with Grafana integration
+    digest: b801ed0c212d07458dfd914b9ff120d1184a296374697cf0e5c3efd82e12b5d4
+    home: https://github.com/scriptonbasestar-container/sb-helm-charts
+    icon: https://raw.githubusercontent.com/cncf/artwork/master/projects/loki/icon/color/loki-icon-color.svg
+    keywords:
+    - loki
+    - logging
+    - logs
+    - observability
+    - grafana
+    - promtail
+    maintainers:
+    - email: scriptonbasestar@gmail.com
+      name: ScriptonBasestar
+    name: loki
+    sources:
+    - https://github.com/scriptonbasestar-container/sb-helm-charts/tree/master/charts/loki
+    - https://github.com/grafana/loki
+    type: application
+    urls:
+    - https://github.com/ScriptonBasestar-containers/sb-helm-charts/releases/download/loki-0.4.0/loki-0.4.0.tgz
+    version: 0.4.0
+  - apiVersion: v2
     appVersion: 2.9.3
     created: "2025-11-21T01:42:07.863714002Z"
     description: Loki log aggregation system with Grafana integration
@@ -744,6 +924,36 @@ entries:
     - https://github.com/ScriptonBasestar-containers/sb-helm-charts/releases/download/loki-0.3.0/loki-0.3.0.tgz
     version: 0.3.0
   memcached:
+  - annotations:
+      artifacthub.io/changes: |
+        - kind: fixed
+          description: Fix chart icon URL to use working memcached banner image
+      artifacthub.io/license: BSD-3-Clause
+      artifacthub.io/prerelease: "false"
+    apiVersion: v2
+    appVersion: 1.6.39
+    created: "2025-12-09T07:55:37.439366319Z"
+    description: A Helm chart for Memcached - high-performance distributed memory
+      caching system
+    digest: 63b756b0e254a1764f72fe50cccbc1866e1a1176ce263788a932f05a2808f96d
+    home: https://github.com/scriptonbasestar-container/sb-helm-charts
+    icon: https://memcached.org/images/memcached_banner75.jpg
+    keywords:
+    - memcached
+    - cache
+    - memory
+    - performance
+    maintainers:
+    - email: archmagece@gmail.com
+      name: ScriptonBasestar
+    name: memcached
+    sources:
+    - https://github.com/scriptonbasestar-container/sb-helm-charts
+    - https://github.com/memcached/memcached
+    type: application
+    urls:
+    - https://github.com/ScriptonBasestar-containers/sb-helm-charts/releases/download/memcached-0.4.0/memcached-0.4.0.tgz
+    version: 0.4.0
   - annotations:
       artifacthub.io/changes: |
         - kind: fixed
@@ -927,6 +1137,51 @@ entries:
       artifacthub.io/recommendations: |
         - url: https://github.com/scriptonbasestar-container/sb-helm-charts/blob/master/docs/SCENARIO_VALUES_GUIDE.md
     apiVersion: v2
+    appVersion: RELEASE.2025-10-15T17-29-55Z
+    created: "2025-12-09T07:55:37.73159779Z"
+    description: High-performance S3-compatible object storage with distributed architecture
+    digest: 635cf93a7d156647aaab50baf3adeb88523e5ddb9a5a9d7ee29e648bdb3422c4
+    home: https://min.io/
+    icon: https://min.io/resources/img/logo.svg
+    keywords:
+    - minio
+    - object-storage
+    - s3
+    - aws-s3-compatible
+    - distributed-storage
+    - erasure-coding
+    maintainers:
+    - email: archmagece@users.noreply.github.com
+      name: archmagece
+    name: minio
+    sources:
+    - https://github.com/scriptonbasestar-container/sb-helm-charts
+    - https://github.com/minio/minio
+    - https://hub.docker.com/r/minio/minio
+    type: application
+    urls:
+    - https://github.com/ScriptonBasestar-containers/sb-helm-charts/releases/download/minio-0.4.0/minio-0.4.0.tgz
+    version: 0.4.0
+  - annotations:
+      artifacthub.io/changes: |
+        - kind: added
+          description: Initial MinIO chart with distributed mode support
+        - kind: added
+          description: StatefulSet-based deployment with multi-drive erasure coding
+        - kind: added
+          description: Mode selector for standalone and distributed deployments
+      artifacthub.io/license: BSD-3-Clause
+      artifacthub.io/links: |
+        - name: Chart Source
+          url: https://github.com/scriptonbasestar-container/sb-helm-charts/tree/master/charts/minio
+        - name: MinIO Documentation
+          url: https://min.io/docs/minio/linux/index.html
+        - name: MinIO Console Guide
+          url: https://min.io/docs/minio/linux/administration/minio-console.html
+      artifacthub.io/prerelease: "false"
+      artifacthub.io/recommendations: |
+        - url: https://github.com/scriptonbasestar-container/sb-helm-charts/blob/master/docs/SCENARIO_VALUES_GUIDE.md
+    apiVersion: v2
     appVersion: RELEASE.2024-10-02T17-50-41Z
     created: "2025-11-20T04:29:04.742517805Z"
     description: High-performance S3-compatible object storage with distributed architecture
@@ -980,6 +1235,31 @@ entries:
   mongodb:
   - apiVersion: v2
     appVersion: 7.0.14
+    created: "2025-12-09T07:55:38.032527139Z"
+    description: MongoDB NoSQL database with replica set support
+    digest: c9f435183405f226515b8d170c96e8a3fad7a760efd23d6c13993fed4d7712dc
+    home: https://github.com/scriptonbasestar-container/sb-helm-charts
+    icon: https://www.svgrepo.com/show/331488/mongodb.svg
+    keywords:
+    - mongodb
+    - database
+    - nosql
+    - document
+    - replicaset
+    - sharding
+    maintainers:
+    - email: scriptonbasestar@gmail.com
+      name: ScriptonBasestar
+    name: mongodb
+    sources:
+    - https://github.com/scriptonbasestar-container/sb-helm-charts/tree/master/charts/mongodb
+    - https://github.com/mongodb/mongo
+    type: application
+    urls:
+    - https://github.com/ScriptonBasestar-containers/sb-helm-charts/releases/download/mongodb-0.4.0/mongodb-0.4.0.tgz
+    version: 0.4.0
+  - apiVersion: v2
+    appVersion: 7.0.14
     created: "2025-11-21T01:42:08.177645836Z"
     description: MongoDB NoSQL database with replica set support
     digest: 406c42a281cdc75f775f1bf790098167036c89904af3e0486ce480455f9e6b58
@@ -1004,6 +1284,29 @@ entries:
     version: 0.3.0
   mysql:
   - apiVersion: v2
+    appVersion: 8.4.3
+    created: "2025-12-09T07:55:38.197624691Z"
+    description: MySQL relational database with replication support
+    digest: 0580c5606915d65b9362ba2dd545eae8d4c1c15ab1f00c9d218f4ad98a9841ea
+    home: https://github.com/scriptonbasestar-container/sb-helm-charts
+    icon: https://www.mysql.com/common/logos/logo-mysql-170x115.png
+    keywords:
+    - mysql
+    - mariadb
+    - database
+    - sql
+    - replication
+    maintainers:
+    - name: ScriptonBasestar
+    name: mysql
+    sources:
+    - https://github.com/scriptonbasestar-container/sb-helm-charts/tree/master/charts/mysql
+    - https://github.com/mysql/mysql-server
+    type: application
+    urls:
+    - https://github.com/ScriptonBasestar-containers/sb-helm-charts/releases/download/mysql-0.4.0/mysql-0.4.0.tgz
+    version: 0.4.0
+  - apiVersion: v2
     appVersion: 8.0.35
     created: "2025-11-21T01:42:08.306939268Z"
     description: MySQL relational database with replication support
@@ -1027,6 +1330,63 @@ entries:
     - https://github.com/ScriptonBasestar-containers/sb-helm-charts/releases/download/mysql-0.3.0/mysql-0.3.0.tgz
     version: 0.3.0
   nextcloud:
+  - annotations:
+      artifacthub.io/changes: |
+        - kind: changed
+          description: Promoted to version 0.3.0 (Mature - production-ready)
+        - kind: added
+          description: 3 PVC architecture for data isolation (data, config, custom apps)
+        - kind: added
+          description: External PostgreSQL 16 and Redis 8 integration
+        - kind: added
+          description: Apache-based official Nextcloud image with CalDAV/CardDAV support
+        - kind: added
+          description: occ command integration for Nextcloud management
+        - kind: added
+          description: Background jobs CronJob for maintenance tasks
+        - kind: added
+          description: 4 deployment scenario values files (home, startup, production)
+      artifacthub.io/license: BSD-3-Clause
+      artifacthub.io/links: |
+        - name: Chart Source
+          url: https://github.com/scriptonbasestar-container/sb-helm-charts/tree/master/charts/nextcloud
+        - name: Nextcloud Documentation
+          url: https://docs.nextcloud.com/
+      artifacthub.io/prerelease: "false"
+      artifacthub.io/recommendations: |
+        - url: https://github.com/scriptonbasestar-container/sb-helm-charts/blob/master/docs/SCENARIO_VALUES_GUIDE.md
+          description: Scenario Values Deployment Guide
+        - url: https://github.com/scriptonbasestar-container/sb-helm-charts/blob/master/docs/CHART_DEVELOPMENT_GUIDE.md
+          description: Chart Development Guide
+    apiVersion: v2
+    appVersion: 31.0.10
+    created: "2025-12-09T07:55:38.342691727Z"
+    description: Self-hosted productivity platform with file sync, calendar, contacts,
+      and collaboration tools
+    digest: 70ceb6bc83842d9989db998e7f609d99e8cdaa4cb05a5781edc56b03d1ec1ed9
+    home: https://nextcloud.com/
+    icon: https://raw.githubusercontent.com/nextcloud/server/master/core/img/logo/logo.svg
+    keywords:
+    - nextcloud
+    - cloud-storage
+    - file-sync
+    - collaboration
+    - productivity
+    - self-hosted
+    - calendar
+    - contacts
+    maintainers:
+    - email: archmagece@users.noreply.github.com
+      name: archmagece
+    name: nextcloud
+    sources:
+    - https://github.com/scriptonbasestar-container/sb-helm-charts
+    - https://github.com/nextcloud/server
+    - https://hub.docker.com/r/linuxserver/nextcloud
+    type: application
+    urls:
+    - https://github.com/ScriptonBasestar-containers/sb-helm-charts/releases/download/nextcloud-0.4.0/nextcloud-0.4.0.tgz
+    version: 0.4.0
   - annotations:
       artifacthub.io/changes: |
         - kind: changed
@@ -1224,6 +1584,55 @@ entries:
         - url: https://github.com/scriptonbasestar-container/sb-helm-charts/blob/master/docs/CHART_DEVELOPMENT_GUIDE.md
           description: Chart Development Guide
     apiVersion: v2
+    appVersion: 2.19.6
+    created: "2025-12-09T07:55:38.696280456Z"
+    description: A powerful open-source document management system with OCR, full-text
+      search, and modern web UI
+    digest: 2f8f93c528d39fec4815fefd1587c6ca7599fbd1097761b56f921adb0896fd51
+    home: https://docs.paperless-ngx.com/
+    icon: https://raw.githubusercontent.com/paperless-ngx/paperless-ngx/main/resources/logo/web/png/Black%20logo%20-%20no%20background.png
+    keywords:
+    - paperless
+    - document-management
+    - ocr
+    - dms
+    maintainers:
+    - name: ScriptonBasestar
+    name: paperless-ngx
+    sources:
+    - https://github.com/scriptonbasestar-container/sb-helm-charts
+    - https://github.com/paperless-ngx/paperless-ngx
+    type: application
+    urls:
+    - https://github.com/ScriptonBasestar-containers/sb-helm-charts/releases/download/paperless-ngx-0.4.0/paperless-ngx-0.4.0.tgz
+    version: 0.4.0
+  - annotations:
+      artifacthub.io/changes: |
+        - kind: changed
+          description: Promoted to version 0.3.0 (Mature - production-ready)
+        - kind: added
+          description: 4 PVC architecture (consume, data, media, export directories)
+        - kind: added
+          description: PostgreSQL and Redis external service integration
+        - kind: added
+          description: Multi-language OCR support with configurable processing modes
+        - kind: added
+          description: Complete Makefile operational commands (database, documents, health checks)
+        - kind: added
+          description: 4 deployment scenario values files (home, startup, production)
+      artifacthub.io/license: BSD-3-Clause
+      artifacthub.io/links: |
+        - name: Chart Source
+          url: https://github.com/scriptonbasestar-container/sb-helm-charts/tree/master/charts/paperless-ngx
+        - name: Paperless-ngx Documentation
+          url: https://docs.paperless-ngx.com/
+      artifacthub.io/prerelease: "false"
+      artifacthub.io/recommendations: |
+        - url: https://github.com/scriptonbasestar-container/sb-helm-charts/blob/master/docs/SCENARIO_VALUES_GUIDE.md
+          description: Scenario Values Deployment Guide
+        - url: https://github.com/scriptonbasestar-container/sb-helm-charts/blob/master/docs/CHART_DEVELOPMENT_GUIDE.md
+          description: Chart Development Guide
+    apiVersion: v2
     appVersion: 2.14.7
     created: "2025-11-17T07:18:04.905356286Z"
     description: A powerful open-source document management system with OCR, full-text
@@ -1368,6 +1777,30 @@ entries:
     version: 0.3.0
   postgresql:
   - apiVersion: v2
+    appVersion: "16.11"
+    created: "2025-12-09T07:55:39.180657933Z"
+    description: PostgreSQL relational database with replication support
+    digest: bc7429087532244637cb926ff6214caa11893c732bf64afe32ea2f12606a98e7
+    home: https://github.com/scriptonbasestar-container/sb-helm-charts
+    icon: https://www.postgresql.org/media/img/about/press/elephant.png
+    keywords:
+    - postgresql
+    - postgres
+    - database
+    - sql
+    - replication
+    - backup
+    maintainers:
+    - name: ScriptonBasestar
+    name: postgresql
+    sources:
+    - https://github.com/scriptonbasestar-container/sb-helm-charts/tree/master/charts/postgresql
+    - https://github.com/postgres/postgres
+    type: application
+    urls:
+    - https://github.com/ScriptonBasestar-containers/sb-helm-charts/releases/download/postgresql-0.4.0/postgresql-0.4.0.tgz
+    version: 0.4.0
+  - apiVersion: v2
     appVersion: "16.1"
     created: "2025-11-21T01:42:08.452028594Z"
     description: PostgreSQL relational database with replication support
@@ -1393,6 +1826,30 @@ entries:
     version: 0.3.0
   prometheus:
   - apiVersion: v2
+    appVersion: 3.7.3
+    created: "2025-12-09T07:55:39.350005579Z"
+    description: Prometheus monitoring system and time series database for Kubernetes
+    digest: 40d61725b3d597feaf5782a34b4a7464b86ad072869eacfee61b41936fced652
+    home: https://github.com/scriptonbasestar-container/sb-helm-charts
+    icon: https://prometheus.io/assets/prometheus_logo_grey.svg
+    keywords:
+    - prometheus
+    - monitoring
+    - metrics
+    - timeseries
+    - alerting
+    - observability
+    maintainers:
+    - name: ScriptonBasestar
+    name: prometheus
+    sources:
+    - https://github.com/scriptonbasestar-container/sb-helm-charts/tree/master/charts/prometheus
+    - https://github.com/prometheus/prometheus
+    type: application
+    urls:
+    - https://github.com/ScriptonBasestar-containers/sb-helm-charts/releases/download/prometheus-0.4.0/prometheus-0.4.0.tgz
+    version: 0.4.0
+  - apiVersion: v2
     appVersion: 2.48.1
     created: "2025-11-21T06:34:56.262803794Z"
     description: Prometheus monitoring system and time series database for Kubernetes
@@ -1417,6 +1874,30 @@ entries:
     - https://github.com/ScriptonBasestar-containers/sb-helm-charts/releases/download/prometheus-0.3.0/prometheus-0.3.0.tgz
     version: 0.3.0
   promtail:
+  - apiVersion: v2
+    appVersion: 3.6.1
+    created: "2025-12-09T07:55:39.51623134Z"
+    description: Promtail log collection agent for Loki with Kubernetes integration
+    digest: 9a16747d9c9965e74aec4f9e4806cfa8c2b6c0a68c92eaab4af159d25b952d0b
+    home: https://github.com/scriptonbasestar-container/sb-helm-charts
+    icon: https://grafana.com/static/img/logos/logo-loki.svg
+    keywords:
+    - promtail
+    - loki
+    - logging
+    - logs
+    - log-collection
+    - observability
+    maintainers:
+    - name: ScriptonBasestar
+    name: promtail
+    sources:
+    - https://github.com/scriptonbasestar-container/sb-helm-charts/tree/master/charts/promtail
+    - https://github.com/grafana/loki/tree/main/clients/cmd/promtail
+    type: application
+    urls:
+    - https://github.com/ScriptonBasestar-containers/sb-helm-charts/releases/download/promtail-0.4.0/promtail-0.4.0.tgz
+    version: 0.4.0
   - apiVersion: v2
     appVersion: 2.9.3
     created: "2025-11-21T06:34:56.411965265Z"
@@ -1468,6 +1949,53 @@ entries:
     - https://github.com/ScriptonBasestar-containers/sb-helm-charts/releases/download/pushgateway-0.3.0/pushgateway-0.3.0.tgz
     version: 0.3.0
   rabbitmq:
+  - annotations:
+      artifacthub.io/changes: |
+        - kind: changed
+          description: Clarify single-instance architecture in prod-master-replica values file
+        - kind: added
+          description: Add production clustering alternatives (RabbitMQ Cluster Operator, Bitnami chart)
+        - kind: added
+          description: Document migration path from single to clustered deployment
+      artifacthub.io/license: BSD-3-Clause
+      artifacthub.io/links: |
+        - name: Chart Source
+          url: https://github.com/scriptonbasestar-container/sb-helm-charts/tree/master/charts/rabbitmq
+        - name: rabbitmq Documentation
+          url: https://www.rabbitmq.com/
+      artifacthub.io/prerelease: "false"
+      artifacthub.io/recommendations: |
+        - url: https://github.com/scriptonbasestar-container/sb-helm-charts/blob/master/docs/SCENARIO_VALUES_GUIDE.md
+          description: Scenario Values Deployment Guide
+        - url: https://github.com/scriptonbasestar-container/sb-helm-charts/blob/master/docs/CHART_DEVELOPMENT_GUIDE.md
+          description: Chart Development Guide
+    apiVersion: v2
+    appVersion: 3.13.1
+    created: "2025-12-09T07:55:39.84466133Z"
+    description: A Helm chart for RabbitMQ message broker with management UI and Prometheus
+      metrics
+    digest: b0f897b541100b79959a27793dd0b1ea0892505c44223b1a562cb059e686d7b3
+    home: https://www.rabbitmq.com/
+    icon: https://www.rabbitmq.com/img/rabbitmq-logo.svg
+    keywords:
+    - rabbitmq
+    - message-queue
+    - amqp
+    - messaging
+    - broker
+    - message-broker
+    maintainers:
+    - email: archmagece@users.noreply.github.com
+      name: archmagece
+    name: rabbitmq
+    sources:
+    - https://github.com/ScriptonBasestar-containers/sb-helm-charts
+    - https://github.com/rabbitmq/rabbitmq-server
+    - https://hub.docker.com/_/rabbitmq
+    type: application
+    urls:
+    - https://github.com/ScriptonBasestar-containers/sb-helm-charts/releases/download/rabbitmq-0.4.0/rabbitmq-0.4.0.tgz
+    version: 0.4.0
   - annotations:
       artifacthub.io/changes: |
         - kind: changed
@@ -1621,6 +2149,55 @@ entries:
     - https://github.com/ScriptonBasestar-containers/sb-helm-charts/releases/download/rabbitmq-0.1.0/rabbitmq-0.1.0.tgz
     version: 0.1.0
   redis:
+  - annotations:
+      artifacthub.io/changes: |
+        - kind: fixed
+          description: Fix existingClaim support - now properly mounts existing PVCs
+        - kind: added
+          description: Add redis.mode selector (standalone|replica) with validation and backward compatibility
+        - kind: changed
+          description: Fail fast when unsupported Sentinel or Cluster modes are selected
+        - kind: changed
+          description: Allow replication.replicas=0 in replica mode (master-only with replica wiring)
+      artifacthub.io/license: BSD-3-Clause
+      artifacthub.io/links: |
+        - name: Chart Source
+          url: https://github.com/scriptonbasestar-container/sb-helm-charts/tree/master/charts/redis
+        - name: redis Documentation
+          url: https://redis.io/
+      artifacthub.io/prerelease: "false"
+      artifacthub.io/recommendations: |
+        - url: https://github.com/scriptonbasestar-container/sb-helm-charts/blob/master/docs/SCENARIO_VALUES_GUIDE.md
+          description: Scenario Values Deployment Guide
+        - url: https://github.com/scriptonbasestar-container/sb-helm-charts/blob/master/docs/CHART_DEVELOPMENT_GUIDE.md
+          description: Chart Development Guide
+    apiVersion: v2
+    appVersion: 7.4.1
+    created: "2025-12-09T07:55:40.019358858Z"
+    description: In-memory data structure store - cache, database, and message broker
+    digest: f2e0e832d01ffafb6320ae771815170b8849cc81df02378a324c12a6cffcd055
+    home: https://redis.io/
+    icon: https://www.svgrepo.com/show/303460/redis-logo.svg
+    keywords:
+    - redis
+    - cache
+    - database
+    - nosql
+    - key-value
+    - in-memory
+    - data-structure
+    maintainers:
+    - email: archmagece@users.noreply.github.com
+      name: archmagece
+    name: redis
+    sources:
+    - https://github.com/scriptonbasestar-container/sb-helm-charts
+    - https://github.com/redis/redis
+    - https://hub.docker.com/_/redis
+    type: application
+    urls:
+    - https://github.com/ScriptonBasestar-containers/sb-helm-charts/releases/download/redis-0.4.0/redis-0.4.0.tgz
+    version: 0.4.0
   - annotations:
       artifacthub.io/changes: |
         - kind: fixed
@@ -2003,6 +2580,31 @@ entries:
     version: 0.1.0
   tempo:
   - apiVersion: v2
+    appVersion: 2.9.0
+    created: "2025-12-09T07:55:40.356422212Z"
+    description: Grafana Tempo distributed tracing backend with S3/MinIO storage support
+    digest: 7e78d2a2a94ee8ec79cf2fab130703abc385f3ee8963b9b1a2b6c4ffdbc08226
+    home: https://github.com/scriptonbasestar-container/sb-helm-charts
+    icon: https://raw.githubusercontent.com/cncf/artwork/master/projects/grafana/icon/color/grafana-icon-color.svg
+    keywords:
+    - tempo
+    - tracing
+    - distributed-tracing
+    - observability
+    - grafana
+    - opentelemetry
+    maintainers:
+    - email: scriptonbasestar@gmail.com
+      name: ScriptonBasestar
+    name: tempo
+    sources:
+    - https://github.com/scriptonbasestar-container/sb-helm-charts/tree/master/charts/tempo
+    - https://github.com/grafana/tempo
+    type: application
+    urls:
+    - https://github.com/ScriptonBasestar-containers/sb-helm-charts/releases/download/tempo-0.4.0/tempo-0.4.0.tgz
+    version: 0.4.0
+  - apiVersion: v2
     appVersion: 2.6.1
     created: "2025-11-25T02:18:36.720101675Z"
     description: Grafana Tempo distributed tracing backend with S3/MinIO storage support
@@ -2028,6 +2630,61 @@ entries:
     - https://github.com/ScriptonBasestar-containers/sb-helm-charts/releases/download/tempo-0.3.0/tempo-0.3.0.tgz
     version: 0.3.0
   uptime-kuma:
+  - annotations:
+      artifacthub.io/changes: |
+        - kind: changed
+          description: Promoted to version 0.3.0 (Mature - production-ready)
+        - kind: added
+          description: 90+ notification services integration (Telegram, Discord, Slack, Email, and more)
+        - kind: added
+          description: Multi-protocol monitoring support (HTTP/HTTPS, TCP, Ping, DNS, SMTP)
+        - kind: added
+          description: SQLite and MariaDB database support with flexible configuration
+        - kind: added
+          description: Complete Makefile operational commands (backup, restore, password management)
+        - kind: added
+          description: 4 deployment scenario values files (home, startup, production)
+      artifacthub.io/license: BSD-3-Clause
+      artifacthub.io/links: |
+        - name: Chart Source
+          url: https://github.com/scriptonbasestar-container/sb-helm-charts/tree/master/charts/uptime-kuma
+        - name: Uptime Kuma Documentation
+          url: https://github.com/louislam/uptime-kuma/wiki
+      artifacthub.io/prerelease: "false"
+      artifacthub.io/recommendations: |
+        - url: https://github.com/scriptonbasestar-container/sb-helm-charts/blob/master/docs/SCENARIO_VALUES_GUIDE.md
+          description: Scenario Values Deployment Guide
+        - url: https://github.com/scriptonbasestar-container/sb-helm-charts/blob/master/docs/CHART_DEVELOPMENT_GUIDE.md
+          description: Chart Development Guide
+    apiVersion: v2
+    appVersion: 2.0.2
+    created: "2025-12-09T07:55:40.509684468Z"
+    description: Self-hosted monitoring tool with beautiful UI and 90+ notification
+      services
+    digest: a2de58829d847ad7a3b113d78c3d78769f08a270bba873131e8465289509c74b
+    home: https://uptime.kuma.pet
+    icon: https://uptime.kuma.pet/img/icon.svg
+    keywords:
+    - uptime-kuma
+    - monitoring
+    - uptime
+    - status-page
+    - alerting
+    - self-hosted
+    - notifications
+    - health-check
+    maintainers:
+    - email: archmagece@users.noreply.github.com
+      name: archmagece
+    name: uptime-kuma
+    sources:
+    - https://github.com/scriptonbasestar-container/sb-helm-charts
+    - https://github.com/louislam/uptime-kuma
+    - https://hub.docker.com/r/louislam/uptime-kuma
+    type: application
+    urls:
+    - https://github.com/ScriptonBasestar-containers/sb-helm-charts/releases/download/uptime-kuma-0.4.0/uptime-kuma-0.4.0.tgz
+    version: 0.4.0
   - annotations:
       artifacthub.io/changes: |
         - kind: changed
@@ -2162,6 +2819,55 @@ entries:
     - https://github.com/ScriptonBasestar-containers/sb-helm-charts/releases/download/uptime-kuma-0.1.0/uptime-kuma-0.1.0.tgz
     version: 0.1.0
   vaultwarden:
+  - annotations:
+      artifacthub.io/changes: |
+        - kind: changed
+          description: Promoted to version 0.3.0 (Mature - production-ready)
+        - kind: added
+          description: Complete Makefile operational commands (backup, restore, admin panel)
+        - kind: added
+          description: Auto-switching workload type (StatefulSet for SQLite, Deployment for external DB)
+        - kind: added
+          description: Comprehensive README with Bitwarden comparison and deployment scenarios
+        - kind: added
+          description: Admin panel security guide and token management
+      artifacthub.io/license: BSD-3-Clause
+      artifacthub.io/links: |
+        - name: Chart Source
+          url: https://github.com/scriptonbasestar-container/sb-helm-charts/tree/master/charts/vaultwarden
+        - name: Vaultwarden Documentation
+          url: https://github.com/dani-garcia/vaultwarden/wiki
+      artifacthub.io/prerelease: "false"
+      artifacthub.io/recommendations: |
+        - url: https://github.com/scriptonbasestar-container/sb-helm-charts/blob/master/docs/SCENARIO_VALUES_GUIDE.md
+          description: Scenario Values Deployment Guide
+        - url: https://github.com/scriptonbasestar-container/sb-helm-charts/blob/master/docs/CHART_DEVELOPMENT_GUIDE.md
+          description: Chart Development Guide
+      category: Security
+    apiVersion: v2
+    appVersion: 1.34.3
+    created: "2025-12-09T07:55:40.670724993Z"
+    description: Unofficial Bitwarden-compatible password manager written in Rust
+    digest: e6f3cc536693210a42deee8484b45ec81a3047057c98c79f470fc4cd076be985
+    home: https://github.com/dani-garcia/vaultwarden
+    icon: https://raw.githubusercontent.com/dani-garcia/vaultwarden/main/resources/vaultwarden-icon.svg
+    keywords:
+    - vaultwarden
+    - bitwarden
+    - password-manager
+    - secrets
+    - security
+    maintainers:
+    - email: archmagece@users.noreply.github.com
+      name: archmagece
+    name: vaultwarden
+    sources:
+    - https://github.com/scriptonbasestar-container/sb-helm-charts/tree/master/charts/vaultwarden
+    - https://github.com/dani-garcia/vaultwarden
+    type: application
+    urls:
+    - https://github.com/ScriptonBasestar-containers/sb-helm-charts/releases/download/vaultwarden-0.4.0/vaultwarden-0.4.0.tgz
+    version: 0.4.0
   - annotations:
       artifacthub.io/changes: |
         - kind: changed
@@ -2417,6 +3123,59 @@ entries:
         - url: https://github.com/scriptonbasestar-container/sb-helm-charts/blob/master/docs/CHART_DEVELOPMENT_GUIDE.md
           description: Chart Development Guide
     apiVersion: v2
+    appVersion: "6.8"
+    created: "2025-12-09T07:55:40.866305721Z"
+    description: The world's most popular CMS - WordPress with MySQL/MariaDB
+    digest: c880791da718356baab7dca82a47e1e4400af0419d90eb890b06933759c64d9d
+    home: https://wordpress.org/
+    icon: https://www.svgrepo.com/show/349553/wordpress.svg
+    keywords:
+    - wordpress
+    - blog
+    - cms
+    - php
+    - content-management
+    - website
+    - publishing
+    maintainers:
+    - email: archmagece@users.noreply.github.com
+      name: archmagece
+    name: wordpress
+    sources:
+    - https://github.com/scriptonbasestar-container/sb-helm-charts
+    - https://github.com/wordpress/wordpress
+    - https://hub.docker.com/_/wordpress
+    type: application
+    urls:
+    - https://github.com/ScriptonBasestar-containers/sb-helm-charts/releases/download/wordpress-0.4.0/wordpress-0.4.0.tgz
+    version: 0.4.0
+  - annotations:
+      artifacthub.io/changes: |
+        - kind: changed
+          description: Promoted to version 0.3.0 (Mature - production-ready)
+        - kind: added
+          description: wp-cli integration for WordPress management (core, plugins, themes)
+        - kind: added
+          description: External MySQL/MariaDB database support with flexible configuration
+        - kind: added
+          description: Apache-based WordPress image with production optimizations
+        - kind: added
+          description: Complete Makefile operational commands (wp-cli, wp-install, wp-update)
+        - kind: added
+          description: 4 deployment scenario values files (home, startup, production)
+      artifacthub.io/license: BSD-3-Clause
+      artifacthub.io/links: |
+        - name: Chart Source
+          url: https://github.com/scriptonbasestar-container/sb-helm-charts/tree/master/charts/wordpress
+        - name: WordPress Documentation
+          url: https://wordpress.org/documentation/
+      artifacthub.io/prerelease: "false"
+      artifacthub.io/recommendations: |
+        - url: https://github.com/scriptonbasestar-container/sb-helm-charts/blob/master/docs/SCENARIO_VALUES_GUIDE.md
+          description: Scenario Values Deployment Guide
+        - url: https://github.com/scriptonbasestar-container/sb-helm-charts/blob/master/docs/CHART_DEVELOPMENT_GUIDE.md
+          description: Chart Development Guide
+    apiVersion: v2
     appVersion: 6.4.3
     created: "2025-11-17T07:18:06.957559596Z"
     description: The world's most popular CMS - WordPress with MySQL/MariaDB
@@ -2512,4 +3271,4 @@ entries:
     urls:
     - https://github.com/ScriptonBasestar-containers/sb-helm-charts/releases/download/wordpress-0.1.0/wordpress-0.1.0.tgz
     version: 0.1.0
-generated: "2025-11-25T08:12:01.920619124Z"
+generated: "2025-12-09T07:55:40.866508438Z"
