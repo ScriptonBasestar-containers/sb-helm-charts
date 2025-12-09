@@ -350,3 +350,147 @@ lifecycle: {}
   # preStop:
   #   exec:
   #     command: ["/bin/sh", "-c", "sleep 5"]
+
+# ==================================================================================
+# BACKUP & RECOVERY
+# ==================================================================================
+# This section is for documentation only. MinIO backups are performed manually
+# via Makefile targets (make -f make/ops/minio.mk minio-*-backup).
+# See: docs/minio-backup-guide.md for comprehensive backup/recovery procedures.
+#
+# Backup Components:
+# - Bucket Data: Object storage, versions, metadata, multipart uploads (Critical)
+# - Bucket Metadata: Policies, versioning, lifecycle rules, replication (Critical)
+# - Configuration: Server config, environment variables, Kubernetes resources (Important)
+# - IAM Policies: Users, groups, policies, access keys (Important)
+#
+# Backup Methods:
+# - Site Replication: Continuous multi-site replication (production HA)
+# - Bucket Replication: Selective bucket-level replication (S3-compatible)
+# - mc mirror: Scheduled sync using MinIO client (simple, effective)
+# - mc cp: Object-level copy (selective backups)
+# - PVC Snapshots: Kubernetes VolumeSnapshots (instant, storage-level)
+# - Restic: Incremental backups with deduplication (efficient, flexible)
+#
+# Quick Commands:
+#   make -f make/ops/minio.mk minio-full-backup          # All components
+#   make -f make/ops/minio.mk minio-backup-buckets       # Bucket data
+#   make -f make/ops/minio.mk minio-backup-config        # Configuration
+#   make -f make/ops/minio.mk minio-backup-iam           # IAM policies
+#   make -f make/ops/minio.mk minio-backup-metadata      # Bucket metadata
+#
+# Recovery Time Objectives (RTO) / Recovery Point Objectives (RPO):
+# - Bucket Metadata: RTO <30 min, RPO 24 hours
+# - Configuration: RTO <15 min, RPO 24 hours
+# - IAM Policies: RTO <15 min, RPO 24 hours
+# - Full Disaster Recovery: RTO <2 hours, RPO 24 hours
+# - Object-level Recovery: RTO <1 hour, RPO Real-time (with versioning)
+# ==================================================================================
+backup:
+  # enabled: false - Documentation only, no automated CronJobs
+  # All backups are performed manually via Makefile targets
+  documentation:
+    strategy: "Bucket Data + Bucket Metadata + Configuration + IAM Policies"
+    tools:
+      - "mc (MinIO Client)"
+      - "kubectl (Kubernetes CLI)"
+      - "VolumeSnapshots (CSI driver)"
+      - "Restic (optional)"
+    components:
+      bucket_data: "Object storage, versions, metadata, multipart uploads (Critical)"
+      bucket_metadata: "Policies, versioning, lifecycle rules, replication (Critical)"
+      configuration: "Server config, environment variables, Kubernetes resources (Important)"
+      iam_policies: "Users, groups, policies, access keys (Important)"
+    targets:
+      rto: "< 2 hours (full disaster recovery)"
+      rpo: "24 hours (daily backups recommended)"
+
+# ==================================================================================
+# UPGRADE PROCEDURES
+# ==================================================================================
+# This section is for documentation only. MinIO upgrades are performed manually
+# via Helm upgrade commands with pre/post validation via Makefile targets.
+# See: docs/minio-upgrade-guide.md for comprehensive upgrade procedures.
+#
+# Upgrade Strategies:
+# 1. Rolling Upgrade (Zero Downtime):
+#    - For distributed mode (4+ nodes)
+#    - Pods upgraded sequentially while maintaining quorum
+#    - Recommended for production deployments
+#    - Downtime: None
+#
+# 2. In-Place Upgrade (Planned Downtime):
+#    - For standalone mode (1 node)
+#    - Simple upgrade with brief service interruption
+#    - Downtime: 5-15 minutes
+#
+# 3. Blue-Green Deployment (Minimal Risk):
+#    - Deploy new cluster parallel to existing
+#    - Test thoroughly before cutover
+#    - Instant rollback capability
+#    - Downtime: <1 minute (DNS/traffic switch)
+#
+# 4. Canary Upgrade (Gradual Rollout):
+#    - Start with 1 pod, gradually expand
+#    - Monitor each stage before proceeding
+#    - Early issue detection
+#    - Downtime: None (distributed mode)
+#
+# Pre-Upgrade Checklist:
+#   make -f make/ops/minio.mk minio-pre-upgrade-check   # Validation
+#   make -f make/ops/minio.mk minio-full-backup         # Backup all components
+#
+# Post-Upgrade Validation:
+#   make -f make/ops/minio.mk minio-post-upgrade-check  # Automated validation
+#
+# Rollback:
+#   make -f make/ops/minio.mk minio-upgrade-rollback    # Helm rollback
+#
+# Version-Specific Notes:
+# - RELEASE.2023.x → 2024.x: Review mc client compatibility
+# - RELEASE.2022.x → 2024.x: Test bucket versioning, lifecycle policies
+# - Distributed Mode Scaling: Maintain even number of drives per set
+# - Erasure Coding Changes: Verify data redundancy settings
+# ==================================================================================
+upgrade:
+  # enabled: false - Documentation only, upgrades are manual via Helm
+  # Always backup before upgrading: make -f make/ops/minio.mk minio-full-backup
+  preUpgradeBackup: true  # Strongly recommended
+  documentation:
+    strategies:
+      rolling:
+        description: "Zero downtime upgrade for distributed mode (4+ nodes)"
+        downtime: "None"
+        steps:
+          - "Verify distributed mode (replicaCount >= 4)"
+          - "Set updateStrategy.type=RollingUpdate"
+          - "helm upgrade with new image.tag"
+          - "Monitor rollout status"
+          - "Validate cluster health"
+      in_place:
+        description: "Planned downtime upgrade for standalone mode (1 node)"
+        downtime: "5-15 minutes"
+        steps:
+          - "Schedule maintenance window"
+          - "helm upgrade with new image.tag"
+          - "Wait for pod restart"
+          - "Validate service health"
+      blue_green:
+        description: "Parallel cluster deployment with traffic switch"
+        downtime: "<1 minute (traffic switch)"
+        steps:
+          - "Deploy new cluster (different namespace)"
+          - "Sync data (site replication or mc mirror)"
+          - "Test new cluster thoroughly"
+          - "Switch traffic (update DNS/ingress)"
+          - "Monitor new cluster"
+          - "Decommission old cluster after validation"
+      canary:
+        description: "Gradual rollout starting with 1 pod"
+        downtime: "None (distributed mode)"
+        steps:
+          - "Set updateStrategy.rollingUpdate.partition to control rollout"
+          - "Upgrade 1 pod, monitor health"
+          - "Gradually decrease partition value"
+          - "Monitor cluster health at each stage"
+          - "Complete rollout when validated"
