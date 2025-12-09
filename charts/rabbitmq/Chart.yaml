@@ -1,6 +1,6 @@
 apiVersion: v2
 name: rabbitmq
-version: 0.3.1
+version: 0.4.0
 appVersion: "3.13.1"
 type: application
 description: A Helm chart for RabbitMQ message broker with management UI and Prometheus metrics

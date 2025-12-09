@@ -11,7 +11,7 @@ annotations:
       description: Fix chart icon URL to use working memcached banner image
   artifacthub.io/prerelease: "false"
 
-version: 0.3.3
+version: 0.4.0
 appVersion: "1.6.39"
 keywords:
   - memcached

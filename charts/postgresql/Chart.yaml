@@ -2,7 +2,7 @@ apiVersion: v2
 name: postgresql
 description: PostgreSQL relational database with replication support
 type: application
-version: 0.3.0
+version: 0.4.0
 appVersion: "16.11"
 keywords:
   - postgresql

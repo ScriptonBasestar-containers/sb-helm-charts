@@ -2,7 +2,7 @@ apiVersion: v2
 name: prometheus
 description: Prometheus monitoring system and time series database for Kubernetes
 type: application
-version: 0.3.0
+version: 0.4.0
 appVersion: "3.7.3"
 keywords:
   - prometheus

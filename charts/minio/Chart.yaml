@@ -2,7 +2,7 @@ apiVersion: v2
 name: minio
 description: High-performance S3-compatible object storage with distributed architecture
 type: application
-version: 0.3.0
+version: 0.4.0
 appVersion: "RELEASE.2025-10-15T17-29-55Z"
 
 keywords:

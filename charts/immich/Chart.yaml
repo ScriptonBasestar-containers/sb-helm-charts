@@ -2,7 +2,7 @@ apiVersion: v2
 name: immich
 description: High-performance self-hosted photo and video management solution with AI-powered features
 type: application
-version: 0.3.0
+version: 0.4.0
 appVersion: "v1.122.3"
 icon: https://raw.githubusercontent.com/immich-app/immich/main/design/immich-logo.svg
 keywords:

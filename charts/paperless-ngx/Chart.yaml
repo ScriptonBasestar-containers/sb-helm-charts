@@ -2,7 +2,7 @@ apiVersion: v2
 name: paperless-ngx
 description: A powerful open-source document management system with OCR, full-text search, and modern web UI
 type: application
-version: 0.3.0
+version: 0.4.0
 appVersion: "2.19.6"
 keywords:
   - paperless

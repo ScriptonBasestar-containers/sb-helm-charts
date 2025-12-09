@@ -2,7 +2,7 @@ apiVersion: v2
 name: tempo
 description: Grafana Tempo distributed tracing backend with S3/MinIO storage support
 type: application
-version: 0.3.0
+version: 0.4.0
 appVersion: "2.9.0"
 keywords:
   - tempo

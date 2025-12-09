@@ -2,7 +2,7 @@ apiVersion: v2
 name: promtail
 description: Promtail log collection agent for Loki with Kubernetes integration
 type: application
-version: 0.3.0
+version: 0.4.0
 appVersion: "3.6.1"
 keywords:
   - promtail
