@@ -505,6 +505,904 @@ helm upgrade jellyfin sb-charts/jellyfin \
    - Dashboard → Playback → Transcoding
    - Reduce encoder preset (slower = better quality but higher CPU)
 
+## Backup & Recovery
+
+Comprehensive backup and recovery procedures for Jellyfin deployments.
+
+### Backup Components
+
+Jellyfin backup strategy covers 4 components:
+
+| Component | Priority | Size | Backup Method |
+|-----------|----------|------|---------------|
+| **Config PVC** | 🔴 Critical | 100MB-1GB | tar, Restic, VolumeSnapshot |
+| **Media Files** | 🔴 Critical | Variable (TB+) | NAS/External Backup |
+| **Transcoding Cache** | ⚪ Skip | 5-50GB | Not backed up (rebuildable) |
+| **Configuration** | 🟡 Important | <1MB | ConfigMap export |
+
+### Quick Backup Commands
+
+```bash
+# Full backup (config + database + settings)
+make -f make/ops/jellyfin.mk jellyfin-full-backup
+
+# Config-only backup (fastest)
+make -f make/ops/jellyfin.mk jellyfin-backup-config
+
+# Database-only backup (SQLite)
+make -f make/ops/jellyfin.mk jellyfin-backup-database
+
+# Check backup status
+make -f make/ops/jellyfin.mk jellyfin-backup-status
+```
+
+**Output**: Backups saved to `tmp/jellyfin-backups/backup-YYYYMMDD-HHMMSS.tar.gz`
+
+### Recovery Workflow
+
+Complete disaster recovery in 4 steps:
+
+```bash
+# 1. Install fresh Jellyfin chart
+helm install jellyfin sb-charts/jellyfin -f values.yaml
+
+# 2. Restore configuration
+make -f make/ops/jellyfin.mk jellyfin-restore-config \
+  FILE=tmp/jellyfin-backups/backup-20250109-143022.tar.gz
+
+# 3. Restore database (if separate backup)
+make -f make/ops/jellyfin.mk jellyfin-restore-database \
+  FILE=tmp/jellyfin-backups/library-db-20250109-143022.sql
+
+# 4. Restart pod to apply changes
+kubectl rollout restart deployment/jellyfin
+```
+
+**Validation**:
+```bash
+# Verify libraries restored
+make -f make/ops/jellyfin.mk jellyfin-check-libraries
+
+# Check plugin compatibility
+make -f make/ops/jellyfin.mk jellyfin-check-plugins
+```
+
+### Backup Strategies
+
+**1. Automated Daily Backups (Recommended)**
+
+Create a CronJob for automated backups:
+
+```yaml
+# backup-cronjob.yaml
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: jellyfin-backup
+spec:
+  schedule: "0 2 * * *"  # 2 AM daily
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          serviceAccountName: jellyfin
+          containers:
+          - name: backup
+            image: alpine:3.18
+            command:
+            - /bin/sh
+            - -c
+            - |
+              apk add --no-cache tar gzip
+              cd /config
+              tar czf /backup/config-$(date +%Y%m%d-%H%M%S).tar.gz .
+              # Keep only last 7 days
+              find /backup -name "config-*.tar.gz" -mtime +7 -delete
+            volumeMounts:
+            - name: config
+              mountPath: /config
+            - name: backup
+              mountPath: /backup
+          volumes:
+          - name: config
+            persistentVolumeClaim:
+              claimName: jellyfin-config
+          - name: backup
+            persistentVolumeClaim:
+              claimName: jellyfin-backups
+          restartPolicy: OnFailure
+```
+
+**2. Restic Incremental Backups**
+
+Efficient incremental backups with deduplication:
+
+```bash
+# Initialize Restic repository
+export RESTIC_REPOSITORY=s3:s3.amazonaws.com/my-backups/jellyfin
+export RESTIC_PASSWORD=<secure-password>
+restic init
+
+# Backup config PVC
+kubectl exec -it jellyfin-0 -- tar czf - /config | \
+  restic backup --stdin --stdin-filename jellyfin-config.tar.gz
+
+# Verify backup
+restic snapshots
+
+# Restore specific snapshot
+restic restore latest --target /restore/
+```
+
+**3. Volume Snapshots (Fastest)**
+
+Use Kubernetes VolumeSnapshot API for instant backups:
+
+```yaml
+# volumesnapshot.yaml
+apiVersion: snapshot.storage.k8s.io/v1
+kind: VolumeSnapshot
+metadata:
+  name: jellyfin-config-snapshot
+spec:
+  volumeSnapshotClassName: csi-hostpath-snapclass
+  source:
+    persistentVolumeClaimName: jellyfin-config
+```
+
+### Backup Best Practices
+
+**DO:**
+- ✅ Backup config PVC daily (contains SQLite database + metadata)
+- ✅ Backup before upgrades
+- ✅ Test restore procedures quarterly
+- ✅ Store backups offsite (S3, NAS, etc.)
+- ✅ Verify backup integrity with checksums
+
+**DON'T:**
+- ❌ Backup transcoding cache (temporary data, rebuildable)
+- ❌ Rely on media file backups if on external NAS (separate concern)
+- ❌ Store backups on same PVC
+
+### Recovery Time Objectives (RTO/RPO)
+
+| Scenario | RTO (Recovery Time) | RPO (Recovery Point) |
+|----------|---------------------|---------------------|
+| **Config Restore** | < 30 minutes | 24 hours |
+| **Database Restore** | < 1 hour | 24 hours |
+| **Full Disaster Recovery** | < 4 hours | 24 hours |
+| **Media Library Rescan** | Variable (depends on library size) | N/A |
+
+**For comprehensive backup procedures**, see [Jellyfin Backup Guide](../../docs/jellyfin-backup-guide.md).
+
+---
+
+## Security & RBAC
+
+Role-Based Access Control (RBAC) and security features for Jellyfin deployments.
+
+### RBAC Resources
+
+This chart creates namespace-scoped RBAC resources:
+
+**Resources Created:**
+- `Role`: Defines permissions for Jellyfin operations
+- `RoleBinding`: Binds Role to ServiceAccount
+- `ServiceAccount`: Pod identity for RBAC
+
+**Permissions Granted** (read-only):
+```yaml
+- configmaps: [get, list, watch]       # Configuration
+- secrets: [get, list, watch]          # Credentials
+- pods: [get, list, watch]             # Health checks
+- services: [get, list, watch]         # Service discovery
+- endpoints: [get, list, watch]        # Service discovery
+- persistentvolumeclaims: [get, list, watch]  # Storage operations
+```
+
+### RBAC Configuration
+
+**Enable/Disable RBAC:**
+
+```yaml
+# values.yaml
+rbac:
+  create: true  # Enable RBAC (default)
+  annotations:
+    description: "Jellyfin RBAC for config and media access"
+```
+
+**Disable RBAC** (not recommended):
+
+```bash
+helm install jellyfin sb-charts/jellyfin --set rbac.create=false
+```
+
+### Security Context
+
+**Pod-level security:**
+
+```yaml
+# values.yaml
+podSecurityContext:
+  fsGroup: 1000          # Jellyfin user group
+  runAsUser: 1000        # Jellyfin user
+  runAsNonRoot: true
+  supplementalGroups:    # Auto-added for GPU access
+    - 44   # video group (Intel QSV, AMD VAAPI)
+    - 109  # render group (Intel QSV, AMD VAAPI)
+```
+
+**Container-level security:**
+
+```yaml
+# values.yaml
+securityContext:
+  allowPrivilegeEscalation: false
+  capabilities:
+    drop:
+      - ALL
+  readOnlyRootFilesystem: false  # Jellyfin needs write access to /tmp
+```
+
+### Network Policies
+
+Restrict network access to Jellyfin:
+
+```yaml
+# network-policy.yaml
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: jellyfin-netpol
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: jellyfin
+  policyTypes:
+    - Ingress
+    - Egress
+  ingress:
+    # Allow HTTP traffic from ingress controller
+    - from:
+      - namespaceSelector:
+          matchLabels:
+            name: ingress-nginx
+      ports:
+      - protocol: TCP
+        port: 8096
+    # Allow service discovery port
+    - from:
+      - namespaceSelector:
+          matchLabels:
+            name: default
+      ports:
+      - protocol: UDP
+        port: 7359
+  egress:
+    # Allow DNS
+    - to:
+      - namespaceSelector:
+          matchLabels:
+            name: kube-system
+      ports:
+      - protocol: UDP
+        port: 53
+    # Allow external metadata providers
+    - to:
+      - podSelector: {}
+      ports:
+      - protocol: TCP
+        port: 443
+```
+
+### Security Best Practices
+
+**DO:**
+- ✅ Enable RBAC (default)
+- ✅ Use non-root user (fsGroup: 1000)
+- ✅ Apply NetworkPolicy to restrict traffic
+- ✅ Enable TLS/SSL on ingress
+- ✅ Use secrets for sensitive data
+- ✅ Regularly update plugins and Jellyfin version
+
+**DON'T:**
+- ❌ Run as root user
+- ❌ Disable RBAC in production
+- ❌ Expose port 8096 directly (use ingress with TLS)
+- ❌ Store credentials in ConfigMaps (use Secrets)
+
+### RBAC Verification
+
+**Verify RBAC resources:**
+
+```bash
+# Check Role
+kubectl get role jellyfin-role -o yaml
+
+# Check RoleBinding
+kubectl get rolebinding jellyfin-rolebinding -o yaml
+
+# Check ServiceAccount
+kubectl get serviceaccount jellyfin -o yaml
+```
+
+**Test RBAC permissions:**
+
+```bash
+# Test read access to ConfigMaps
+kubectl auth can-i get configmaps --as=system:serviceaccount:default:jellyfin
+# Expected: yes
+
+# Test write access to ConfigMaps (should fail)
+kubectl auth can-i create configmaps --as=system:serviceaccount:default:jellyfin
+# Expected: no
+```
+
+---
+
+## Operations
+
+Daily operations, monitoring, and maintenance for Jellyfin deployments.
+
+### Daily Operations
+
+**Access Jellyfin:**
+
+```bash
+# Get web UI URL
+make -f make/ops/jellyfin.mk jellyfin-get-url
+
+# Port forward to localhost:8096
+make -f make/ops/jellyfin.mk jellyfin-port-forward
+# Open http://localhost:8096
+```
+
+**Shell Access:**
+
+```bash
+# Interactive shell
+make -f make/ops/jellyfin.mk jellyfin-shell
+
+# Execute one-off command
+kubectl exec -it deployment/jellyfin -- ls -la /config
+```
+
+**Log Management:**
+
+```bash
+# Tail logs (follow)
+make -f make/ops/jellyfin.mk jellyfin-logs
+
+# View last 100 lines
+kubectl logs deployment/jellyfin --tail=100
+
+# Search logs for errors
+kubectl logs deployment/jellyfin | grep -i error
+```
+
+### Monitoring & Health Checks
+
+**Resource Usage:**
+
+```bash
+# Show CPU/memory usage
+make -f make/ops/jellyfin.mk jellyfin-stats
+
+# Describe pod
+make -f make/ops/jellyfin.mk jellyfin-describe
+
+# Show events
+make -f make/ops/jellyfin.mk jellyfin-events
+```
+
+**Health Endpoints:**
+
+```bash
+# Check liveness (port 8096)
+kubectl exec deployment/jellyfin -- wget -qO- http://localhost:8096/health
+
+# Check readiness
+kubectl exec deployment/jellyfin -- wget -qO- http://localhost:8096/health
+```
+
+**Storage Usage:**
+
+```bash
+# Check config directory size
+make -f make/ops/jellyfin.mk jellyfin-check-config
+
+# Check transcoding cache usage
+make -f make/ops/jellyfin.mk jellyfin-check-cache
+
+# Check media directories
+make -f make/ops/jellyfin.mk jellyfin-check-media
+```
+
+### Database Operations
+
+Jellyfin uses SQLite for metadata storage.
+
+**Database Backup:**
+
+```bash
+# Backup library.db (SQLite database)
+make -f make/ops/jellyfin.mk jellyfin-backup-database
+
+# Output: tmp/jellyfin-backups/library-db-YYYYMMDD-HHMMSS.sql
+```
+
+**Database Maintenance:**
+
+```bash
+# Vacuum database (reclaim space)
+make -f make/ops/jellyfin.mk jellyfin-db-vacuum
+
+# Check database integrity
+make -f make/ops/jellyfin.mk jellyfin-db-check
+
+# Analyze database (optimize query performance)
+make -f make/ops/jellyfin.mk jellyfin-db-analyze
+```
+
+**Database Statistics:**
+
+```bash
+# Show database size and table counts
+make -f make/ops/jellyfin.mk jellyfin-db-stats
+```
+
+### Plugin Management
+
+**List Installed Plugins:**
+
+```bash
+# Show all installed plugins
+make -f make/ops/jellyfin.mk jellyfin-list-plugins
+
+# Check plugin versions
+make -f make/ops/jellyfin.mk jellyfin-check-plugins
+```
+
+**Plugin Compatibility:**
+
+```bash
+# Before upgrading Jellyfin, check plugin compatibility
+make -f make/ops/jellyfin.mk jellyfin-plugin-compatibility TARGET_VERSION=10.11.0
+```
+
+**Plugin Updates:**
+
+Plugins are typically updated through the Jellyfin web UI:
+1. Dashboard → Plugins
+2. Catalog → Select plugin → Install
+3. Restart Jellyfin
+
+### Transcoding Operations
+
+**Check GPU Status:**
+
+```bash
+# Verify GPU access and hardware acceleration
+make -f make/ops/jellyfin.mk jellyfin-check-gpu
+```
+
+**Cache Management:**
+
+```bash
+# Check cache usage
+make -f make/ops/jellyfin.mk jellyfin-check-cache
+
+# Clear transcoding cache (WARNING: destroys in-progress transcodes)
+make -f make/ops/jellyfin.mk jellyfin-clear-cache
+```
+
+**Transcoding Performance:**
+
+```bash
+# Monitor active transcodes
+make -f make/ops/jellyfin.mk jellyfin-active-transcodes
+
+# Check transcoding logs
+kubectl logs deployment/jellyfin | grep -i "transcode"
+```
+
+### Performance Tuning
+
+**Resource Adjustments:**
+
+```bash
+# Increase CPU/memory limits
+helm upgrade jellyfin sb-charts/jellyfin \
+  --reuse-values \
+  --set resources.limits.cpu=8000m \
+  --set resources.limits.memory=8Gi
+```
+
+**Cache Size Optimization:**
+
+```bash
+# Increase transcoding cache for more concurrent streams
+helm upgrade jellyfin sb-charts/jellyfin \
+  --reuse-values \
+  --set persistence.cache.size=50Gi
+```
+
+**Enable GPU Acceleration** (if not already enabled):
+
+```bash
+# Intel QSV
+helm upgrade jellyfin sb-charts/jellyfin \
+  --reuse-values \
+  --set jellyfin.hardwareAcceleration.enabled=true \
+  --set jellyfin.hardwareAcceleration.type=intel-qsv
+```
+
+### Troubleshooting Common Issues
+
+**Pod Not Starting:**
+
+```bash
+# Check pod events
+make -f make/ops/jellyfin.mk jellyfin-events
+
+# Check pod status
+kubectl describe pod -l app.kubernetes.io/name=jellyfin
+
+# Check logs
+make -f make/ops/jellyfin.mk jellyfin-logs
+```
+
+**Media Library Not Scanning:**
+
+```bash
+# Check media directory mounts
+make -f make/ops/jellyfin.mk jellyfin-check-media
+
+# Trigger manual library scan (via web UI)
+# Dashboard → Libraries → Scan All Libraries
+```
+
+**High CPU Usage:**
+
+1. Enable GPU hardware acceleration (see Configuration section)
+2. Reduce concurrent transcodes (Dashboard → Playback → Streaming)
+3. Lower transcoding quality preset
+
+**Database Corruption:**
+
+```bash
+# Check database integrity
+make -f make/ops/jellyfin.mk jellyfin-db-check
+
+# If corrupted, restore from backup
+make -f make/ops/jellyfin.mk jellyfin-restore-database \
+  FILE=tmp/jellyfin-backups/library-db-20250109-143022.sql
+```
+
+### Maintenance Windows
+
+**Planned Maintenance:**
+
+```bash
+# 1. Backup before maintenance
+make -f make/ops/jellyfin.mk jellyfin-full-backup
+
+# 2. Scale down to 0 replicas
+kubectl scale deployment jellyfin --replicas=0
+
+# 3. Perform maintenance (upgrade, migrate, etc.)
+
+# 4. Scale up
+kubectl scale deployment jellyfin --replicas=1
+
+# 5. Verify health
+make -f make/ops/jellyfin.mk jellyfin-stats
+```
+
+---
+
+## Upgrading
+
+Comprehensive procedures for upgrading Jellyfin deployments.
+
+### Pre-Upgrade Checklist
+
+**CRITICAL: Complete these steps before upgrading:**
+
+1. **Backup Everything:**
+   ```bash
+   make -f make/ops/jellyfin.mk jellyfin-full-backup
+   ```
+
+2. **Check Plugin Compatibility:**
+   ```bash
+   make -f make/ops/jellyfin.mk jellyfin-plugin-compatibility TARGET_VERSION=10.11.0
+   ```
+
+3. **Review Release Notes:**
+   - [Jellyfin Releases](https://github.com/jellyfin/jellyfin/releases)
+   - Check for breaking changes
+   - Note FFmpeg version changes
+
+4. **Verify Current State:**
+   ```bash
+   # Check current version
+   kubectl get deployment jellyfin -o jsonpath='{.spec.template.spec.containers[0].image}'
+
+   # Check pod health
+   make -f make/ops/jellyfin.mk jellyfin-stats
+   ```
+
+5. **Check Storage Space:**
+   ```bash
+   # Ensure enough space for database migration
+   make -f make/ops/jellyfin.mk jellyfin-check-config
+   make -f make/ops/jellyfin.mk jellyfin-check-cache
+   ```
+
+6. **Test in Staging:**
+   - Deploy same version to staging environment
+   - Restore production backup to staging
+   - Perform test upgrade
+   - Validate functionality
+
+7. **Plan Maintenance Window:**
+   - **Minimal downtime**: Use Rolling Upgrade (3-5 minutes)
+   - **Zero downtime**: Use Blue-Green Deployment (30-60 minutes setup)
+   - **Full restart**: Use Maintenance Window (10-20 minutes)
+
+8. **Notify Users:**
+   - Announce upgrade window
+   - Warn about brief service interruption
+
+### Upgrade Strategies
+
+This chart supports 3 upgrade strategies:
+
+#### Strategy 1: Rolling Upgrade (Recommended)
+
+**Minimal downtime (3-5 minutes)** - Recommended for production.
+
+```bash
+# 1. Backup first
+make -f make/ops/jellyfin.mk jellyfin-full-backup
+
+# 2. Update chart
+helm upgrade jellyfin sb-charts/jellyfin \
+  --reuse-values \
+  --set image.tag=10.11.0
+
+# 3. Monitor rollout
+kubectl rollout status deployment/jellyfin
+
+# 4. Verify health
+make -f make/ops/jellyfin.mk jellyfin-stats
+make -f make/ops/jellyfin.mk jellyfin-get-url
+```
+
+**Limitations:**
+- ⚠️ Brief interruption during pod restart (SQLite locking)
+- ⚠️ Active transcodes will be interrupted
+
+#### Strategy 2: Blue-Green Deployment
+
+**Low-risk with instant rollback capability.**
+
+```bash
+# 1. Deploy new version alongside old (green)
+helm install jellyfin-green sb-charts/jellyfin \
+  -f values.yaml \
+  --set image.tag=10.11.0 \
+  --set nameOverride=jellyfin-green
+
+# 2. Share same PVCs
+helm upgrade jellyfin-green sb-charts/jellyfin \
+  --reuse-values \
+  --set persistence.config.existingClaim=jellyfin-config \
+  --set persistence.cache.existingClaim=jellyfin-cache
+
+# 3. Validate new version
+make -f make/ops/jellyfin.mk jellyfin-port-forward RELEASE=jellyfin-green
+# Test at http://localhost:8096
+
+# 4. Switch ingress to green
+kubectl patch ingress jellyfin -p '{"spec":{"rules":[{"http":{"paths":[{"backend":{"service":{"name":"jellyfin-green"}}}]}}]}}'
+
+# 5. Verify traffic switched
+make -f make/ops/jellyfin.mk jellyfin-get-url
+
+# 6. Keep old version for 24h, then delete
+helm uninstall jellyfin  # Delete old blue version
+```
+
+**Rollback (if issues):**
+```bash
+# Switch ingress back to blue
+kubectl patch ingress jellyfin -p '{"spec":{"rules":[{"http":{"paths":[{"backend":{"service":{"name":"jellyfin"}}}]}}]}}'
+```
+
+#### Strategy 3: Maintenance Window
+
+**Simple upgrade with full downtime (10-20 minutes).**
+
+```bash
+# 1. Backup
+make -f make/ops/jellyfin.mk jellyfin-full-backup
+
+# 2. Uninstall old version
+helm uninstall jellyfin
+
+# 3. Install new version
+helm install jellyfin sb-charts/jellyfin \
+  -f values.yaml \
+  --set image.tag=10.11.0
+
+# 4. Verify
+make -f make/ops/jellyfin.mk jellyfin-stats
+```
+
+**Use when:**
+- ✅ Major version upgrade (10.x → 11.x)
+- ✅ Database schema changes required
+- ✅ Downtime is acceptable
+
+### Post-Upgrade Validation
+
+**Run these checks after every upgrade:**
+
+```bash
+# 1. Check pod status
+kubectl get pods -l app.kubernetes.io/name=jellyfin
+
+# 2. Verify version
+kubectl exec deployment/jellyfin -- /jellyfin/jellyfin --version
+
+# 3. Check logs for errors
+make -f make/ops/jellyfin.mk jellyfin-logs | grep -i error
+
+# 4. Test web UI
+make -f make/ops/jellyfin.mk jellyfin-get-url
+
+# 5. Verify libraries loaded
+# Dashboard → Libraries → Check all libraries visible
+
+# 6. Test playback
+# Play a video file to ensure transcoding works
+
+# 7. Verify GPU acceleration (if enabled)
+make -f make/ops/jellyfin.mk jellyfin-check-gpu
+
+# 8. Check plugin compatibility
+make -f make/ops/jellyfin.mk jellyfin-check-plugins
+```
+
+**Automated validation script:**
+
+```bash
+make -f make/ops/jellyfin.mk jellyfin-post-upgrade-check
+```
+
+### Rollback Procedures
+
+#### Rollback via Helm
+
+```bash
+# 1. List release history
+helm history jellyfin
+
+# 2. Rollback to previous revision
+helm rollback jellyfin
+
+# 3. Verify rollback
+kubectl rollout status deployment/jellyfin
+make -f make/ops/jellyfin.mk jellyfin-stats
+```
+
+#### Full Rollback (if Helm fails)
+
+```bash
+# 1. Uninstall current version
+helm uninstall jellyfin
+
+# 2. Reinstall old version
+helm install jellyfin sb-charts/jellyfin \
+  -f values-backup.yaml \
+  --set image.tag=10.10.3  # Previous version
+
+# 3. Restore from backup (if database corrupted)
+make -f make/ops/jellyfin.mk jellyfin-restore-config \
+  FILE=tmp/jellyfin-backups/backup-20250109-120000.tar.gz
+
+# 4. Restart pod
+kubectl rollout restart deployment/jellyfin
+```
+
+#### Blue-Green Rollback
+
+```bash
+# Switch ingress back to old version
+kubectl patch ingress jellyfin -p '{"spec":{"rules":[{"http":{"paths":[{"backend":{"service":{"name":"jellyfin"}}}]}}]}}'
+```
+
+### Version-Specific Upgrade Notes
+
+#### 10.10.x → 10.11.x (Minor Version)
+
+**Changes:**
+- FFmpeg 7.x support
+- New plugin API version
+- Improved hardware acceleration
+
+**Steps:**
+1. Check plugin compatibility (some plugins may need updates)
+2. Use Rolling Upgrade strategy
+3. Verify hardware acceleration still works
+
+#### 10.x → 11.x (Major Version)
+
+**Breaking Changes:**
+- Database schema changes
+- Plugin API v3 (incompatible with v2 plugins)
+- FFmpeg 8.x required
+
+**Steps:**
+1. **MANDATORY**: Full backup before upgrade
+2. Update all plugins to v3-compatible versions
+3. Use Maintenance Window strategy (expect 20-30 min downtime)
+4. Database migration automatic on first start
+5. Test all features thoroughly
+
+### Upgrade Best Practices
+
+**DO:**
+- ✅ Always backup before upgrading
+- ✅ Test upgrades in staging first
+- ✅ Review release notes for breaking changes
+- ✅ Check plugin compatibility
+- ✅ Verify hardware acceleration after upgrade
+- ✅ Keep old backups for 30 days
+- ✅ Upgrade during low-usage periods
+
+**DON'T:**
+- ❌ Skip backups
+- ❌ Upgrade multiple major versions at once
+- ❌ Ignore plugin compatibility warnings
+- ❌ Forget to test GPU acceleration after upgrade
+- ❌ Delete old backups immediately
+
+### Automated Upgrade Testing
+
+**Create a test script:**
+
+```bash
+#!/bin/bash
+# test-upgrade.sh
+
+# 1. Deploy staging environment
+helm install jellyfin-staging sb-charts/jellyfin -f values-staging.yaml
+
+# 2. Restore production backup
+make -f make/ops/jellyfin.mk jellyfin-restore-config \
+  FILE=tmp/jellyfin-backups/prod-backup.tar.gz \
+  RELEASE=jellyfin-staging
+
+# 3. Upgrade to new version
+helm upgrade jellyfin-staging sb-charts/jellyfin \
+  --reuse-values \
+  --set image.tag=10.11.0
+
+# 4. Run validation tests
+make -f make/ops/jellyfin.mk jellyfin-post-upgrade-check RELEASE=jellyfin-staging
+
+# 5. Cleanup staging
+helm uninstall jellyfin-staging
+```
+
+**For comprehensive upgrade procedures and version-specific notes**, see [Jellyfin Upgrade Guide](../../docs/jellyfin-upgrade-guide.md).
+
+---
+
 ## Values Reference
 
 See [values.yaml](values.yaml) for complete configuration options.
