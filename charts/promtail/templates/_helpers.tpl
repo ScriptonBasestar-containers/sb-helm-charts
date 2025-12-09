@@ -69,3 +69,14 @@ Create the name of the configmap to use
 {{- printf "%s-config" (include "promtail.fullname" .) }}
 {{- end }}
 {{- end }}
+
+{{/*
+RBAC names
+*/}}
+{{- define "promtail.clusterRoleName" -}}
+{{- printf "%s-clusterrole" (include "promtail.fullname" .) }}
+{{- end }}
+
+{{- define "promtail.clusterRoleBindingName" -}}
+{{- printf "%s-clusterrolebinding" (include "promtail.fullname" .) }}
+{{- end }}

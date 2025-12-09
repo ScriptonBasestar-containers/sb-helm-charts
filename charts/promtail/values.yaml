@@ -101,6 +101,8 @@ promtail:
 rbac:
   # Create RBAC resources
   create: true
+  # Annotations to add to the ClusterRole and ClusterRoleBinding
+  annotations: {}
 
 serviceAccount:
   # Specifies whether a service account should be created

@@ -2,13 +2,17 @@
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
 metadata:
-  name: {{ include "promtail.fullname" . }}
+  name: {{ include "promtail.clusterRoleBindingName" . }}
   labels:
     {{- include "promtail.labels" . | nindent 4 }}
+  {{- with .Values.rbac.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: ClusterRole
-  name: {{ include "promtail.fullname" . }}
+  name: {{ include "promtail.clusterRoleName" . }}
 subjects:
   - kind: ServiceAccount
     name: {{ include "promtail.serviceAccountName" . }}
