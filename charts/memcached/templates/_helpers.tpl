@@ -60,3 +60,14 @@ Create the name of the service account to use
 {{- default "default" .Values.serviceAccount.name }}
 {{- end }}
 {{- end }}
+
+{{/*
+RBAC names
+*/}}
+{{- define "memcached.roleName" -}}
+{{- printf "%s-role" (include "memcached.fullname" .) }}
+{{- end }}
+
+{{- define "memcached.roleBindingName" -}}
+{{- printf "%s-rolebinding" (include "memcached.fullname" .) }}
+{{- end }}
