@@ -206,3 +206,99 @@ tolerations: []
 affinity: {}
 
 priorityClassName: ""
+
+# Backup & Recovery Configuration
+# Documentation only - no automated CronJobs are created
+# All backup operations are performed via Makefile targets
+backup:
+  enabled: false  # Documentation flag only - does not create CronJobs
+  documentation:
+    strategy: "Configuration + Silences + Notification Templates + Data Directory"
+    tools:
+      - "kubectl (ConfigMap export)"
+      - "amtool / API (silence export)"
+      - "VolumeSnapshot (PVC snapshots)"
+    components:
+      configuration:
+        priority: "Critical"
+        size: "<10 KB"
+        method: "ConfigMap export"
+        description: "alertmanager.yml with routing rules and receivers"
+      silences:
+        priority: "Important"
+        size: "<1 MB"
+        method: "API export via amtool or curl"
+        description: "Active silences to prevent alert noise during maintenance"
+      notification_templates:
+        priority: "Important"
+        size: "<100 KB"
+        method: "ConfigMap export"
+        description: "Custom notification templates for alert formatting"
+      data_directory:
+        priority: "Secondary"
+        size: "<100 MB"
+        method: "PVC snapshot"
+        description: "Runtime data including silences, notification log, and mesh state"
+    targets:
+      rto: "< 30 minutes"  # Recovery Time Objective
+      rpo: "1 hour"        # Recovery Point Objective
+    makefile_targets:
+      backup:
+        - "make -f make/ops/alertmanager.mk am-backup-config          # Backup configuration"
+        - "make -f make/ops/alertmanager.mk am-backup-silences        # Backup silences"
+        - "make -f make/ops/alertmanager.mk am-backup-templates       # Backup templates"
+        - "make -f make/ops/alertmanager.mk am-backup-all             # Full backup"
+      restore:
+        - "make -f make/ops/alertmanager.mk am-restore-config FILE=<backup.yaml>   # Restore config"
+        - "make -f make/ops/alertmanager.mk am-restore-silences FILE=<backup.json> # Restore silences"
+    detailed_guide: "docs/alertmanager-backup-guide.md"
+
+# Upgrade Configuration
+# Documentation only - all upgrades are performed manually via Helm
+# Pre-upgrade backups are strongly recommended
+upgrade:
+  enabled: false  # Documentation flag only - manual process via Helm
+  preUpgradeBackup: true  # Recommendation to backup before upgrade
+  documentation:
+    strategies:
+      rolling:
+        description: "StatefulSet rolling update with pod-by-pod replacement"
+        downtime: "< 1 minute (brief traffic disruption)"
+        use_case: "HA deployments with replicaCount >= 3"
+        requirements:
+          - "replicaCount >= 3"
+          - "podDisruptionBudget.enabled=true with minAvailable=2"
+      blue_green:
+        description: "Parallel deployment with traffic switch to new cluster"
+        downtime: "None (zero downtime)"
+        use_case: "Major version upgrades or zero-downtime requirements"
+        requirements:
+          - "Sufficient cluster resources for parallel deployment"
+          - "Update Prometheus alerting.alertmanagers configuration"
+      maintenance_window:
+        description: "Full cluster restart with complete downtime"
+        downtime: "5-15 minutes"
+        use_case: "Single-replica deployments or major version upgrades"
+        requirements:
+          - "Scheduled maintenance window"
+          - "Backup of configuration and silences"
+    version_compatibility:
+      alertmanager_versions:
+        - "0.27.x: Native OpenTelemetry support, improved clustering"
+        - "0.26.x: Enhanced silence management, webhook retry logic"
+        - "0.25.x: Discord/Telegram receiver support"
+        - "0.24.x: Opsgenie v2 API, WeChat Work receiver"
+      prometheus_compatibility:
+        - "Alertmanager 0.27.x: Prometheus 2.45.x - 2.50.x"
+        - "Alertmanager 0.26.x: Prometheus 2.40.x - 2.48.x"
+        - "Alertmanager 0.25.x: Prometheus 2.35.x - 2.45.x"
+        - "Alertmanager 0.24.x: Prometheus 2.28.x - 2.40.x"
+    makefile_targets:
+      pre_upgrade:
+        - "make -f make/ops/alertmanager.mk am-pre-upgrade-check   # Pre-upgrade validation"
+        - "make -f make/ops/alertmanager.mk am-backup-all          # Backup before upgrade"
+      post_upgrade:
+        - "make -f make/ops/alertmanager.mk am-post-upgrade-check  # Post-upgrade validation"
+      rollback:
+        - "make -f make/ops/alertmanager.mk am-upgrade-rollback    # Rollback to previous release"
+    detailed_guide: "docs/alertmanager-upgrade-guide.md"
