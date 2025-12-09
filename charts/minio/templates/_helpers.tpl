@@ -131,3 +131,14 @@ Checksum annotations for config and secrets
 checksum/config: {{ include (print $.Template.BasePath "/configmap.yaml") . | sha256sum }}
 checksum/secret: {{ include (print $.Template.BasePath "/secret.yaml") . | sha256sum }}
 {{- end }}
+
+{{/*
+RBAC names
+*/}}
+{{- define "minio.roleName" -}}
+{{- printf "%s-role" (include "minio.fullname" .) }}
+{{- end }}
+
+{{- define "minio.roleBindingName" -}}
+{{- printf "%s-rolebinding" (include "minio.fullname" .) }}
+{{- end }}
