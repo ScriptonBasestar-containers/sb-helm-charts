@@ -87,3 +87,14 @@ Merged podSecurityContext with GPU supplemental groups
 {{- end -}}
 {{- toYaml $ctx -}}
 {{- end -}}
+
+{{/*
+RBAC names
+*/}}
+{{- define "jellyfin.roleName" -}}
+{{- printf "%s-role" (include "jellyfin.fullname" .) }}
+{{- end }}
+
+{{- define "jellyfin.roleBindingName" -}}
+{{- printf "%s-rolebinding" (include "jellyfin.fullname" .) }}
+{{- end }}
