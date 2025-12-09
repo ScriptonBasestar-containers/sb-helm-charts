@@ -280,31 +280,25 @@ make -f make/ops/uptime-kuma.mk uk-shell
 make -f make/ops/uptime-kuma.mk uk-port-forward
 
 # Health checks
-make -f make/ops/uptime-kuma.mk uk-check-db
-make -f make/ops/uptime-kuma.mk uk-check-storage
+make -f make/ops/uptime-kuma.mk uk-db-check
+make -f make/ops/uptime-kuma.mk uk-check-data
 
 # Database management (SQLite)
-make -f make/ops/uptime-kuma.mk uk-backup-sqlite
-make -f make/ops/uptime-kuma.mk uk-restore-sqlite FILE=path/to/kuma.db
+make -f make/ops/uptime-kuma.mk uk-backup-database
+make -f make/ops/uptime-kuma.mk uk-restore-database FILE=path/to/kuma.db
 
-# User management
-make -f make/ops/uptime-kuma.mk uk-reset-password
-
-# System information
-make -f make/ops/uptime-kuma.mk uk-version
-make -f make/ops/uptime-kuma.mk uk-node-info
-make -f make/ops/uptime-kuma.mk uk-get-settings
-
-# Monitoring (API-based)
+# Monitor management
+make -f make/ops/uptime-kuma.mk uk-check-monitors
 make -f make/ops/uptime-kuma.mk uk-list-monitors
-make -f make/ops/uptime-kuma.mk uk-status-pages
+
+# Status pages
+make -f make/ops/uptime-kuma.mk uk-list-status-pages
 
 # Operations
 make -f make/ops/uptime-kuma.mk uk-restart
-make -f make/ops/uptime-kuma.mk uk-scale REPLICAS=2
 
 # Full help
-make -f make/ops/uptime-kuma.mk help
+make -f make/ops/uptime-kuma.mk uk-help
 ```
 
 ## Troubleshooting
@@ -856,11 +850,8 @@ kubectl exec deployment/uptime-kuma -- wget -qO- http://localhost:3001/
 # Check data directory size
 make -f make/ops/uptime-kuma.mk uk-check-data
 
-# Check database size
-make -f make/ops/uptime-kuma.mk uk-check-database-size
-
-# Check PVC usage
-kubectl exec deployment/uptime-kuma -- df -h /app/data
+# Check database statistics
+make -f make/ops/uptime-kuma.mk uk-db-stats
 ```
 
 ### Database Operations
