@@ -149,3 +149,14 @@ Return the MongoDB connection URI
 {{- printf "mongodb://%s.%s.svc.cluster.local:27017/%s" (include "mongodb.primaryServiceName" .) .Release.Namespace .Values.mongodb.database }}
 {{- end }}
 {{- end }}
+
+{{/*
+RBAC names
+*/}}
+{{- define "mongodb.roleName" -}}
+{{- printf "%s-role" (include "mongodb.fullname" .) }}
+{{- end }}
+
+{{- define "mongodb.roleBindingName" -}}
+{{- printf "%s-rolebinding" (include "mongodb.fullname" .) }}
+{{- end }}
