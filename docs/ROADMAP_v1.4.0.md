@@ -121,7 +121,7 @@ All charts in this phase are now complete with comprehensive RBAC, backup/recove
 
 ### Phase 2: Application Charts (IN PROGRESS)
 
-**Target: 8 charts** | **Actual: 6/8 (75%)** ⏳
+**Target: 8 charts** | **Actual: 7/8 (88%)** ⏳
 
 7. ✅ **Grafana** (v0.3.0 → v0.4.0) - COMPLETE (commit c0733a3, 2025-12-01)
    - RBAC templates (Role for ConfigMaps, Secrets, Pods, Services, Endpoints, PVCs)
@@ -183,12 +183,16 @@ All charts in this phase are now complete with comprehensive RBAC, backup/recove
    - RTO/RPO: < 2 hours / 24 hours
    - Total impact: 6 files, ~3,077 lines added
 
-13. **Jellyfin** (v0.3.0 → v0.4.0)
-    - RBAC templates (namespace-scoped)
-    - Backup guide (media, metadata, database, plugins)
-    - Upgrade guide (FFmpeg changes, plugin compatibility)
-    - Makefile targets (backup, restore, library management)
-    - RTO/RPO: < 1 hour / 24 hours
+13. ✅ **Jellyfin** (v0.3.0 → v0.4.0) - COMPLETE (2025-12-09)
+    - RBAC templates (Role for ConfigMaps, Secrets, Pods, Services, Endpoints, PVCs)
+    - Backup guide (~974 lines): Config PVC (SQLite DB, metadata, plugins), Media files (NAS/PVC), Transcoding cache (skip), Configuration
+    - Upgrade guide (~1,085 lines): 3 strategies (Rolling, Blue-Green, Maintenance Window), Plugin compatibility, FFmpeg version changes
+    - README: 4 sections (~901 lines) - Backup & Recovery, Security & RBAC, Operations, Upgrading
+    - values.yaml: Comprehensive backup/upgrade documentation (~269 lines)
+    - Makefile: 31 operational targets (155 → 451 lines)
+    - RTO/RPO: < 4 hours / 24 hours
+    - Total impact: 6 files, ~3,660 lines added
+    - Key features: SQLite database, GPU hardware acceleration (Intel QSV, NVIDIA NVENC, AMD VAAPI), Plugin management
 
 14. **Uptime Kuma** (v0.3.0 → v0.4.0)
     - RBAC templates (namespace-scoped)
