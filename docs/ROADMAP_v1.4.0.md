@@ -207,7 +207,7 @@ All charts in this phase are now complete with comprehensive RBAC, backup/recove
 
 ### Phase 3: Supporting Infrastructure (Lower Priority)
 
-**Target: 6 charts** | **Progress: 2/6 (33%)** 🔄
+**Target: 6 charts** | **Progress: 3/6 (50%)** 🔄
 
 15. ✅ **MinIO** (v0.3.0 → v0.4.0) - COMPLETE (2025-12-09)
     - RBAC templates (Role for ConfigMaps, Secrets, Pods, Services, Endpoints, PVCs)
@@ -231,12 +231,16 @@ All charts in this phase are now complete with comprehensive RBAC, backup/recove
     - Total impact: 6 files, ~3,242 lines added
     - Key features: NoSQL document database, Replica sets with automatic failover, Oplog for PITR, mongodump/mongorestore, WiredTiger storage
 
-17. **RabbitMQ** (v0.3.0 → v0.4.0)
-    - RBAC templates (namespace-scoped)
-    - Backup guide (definitions, messages, vhosts, policies)
-    - Upgrade guide (AMQP version changes, cluster migration)
-    - Makefile targets (backup, restore, cluster management)
-    - RTO/RPO: < 1 hour / 1 hour
+17. ✅ **RabbitMQ** (v0.3.0 → v0.4.0) - COMPLETE (2025-12-09)
+    - RBAC templates (Role for ConfigMaps, Secrets, Pods, Services, Endpoints, PVCs)
+    - Backup guide (~1,075 lines): Definitions (exchanges, queues, bindings, users, policies), Messages (persistent queues, shovel), Configuration, Mnesia Database, 5 backup methods (Definitions export, PVC snapshots, Mnesia copy, Federation/Shovel, Restic)
+    - Upgrade guide (~1,056 lines): 3 strategies (In-Place, Blue-Green, Backup & Restore), Version-specific notes (3.13.x, 3.12.x, 3.11.x, 3.10.x), Erlang compatibility
+    - README: 4 sections (~657 lines) - Backup & Recovery, Security & RBAC, Operations, Upgrading
+    - values.yaml: Comprehensive backup/upgrade documentation (~187 lines)
+    - Makefile: 50+ operational targets (640 lines) - Queue/Connection/User/Vhost/Plugin/Policy management, Backup/restore, Upgrade support
+    - RTO/RPO: < 1 hour / 24 hours (full DR), < 15 minutes / 6 hours (definitions restore)
+    - Total impact: 6 files, ~3,615 lines added
+    - Key features: Message broker (AMQP 0-9-1), Management UI, Definitions export/import, Persistent queues, Shovel/Federation plugins, Quorum queues
 
 18. **Promtail** (v0.3.0 → v0.4.0)
     - RBAC templates (ClusterRole for pod log access)
