@@ -119,9 +119,9 @@ All charts in this phase are now complete with comprehensive RBAC, backup/recove
    - RBAC, backup guide (RDB, AOF, replication), upgrade guide
    - RTO/RPO: < 30 minutes / 1 hour
 
-### Phase 2: Application Charts (IN PROGRESS)
+### Phase 2: Application Charts (COMPLETE)
 
-**Target: 8 charts** | **Actual: 7/8 (88%)** ⏳
+**Target: 8 charts** | **Actual: 8/8 (100%)** ✅
 
 7. ✅ **Grafana** (v0.3.0 → v0.4.0) - COMPLETE (commit c0733a3, 2025-12-01)
    - RBAC templates (Role for ConfigMaps, Secrets, Pods, Services, Endpoints, PVCs)
@@ -194,12 +194,16 @@ All charts in this phase are now complete with comprehensive RBAC, backup/recove
     - Total impact: 6 files, ~3,660 lines added
     - Key features: SQLite database, GPU hardware acceleration (Intel QSV, NVIDIA NVENC, AMD VAAPI), Plugin management
 
-14. **Uptime Kuma** (v0.3.0 → v0.4.0)
-    - RBAC templates (namespace-scoped)
-    - Backup guide (monitoring configs, database, notifications)
-    - Upgrade guide (database schema changes)
-    - Makefile targets (backup, restore, monitor management)
-    - RTO/RPO: < 30 minutes / 24 hours
+14. ✅ **Uptime Kuma** (v0.3.0 → v0.4.0) - COMPLETE (2025-12-09)
+    - RBAC templates (Role for ConfigMaps, Secrets, Pods, Services, Endpoints, PVCs)
+    - Backup guide (~876 lines): Data PVC, SQLite DB (kuma.db), Configuration, MariaDB (optional), Monitor configs, Notification settings
+    - Upgrade guide (~969 lines): 3 strategies (Rolling, Blue-Green, Maintenance Window), Database migration (SQLite→MariaDB), Automatic schema migration
+    - README: 4 sections (~864 lines) - Backup & Recovery, Security & RBAC, Operations, Upgrading
+    - values.yaml: Comprehensive backup/upgrade documentation (~204 lines)
+    - Makefile: 38 operational targets (170 → 483 lines)
+    - RTO/RPO: < 1 hour / 24 hours
+    - Total impact: 6 files, ~3,450 lines added
+    - Key features: SQLite database with MariaDB migration, Monitor/notification/status page management, Uptime tracking and alerting
 
 ### Phase 3: Supporting Infrastructure (Lower Priority)
 
