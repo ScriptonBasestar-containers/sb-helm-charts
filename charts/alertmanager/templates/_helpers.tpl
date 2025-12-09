@@ -80,3 +80,14 @@ Generate cluster peers for HA mode
 {{- end }}
 {{- join "," $peers }}
 {{- end }}
+
+{{/*
+RBAC names
+*/}}
+{{- define "alertmanager.roleName" -}}
+{{- printf "%s-role" (include "alertmanager.fullname" .) }}
+{{- end }}
+
+{{- define "alertmanager.roleBindingName" -}}
+{{- printf "%s-rolebinding" (include "alertmanager.fullname" .) }}
+{{- end }}
