@@ -281,3 +281,92 @@ lifecycle: {}
 #   preStop:
 #     exec:
 #       command: ["/bin/sh", "-c", "sleep 5"]
+
+# Backup & Recovery Configuration
+# Documentation only - no automated CronJobs are created
+# All backup operations are performed via Makefile targets
+backup:
+  enabled: false  # Documentation flag only - does not create CronJobs
+  documentation:
+    strategy: "Configuration + Kubernetes Manifests (no data backup - cache is ephemeral)"
+    tools:
+      - "kubectl (ConfigMap export)"
+      - "Helm (values backup)"
+      - "Git (version control)"
+    components:
+      configuration:
+        priority: "Critical"
+        size: "<5 KB"
+        method: "ConfigMap export"
+        description: "Memcached runtime configuration (memory size, connections, slab settings)"
+      kubernetes_manifests:
+        priority: "Important"
+        size: "<10 KB"
+        method: "Helm values backup"
+        description: "Deployment configuration (replicas, resources, probes, HPA/PDB)"
+    targets:
+      rto: "< 15 minutes"  # Recovery Time Objective
+      rpo: "0"             # Recovery Point Objective (no data loss - cache is ephemeral)
+    makefile_targets:
+      backup:
+        - "make -f make/ops/memcached.mk mc-backup-config          # Backup configuration"
+        - "make -f make/ops/memcached.mk mc-backup-all             # Full backup"
+      restore:
+        - "make -f make/ops/memcached.mk mc-restore-config FILE=<backup.yaml>   # Restore config"
+    detailed_guide: "docs/memcached-backup-guide.md"
+    notes:
+      - "Memcached is stateless - no data persistence"
+      - "Cache data is ephemeral and lost on pod restart (expected behavior)"
+      - "Focus backup on configuration and infrastructure, not cache data"
+
+# Upgrade Configuration
+# Documentation only - all upgrades are performed manually via Helm
+# Cache data is lost during upgrade (expected for stateless cache)
+upgrade:
+  enabled: false  # Documentation flag only - manual process via Helm
+  preUpgradeBackup: true  # Recommendation to backup before upgrade
+  documentation:
+    strategies:
+      rolling:
+        description: "Deployment rolling update with pod-by-pod replacement"
+        downtime: "None (brief cache misses during pod restarts)"
+        use_case: "Production environments with replicaCount >= 2"
+        requirements:
+          - "replicaCount >= 2"
+          - "podDisruptionBudget.enabled=true with minAvailable: 1"
+      blue_green:
+        description: "Parallel deployment with traffic switch to new cluster"
+        downtime: "None (zero downtime)"
+        use_case: "Zero-downtime requirements, critical cache workloads"
+        requirements:
+          - "Sufficient cluster resources for parallel deployment"
+          - "Client applications support multiple Memcached endpoints"
+      maintenance_window:
+        description: "Full cluster restart with complete downtime"
+        downtime: "2-5 minutes"
+        use_case: "Single-replica deployments or non-critical environments"
+        requirements:
+          - "Scheduled maintenance window"
+          - "Applications tolerate temporary cache unavailability"
+    version_compatibility:
+      memcached_versions:
+        - "1.6.x: Current LTS series with TLS support (1.6.10+)"
+        - "1.5.x: Legacy (EOL)"
+      protocol_stability:
+        - "Binary protocol: Stable across all 1.x versions"
+        - "ASCII protocol: Fully compatible across all versions"
+        - "No client library updates required for protocol compatibility"
+    makefile_targets:
+      pre_upgrade:
+        - "make -f make/ops/memcached.mk mc-pre-upgrade   # Pre-upgrade validation"
+        - "make -f make/ops/memcached.mk mc-backup-all    # Backup before upgrade"
+      post_upgrade:
+        - "make -f make/ops/memcached.mk mc-post-upgrade  # Post-upgrade validation"
+      rollback:
+        - "make -f make/ops/memcached.mk mc-rollback      # Rollback to previous release"
+    detailed_guide: "docs/memcached-upgrade-guide.md"
+    notes:
+      - "Cache data is ephemeral and will be lost during upgrade (expected)"
+      - "Applications must handle cache misses gracefully after upgrade"
+      - "Cache warming strategy recommended to reduce initial miss rate"
+      - "Protocol is stable - no client library updates required"
