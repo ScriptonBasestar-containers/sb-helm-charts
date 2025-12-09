@@ -250,3 +250,207 @@ lifecycle: {}
   # preStop:
   #   exec:
   #     command: ["/bin/sh", "-c", "sleep 15"]
+
+# ========================================
+# Backup & Recovery Configuration
+# ========================================
+# IMPORTANT: This is documentation only. All backup/upgrade operations are
+# performed via Makefile targets, never via automated CronJobs.
+#
+# See: docs/uptime-kuma-backup-guide.md for complete backup documentation
+
+backup:
+  # Documentation flag only - no automated backups are created
+  enabled: false
+
+  documentation:
+    # Backup strategy overview
+    strategy: "Data PVC + SQLite Database + Configuration + MariaDB (optional)"
+
+    # Backup tools
+    tools:
+      - kubectl (PVC backup)
+      - sqlite3 (database backup)
+      - mysqldump (MariaDB backup, if enabled)
+      - restic (incremental backups with deduplication)
+      - velero (cluster-wide backup solution)
+
+    # Backup components (priority: Critical/Important/Optional)
+    components:
+      data_pvc:
+        priority: Critical
+        description: "Complete data directory including database, uploads, and configuration"
+        size: "100MB - 2GB (typical)"
+        backup_command: "make -f make/ops/uptime-kuma.mk uk-backup-data"
+
+      sqlite_database:
+        priority: Critical
+        description: "Monitor configurations, uptime history, heartbeat data"
+        size: "50MB - 1GB (typical)"
+        backup_command: "make -f make/ops/uptime-kuma.mk uk-backup-database"
+
+      configuration:
+        priority: Important
+        description: "Application settings and environment variables"
+        size: "< 1MB"
+        backup_command: "kubectl get deployment uptime-kuma -o yaml > backup/deployment.yaml"
+
+      mariadb_database:
+        priority: Optional
+        description: "External MariaDB database (only if database.type=mariadb)"
+        size: "Variable (depends on monitoring volume)"
+        backup_command: "make -f make/ops/uptime-kuma.mk uk-backup-mariadb"
+
+    # Backup methods
+    methods:
+      direct_pvc:
+        description: "Direct PVC backup using tar"
+        downtime: "None (hot backup)"
+        speed: "Fast (depends on PVC size)"
+        storage: "Uncompressed tar.gz"
+
+      restic:
+        description: "Incremental backups with deduplication"
+        downtime: "None (hot backup)"
+        speed: "Very fast (after initial backup)"
+        storage: "Highly efficient (deduplication + compression)"
+
+      volume_snapshot:
+        description: "Kubernetes VolumeSnapshot (CSI required)"
+        downtime: "None (instant snapshot)"
+        speed: "Instant"
+        storage: "Block-level snapshot"
+
+      sqlite_only:
+        description: "SQLite database backup only (selective)"
+        downtime: "None (SQLite .backup command)"
+        speed: "Very fast (< 1 minute)"
+        storage: "Single .db file"
+
+    # Recovery Time Objectives (RTO) and Recovery Point Objectives (RPO)
+    targets:
+      data_pvc:
+        rto: "< 30 minutes"
+        rpo: "24 hours (daily backups)"
+
+      sqlite_database:
+        rto: "< 15 minutes"
+        rpo: "24 hours (daily backups)"
+
+      full_disaster_recovery:
+        rto: "< 1 hour"
+        rpo: "24 hours (daily backups)"
+
+      mariadb_database:
+        rto: "< 30 minutes"
+        rpo: "24 hours (daily backups)"
+
+    # Quick backup commands
+    quick_commands:
+      full_backup: "make -f make/ops/uptime-kuma.mk uk-full-backup"
+      database_backup: "make -f make/ops/uptime-kuma.mk uk-backup-database"
+      data_backup: "make -f make/ops/uptime-kuma.mk uk-backup-data"
+      mariadb_backup: "make -f make/ops/uptime-kuma.mk uk-backup-mariadb"
+      list_backups: "make -f make/ops/uptime-kuma.mk uk-backup-status"
+
+    # Restore commands
+    restore_commands:
+      restore_data: "make -f make/ops/uptime-kuma.mk uk-restore-data FILE=path/to/backup.tar.gz"
+      restore_database: "make -f make/ops/uptime-kuma.mk uk-restore-database FILE=path/to/backup.db"
+
+# ========================================
+# Upgrade Configuration
+# ========================================
+# IMPORTANT: This is documentation only. All upgrade operations are manual
+# processes guided by docs/uptime-kuma-upgrade-guide.md.
+#
+# See: docs/uptime-kuma-upgrade-guide.md for complete upgrade documentation
+
+upgrade:
+  # Documentation flag only - upgrades are manual processes
+  enabled: false
+
+  # Always backup before upgrading
+  preUpgradeBackup: true
+
+  documentation:
+    # Upgrade strategies
+    strategies:
+      rolling:
+        description: "Rolling upgrade with brief monitoring gap (2-5 minutes)"
+        downtime: "Brief (2-5 minutes monitoring gap)"
+        risk: "Low (automatic rollback available)"
+        complexity: "Simple"
+        recommended: true
+        steps:
+          - "1. Pre-upgrade backup: make -f make/ops/uptime-kuma.mk uk-full-backup"
+          - "2. Pre-upgrade check: make -f make/ops/uptime-kuma.mk uk-pre-upgrade-check"
+          - "3. Helm upgrade: helm upgrade uptime-kuma sb-charts/uptime-kuma --set image.tag=NEW_VERSION"
+          - "4. Post-upgrade check: make -f make/ops/uptime-kuma.mk uk-post-upgrade-check"
+
+      blue_green:
+        description: "Deploy new version alongside old, cutover when ready"
+        downtime: "Minimal (< 1 minute for cutover)"
+        risk: "Very Low (easy rollback)"
+        complexity: "Moderate"
+        recommended: false
+        steps:
+          - "1. Deploy green environment with new version"
+          - "2. Restore database backup to green environment"
+          - "3. Validate green environment"
+          - "4. Switch ingress/service to green environment"
+          - "5. Monitor and rollback to blue if needed"
+
+      maintenance_window:
+        description: "Full cluster restart during maintenance window"
+        downtime: "Moderate (10-20 minutes)"
+        risk: "Low (controlled environment)"
+        complexity: "Simple"
+        recommended: false
+        use_case: "Major version upgrades with breaking changes"
+        steps:
+          - "1. Schedule maintenance window"
+          - "2. Full backup: make -f make/ops/uptime-kuma.mk uk-full-backup"
+          - "3. Scale down: kubectl scale deployment uptime-kuma --replicas=0"
+          - "4. Helm upgrade with new version"
+          - "5. Database migration (automatic on startup)"
+          - "6. Validation and testing"
+
+    # Version-specific notes
+    version_notes:
+      minor_upgrades:
+        example: "1.23.x → 1.24.x"
+        database_migration: "Automatic (on startup)"
+        config_changes: "Review release notes"
+        plugin_compatibility: "Usually compatible"
+        downtime: "2-5 minutes (pod restart)"
+        rollback: "Supported (Helm rollback)"
+
+      major_upgrades:
+        example: "1.x → 2.x"
+        database_migration: "Automatic but one-way (cannot rollback after migration)"
+        config_changes: "Breaking changes possible"
+        plugin_compatibility: "May require updates"
+        downtime: "10-20 minutes (migration + validation)"
+        rollback: "Restore from backup only"
+
+    # Database migration notes
+    database_migration:
+      sqlite_to_mariadb:
+        description: "Migrate from SQLite to MariaDB for production scaling"
+        downtime: "30-60 minutes"
+        complexity: "Moderate"
+        steps:
+          - "1. Backup SQLite database"
+          - "2. Create MariaDB database and user"
+          - "3. Export data from SQLite"
+          - "4. Import data to MariaDB"
+          - "5. Update values.yaml with MariaDB configuration"
+          - "6. Helm upgrade with new database settings"
+
+    # Quick upgrade commands
+    quick_commands:
+      pre_check: "make -f make/ops/uptime-kuma.mk uk-pre-upgrade-check"
+      post_check: "make -f make/ops/uptime-kuma.mk uk-post-upgrade-check"
+      rollback: "make -f make/ops/uptime-kuma.mk uk-upgrade-rollback"
+      backup: "make -f make/ops/uptime-kuma.mk uk-full-backup"
