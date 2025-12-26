@@ -792,6 +792,45 @@ entries:
     urls:
     - https://github.com/ScriptonBasestar-containers/sb-helm-charts/releases/download/jellyfin-0.1.0/jellyfin-0.1.0.tgz
     version: 0.1.0
+  jenkins:
+  - annotations:
+      artifacthub.io/changes: |
+        - kind: added
+          description: Initial Jenkins chart with custom image support
+        - kind: added
+          description: JCasC (Configuration as Code) support
+        - kind: added
+          description: Kubernetes agent support
+      artifacthub.io/license: BSD-3-Clause
+      artifacthub.io/prerelease: "false"
+    apiVersion: v2
+    appVersion: 2.528.3
+    created: "2025-12-26T15:33:29.698011122Z"
+    description: A Helm chart for Jenkins CI/CD - Using pre-built custom image with
+      plugins
+    digest: cb5f2dbe78978d1a4c9b071aec8a829191b20cf35cecdddf5183085561dbc619
+    home: https://www.jenkins.io/
+    icon: https://www.jenkins.io/images/logos/jenkins/jenkins.svg
+    keywords:
+    - jenkins
+    - ci
+    - cd
+    - continuous-integration
+    - continuous-delivery
+    - devops
+    - automation
+    maintainers:
+    - email: archmagece@users.noreply.github.com
+      name: archmagece
+    name: jenkins
+    sources:
+    - https://scriptonbasestar-docker.github.io/sb-helm-charts/
+    - https://github.com/jenkinsci/jenkins
+    - https://hub.docker.com/r/jenkins/jenkins
+    type: application
+    urls:
+    - https://github.com/ScriptonBasestar-containers/sb-helm-charts/releases/download/jenkins-0.3.0/jenkins-0.3.0.tgz
+    version: 0.3.0
   kafka:
   - apiVersion: v2
     appVersion: 3.6.1
@@ -3271,4 +3310,4 @@ entries:
     urls:
     - https://github.com/ScriptonBasestar-containers/sb-helm-charts/releases/download/wordpress-0.1.0/wordpress-0.1.0.tgz
     version: 0.1.0
-generated: "2025-12-09T07:55:40.866508438Z"
+generated: "2025-12-26T15:33:30.506578839Z"
