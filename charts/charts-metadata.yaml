@@ -72,6 +72,23 @@ charts:
     - transcoding
     - gpu-acceleration
     description: Media server with hardware transcoding support
+  jenkins:
+    name: Jenkins
+    path: charts/jenkins
+    category: application
+    tags:
+    - CI/CD
+    - DevOps
+    - Automation
+    keywords:
+    - jenkins
+    - ci
+    - cd
+    - continuous-integration
+    - continuous-delivery
+    - devops
+    - automation
+    description: Jenkins CI/CD server with pre-built custom image
   mlflow:
     name: MLflow
     path: charts/mlflow

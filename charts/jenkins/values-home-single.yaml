@@ -1,0 +1,147 @@
+# Jenkins values for Home Server - Single Instance
+# Minimal resources optimized for home lab/personal use
+# Use: helm install jenkins ./charts/jenkins -f charts/jenkins/values-home-single.yaml
+
+# ========================================
+# Jenkins Controller Configuration
+# ========================================
+
+replicaCount: 1
+
+strategy:
+  type: Recreate
+
+image:
+  registry: harbor.polypia.in
+  repository: library/jenkins-controller
+  tag: "2.528.3-jdk21"
+  pullPolicy: IfNotPresent
+
+imagePullSecrets: []
+nameOverride: ""
+fullnameOverride: ""
+
+controller:
+  installPlugins: false
+
+  jcasc:
+    enabled: true
+    defaultConfig: true
+    configScripts:
+      welcome-message: |
+        jenkins:
+          systemMessage: "Home Jenkins - Managed by Helm"
+
+  javaOpts: "-Xms256m -Xmx1g"
+  jenkinsOpts: ""
+
+  admin:
+    username: admin
+    password: ""  # Auto-generate
+    existingSecret: ""
+    passwordKey: jenkins-admin-password
+
+# ========================================
+# Storage Configuration
+# ========================================
+
+persistence:
+  enabled: true
+  storageClass: ""
+  accessMode: ReadWriteOnce
+  size: 10Gi
+  annotations: {}
+  existingClaim: ""
+
+# ========================================
+# Service & Networking
+# ========================================
+
+service:
+  type: ClusterIP
+  port: 8080
+  targetPort: http
+  annotations: {}
+
+ingress:
+  enabled: false
+  className: ""
+  annotations: {}
+  hosts:
+    - host: jenkins.local
+      paths:
+        - path: /
+          pathType: Prefix
+  tls: []
+
+# ========================================
+# Resource Limits
+# ========================================
+
+resources:
+  requests:
+    cpu: "100m"
+    memory: "512Mi"
+  limits:
+    cpu: "1000m"
+    memory: "2Gi"
+
+# ========================================
+# Health Checks
+# ========================================
+
+livenessProbe:
+  enabled: true
+  httpGet:
+    path: /login
+    port: http
+  initialDelaySeconds: 90
+  periodSeconds: 10
+  timeoutSeconds: 5
+  failureThreshold: 5
+
+readinessProbe:
+  enabled: true
+  httpGet:
+    path: /login
+    port: http
+  initialDelaySeconds: 60
+  periodSeconds: 10
+  timeoutSeconds: 5
+  failureThreshold: 3
+
+startupProbe:
+  enabled: true
+  httpGet:
+    path: /login
+    port: http
+  initialDelaySeconds: 0
+  periodSeconds: 10
+  timeoutSeconds: 5
+  failureThreshold: 12
+
+# ========================================
+# Scheduling
+# ========================================
+
+nodeSelector: {}
+
+tolerations: []
+
+affinity: {}
+
+# ========================================
+# High Availability (Disabled)
+# ========================================
+
+autoscaling:
+  enabled: false
+
+podDisruptionBudget:
+  enabled: false
+
+networkPolicy:
+  enabled: false
+
+serviceMonitor:
+  enabled: false

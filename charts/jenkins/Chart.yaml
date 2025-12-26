@@ -1,0 +1,33 @@
+apiVersion: v2
+name: jenkins
+version: 0.3.0
+appVersion: 2.528.3
+type: application
+description: A Helm chart for Jenkins CI/CD - Using pre-built custom image with plugins
+keywords:
+  - jenkins
+  - ci
+  - cd
+  - continuous-integration
+  - continuous-delivery
+  - devops
+  - automation
+home: https://www.jenkins.io/
+icon: https://www.jenkins.io/images/logos/jenkins/jenkins.svg
+sources:
+  - https://scriptonbasestar-docker.github.io/sb-helm-charts/
+  - https://github.com/jenkinsci/jenkins
+  - https://hub.docker.com/r/jenkins/jenkins
+maintainers:
+  - name: archmagece
+    email: archmagece@users.noreply.github.com
+annotations:
+  artifacthub.io/license: BSD-3-Clause
+  artifacthub.io/changes: |
+    - kind: added
+      description: Initial Jenkins chart with custom image support
+    - kind: added
+      description: JCasC (Configuration as Code) support
+    - kind: added
+      description: Kubernetes agent support
+  artifacthub.io/prerelease: "false"

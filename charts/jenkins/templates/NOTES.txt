@@ -1,0 +1,47 @@
+1. Get the Jenkins URL by running:
+
+{{- if .Values.ingress.enabled }}
+{{- range $host := .Values.ingress.hosts }}
+  http{{ if $.Values.ingress.tls }}s{{ end }}://{{ $host.host }}{{ (index $host.paths 0).path }}
+{{- end }}
+{{- else if contains "NodePort" .Values.service.type }}
+  export NODE_PORT=$(kubectl get --namespace {{ .Release.Namespace }} -o jsonpath="{.spec.ports[0].nodePort}" services {{ include "jenkins.fullname" . }})
+  export NODE_IP=$(kubectl get nodes --namespace {{ .Release.Namespace }} -o jsonpath="{.items[0].status.addresses[0].address}")
+  echo http://$NODE_IP:$NODE_PORT
+{{- else if contains "LoadBalancer" .Values.service.type }}
+  NOTE: It may take a few minutes for the LoadBalancer IP to be available.
+  You can watch the status by running 'kubectl get --namespace {{ .Release.Namespace }} svc -w {{ include "jenkins.fullname" . }}'
+  export SERVICE_IP=$(kubectl get svc --namespace {{ .Release.Namespace }} {{ include "jenkins.fullname" . }} --template "{{"{{ range (index .status.loadBalancer.ingress 0) }}{{.}}{{ end }}"}}")
+  echo http://$SERVICE_IP:{{ .Values.service.port }}
+{{- else if contains "ClusterIP" .Values.service.type }}
+  kubectl port-forward --namespace {{ .Release.Namespace }} svc/{{ include "jenkins.fullname" . }} 8080:{{ .Values.service.port }}
+  echo "Visit http://127.0.0.1:8080 to use Jenkins"
+{{- end }}
+
+2. Admin credentials:
+   Username: {{ .Values.controller.admin.username }}
+   Password: Run the following command to get the password:
+   kubectl get secret --namespace {{ .Release.Namespace }} {{ include "jenkins.adminSecretName" . }} \
+     -o jsonpath="{.data.{{ .Values.controller.admin.passwordKey }}}" | base64 -d
+
+3. Data persistence:
+{{- if .Values.persistence.enabled }}
+   Data is persisted to PVC: {{ .Values.persistence.existingClaim | default (include "jenkins.fullname" .) }}
+   - Size: {{ .Values.persistence.size }}
+   - Access Mode: {{ .Values.persistence.accessMode }}
+{{- else }}
+   WARNING: Persistence is disabled. All data will be lost when the pod restarts.
+   Enable persistence by setting 'persistence.enabled=true' in values.yaml
+{{- end }}
+
+4. JCasC configuration:
+{{- if .Values.controller.jcasc.enabled }}
+   ConfigMap: {{ include "jenkins.jcascConfigMapName" . }}
+   Mounted at: /var/jenkins_home/casc_configs
+{{- else }}
+   JCasC is disabled. Enable it via controller.jcasc.enabled=true
+{{- end }}
+
+For more information, visit:
+- Jenkins documentation: https://www.jenkins.io/doc/
+- Chart repository: {{ index .Chart.Sources 0 }}

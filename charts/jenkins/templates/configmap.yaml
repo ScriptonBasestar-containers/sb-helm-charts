@@ -1,0 +1,33 @@
+{{- if .Values.controller.jcasc.enabled }}
+{{- $hasScripts := or .Values.controller.jcasc.defaultConfig (gt (len .Values.controller.jcasc.configScripts) 0) }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "jenkins.jcascConfigMapName" . }}
+  labels:
+    {{- include "jenkins.labels" . | nindent 4 }}
+{{- if $hasScripts }}
+data:
+  {{- if .Values.controller.jcasc.defaultConfig }}
+  jenkins.yaml: |
+    jenkins:
+      securityRealm:
+        local:
+          allowsSignup: false
+          users:
+            - id: "${JENKINS_ADMIN_USER}"
+              password: "${JENKINS_ADMIN_PASSWORD}"
+      authorizationStrategy:
+        loggedInUsersCanDoAnything:
+          allowAnonymousRead: false
+  {{- end }}
+  {{- with .Values.controller.jcasc.configScripts }}
+  {{- range $key, $val := . }}
+  {{ $key }}: |
+{{ $val | indent 4 }}
+  {{- end }}
+  {{- end }}
+{{- else }}
+data: {}
+{{- end }}
+{{- end }}

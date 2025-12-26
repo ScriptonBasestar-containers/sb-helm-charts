@@ -1,0 +1,264 @@
+# Default values for jenkins.
+# This is a YAML-formatted file.
+# Declare variables to be passed into your templates.
+
+# =============================================================================
+# Jenkins Controller Configuration
+# =============================================================================
+
+replicaCount: 1
+
+image:
+  registry: harbor.polypia.in
+  repository: library/jenkins-controller
+  tag: "2.528.3-jdk21"
+  pullPolicy: IfNotPresent
+
+imagePullSecrets: []
+#  - name: harbor-registry
+
+nameOverride: ""
+fullnameOverride: ""
+
+# =============================================================================
+# Service Account & RBAC
+# =============================================================================
+
+serviceAccount:
+  create: true
+  automount: true
+  annotations: {}
+  name: ""
+
+rbac:
+  create: true
+  annotations: {}
+
+# =============================================================================
+# Pod Configuration
+# =============================================================================
+
+podAnnotations: {}
+podLabels: {}
+
+strategy:
+  type: Recreate  # Jenkins uses RWO PVC by default
+
+podSecurityContext:
+  runAsUser: 1000
+  runAsGroup: 1000
+  fsGroup: 1000
+
+securityContext:
+  runAsUser: 1000
+  runAsNonRoot: true
+  allowPrivilegeEscalation: false
+  readOnlyRootFilesystem: false  # Jenkins needs writable filesystem
+
+# =============================================================================
+# Controller Configuration
+# =============================================================================
+
+controller:
+  # Plugins are baked into the image - runtime install is optional
+  installPlugins: false
+
+  # Additional plugins for runtime install (requires installPlugins=true)
+  additionalPlugins: []
+
+  # JCasC (Configuration as Code)
+  jcasc:
+    enabled: true
+    defaultConfig: true
+    configScripts: {}
+    #  welcome-message: |
+    #    jenkins:
+    #      systemMessage: "Welcome to Jenkins"
+
+  # Jenkins options
+  javaOpts: "-Xms512m -Xmx2g"
+  jenkinsOpts: ""
+
+  # Admin account
+  admin:
+    username: admin
+    password: ""  # Empty means auto-generate
+    existingSecret: ""
+    passwordKey: jenkins-admin-password
+
+# =============================================================================
+# Agent Configuration
+# =============================================================================
+
+agent:
+  enabled: true
+  image:
+    registry: docker.io
+    repository: jenkins/inbound-agent
+    tag: "latest"
+
+  # Kubernetes agent settings (for JCasC templates)
+  podName: "jenkins-agent"
+  namespace: ""  # Empty means release namespace
+
+  resources:
+    requests:
+      cpu: "100m"
+      memory: "256Mi"
+    limits:
+      cpu: "1000m"
+      memory: "1Gi"
+
+# =============================================================================
+# Service Configuration
+# =============================================================================
+
+service:
+  type: ClusterIP
+  port: 8080
+  targetPort: http
+  nodePort: ""
+
+  # Agent connection port
+  agentPort: 50000
+  agentTargetPort: agent
+  agentNodePort: ""
+
+  annotations: {}
+
+# =============================================================================
+# Ingress Configuration
+# =============================================================================
+
+ingress:
+  enabled: false
+  className: ""
+  annotations: {}
+    # traefik.ingress.kubernetes.io/router.entrypoints: web, websecure
+  hosts:
+    - host: jenkins.local
+      paths:
+        - path: /
+          pathType: Prefix
+  tls: []
+  #  - secretName: jenkins-tls
+  #    hosts:
+  #      - jenkins.local
+
+# =============================================================================
+# Persistence
+# =============================================================================
+
+persistence:
+  enabled: true
+  storageClass: ""
+  accessMode: ReadWriteOnce
+  size: 20Gi
+  annotations: {}
+  existingClaim: ""
+
+# =============================================================================
+# Resources
+# =============================================================================
+
+resources:
+  requests:
+    cpu: "100m"
+    memory: "512Mi"
+  limits:
+    cpu: "2000m"
+    memory: "4Gi"
+
+# =============================================================================
+# Probes
+# =============================================================================
+
+livenessProbe:
+  enabled: true
+  httpGet:
+    path: /login
+    port: http
+  initialDelaySeconds: 90
+  periodSeconds: 10
+  timeoutSeconds: 5
+  failureThreshold: 5
+
+readinessProbe:
+  enabled: true
+  httpGet:
+    path: /login
+    port: http
+  initialDelaySeconds: 60
+  periodSeconds: 10
+  timeoutSeconds: 5
+  failureThreshold: 3
+
+startupProbe:
+  enabled: true
+  httpGet:
+    path: /login
+    port: http
+  initialDelaySeconds: 0
+  periodSeconds: 10
+  timeoutSeconds: 5
+  failureThreshold: 12
+
+# =============================================================================
+# Additional Configuration
+# =============================================================================
+
+nodeSelector: {}
+
+tolerations: []
+
+affinity: {}
+
+extraEnv: []
+#  - name: JAVA_OPTS
+#    value: "-Dhudson.slaves.NodeProvisioner.initialDelay=0"
+
+extraVolumes: []
+
+extraVolumeMounts: []
+
+# =============================================================================
+# Monitoring
+# =============================================================================
+
+serviceMonitor:
+  enabled: false
+  namespace: ""
+  path: /prometheus
+  interval: 30s
+  scrapeTimeout: 10s
+  labels: {}
+  relabelings: []
+
+# =============================================================================
+# Network Policy
+# =============================================================================
+
+networkPolicy:
+  enabled: false
+  ingress: []
+  egress: []
+
+# =============================================================================
+# Pod Disruption Budget
+# =============================================================================
+
+podDisruptionBudget:
+  enabled: false
+  minAvailable: 1
+  # maxUnavailable: 1
+
+# =============================================================================
+# HPA (Horizontal Pod Autoscaler)
+# =============================================================================
+
+autoscaling:
+  enabled: false
+  minReplicas: 1
+  maxReplicas: 3
+  targetCPUUtilizationPercentage: 80
+  # targetMemoryUtilizationPercentage: 80

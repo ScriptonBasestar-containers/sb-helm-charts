@@ -1,0 +1,79 @@
+# Production Example for Jenkins
+# This example demonstrates a production-ready Jenkins deployment
+
+image:
+  registry: harbor.polypia.in
+  repository: library/jenkins-controller
+  tag: "2.528.3-jdk21"
+
+imagePullSecrets:
+  - name: harbor-registry
+
+controller:
+  installPlugins: false
+
+  jcasc:
+    enabled: true
+    defaultConfig: false
+    configScripts:
+      welcome-message: |
+        jenkins:
+          systemMessage: "Polypia Jenkins - Managed by Helm"
+
+      security: |
+        jenkins:
+          securityRealm:
+            local:
+              allowsSignup: false
+              users:
+                - id: "admin"
+                  name: "Admin"
+                  password: "${JENKINS_ADMIN_PASSWORD}"
+          authorizationStrategy:
+            roleBased:
+              roles:
+                global:
+                  - name: "admin"
+                    permissions:
+                      - "Overall/Administer"
+                    entries:
+                      - user: "admin"
+
+  admin:
+    existingSecret: jenkins-admin-secret
+
+agent:
+  enabled: true
+  namespace: jenkins-agents
+
+ingress:
+  enabled: true
+  className: traefik
+  annotations:
+    traefik.ingress.kubernetes.io/router.entrypoints: web, websecure
+    traefik.ingress.kubernetes.io/whitelist-source-range: "192.168.0.0/16"
+  hosts:
+    - host: jenkins.polypia.in
+      paths:
+        - path: /
+          pathType: Prefix
+
+persistence:
+  enabled: true
+  storageClass: local-path
+  size: 50Gi
+
+resources:
+  requests:
+    cpu: "500m"
+    memory: "1Gi"
+  limits:
+    cpu: "2000m"
+    memory: "4Gi"
+
+serviceMonitor:
+  enabled: true
+  namespace: monitoring
+
+networkPolicy:
+  enabled: true

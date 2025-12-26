@@ -72,11 +72,11 @@ postgresql:
   enabled: false  # Set to true if using external PostgreSQL
   external:
     enabled: true
-    host: ""  # REQUIRED
+    host: "postgresql.example.local"
     port: 5432
     database: "immich"
     username: "immich"
-    password: ""  # REQUIRED
+    password: "change-me"
     # PostgreSQL must have pgvecto.rs extension installed
     sslmode: "disable"  # disable, allow, prefer, require, verify-ca, verify-full
 
@@ -85,7 +85,7 @@ redis:
   enabled: false  # Set to true if using external Redis
   external:
     enabled: true
-    host: ""  # REQUIRED
+    host: "redis.example.local"
     port: 6379
     password: ""  # Optional
     database: 0

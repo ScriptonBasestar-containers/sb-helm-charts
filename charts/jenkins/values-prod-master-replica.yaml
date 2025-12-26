@@ -1,0 +1,103 @@
+# Jenkins values for Production - Master setup
+# Use: helm install jenkins ./charts/jenkins -f charts/jenkins/values-prod-master-replica.yaml
+#
+# Notes:
+# - Jenkins is typically a single controller with external agents
+# - Use external secrets for admin credentials in production
+
+replicaCount: 1
+
+strategy:
+  type: Recreate
+
+image:
+  registry: harbor.polypia.in
+  repository: library/jenkins-controller
+  tag: "2.528.3-jdk21"
+  pullPolicy: IfNotPresent
+
+imagePullSecrets:
+  - name: harbor-registry
+
+controller:
+  installPlugins: false
+
+  jcasc:
+    enabled: true
+    defaultConfig: true
+    configScripts:
+      welcome-message: |
+        jenkins:
+          systemMessage: "Production Jenkins - Managed by Helm"
+
+  javaOpts: "-Xms1g -Xmx4g"
+  jenkinsOpts: ""
+
+  admin:
+    username: admin
+    password: ""
+    existingSecret: jenkins-admin-secret
+    passwordKey: jenkins-admin-password
+
+# Persistent storage
+persistence:
+  enabled: true
+  storageClass: ""
+  accessMode: ReadWriteOnce
+  size: 50Gi
+  annotations: {}
+  existingClaim: ""
+
+# Service
+service:
+  type: ClusterIP
+  port: 8080
+  targetPort: http
+  agentPort: 50000
+  agentTargetPort: agent
+  annotations: {}
+
+# Ingress
+ingress:
+  enabled: true
+  className: "nginx"
+  annotations:
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
+  hosts:
+    - host: jenkins.example.com
+      paths:
+        - path: /
+          pathType: Prefix
+  tls:
+    - secretName: jenkins-tls
+      hosts:
+        - jenkins.example.com
+
+# Resources
+resources:
+  requests:
+    cpu: "500m"
+    memory: "1Gi"
+  limits:
+    cpu: "2000m"
+    memory: "4Gi"
+
+# Monitoring
+serviceMonitor:
+  enabled: true
+  namespace: monitoring
+  path: /prometheus
+  interval: 30s
+  scrapeTimeout: 10s
+
+# Security
+networkPolicy:
+  enabled: true
+
+podDisruptionBudget:
+  enabled: true
+  minAvailable: 1
+
+# Autoscaling (disabled - Jenkins controller is single-node)
+autoscaling:
+  enabled: false

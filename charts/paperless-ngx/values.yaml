@@ -6,12 +6,12 @@
 paperless:
   # Admin user (created on first run)
   adminUser: "admin"
-  adminPassword: ""  # REQUIRED: Set admin password
+  adminPassword: "admin123"  # REQUIRED: Set admin password
   adminEmail: "admin@example.com"
 
   # Application settings
   url: "http://localhost:8000"  # Public URL for Paperless-ngx
-  secretKey: ""  # REQUIRED: Generate with: openssl rand -base64 32
+  secretKey: "paperless-secret-key-change-me"  # REQUIRED: Generate with: openssl rand -base64 32
 
   # Time zone
   timezone: "UTC"
@@ -49,18 +49,18 @@ postgresql:
   enabled: false  # ALWAYS false - use external database
   external:
     enabled: true
-    host: ""  # REQUIRED: PostgreSQL host
+    host: "postgresql.example.local"
     port: 5432
     database: "paperless"
     username: "paperless"
-    password: ""  # REQUIRED: Set database password
+    password: "change-me"
     sslMode: "prefer"  # disable, allow, prefer, require, verify-ca, verify-full
 
 redis:
   enabled: false  # ALWAYS false - use external Redis
   external:
     enabled: true
-    host: ""  # REQUIRED: Redis host
+    host: "redis.example.local"
     port: 6379
     password: ""  # Optional: Redis password
     database: 0

@@ -46,7 +46,7 @@ minio:
 
   # Root credentials
   rootUser: "admin"
-  rootPassword: ""  # REQUIRED - Set this or use existingSecret
+  rootPassword: "minio123"  # REQUIRED - Set this or use existingSecret
 
   # Use an existing secret for credentials
   existingSecret: ""

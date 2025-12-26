@@ -53,10 +53,19 @@ git-show-gh-pages:
 # 모든 차트 린트
 .PHONY: lint
 lint:
-	@for chart in $(CHART_DIRS); do \
-		echo "Linting chart: $$(basename $$chart)"; \
-		$(HELM) lint $$chart; \
-	done
+	@if [ -n "$(CHART)" ]; then \
+		if [ ! -d "charts/$(CHART)" ]; then \
+			echo "Error: charts/$(CHART) not found"; \
+			exit 1; \
+		fi; \
+		echo "Linting chart: $(CHART)"; \
+		$(HELM) lint charts/$(CHART); \
+	else \
+		for chart in $(CHART_DIRS); do \
+			echo "Linting chart: $$(basename $$chart)"; \
+			$(HELM) lint $$chart; \
+		done; \
+	fi
 
 # 차트 메타데이터 검증
 .PHONY: validate-metadata
@@ -131,58 +140,117 @@ generate-artifacthub-dashboard:
 # 모든 차트 빌드
 .PHONY: build
 build:
-	@for chart in $(CHART_DIRS); do \
-		echo "Building chart: $$(basename $$chart)"; \
-		$(HELM) package $$chart; \
-	done
+	@if [ -n "$(CHART)" ]; then \
+		if [ ! -d "charts/$(CHART)" ]; then \
+			echo "Error: charts/$(CHART) not found"; \
+			exit 1; \
+		fi; \
+		echo "Building chart: $(CHART)"; \
+		$(HELM) package charts/$(CHART); \
+	else \
+		for chart in $(CHART_DIRS); do \
+			echo "Building chart: $$(basename $$chart)"; \
+			$(HELM) package $$chart; \
+		done; \
+	fi
 
 # 모든 차트 템플릿 생성
 .PHONY: template
 template:
-	@for chart in $(CHART_DIRS); do \
-		echo "Templating chart: $$(basename $$chart)"; \
-		$(HELM) template $$(basename $$chart) $$chart > $$(basename $$chart).yaml; \
-	done
+	@if [ -n "$(CHART)" ]; then \
+		if [ ! -d "charts/$(CHART)" ]; then \
+			echo "Error: charts/$(CHART) not found"; \
+			exit 1; \
+		fi; \
+		echo "Templating chart: $(CHART)"; \
+		$(HELM) template $(CHART) charts/$(CHART) > $(CHART).yaml; \
+	else \
+		for chart in $(CHART_DIRS); do \
+			echo "Templating chart: $$(basename $$chart)"; \
+			$(HELM) template $$(basename $$chart) $$chart > $$(basename $$chart).yaml; \
+		done; \
+	fi
 
 # 모든 차트 설치
 .PHONY: install
 install:
-	@for chart in $(CHART_DIRS); do \
-		echo "Installing chart: $$(basename $$chart)"; \
-		$(HELM) install $$(basename $$chart) $$chart; \
-	done
+	@if [ -n "$(CHART)" ]; then \
+		if [ ! -d "charts/$(CHART)" ]; then \
+			echo "Error: charts/$(CHART) not found"; \
+			exit 1; \
+		fi; \
+		echo "Installing chart: $(CHART)"; \
+		$(HELM) install $(CHART) charts/$(CHART); \
+	else \
+		for chart in $(CHART_DIRS); do \
+			echo "Installing chart: $$(basename $$chart)"; \
+			$(HELM) install $$(basename $$chart) $$chart; \
+		done; \
+	fi
 
 # 모든 차트 업그레이드
 .PHONY: upgrade
 upgrade:
-	@for chart in $(CHART_DIRS); do \
-		echo "Upgrading chart: $$(basename $$chart)"; \
-		$(HELM) upgrade $$(basename $$chart) $$chart; \
-	done
+	@if [ -n "$(CHART)" ]; then \
+		if [ ! -d "charts/$(CHART)" ]; then \
+			echo "Error: charts/$(CHART) not found"; \
+			exit 1; \
+		fi; \
+		echo "Upgrading chart: $(CHART)"; \
+		$(HELM) upgrade $(CHART) charts/$(CHART); \
+	else \
+		for chart in $(CHART_DIRS); do \
+			echo "Upgrading chart: $$(basename $$chart)"; \
+			$(HELM) upgrade $$(basename $$chart) $$chart; \
+		done; \
+	fi
 
 # 모든 차트 삭제
 .PHONY: uninstall
 uninstall:
-	@for chart in $(CHART_DIRS); do \
-		echo "Uninstalling chart: $$(basename $$chart)"; \
-		$(HELM) uninstall $$(basename $$chart); \
-	done
+	@if [ -n "$(CHART)" ]; then \
+		echo "Uninstalling chart: $(CHART)"; \
+		$(HELM) uninstall $(CHART); \
+	else \
+		for chart in $(CHART_DIRS); do \
+			echo "Uninstalling chart: $$(basename $$chart)"; \
+			$(HELM) uninstall $$(basename $$chart); \
+		done; \
+	fi
 
 # 차트 의존성 업데이트
 .PHONY: dependency-update
 dependency-update:
-	@for chart in $(CHART_DIRS); do \
-		echo "Updating dependencies for chart: $$(basename $$chart)"; \
-		$(HELM) dependency update $$chart; \
-	done
+	@if [ -n "$(CHART)" ]; then \
+		if [ ! -d "charts/$(CHART)" ]; then \
+			echo "Error: charts/$(CHART) not found"; \
+			exit 1; \
+		fi; \
+		echo "Updating dependencies for chart: $(CHART)"; \
+		$(HELM) dependency update charts/$(CHART); \
+	else \
+		for chart in $(CHART_DIRS); do \
+			echo "Updating dependencies for chart: $$(basename $$chart)"; \
+			$(HELM) dependency update $$chart; \
+		done; \
+	fi
 
 # 차트 의존성 빌드
 .PHONY: dependency-build
 dependency-build:
-	@for chart in $(CHART_DIRS); do \
-		echo "Building dependencies for chart: $$(basename $$chart)"; \
-		$(HELM) dependency build $$chart; \
-	done
+	@if [ -n "$(CHART)" ]; then \
+		if [ ! -d "charts/$(CHART)" ]; then \
+			echo "Error: charts/$(CHART) not found"; \
+			exit 1; \
+		fi; \
+		echo "Building dependencies for chart: $(CHART)"; \
+		$(HELM) dependency build charts/$(CHART); \
+	else \
+		for chart in $(CHART_DIRS); do \
+			echo "Building dependencies for chart: $$(basename $$chart)"; \
+			$(HELM) dependency build $$chart; \
+		done; \
+	fi
 
 # 시나리오 기반 배포 타겟
 .PHONY: install-home install-startup install-prod

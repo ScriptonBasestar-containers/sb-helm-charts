@@ -7,7 +7,7 @@ rustfs:
   # Root credentials for RustFS admin console
   # WARNING: Change these values in production!
   rootUser: "rustfsadmin"
-  rootPassword: ""  # Required - deployment will fail if empty
+  rootPassword: "rustfs123"  # Required - deployment will fail if empty
 
   # Use existing Secret for credentials (overrides rootUser/rootPassword)
   existingSecret: ""

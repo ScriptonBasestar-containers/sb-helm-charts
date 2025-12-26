@@ -12,7 +12,7 @@ rabbitmq:
 
     # Admin password (REQUIRED - deployment will fail if empty)
     # For production, generate a strong random password
-    password: ""
+    password: "guest"
 
     # Use existing secret for credentials
     existingSecret:

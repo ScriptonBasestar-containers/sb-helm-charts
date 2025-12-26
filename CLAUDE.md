@@ -88,8 +88,8 @@ make generate-catalog
 
 ## Available Charts
 
-**39 Total Charts:**
-- **20 Application Charts**: Airflow, Grafana, Harbor, Immich, Jellyfin, Keycloak, Loki, MLflow, Nextcloud, Paperless-ngx, pgAdmin, phpMyAdmin, Uptime Kuma, Vaultwarden, WireGuard, WordPress, and more
+**40 Total Charts:**
+- **21 Application Charts**: Airflow, Grafana, Harbor, Immich, Jellyfin, Jenkins, Keycloak, Loki, MLflow, Nextcloud, Paperless-ngx, pgAdmin, phpMyAdmin, Uptime Kuma, Vaultwarden, WireGuard, WordPress, and more
 - **19 Infrastructure Charts**: Alertmanager, Blackbox Exporter, Elasticsearch, Grafana Mimir, Kafka, Kube State Metrics, Memcached, MinIO, MongoDB, MySQL, Node Exporter, OpenTelemetry Collector, PostgreSQL, Prometheus, Promtail, Pushgateway, RabbitMQ, Redis, RustFS, Tempo
 
 **⚠️ 8 Enhanced Charts** with comprehensive RBAC, backup/recovery, and upgrade features: Keycloak, Airflow, Harbor, MLflow, Kafka, Elasticsearch, Mimir, OpenTelemetry Collector (see Enhanced Operational Features section below)
