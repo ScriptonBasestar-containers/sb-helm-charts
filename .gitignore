@@ -64,3 +64,23 @@ keycloak.yaml
 wordpress.yaml
 nextcloud.yaml
 wireguard.yaml
+
+# Development Tools & MCP Servers
+firebase-debug.log
+firebase-debug.*.log
+.firebaserc
+firebase.json
+.firebase/
+
+# Serena MCP Server
+.serena/
+serena.log
+serena-*.log
+
+# Claude Code / AI Tools
+.claude-cache/
+*.claude.tmp
+
+# Debug logs
+debug.log
+*.debug.log
