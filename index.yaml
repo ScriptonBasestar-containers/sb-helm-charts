@@ -2668,6 +2668,206 @@ entries:
     urls:
     - https://github.com/ScriptonBasestar-containers/sb-helm-charts/releases/download/tempo-0.3.0/tempo-0.3.0.tgz
     version: 0.3.0
+  thanos-compactor:
+  - apiVersion: v2
+    appVersion: 0.37.2
+    created: "2025-12-28T02:55:11.479085532Z"
+    description: Thanos Compactor - compacts, downsamples, and manages retention of
+      TSDB blocks
+    digest: 3ae6998a17ce9da60cc37430cf13cb1e2d5a4023fee3ad880fdaad0350f558ed
+    home: https://github.com/scriptonbasestar-container/sb-helm-charts
+    icon: https://thanos.io/icon-light.png
+    keywords:
+    - thanos
+    - prometheus
+    - compactor
+    - downsampling
+    - retention
+    - monitoring
+    - metrics
+    maintainers:
+    - email: scriptonbasestar@gmail.com
+      name: ScriptonBasestar
+    name: thanos-compactor
+    sources:
+    - https://github.com/scriptonbasestar-container/sb-helm-charts/tree/master/charts/thanos-compactor
+    - https://github.com/thanos-io/thanos
+    type: application
+    urls:
+    - https://github.com/ScriptonBasestar-containers/sb-helm-charts/releases/download/thanos-compactor-0.3.0/thanos-compactor-0.3.0.tgz
+    version: 0.3.0
+  thanos-query:
+  - apiVersion: v2
+    appVersion: 0.37.2
+    created: "2025-12-28T02:55:11.654694451Z"
+    description: Thanos Query - PromQL query layer for distributed Prometheus with
+      deduplication
+    digest: 265fc3e51062c9a5accaefc699a31e854c9c93ae6423cda22bffb6f48c53eed5
+    home: https://github.com/scriptonbasestar-container/sb-helm-charts
+    icon: https://thanos.io/icon-light.png
+    keywords:
+    - thanos
+    - prometheus
+    - query
+    - monitoring
+    - metrics
+    - observability
+    - federation
+    - deduplication
+    maintainers:
+    - email: scriptonbasestar@gmail.com
+      name: ScriptonBasestar
+    name: thanos-query
+    sources:
+    - https://github.com/scriptonbasestar-container/sb-helm-charts/tree/master/charts/thanos-query
+    - https://github.com/thanos-io/thanos
+    type: application
+    urls:
+    - https://github.com/ScriptonBasestar-containers/sb-helm-charts/releases/download/thanos-query-0.3.0/thanos-query-0.3.0.tgz
+    version: 0.3.0
+  thanos-query-frontend:
+  - apiVersion: v2
+    appVersion: 0.37.2
+    created: "2025-12-28T02:55:11.849929605Z"
+    description: Thanos Query Frontend - caching and query splitting layer for Thanos
+      Query
+    digest: 2fe6faa6a593fd62fef3378049da2b0adb5f46c7fd21b8292351c2ba9e4f6f36
+    home: https://github.com/scriptonbasestar-container/sb-helm-charts
+    icon: https://thanos.io/icon-light.png
+    keywords:
+    - thanos
+    - prometheus
+    - query-frontend
+    - caching
+    - performance
+    - monitoring
+    - metrics
+    maintainers:
+    - email: scriptonbasestar@gmail.com
+      name: ScriptonBasestar
+    name: thanos-query-frontend
+    sources:
+    - https://github.com/scriptonbasestar-container/sb-helm-charts/tree/master/charts/thanos-query-frontend
+    - https://github.com/thanos-io/thanos
+    type: application
+    urls:
+    - https://github.com/ScriptonBasestar-containers/sb-helm-charts/releases/download/thanos-query-frontend-0.3.0/thanos-query-frontend-0.3.0.tgz
+    version: 0.3.0
+  thanos-receive:
+  - apiVersion: v2
+    appVersion: 0.37.2
+    created: "2025-12-28T02:55:12.031237094Z"
+    description: Thanos Receive - accepts remote write from Prometheus for multi-tenant
+      ingestion
+    digest: 3ea92e4fb0f609280d80c40246abde4b3e9d034fc0cdff379147e4951477b3bc
+    home: https://github.com/scriptonbasestar-container/sb-helm-charts
+    icon: https://thanos.io/icon-light.png
+    keywords:
+    - thanos
+    - prometheus
+    - receive
+    - remote-write
+    - monitoring
+    - metrics
+    - multi-tenant
+    - ingestion
+    maintainers:
+    - email: scriptonbasestar@gmail.com
+      name: ScriptonBasestar
+    name: thanos-receive
+    sources:
+    - https://github.com/scriptonbasestar-container/sb-helm-charts/tree/master/charts/thanos-receive
+    - https://github.com/thanos-io/thanos
+    type: application
+    urls:
+    - https://github.com/ScriptonBasestar-containers/sb-helm-charts/releases/download/thanos-receive-0.3.0/thanos-receive-0.3.0.tgz
+    version: 0.3.0
+  thanos-ruler:
+  - apiVersion: v2
+    appVersion: 0.37.2
+    created: "2025-12-28T02:55:12.204331604Z"
+    description: Thanos Ruler - evaluates recording and alerting rules against Thanos
+      Query
+    digest: 3de71df3df8583ef81c2910e03e757c5b1ea75d20714d7e6e68e142fcd64f456
+    home: https://github.com/scriptonbasestar-container/sb-helm-charts
+    icon: https://thanos.io/icon-light.png
+    keywords:
+    - thanos
+    - prometheus
+    - ruler
+    - alerting
+    - recording-rules
+    - monitoring
+    - metrics
+    maintainers:
+    - email: scriptonbasestar@gmail.com
+      name: ScriptonBasestar
+    name: thanos-ruler
+    sources:
+    - https://github.com/scriptonbasestar-container/sb-helm-charts/tree/master/charts/thanos-ruler
+    - https://github.com/thanos-io/thanos
+    type: application
+    urls:
+    - https://github.com/ScriptonBasestar-containers/sb-helm-charts/releases/download/thanos-ruler-0.3.0/thanos-ruler-0.3.0.tgz
+    version: 0.3.0
+  thanos-sidecar:
+  - apiVersion: v2
+    appVersion: 0.37.2
+    created: "2025-12-28T02:55:12.389148433Z"
+    description: Thanos Sidecar - Prometheus companion for block upload and Store
+      API
+    digest: af6e11aab2357da83a672f464f0ea304ed4ac1e0e1e8b4be0a52fe59ac6595c1
+    home: https://github.com/scriptonbasestar-container/sb-helm-charts
+    icon: https://thanos.io/icon-light.png
+    keywords:
+    - thanos
+    - prometheus
+    - sidecar
+    - monitoring
+    - metrics
+    - object-storage
+    - long-term-storage
+    maintainers:
+    - email: scriptonbasestar@gmail.com
+      name: ScriptonBasestar
+    name: thanos-sidecar
+    sources:
+    - https://github.com/scriptonbasestar-container/sb-helm-charts/tree/master/charts/thanos-sidecar
+    - https://github.com/thanos-io/thanos
+    type: application
+    urls:
+    - https://github.com/ScriptonBasestar-containers/sb-helm-charts/releases/download/thanos-sidecar-0.3.0/thanos-sidecar-0.3.0.tgz
+    version: 0.3.0
+  thanos-store:
+  - apiVersion: v2
+    appVersion: 0.37.2
+    created: "2025-12-28T02:55:12.571330847Z"
+    description: Thanos Store Gateway - serves historical metrics from object storage
+      via Store API
+    digest: 08e8c4b2b9e4615a1d025cffa544f02527764a3e0adaa56c2bc3d6defc121927
+    home: https://github.com/scriptonbasestar-container/sb-helm-charts
+    icon: https://thanos.io/icon-light.png
+    keywords:
+    - thanos
+    - prometheus
+    - store
+    - gateway
+    - monitoring
+    - metrics
+    - object-storage
+    - s3
+    - gcs
+    maintainers:
+    - email: scriptonbasestar@gmail.com
+      name: ScriptonBasestar
+    name: thanos-store
+    sources:
+    - https://github.com/scriptonbasestar-container/sb-helm-charts/tree/master/charts/thanos-store
+    - https://github.com/thanos-io/thanos
+    type: application
+    urls:
+    - https://github.com/ScriptonBasestar-containers/sb-helm-charts/releases/download/thanos-store-0.3.0/thanos-store-0.3.0.tgz
+    version: 0.3.0
   uptime-kuma:
   - annotations:
       artifacthub.io/changes: |
@@ -3310,4 +3510,4 @@ entries:
     urls:
     - https://github.com/ScriptonBasestar-containers/sb-helm-charts/releases/download/wordpress-0.1.0/wordpress-0.1.0.tgz
     version: 0.1.0
-generated: "2025-12-26T15:33:30.506578839Z"
+generated: "2025-12-28T02:55:12.571447822Z"
