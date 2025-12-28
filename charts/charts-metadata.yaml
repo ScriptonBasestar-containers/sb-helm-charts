@@ -680,3 +680,121 @@ charts:
     - long-term-storage
     description: Grafana Mimir horizontally scalable, highly available long-term storage for Prometheus metrics
     production_note: For large-scale deployments, consider microservices mode with official Grafana Mimir Helm chart
+  thanos-query:
+    name: Thanos Query
+    path: charts/thanos-query
+    category: infrastructure
+    tags:
+    - Monitoring
+    - Metrics
+    - Federation
+    keywords:
+    - thanos
+    - prometheus
+    - query
+    - monitoring
+    - metrics
+    - federation
+    - deduplication
+    - observability
+    description: Thanos Query provides global query view across distributed Prometheus instances with deduplication
+  thanos-store:
+    name: Thanos Store Gateway
+    path: charts/thanos-store
+    category: infrastructure
+    tags:
+    - Monitoring
+    - Metrics
+    - Long-Term-Storage
+    keywords:
+    - thanos
+    - prometheus
+    - store
+    - gateway
+    - monitoring
+    - metrics
+    - object-storage
+    - s3
+    description: Thanos Store Gateway serves historical metrics from object storage via Store API
+  thanos-sidecar:
+    name: Thanos Sidecar
+    path: charts/thanos-sidecar
+    category: infrastructure
+    tags:
+    - Monitoring
+    - Metrics
+    - Long-Term-Storage
+    keywords:
+    - thanos
+    - prometheus
+    - sidecar
+    - monitoring
+    - metrics
+    - object-storage
+    description: Thanos Sidecar for Prometheus - uploads TSDB blocks to object storage and exposes Store API
+  thanos-receive:
+    name: Thanos Receive
+    path: charts/thanos-receive
+    category: infrastructure
+    tags:
+    - Monitoring
+    - Metrics
+    - Ingestion
+    keywords:
+    - thanos
+    - prometheus
+    - receive
+    - remote-write
+    - monitoring
+    - metrics
+    - multi-tenant
+    description: Thanos Receive accepts remote write from Prometheus for multi-tenant ingestion
+  thanos-compactor:
+    name: Thanos Compactor
+    path: charts/thanos-compactor
+    category: infrastructure
+    tags:
+    - Monitoring
+    - Metrics
+    - Data-Management
+    keywords:
+    - thanos
+    - prometheus
+    - compactor
+    - downsampling
+    - retention
+    - monitoring
+    description: Thanos Compactor compacts, downsamples, and manages retention of TSDB blocks in object storage
+    production_note: Must run as single replica - concurrent compactors will corrupt data
+  thanos-ruler:
+    name: Thanos Ruler
+    path: charts/thanos-ruler
+    category: infrastructure
+    tags:
+    - Monitoring
+    - Alerting
+    - Rules
+    keywords:
+    - thanos
+    - prometheus
+    - ruler
+    - alerting
+    - recording-rules
+    - monitoring
+    description: Thanos Ruler evaluates recording and alerting rules against Thanos Query
+  thanos-query-frontend:
+    name: Thanos Query Frontend
+    path: charts/thanos-query-frontend
+    category: infrastructure
+    tags:
+    - Monitoring
+    - Metrics
+    - Caching
+    keywords:
+    - thanos
+    - prometheus
+    - query-frontend
+    - caching
+    - performance
+    - monitoring
+    description: Thanos Query Frontend provides caching and query splitting layer for Thanos Query
