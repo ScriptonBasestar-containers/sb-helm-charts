@@ -1,0 +1,39 @@
+# Example values for thanos-sidecar
+
+prometheus:
+  url: "http://prometheus-server.monitoring.svc.cluster.local:9090"
+  readyTimeout: "10m"
+
+prometheusDataVolume:
+  existingClaim: "prometheus-server"
+
+objstore:
+  enabled: true
+  type: "s3"
+  s3:
+    endpoint: "minio.storage.svc.cluster.local:9000"
+    bucket: "thanos"
+    region: "us-east-1"
+    accessKey: ""     # Set via --set
+    secretKey: ""     # Set via --set
+    insecure: true
+
+thanos:
+  tsdb:
+    path: "/prometheus"
+  shipper:
+    uploadCompacted: false
+  telemetry:
+    logLevel: "info"
+
+resources:
+  limits:
+    cpu: 1000m
+    memory: 1Gi
+  requests:
+    cpu: 200m
+    memory: 256Mi
+
+serviceMonitor:
+  enabled: true
+  interval: "30s"

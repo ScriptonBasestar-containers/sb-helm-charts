@@ -1,0 +1,200 @@
+# Default values for thanos-store.
+
+# RBAC Configuration
+rbac:
+  create: true
+  annotations: {}
+
+# Number of Store Gateway instances
+replicaCount: 1
+
+image:
+  repository: quay.io/thanos/thanos
+  pullPolicy: IfNotPresent
+  tag: ""
+
+imagePullSecrets: []
+nameOverride: ""
+fullnameOverride: ""
+
+# Object storage configuration (required)
+objstore:
+  # Object storage type: s3, gcs, azure, swift, filesystem
+  type: "s3"
+
+  # Use existing secret for object storage configuration
+  # Secret should contain 'objstore.yaml' key with full configuration
+  existingSecret: ""
+  secretKeyName: "objstore.yaml"
+
+  # S3 configuration
+  s3:
+    endpoint: ""
+    bucket: "thanos"
+    region: "us-east-1"
+    accessKey: ""
+    secretKey: ""
+    insecure: false
+    signatureV2: false
+    httpConfig:
+      idleConnTimeout: "1m30s"
+      responseHeaderTimeout: "2m"
+
+  # GCS configuration
+  gcs:
+    bucket: ""
+    # Base64 encoded service account JSON
+    serviceAccountKey: ""
+
+  # Azure configuration
+  azure:
+    storageAccountName: ""
+    storageAccountKey: ""
+    containerName: ""
+
+# Thanos Store configuration
+thanos:
+  # Index cache configuration
+  indexCache:
+    # Cache type: in-memory, memcached
+    type: "in-memory"
+    # In-memory cache size
+    size: "250MB"
+    # Memcached configuration
+    memcached:
+      addresses: []
+      timeout: "500ms"
+      maxIdleConnections: 100
+      maxAsyncConcurrency: 20
+      maxGetMultiConcurrency: 100
+
+  # Chunk pool configuration
+  chunkPoolSize: "2GB"
+
+  # Block sync configuration
+  blockSyncConcurrency: 20
+
+  # Store settings
+  store:
+    # Min time range to serve (e.g., -30d for last 30 days)
+    minTime: ""
+    # Max time range to serve
+    maxTime: ""
+    # Ignore deletion marks younger than this
+    ignoreDeletionMarksDelay: "24h"
+
+  # gRPC settings
+  grpc:
+    serverTLS:
+      enabled: false
+      certFile: ""
+      keyFile: ""
+      caFile: ""
+
+  # Telemetry settings
+  telemetry:
+    logFormat: "logfmt"
+    logLevel: "info"
+
+  # Extra arguments
+  extraArgs: []
+
+  # Extra environment variables
+  extraEnv: []
+
+serviceAccount:
+  create: true
+  automount: true
+  annotations: {}
+  name: ""
+
+podAnnotations: {}
+
+podLabels: {}
+
+podSecurityContext:
+  fsGroup: 65534
+  runAsUser: 65534
+  runAsNonRoot: true
+
+securityContext:
+  capabilities:
+    drop:
+      - ALL
+  readOnlyRootFilesystem: true
+  runAsNonRoot: true
+  runAsUser: 65534
+  allowPrivilegeEscalation: false
+
+service:
+  type: ClusterIP
+  httpPort: 10906
+  grpcPort: 10905
+  annotations: {}
+
+# Headless service for StatefulSet
+serviceHeadless:
+  annotations: {}
+
+serviceMonitor:
+  enabled: false
+  namespace: ""
+  interval: "30s"
+  scrapeTimeout: "10s"
+  labels: {}
+
+# Persistence for block cache
+persistence:
+  enabled: true
+  storageClass: ""
+  annotations: {}
+  accessMode: ReadWriteOnce
+  size: 10Gi
+  existingClaim: ""
+
+resources:
+  limits:
+    cpu: 2000m
+    memory: 4Gi
+  requests:
+    cpu: 500m
+    memory: 1Gi
+
+livenessProbe:
+  initialDelaySeconds: 30
+  periodSeconds: 10
+  timeoutSeconds: 5
+  failureThreshold: 3
+
+readinessProbe:
+  initialDelaySeconds: 10
+  periodSeconds: 10
+  timeoutSeconds: 5
+  failureThreshold: 3
+
+startupProbe:
+  initialDelaySeconds: 30
+  periodSeconds: 10
+  failureThreshold: 60
+
+nodeSelector: {}
+
+tolerations: []
+
+affinity: {}
+
+topologySpreadConstraints: []
+
+podDisruptionBudget:
+  enabled: false
+  minAvailable: 1
+
+# Extra volumes
+extraVolumes: []
+
+# Extra volume mounts
+extraVolumeMounts: []
+
+initContainers: []
+
+sidecarContainers: []

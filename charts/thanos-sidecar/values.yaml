@@ -1,0 +1,174 @@
+# Default values for thanos-sidecar.
+# This chart deploys Thanos Sidecar as a standalone deployment.
+# For sidecar container mode, configure your Prometheus chart directly.
+
+# RBAC Configuration
+rbac:
+  create: true
+  annotations: {}
+
+replicaCount: 1
+
+image:
+  repository: quay.io/thanos/thanos
+  pullPolicy: IfNotPresent
+  tag: ""
+
+imagePullSecrets: []
+nameOverride: ""
+fullnameOverride: ""
+
+# Prometheus configuration
+prometheus:
+  # Prometheus URL for sidecar to connect
+  url: "http://prometheus:9090"
+  # Enable ready check
+  readyTimeout: "10m"
+
+# Object storage configuration (required for block upload)
+objstore:
+  # Enable object storage upload
+  enabled: true
+
+  type: "s3"
+  existingSecret: ""
+  secretKeyName: "objstore.yaml"
+
+  s3:
+    endpoint: ""
+    bucket: "thanos"
+    region: "us-east-1"
+    accessKey: ""
+    secretKey: ""
+    insecure: false
+
+  gcs:
+    bucket: ""
+    serviceAccountKey: ""
+
+  azure:
+    storageAccountName: ""
+    storageAccountKey: ""
+    containerName: ""
+
+# Thanos Sidecar configuration
+thanos:
+  # TSDB configuration
+  tsdb:
+    # Path to Prometheus TSDB data (mount from PVC)
+    path: "/prometheus"
+
+  # Ship blocks configuration
+  shipper:
+    # Upload compacted blocks only
+    uploadCompacted: false
+
+  # Reloader configuration (watches for config changes)
+  reloader:
+    enabled: false
+    # Prometheus config file to watch
+    configFile: ""
+    # Prometheus config envsubst file
+    configEnvsubstFile: ""
+    # Rules directory to watch
+    ruleDir: ""
+
+  # gRPC settings
+  grpc:
+    serverTLS:
+      enabled: false
+      certFile: ""
+      keyFile: ""
+      caFile: ""
+
+  # Telemetry
+  telemetry:
+    logFormat: "logfmt"
+    logLevel: "info"
+
+  extraArgs: []
+  extraEnv: []
+
+# Volume mount for Prometheus TSDB data
+# Must be shared with Prometheus pod
+prometheusDataVolume:
+  # Use existing PVC (from Prometheus)
+  existingClaim: ""
+  # Or create new PVC
+  enabled: false
+  storageClass: ""
+  size: 50Gi
+
+serviceAccount:
+  create: true
+  automount: true
+  annotations: {}
+  name: ""
+
+podAnnotations: {}
+
+podLabels: {}
+
+podSecurityContext:
+  fsGroup: 65534
+  runAsUser: 65534
+  runAsNonRoot: true
+
+securityContext:
+  capabilities:
+    drop:
+      - ALL
+  readOnlyRootFilesystem: true
+  runAsNonRoot: true
+  runAsUser: 65534
+  allowPrivilegeEscalation: false
+
+service:
+  type: ClusterIP
+  httpPort: 10902
+  grpcPort: 10901
+  annotations: {}
+
+serviceHeadless:
+  annotations: {}
+
+serviceMonitor:
+  enabled: false
+  namespace: ""
+  interval: "30s"
+  scrapeTimeout: "10s"
+  labels: {}
+
+resources:
+  limits:
+    cpu: 500m
+    memory: 512Mi
+  requests:
+    cpu: 100m
+    memory: 128Mi
+
+livenessProbe:
+  initialDelaySeconds: 30
+  periodSeconds: 10
+  timeoutSeconds: 5
+  failureThreshold: 3
+
+readinessProbe:
+  initialDelaySeconds: 10
+  periodSeconds: 10
+  timeoutSeconds: 5
+  failureThreshold: 3
+
+nodeSelector: {}
+
+tolerations: []
+
+affinity: {}
+
+extraVolumes: []
+
+extraVolumeMounts: []
+
+initContainers: []
+
+sidecarContainers: []

@@ -1,0 +1,179 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: {{ include "thanos-ruler.fullname" . }}
+  labels:
+    {{- include "thanos-ruler.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.replicaCount }}
+  serviceName: {{ include "thanos-ruler.fullname" . }}-headless
+  selector:
+    matchLabels:
+      {{- include "thanos-ruler.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      annotations:
+        checksum/secret: {{ include (print $.Template.BasePath "/secret.yaml") . | sha256sum }}
+        {{- if .Values.rules }}
+        checksum/rules: {{ include (print $.Template.BasePath "/configmap.yaml") . | sha256sum }}
+        {{- end }}
+        {{- with .Values.podAnnotations }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+      labels:
+        {{- include "thanos-ruler.labels" . | nindent 8 }}
+        {{- with .Values.podLabels }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+    spec:
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      serviceAccountName: {{ include "thanos-ruler.serviceAccountName" . }}
+      securityContext:
+        {{- toYaml .Values.podSecurityContext | nindent 8 }}
+      {{- with .Values.initContainers }}
+      initContainers:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      containers:
+        - name: {{ .Chart.Name }}
+          securityContext:
+            {{- toYaml .Values.securityContext | nindent 12 }}
+          image: {{ include "thanos-ruler.image" . }}
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          args:
+            - rule
+            - --http-address=0.0.0.0:10902
+            - --grpc-address=0.0.0.0:10901
+            - --data-dir=/data
+            - --objstore.config-file=/etc/thanos/objstore.yaml
+            {{- range .Values.thanos.ruler.queryEndpoints }}
+            - --query={{ . }}
+            {{- end }}
+            {{- range .Values.thanos.ruler.alertmanagers }}
+            - --alertmanagers.url={{ . }}
+            {{- end }}
+            {{- if .Values.thanos.ruler.evaluationInterval }}
+            - --eval-interval={{ .Values.thanos.ruler.evaluationInterval }}
+            {{- end }}
+            {{- range .Values.thanos.ruler.ruleFiles }}
+            - --rule-file={{ . }}
+            {{- end }}
+            {{- range $key, $value := .Values.thanos.ruler.labels }}
+            - --label={{ $key }}="{{ $value }}"
+            {{- end }}
+            {{- range .Values.thanos.ruler.alertLabelDrop }}
+            - --alert.label-drop={{ . }}
+            {{- end }}
+            {{- if .Values.thanos.telemetry.logFormat }}
+            - --log.format={{ .Values.thanos.telemetry.logFormat }}
+            {{- end }}
+            {{- if .Values.thanos.telemetry.logLevel }}
+            - --log.level={{ .Values.thanos.telemetry.logLevel }}
+            {{- end }}
+            {{- with .Values.thanos.extraArgs }}
+            {{- toYaml . | nindent 12 }}
+            {{- end }}
+          {{- with .Values.thanos.extraEnv }}
+          env:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          ports:
+            - name: http
+              containerPort: 10902
+              protocol: TCP
+            - name: grpc
+              containerPort: 10901
+              protocol: TCP
+          livenessProbe:
+            httpGet:
+              path: /-/healthy
+              port: http
+            initialDelaySeconds: {{ .Values.livenessProbe.initialDelaySeconds }}
+            periodSeconds: {{ .Values.livenessProbe.periodSeconds }}
+            timeoutSeconds: {{ .Values.livenessProbe.timeoutSeconds }}
+            failureThreshold: {{ .Values.livenessProbe.failureThreshold }}
+          readinessProbe:
+            httpGet:
+              path: /-/ready
+              port: http
+            initialDelaySeconds: {{ .Values.readinessProbe.initialDelaySeconds }}
+            periodSeconds: {{ .Values.readinessProbe.periodSeconds }}
+            timeoutSeconds: {{ .Values.readinessProbe.timeoutSeconds }}
+            failureThreshold: {{ .Values.readinessProbe.failureThreshold }}
+          startupProbe:
+            httpGet:
+              path: /-/ready
+              port: http
+            initialDelaySeconds: {{ .Values.startupProbe.initialDelaySeconds }}
+            periodSeconds: {{ .Values.startupProbe.periodSeconds }}
+            failureThreshold: {{ .Values.startupProbe.failureThreshold }}
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+          volumeMounts:
+            - name: data
+              mountPath: /data
+            - name: objstore-config
+              mountPath: /etc/thanos
+              readOnly: true
+            {{- if .Values.rules }}
+            - name: rules
+              mountPath: /etc/thanos/rules
+              readOnly: true
+            {{- end }}
+            {{- with .Values.extraVolumeMounts }}
+            {{- toYaml . | nindent 12 }}
+            {{- end }}
+        {{- with .Values.sidecarContainers }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+      volumes:
+        - name: objstore-config
+          secret:
+            secretName: {{ include "thanos-ruler.objstoreSecretName" . }}
+        {{- if .Values.rules }}
+        - name: rules
+          configMap:
+            name: {{ include "thanos-ruler.rulesConfigMapName" . }}
+        {{- end }}
+        {{- with .Values.extraVolumes }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.topologySpreadConstraints }}
+      topologySpreadConstraints:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+  {{- if .Values.persistence.enabled }}
+  volumeClaimTemplates:
+    - metadata:
+        name: data
+        {{- with .Values.persistence.annotations }}
+        annotations:
+          {{- toYaml . | nindent 10 }}
+        {{- end }}
+      spec:
+        accessModes:
+          - {{ .Values.persistence.accessMode }}
+        {{- if .Values.persistence.storageClass }}
+        storageClassName: {{ .Values.persistence.storageClass }}
+        {{- end }}
+        resources:
+          requests:
+            storage: {{ .Values.persistence.size }}
+  {{- else }}
+  volumeClaimTemplates: []
+  {{- end }}

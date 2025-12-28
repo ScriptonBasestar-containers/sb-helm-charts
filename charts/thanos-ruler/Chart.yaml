@@ -1,0 +1,22 @@
+apiVersion: v2
+name: thanos-ruler
+description: Thanos Ruler - evaluates recording and alerting rules against Thanos Query
+type: application
+version: 0.3.0
+appVersion: "0.37.2"
+keywords:
+  - thanos
+  - prometheus
+  - ruler
+  - alerting
+  - recording-rules
+  - monitoring
+  - metrics
+home: https://github.com/scriptonbasestar-container/sb-helm-charts
+icon: https://thanos.io/icon-light.png
+sources:
+  - https://github.com/scriptonbasestar-container/sb-helm-charts/tree/master/charts/thanos-ruler
+  - https://github.com/thanos-io/thanos
+maintainers:
+  - name: ScriptonBasestar
+    email: scriptonbasestar@gmail.com

@@ -1,0 +1,23 @@
+{{- if .Values.thanos.queryFrontend.cache.enabled }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "thanos-query-frontend.fullname" . }}-cache-config
+  labels:
+    {{- include "thanos-query-frontend.labels" . | nindent 4 }}
+data:
+  cache.yaml: |
+    {{- if eq .Values.thanos.queryFrontend.cache.type "in-memory" }}
+    type: IN-MEMORY
+    config:
+      max_size: {{ .Values.thanos.queryFrontend.cache.inMemory.maxSize | quote }}
+      max_size_items: {{ .Values.thanos.queryFrontend.cache.inMemory.maxItems }}
+      validity: 0s
+    {{- else if eq .Values.thanos.queryFrontend.cache.type "memcached" }}
+    type: MEMCACHED
+    config:
+      addresses: {{ .Values.thanos.queryFrontend.cache.memcached.addresses | toJson }}
+      timeout: {{ .Values.thanos.queryFrontend.cache.memcached.timeout | quote }}
+      max_idle_connections: {{ .Values.thanos.queryFrontend.cache.memcached.maxIdleConnections }}
+    {{- end }}
+{{- end }}

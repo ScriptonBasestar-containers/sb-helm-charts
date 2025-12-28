@@ -1,0 +1,156 @@
+# Default values for thanos-receive.
+
+rbac:
+  create: true
+  annotations: {}
+
+# Number of Receive instances (StatefulSet)
+replicaCount: 3
+
+image:
+  repository: quay.io/thanos/thanos
+  pullPolicy: IfNotPresent
+  tag: ""
+
+imagePullSecrets: []
+nameOverride: ""
+fullnameOverride: ""
+
+# Object storage configuration
+objstore:
+  type: "s3"
+  existingSecret: ""
+  secretKeyName: "objstore.yaml"
+
+  s3:
+    endpoint: ""
+    bucket: "thanos"
+    region: "us-east-1"
+    accessKey: ""
+    secretKey: ""
+    insecure: false
+
+  gcs:
+    bucket: ""
+    serviceAccountKey: ""
+
+  azure:
+    storageAccountName: ""
+    storageAccountKey: ""
+    containerName: ""
+
+# Thanos Receive configuration
+thanos:
+  receive:
+    # Replication factor for ingested data
+    replicationFactor: 1
+    # TSDB retention before upload
+    tsdbRetention: "2h"
+    # Hashring configuration mode
+    hashringSyncInterval: "5m"
+
+  # Multi-tenancy configuration
+  tenancy:
+    enabled: false
+    # Header to read tenant ID from
+    header: "THANOS-TENANT"
+    # Default tenant ID
+    defaultTenant: "default-tenant"
+
+  # Labels to add to ingested metrics
+  labels: {}
+  # cluster: "production"
+
+  telemetry:
+    logFormat: "logfmt"
+    logLevel: "info"
+
+  extraArgs: []
+  extraEnv: []
+
+serviceAccount:
+  create: true
+  automount: true
+  annotations: {}
+  name: ""
+
+podAnnotations: {}
+podLabels: {}
+
+podSecurityContext:
+  fsGroup: 65534
+  runAsUser: 65534
+  runAsNonRoot: true
+
+securityContext:
+  capabilities:
+    drop:
+      - ALL
+  readOnlyRootFilesystem: true
+  runAsNonRoot: true
+  runAsUser: 65534
+  allowPrivilegeEscalation: false
+
+service:
+  type: ClusterIP
+  httpPort: 10909
+  grpcPort: 10907
+  remoteWritePort: 10908
+  annotations: {}
+
+serviceHeadless:
+  annotations: {}
+
+serviceMonitor:
+  enabled: false
+  namespace: ""
+  interval: "30s"
+  scrapeTimeout: "10s"
+  labels: {}
+
+persistence:
+  enabled: true
+  storageClass: ""
+  annotations: {}
+  accessMode: ReadWriteOnce
+  size: 50Gi
+  existingClaim: ""
+
+resources:
+  limits:
+    cpu: 2000m
+    memory: 4Gi
+  requests:
+    cpu: 500m
+    memory: 1Gi
+
+livenessProbe:
+  initialDelaySeconds: 30
+  periodSeconds: 10
+  timeoutSeconds: 5
+  failureThreshold: 3
+
+readinessProbe:
+  initialDelaySeconds: 10
+  periodSeconds: 10
+  timeoutSeconds: 5
+  failureThreshold: 3
+
+startupProbe:
+  initialDelaySeconds: 30
+  periodSeconds: 10
+  failureThreshold: 60
+
+nodeSelector: {}
+tolerations: []
+affinity: {}
+topologySpreadConstraints: []
+
+podDisruptionBudget:
+  enabled: false
+  minAvailable: 1
+
+extraVolumes: []
+extraVolumeMounts: []
+initContainers: []
+sidecarContainers: []

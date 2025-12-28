@@ -1,0 +1,58 @@
+# Example production values for thanos-store
+
+replicaCount: 2
+
+objstore:
+  type: "s3"
+  s3:
+    endpoint: "minio.storage.svc.cluster.local:9000"
+    bucket: "thanos"
+    region: "us-east-1"
+    accessKey: ""     # Set via --set or external secret
+    secretKey: ""     # Set via --set or external secret
+    insecure: true    # Set false for TLS
+
+thanos:
+  indexCache:
+    type: "in-memory"
+    size: "500MB"
+
+  chunkPoolSize: "4GB"
+  blockSyncConcurrency: 40
+
+  store:
+    ignoreDeletionMarksDelay: "24h"
+
+  telemetry:
+    logLevel: "info"
+
+persistence:
+  enabled: true
+  size: 20Gi
+  storageClass: ""
+
+resources:
+  limits:
+    cpu: 4000m
+    memory: 8Gi
+  requests:
+    cpu: 1000m
+    memory: 2Gi
+
+podDisruptionBudget:
+  enabled: true
+  minAvailable: 1
+
+serviceMonitor:
+  enabled: true
+  interval: "30s"
+
+affinity:
+  podAntiAffinity:
+    preferredDuringSchedulingIgnoredDuringExecution:
+      - weight: 100
+        podAffinityTerm:
+          labelSelector:
+            matchLabels:
+              app.kubernetes.io/name: thanos-store
+          topologyKey: kubernetes.io/hostname

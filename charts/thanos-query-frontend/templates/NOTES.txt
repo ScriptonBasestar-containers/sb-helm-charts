@@ -1,0 +1,84 @@
+Thank you for installing {{ .Chart.Name }}!
+
+Your release is named {{ .Release.Name }}.
+
+To learn more about the release, try:
+
+  $ helm status {{ .Release.Name }}
+  $ helm get all {{ .Release.Name }}
+
+=============================================================================
+Thanos Query Frontend
+=============================================================================
+
+Thanos Query Frontend provides query caching, splitting, and rate limiting
+for downstream Thanos Query instances. It improves query performance and
+reduces load on Query components.
+
+Getting Started:
+
+1. Get the Query Frontend URL:
+{{- if .Values.ingress.enabled }}
+{{- range $host := .Values.ingress.hosts }}
+  http{{ if $.Values.ingress.tls }}s{{ end }}://{{ $host.host }}{{ (first $host.paths).path }}
+{{- end }}
+{{- else if contains "NodePort" .Values.service.type }}
+  export NODE_PORT=$(kubectl get --namespace {{ .Release.Namespace }} -o jsonpath="{.spec.ports[0].nodePort}" services {{ include "thanos-query-frontend.fullname" . }})
+  export NODE_IP=$(kubectl get nodes --namespace {{ .Release.Namespace }} -o jsonpath="{.items[0].status.addresses[0].address}")
+  echo "Thanos Query Frontend: http://$NODE_IP:$NODE_PORT"
+{{- else if contains "LoadBalancer" .Values.service.type }}
+  NOTE: It may take a few minutes for the LoadBalancer IP to be available.
+  kubectl get --namespace {{ .Release.Namespace }} svc -w {{ include "thanos-query-frontend.fullname" . }}
+{{- else if contains "ClusterIP" .Values.service.type }}
+  kubectl port-forward --namespace {{ .Release.Namespace }} svc/{{ include "thanos-query-frontend.fullname" . }} {{ .Values.service.httpPort }}:{{ .Values.service.httpPort }}
+  echo "Thanos Query Frontend: http://127.0.0.1:{{ .Values.service.httpPort }}"
+{{- end }}
+
+2. Run a sample query via the frontend:
+  curl "http://localhost:{{ .Values.service.httpPort }}/api/v1/query?query=up"
+
+3. Verify caching is working:
+  # Run the same query twice and check response times
+  time curl "http://localhost:{{ .Values.service.httpPort }}/api/v1/query_range?query=up&start=$(date -d '-1 hour' +%s)&end=$(date +%s)&step=60"
+
+=============================================================================
+Downstream Configuration
+=============================================================================
+
+Query Frontend is configured to forward queries to:
+  {{ .Values.thanos.queryFrontend.downstreamUrl }}
+
+Make sure this URL is reachable from within the cluster.
+
+=============================================================================
+Cache Configuration
+=============================================================================
+{{- if .Values.thanos.queryFrontend.cache.enabled }}
+Caching is enabled with type: {{ .Values.thanos.queryFrontend.cache.type }}
+{{- if eq .Values.thanos.queryFrontend.cache.type "in-memory" }}
+  - Max Size: {{ .Values.thanos.queryFrontend.cache.inMemory.maxSize }}
+  - Max Items: {{ .Values.thanos.queryFrontend.cache.inMemory.maxItems }}
+{{- else if eq .Values.thanos.queryFrontend.cache.type "memcached" }}
+  - Addresses: {{ .Values.thanos.queryFrontend.cache.memcached.addresses | join ", " }}
+  - Timeout: {{ .Values.thanos.queryFrontend.cache.memcached.timeout }}
+{{- end }}
+{{- else }}
+Caching is disabled. Enable it for better query performance:
+
+thanos:
+  queryFrontend:
+    cache:
+      enabled: true
+      type: "in-memory"
+{{- end }}
+
+=============================================================================
+For Grafana Integration
+=============================================================================
+
+Point Grafana to Query Frontend instead of direct Query for:
+- Better caching
+- Query splitting for long time ranges
+- Rate limiting
+
+URL: http://{{ include "thanos-query-frontend.fullname" . }}.{{ .Release.Namespace }}.svc.cluster.local:{{ .Values.service.httpPort }}

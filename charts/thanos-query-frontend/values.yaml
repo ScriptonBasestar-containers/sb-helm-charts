@@ -1,0 +1,151 @@
+# Default values for thanos-query-frontend.
+
+rbac:
+  create: true
+  annotations: {}
+
+replicaCount: 1
+
+image:
+  repository: quay.io/thanos/thanos
+  pullPolicy: IfNotPresent
+  tag: ""
+
+imagePullSecrets: []
+nameOverride: ""
+fullnameOverride: ""
+
+# Thanos Query Frontend configuration
+thanos:
+  queryFrontend:
+    # Downstream Thanos Query URL
+    downstreamUrl: "http://thanos-query:10904"
+
+    # Query range splitting interval
+    splitInterval: "24h"
+
+    # Max retries for downstream queries
+    maxRetries: 5
+
+    # Cache configuration
+    cache:
+      enabled: true
+      # Cache type: in-memory, memcached
+      type: "in-memory"
+
+      inMemory:
+        maxSize: "250MB"
+        maxItems: 2048
+
+      memcached:
+        addresses: []
+        timeout: "500ms"
+        maxIdleConnections: 100
+
+    # Log queries slower than this
+    logQueriesLongerThan: "10s"
+
+    # Compress responses
+    compressResponses: true
+
+    # Org ID header for multi-tenancy
+    orgIdHeader: ""
+
+  telemetry:
+    logFormat: "logfmt"
+    logLevel: "info"
+
+  extraArgs: []
+  extraEnv: []
+
+serviceAccount:
+  create: true
+  automount: true
+  annotations: {}
+  name: ""
+
+podAnnotations: {}
+podLabels: {}
+
+podSecurityContext:
+  fsGroup: 65534
+  runAsUser: 65534
+  runAsNonRoot: true
+
+securityContext:
+  capabilities:
+    drop:
+      - ALL
+  readOnlyRootFilesystem: true
+  runAsNonRoot: true
+  runAsUser: 65534
+  allowPrivilegeEscalation: false
+
+service:
+  type: ClusterIP
+  httpPort: 10913
+  annotations: {}
+
+serviceMonitor:
+  enabled: false
+  namespace: ""
+  interval: "30s"
+  scrapeTimeout: "10s"
+  labels: {}
+
+ingress:
+  enabled: false
+  className: ""
+  annotations: {}
+  hosts:
+    - host: thanos.example.com
+      paths:
+        - path: /
+          pathType: Prefix
+  tls: []
+
+resources:
+  limits:
+    cpu: 1000m
+    memory: 1Gi
+  requests:
+    cpu: 250m
+    memory: 256Mi
+
+livenessProbe:
+  initialDelaySeconds: 15
+  periodSeconds: 10
+  timeoutSeconds: 5
+  failureThreshold: 3
+
+readinessProbe:
+  initialDelaySeconds: 5
+  periodSeconds: 10
+  timeoutSeconds: 5
+  failureThreshold: 3
+
+startupProbe:
+  initialDelaySeconds: 10
+  periodSeconds: 5
+  failureThreshold: 30
+
+nodeSelector: {}
+tolerations: []
+affinity: {}
+topologySpreadConstraints: []
+
+podDisruptionBudget:
+  enabled: false
+  minAvailable: 1
+
+autoscaling:
+  enabled: false
+  minReplicas: 2
+  maxReplicas: 10
+  targetCPUUtilizationPercentage: 70
+  targetMemoryUtilizationPercentage: 80
+
+extraVolumes: []
+extraVolumeMounts: []
+initContainers: []
+sidecarContainers: []

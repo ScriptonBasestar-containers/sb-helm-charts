@@ -1,0 +1,195 @@
+# Production values for thanos-query-frontend
+# This example demonstrates a production-ready configuration
+
+# High Availability Configuration
+replicaCount: 3
+
+image:
+  repository: quay.io/thanos/thanos
+  pullPolicy: IfNotPresent
+  tag: ""  # Uses Chart.appVersion
+
+# Thanos Query Frontend configuration
+thanos:
+  queryFrontend:
+    # Downstream Thanos Query URL
+    # Use the internal service DNS name
+    downstreamUrl: "http://thanos-query.monitoring.svc.cluster.local:10904"
+
+    # Split queries into 24-hour chunks for better caching
+    splitInterval: "24h"
+
+    # Retry failed queries up to 5 times
+    maxRetries: 5
+
+    # Cache configuration for production
+    cache:
+      enabled: true
+      # For small/medium deployments, use in-memory
+      type: "in-memory"
+      inMemory:
+        maxSize: "500MB"
+        maxItems: 4096
+
+      # For large deployments, use memcached
+      # type: "memcached"
+      # memcached:
+      #   addresses:
+      #     - memcached-0.memcached.monitoring.svc.cluster.local:11211
+      #     - memcached-1.memcached.monitoring.svc.cluster.local:11211
+      #     - memcached-2.memcached.monitoring.svc.cluster.local:11211
+      #   timeout: "500ms"
+      #   maxIdleConnections: 100
+
+    # Log queries taking longer than 10s
+    logQueriesLongerThan: "10s"
+
+    # Enable response compression
+    compressResponses: true
+
+  telemetry:
+    logFormat: "json"
+    logLevel: "info"
+
+  extraArgs: []
+  extraEnv: []
+
+# Service Account
+serviceAccount:
+  create: true
+  automount: true
+  annotations: {}
+
+# RBAC
+rbac:
+  create: true
+  annotations: {}
+
+# Pod configuration
+podAnnotations:
+  prometheus.io/scrape: "true"
+  prometheus.io/port: "10902"
+  prometheus.io/path: "/metrics"
+
+podLabels: {}
+
+podSecurityContext:
+  fsGroup: 65534
+  runAsUser: 65534
+  runAsNonRoot: true
+
+securityContext:
+  capabilities:
+    drop:
+      - ALL
+  readOnlyRootFilesystem: true
+  runAsNonRoot: true
+  runAsUser: 65534
+  allowPrivilegeEscalation: false
+
+# Service configuration
+service:
+  type: ClusterIP
+  httpPort: 10913
+  annotations: {}
+
+# ServiceMonitor for Prometheus Operator
+serviceMonitor:
+  enabled: true
+  namespace: ""
+  interval: "30s"
+  scrapeTimeout: "10s"
+  labels:
+    release: prometheus
+
+# Ingress configuration
+ingress:
+  enabled: true
+  className: "nginx"
+  annotations:
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
+  hosts:
+    - host: thanos.example.com
+      paths:
+        - path: /
+          pathType: Prefix
+  tls:
+    - secretName: thanos-query-frontend-tls
+      hosts:
+        - thanos.example.com
+
+# Resource limits for production
+resources:
+  limits:
+    cpu: 2000m
+    memory: 2Gi
+  requests:
+    cpu: 500m
+    memory: 512Mi
+
+# Health probes
+livenessProbe:
+  initialDelaySeconds: 15
+  periodSeconds: 10
+  timeoutSeconds: 5
+  failureThreshold: 3
+
+readinessProbe:
+  initialDelaySeconds: 5
+  periodSeconds: 10
+  timeoutSeconds: 5
+  failureThreshold: 3
+
+startupProbe:
+  initialDelaySeconds: 10
+  periodSeconds: 5
+  failureThreshold: 30
+
+# Node placement
+nodeSelector:
+  kubernetes.io/os: linux
+
+tolerations: []
+
+# Anti-affinity for HA
+affinity:
+  podAntiAffinity:
+    preferredDuringSchedulingIgnoredDuringExecution:
+      - weight: 100
+        podAffinityTerm:
+          labelSelector:
+            matchExpressions:
+              - key: app.kubernetes.io/name
+                operator: In
+                values:
+                  - thanos-query-frontend
+          topologyKey: kubernetes.io/hostname
+
+# Topology Spread Constraints for better distribution
+topologySpreadConstraints:
+  - maxSkew: 1
+    topologyKey: topology.kubernetes.io/zone
+    whenUnsatisfiable: ScheduleAnyway
+    labelSelector:
+      matchLabels:
+        app.kubernetes.io/name: thanos-query-frontend
+
+# Pod Disruption Budget for HA
+podDisruptionBudget:
+  enabled: true
+  minAvailable: 2
+
+# Horizontal Pod Autoscaler
+autoscaling:
+  enabled: true
+  minReplicas: 3
+  maxReplicas: 10
+  targetCPUUtilizationPercentage: 70
+  targetMemoryUtilizationPercentage: 80
+
+# Extra volumes (optional)
+extraVolumes: []
+extraVolumeMounts: []
+initContainers: []
+sidecarContainers: []

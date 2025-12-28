@@ -1,0 +1,23 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "thanos-receive.fullname" . }}-hashring
+  labels:
+    {{- include "thanos-receive.labels" . | nindent 4 }}
+data:
+  hashring.json: |
+    [
+      {
+        "hashring": "default",
+        "endpoints": [
+          {{- $fullname := include "thanos-receive.fullname" . }}
+          {{- $namespace := .Release.Namespace }}
+          {{- $replicas := int .Values.replicaCount }}
+          {{- range $i := until $replicas }}
+          {{- if gt $i 0 }},{{ end }}
+          "{{ $fullname }}-{{ $i }}.{{ $fullname }}-headless.{{ $namespace }}.svc.cluster.local:10901"
+          {{- end }}
+        ],
+        "tenants": []
+      }
+    ]

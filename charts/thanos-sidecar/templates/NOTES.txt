@@ -1,0 +1,61 @@
+Thank you for installing {{ .Chart.Name }}!
+
+=============================================================================
+Thanos Sidecar
+=============================================================================
+
+Thanos Sidecar connects to Prometheus and uploads TSDB blocks to object storage.
+It also exposes Store API for Thanos Query to access real-time metrics.
+
+Getting Started:
+
+1. Check Sidecar status:
+{{- if contains "ClusterIP" .Values.service.type }}
+  kubectl port-forward --namespace {{ .Release.Namespace }} svc/{{ include "thanos-sidecar.fullname" . }} {{ .Values.service.httpPort }}:{{ .Values.service.httpPort }}
+  curl http://127.0.0.1:{{ .Values.service.httpPort }}/-/ready
+{{- end }}
+
+2. View metrics:
+  curl http://localhost:{{ .Values.service.httpPort }}/metrics
+
+=============================================================================
+Configuration
+=============================================================================
+
+Prometheus URL: {{ .Values.prometheus.url }}
+TSDB Path: {{ .Values.thanos.tsdb.path }}
+{{- if .Values.objstore.enabled }}
+Object Storage: {{ .Values.objstore.type }}
+{{- else }}
+Object Storage: Disabled (no block upload)
+{{- end }}
+
+=============================================================================
+Connect to Thanos Query
+=============================================================================
+
+Add this Sidecar to Thanos Query stores:
+
+thanos:
+  stores:
+    - dnssrv+_grpc._tcp.{{ include "thanos-sidecar.fullname" . }}-headless.{{ .Release.Namespace }}.svc.cluster.local
+
+=============================================================================
+Alternative: Sidecar Container Mode
+=============================================================================
+
+For true sidecar deployment, add this container to your Prometheus pod:
+
+containers:
+  - name: thanos-sidecar
+    image: {{ include "thanos-sidecar.image" . }}
+    args:
+      - sidecar
+      - --prometheus.url=http://localhost:9090
+      - --tsdb.path=/prometheus
+      - --objstore.config-file=/etc/thanos/objstore.yaml
+    volumeMounts:
+      - name: prometheus-data
+        mountPath: /prometheus
+      - name: objstore-config
+        mountPath: /etc/thanos

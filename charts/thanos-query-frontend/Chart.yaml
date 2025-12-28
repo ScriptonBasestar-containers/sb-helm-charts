@@ -1,0 +1,22 @@
+apiVersion: v2
+name: thanos-query-frontend
+description: Thanos Query Frontend - caching and query splitting layer for Thanos Query
+type: application
+version: 0.3.0
+appVersion: "0.37.2"
+keywords:
+  - thanos
+  - prometheus
+  - query-frontend
+  - caching
+  - performance
+  - monitoring
+  - metrics
+home: https://github.com/scriptonbasestar-container/sb-helm-charts
+icon: https://thanos.io/icon-light.png
+sources:
+  - https://github.com/scriptonbasestar-container/sb-helm-charts/tree/master/charts/thanos-query-frontend
+  - https://github.com/thanos-io/thanos
+maintainers:
+  - name: ScriptonBasestar
+    email: scriptonbasestar@gmail.com

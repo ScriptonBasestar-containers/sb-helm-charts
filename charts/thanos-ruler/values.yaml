@@ -1,0 +1,176 @@
+# Default values for thanos-ruler.
+
+rbac:
+  create: true
+  annotations: {}
+
+replicaCount: 1
+
+image:
+  repository: quay.io/thanos/thanos
+  pullPolicy: IfNotPresent
+  tag: ""
+
+imagePullSecrets: []
+nameOverride: ""
+fullnameOverride: ""
+
+# Object storage configuration (for rule results)
+objstore:
+  type: "s3"
+  existingSecret: ""
+  secretKeyName: "objstore.yaml"
+
+  s3:
+    endpoint: ""
+    bucket: "thanos"
+    region: "us-east-1"
+    accessKey: ""
+    secretKey: ""
+    insecure: false
+
+  gcs:
+    bucket: ""
+    serviceAccountKey: ""
+
+  azure:
+    storageAccountName: ""
+    storageAccountKey: ""
+    containerName: ""
+
+# Thanos Ruler configuration
+thanos:
+  ruler:
+    # Query endpoints for rule evaluation
+    queryEndpoints:
+      - dnssrv+_grpc._tcp.thanos-query.default.svc.cluster.local
+
+    # Alertmanager endpoints
+    alertmanagers: []
+    # - http://alertmanager:9093
+
+    # Rule evaluation interval
+    evaluationInterval: "30s"
+
+    # Rule files (mounted from ConfigMap)
+    ruleFiles:
+      - /etc/thanos/rules/*.yaml
+
+    # Labels to add to alerts/rules
+    labels: {}
+    # ruler_cluster: "production"
+
+    # Alert label drop
+    alertLabelDrop: []
+
+  # Alert relabeling
+  alertRelabelConfigs: []
+
+  telemetry:
+    logFormat: "logfmt"
+    logLevel: "info"
+
+  extraArgs: []
+  extraEnv: []
+
+# Rule definitions (will be mounted as ConfigMap)
+rules: {}
+#   recording-rules.yaml: |
+#     groups:
+#       - name: example
+#         rules:
+#           - record: job:http_requests:rate5m
+#             expr: sum(rate(http_requests_total[5m])) by (job)
+#   alerting-rules.yaml: |
+#     groups:
+#       - name: alerts
+#         rules:
+#           - alert: HighRequestLatency
+#             expr: job:request_latency_seconds:mean5m > 0.5
+#             for: 10m
+
+serviceAccount:
+  create: true
+  automount: true
+  annotations: {}
+  name: ""
+
+podAnnotations: {}
+podLabels: {}
+
+podSecurityContext:
+  fsGroup: 65534
+  runAsUser: 65534
+  runAsNonRoot: true
+
+securityContext:
+  capabilities:
+    drop:
+      - ALL
+  readOnlyRootFilesystem: true
+  runAsNonRoot: true
+  runAsUser: 65534
+  allowPrivilegeEscalation: false
+
+service:
+  type: ClusterIP
+  httpPort: 10911
+  grpcPort: 10910
+  annotations: {}
+
+serviceHeadless:
+  annotations: {}
+
+serviceMonitor:
+  enabled: false
+  namespace: ""
+  interval: "30s"
+  scrapeTimeout: "10s"
+  labels: {}
+
+persistence:
+  enabled: true
+  storageClass: ""
+  annotations: {}
+  accessMode: ReadWriteOnce
+  size: 10Gi
+  existingClaim: ""
+
+resources:
+  limits:
+    cpu: 1000m
+    memory: 1Gi
+  requests:
+    cpu: 250m
+    memory: 256Mi
+
+livenessProbe:
+  initialDelaySeconds: 30
+  periodSeconds: 10
+  timeoutSeconds: 5
+  failureThreshold: 3
+
+readinessProbe:
+  initialDelaySeconds: 10
+  periodSeconds: 10
+  timeoutSeconds: 5
+  failureThreshold: 3
+
+startupProbe:
+  initialDelaySeconds: 30
+  periodSeconds: 10
+  failureThreshold: 30
+
+nodeSelector: {}
+tolerations: []
+affinity: {}
+topologySpreadConstraints: []
+
+podDisruptionBudget:
+  enabled: false
+  minAvailable: 1
+
+extraVolumes: []
+extraVolumeMounts: []
+initContainers: []
+sidecarContainers: []

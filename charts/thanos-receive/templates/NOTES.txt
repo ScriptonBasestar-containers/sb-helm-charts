@@ -1,0 +1,90 @@
+Thank you for installing {{ .Chart.Name }}!
+
+Your release is named {{ .Release.Name }}.
+
+=============================================================================
+Thanos Receive
+=============================================================================
+
+Thanos Receive accepts Prometheus remote write requests and stores data in
+object storage. It supports multi-tenancy and horizontal scaling via hashring.
+
+Getting Started:
+
+1. Check Receive status:
+{{- if contains "ClusterIP" .Values.service.type }}
+  kubectl port-forward --namespace {{ .Release.Namespace }} svc/{{ include "thanos-receive.fullname" . }} {{ .Values.service.httpPort }}:{{ .Values.service.httpPort }}
+  curl http://127.0.0.1:{{ .Values.service.httpPort }}/-/ready
+{{- end }}
+
+2. Check metrics:
+  curl http://localhost:{{ .Values.service.httpPort }}/metrics
+
+3. View pods in hashring:
+  kubectl get pods -l app.kubernetes.io/instance={{ .Release.Name }} -n {{ .Release.Namespace }}
+
+=============================================================================
+Object Storage Configuration
+=============================================================================
+
+{{- if .Values.objstore.existingSecret }}
+Using existing secret: {{ .Values.objstore.existingSecret }}
+{{- else }}
+Object storage type: {{ .Values.objstore.type }}
+{{- if eq .Values.objstore.type "s3" }}
+S3 Bucket: {{ .Values.objstore.s3.bucket }}
+S3 Endpoint: {{ .Values.objstore.s3.endpoint }}
+{{- end }}
+{{- end }}
+
+=============================================================================
+Remote Write Configuration
+=============================================================================
+
+Configure Prometheus to send metrics to Thanos Receive:
+
+prometheus:
+  remoteWrite:
+    - url: http://{{ include "thanos-receive.fullname" . }}.{{ .Release.Namespace }}.svc.cluster.local:{{ .Values.service.remoteWritePort }}/api/v1/receive
+
+{{- if .Values.thanos.tenancy.enabled }}
+=============================================================================
+Multi-Tenancy
+=============================================================================
+
+Multi-tenancy is ENABLED.
+Tenant header: {{ .Values.thanos.tenancy.header }}
+Default tenant: {{ .Values.thanos.tenancy.defaultTenant }}
+
+To send metrics for a specific tenant, include the header in your request:
+  -H "{{ .Values.thanos.tenancy.header }}: my-tenant-id"
+{{- end }}
+
+=============================================================================
+Connect to Thanos Query
+=============================================================================
+
+Add this Receive to Thanos Query stores:
+
+thanos:
+  stores:
+    - dnssrv+_grpc._tcp.{{ include "thanos-receive.fullname" . }}-headless.{{ .Release.Namespace }}.svc.cluster.local
+
+Or static endpoint:
+  - {{ include "thanos-receive.fullname" . }}.{{ .Release.Namespace }}.svc.cluster.local:{{ .Values.service.grpcPort }}
+
+=============================================================================
+Hashring Configuration
+=============================================================================
+
+Replicas: {{ .Values.replicaCount }}
+Replication Factor: {{ .Values.thanos.receive.replicationFactor }}
+TSDB Retention: {{ .Values.thanos.receive.tsdbRetention }}
+
+Hashring endpoints (for external configuration):
+{{- $fullname := include "thanos-receive.fullname" . }}
+{{- $namespace := .Release.Namespace }}
+{{- $replicas := int .Values.replicaCount }}
+{{- range $i := until $replicas }}
+  - {{ $fullname }}-{{ $i }}.{{ $fullname }}-headless.{{ $namespace }}.svc.cluster.local:10901
+{{- end }}

@@ -1,0 +1,16 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: "{{ include "thanos-sidecar.fullname" . }}-test-connection"
+  labels:
+    {{- include "thanos-sidecar.labels" . | nindent 4 }}
+  annotations:
+    "helm.sh/hook": test
+    "helm.sh/hook-delete-policy": hook-succeeded
+spec:
+  containers:
+    - name: wget
+      image: busybox
+      command: ['wget']
+      args: ['{{ include "thanos-sidecar.fullname" . }}:{{ .Values.service.httpPort }}/-/ready']
+  restartPolicy: Never

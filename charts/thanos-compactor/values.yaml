@@ -1,0 +1,151 @@
+# Default values for thanos-compactor.
+# IMPORTANT: Compactor must run as a single replica!
+
+rbac:
+  create: true
+  annotations: {}
+
+# MUST be 1 - concurrent compactors will corrupt data!
+replicaCount: 1
+
+image:
+  repository: quay.io/thanos/thanos
+  pullPolicy: IfNotPresent
+  tag: ""
+
+imagePullSecrets: []
+nameOverride: ""
+fullnameOverride: ""
+
+# Object storage configuration (required)
+objstore:
+  type: "s3"
+  existingSecret: ""
+  secretKeyName: "objstore.yaml"
+
+  s3:
+    endpoint: ""
+    bucket: "thanos"
+    region: "us-east-1"
+    accessKey: ""
+    secretKey: ""
+    insecure: false
+
+  gcs:
+    bucket: ""
+    serviceAccountKey: ""
+
+  azure:
+    storageAccountName: ""
+    storageAccountKey: ""
+    containerName: ""
+
+# Thanos Compactor configuration
+thanos:
+  compactor:
+    # Retention policies
+    retention:
+      # Retention for raw resolution data
+      raw: "30d"
+      # Retention for 5-minute downsampled data
+      fiveMinutes: "90d"
+      # Retention for 1-hour downsampled data
+      oneHour: "1y"
+
+    # Enable downsampling
+    downsampling:
+      enabled: true
+
+    # Compaction concurrency
+    compactionConcurrency: 1
+    # Block sync concurrency
+    blockSyncConcurrency: 20
+    # Consistency delay before processing
+    consistencyDelay: "30m"
+    # Wait interval between cycles
+    waitInterval: "5m"
+
+  telemetry:
+    logFormat: "logfmt"
+    logLevel: "info"
+
+  extraArgs: []
+  extraEnv: []
+
+serviceAccount:
+  create: true
+  automount: true
+  annotations: {}
+  name: ""
+
+podAnnotations: {}
+podLabels: {}
+
+podSecurityContext:
+  fsGroup: 65534
+  runAsUser: 65534
+  runAsNonRoot: true
+
+securityContext:
+  capabilities:
+    drop:
+      - ALL
+  readOnlyRootFilesystem: true
+  runAsNonRoot: true
+  runAsUser: 65534
+  allowPrivilegeEscalation: false
+
+service:
+  type: ClusterIP
+  httpPort: 10912
+  annotations: {}
+
+serviceMonitor:
+  enabled: false
+  namespace: ""
+  interval: "30s"
+  scrapeTimeout: "10s"
+  labels: {}
+
+# Persistence for compaction work directory
+persistence:
+  enabled: true
+  storageClass: ""
+  annotations: {}
+  accessMode: ReadWriteOnce
+  size: 100Gi
+  existingClaim: ""
+
+resources:
+  limits:
+    cpu: 2000m
+    memory: 4Gi
+  requests:
+    cpu: 500m
+    memory: 1Gi
+
+livenessProbe:
+  initialDelaySeconds: 60
+  periodSeconds: 30
+  timeoutSeconds: 10
+  failureThreshold: 3
+
+readinessProbe:
+  initialDelaySeconds: 30
+  periodSeconds: 10
+  timeoutSeconds: 5
+  failureThreshold: 3
+
+startupProbe:
+  initialDelaySeconds: 60
+  periodSeconds: 30
+  failureThreshold: 30
+
+nodeSelector: {}
+tolerations: []
+affinity: {}
+
+extraVolumes: []
+extraVolumeMounts: []
+initContainers: []
+sidecarContainers: []

@@ -1,0 +1,150 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "thanos-sidecar.fullname" . }}
+  labels:
+    {{- include "thanos-sidecar.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      {{- include "thanos-sidecar.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      annotations:
+        {{- if and .Values.objstore.enabled (not .Values.objstore.existingSecret) }}
+        checksum/secret: {{ include (print $.Template.BasePath "/secret.yaml") . | sha256sum }}
+        {{- end }}
+        {{- with .Values.podAnnotations }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+      labels:
+        {{- include "thanos-sidecar.labels" . | nindent 8 }}
+        {{- with .Values.podLabels }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+    spec:
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      serviceAccountName: {{ include "thanos-sidecar.serviceAccountName" . }}
+      securityContext:
+        {{- toYaml .Values.podSecurityContext | nindent 8 }}
+      {{- with .Values.initContainers }}
+      initContainers:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      containers:
+        - name: {{ .Chart.Name }}
+          securityContext:
+            {{- toYaml .Values.securityContext | nindent 12 }}
+          image: {{ include "thanos-sidecar.image" . }}
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          args:
+            - sidecar
+            - --http-address=0.0.0.0:10902
+            - --grpc-address=0.0.0.0:10901
+            - --prometheus.url={{ .Values.prometheus.url }}
+            - --tsdb.path={{ .Values.thanos.tsdb.path }}
+            {{- if .Values.prometheus.readyTimeout }}
+            - --prometheus.ready_timeout={{ .Values.prometheus.readyTimeout }}
+            {{- end }}
+            {{- if .Values.objstore.enabled }}
+            - --objstore.config-file=/etc/thanos/objstore.yaml
+            {{- end }}
+            {{- if .Values.thanos.shipper.uploadCompacted }}
+            - --shipper.upload-compacted
+            {{- end }}
+            {{- if .Values.thanos.reloader.enabled }}
+            {{- if .Values.thanos.reloader.configFile }}
+            - --reloader.config-file={{ .Values.thanos.reloader.configFile }}
+            {{- end }}
+            {{- if .Values.thanos.reloader.configEnvsubstFile }}
+            - --reloader.config-envsubst-file={{ .Values.thanos.reloader.configEnvsubstFile }}
+            {{- end }}
+            {{- if .Values.thanos.reloader.ruleDir }}
+            - --reloader.rule-dir={{ .Values.thanos.reloader.ruleDir }}
+            {{- end }}
+            {{- end }}
+            {{- if .Values.thanos.telemetry.logFormat }}
+            - --log.format={{ .Values.thanos.telemetry.logFormat }}
+            {{- end }}
+            {{- if .Values.thanos.telemetry.logLevel }}
+            - --log.level={{ .Values.thanos.telemetry.logLevel }}
+            {{- end }}
+            {{- with .Values.thanos.extraArgs }}
+            {{- toYaml . | nindent 12 }}
+            {{- end }}
+          {{- with .Values.thanos.extraEnv }}
+          env:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          ports:
+            - name: http
+              containerPort: 10902
+              protocol: TCP
+            - name: grpc
+              containerPort: 10901
+              protocol: TCP
+          livenessProbe:
+            httpGet:
+              path: /-/healthy
+              port: http
+            initialDelaySeconds: {{ .Values.livenessProbe.initialDelaySeconds }}
+            periodSeconds: {{ .Values.livenessProbe.periodSeconds }}
+            timeoutSeconds: {{ .Values.livenessProbe.timeoutSeconds }}
+            failureThreshold: {{ .Values.livenessProbe.failureThreshold }}
+          readinessProbe:
+            httpGet:
+              path: /-/ready
+              port: http
+            initialDelaySeconds: {{ .Values.readinessProbe.initialDelaySeconds }}
+            periodSeconds: {{ .Values.readinessProbe.periodSeconds }}
+            timeoutSeconds: {{ .Values.readinessProbe.timeoutSeconds }}
+            failureThreshold: {{ .Values.readinessProbe.failureThreshold }}
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+          volumeMounts:
+            {{- if .Values.prometheusDataVolume.existingClaim }}
+            - name: prometheus-data
+              mountPath: {{ .Values.thanos.tsdb.path }}
+              readOnly: true
+            {{- end }}
+            {{- if .Values.objstore.enabled }}
+            - name: objstore-config
+              mountPath: /etc/thanos
+              readOnly: true
+            {{- end }}
+            {{- with .Values.extraVolumeMounts }}
+            {{- toYaml . | nindent 12 }}
+            {{- end }}
+        {{- with .Values.sidecarContainers }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+      volumes:
+        {{- if .Values.prometheusDataVolume.existingClaim }}
+        - name: prometheus-data
+          persistentVolumeClaim:
+            claimName: {{ .Values.prometheusDataVolume.existingClaim }}
+        {{- end }}
+        {{- if .Values.objstore.enabled }}
+        - name: objstore-config
+          secret:
+            secretName: {{ include "thanos-sidecar.objstoreSecretName" . }}
+        {{- end }}
+        {{- with .Values.extraVolumes }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}

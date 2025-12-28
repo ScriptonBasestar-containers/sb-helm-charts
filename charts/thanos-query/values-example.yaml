@@ -1,0 +1,70 @@
+# Example production values for thanos-query
+
+replicaCount: 2
+
+thanos:
+  # Store endpoints (DNS service discovery)
+  stores:
+    - dnssrv+_grpc._tcp.thanos-sidecar.monitoring.svc.cluster.local
+    - dnssrv+_grpc._tcp.thanos-store.monitoring.svc.cluster.local
+    - dnssrv+_grpc._tcp.thanos-receive.monitoring.svc.cluster.local
+
+  query:
+    replicaLabels:
+      - replica
+      - prometheus_replica
+    timeout: "2m"
+    maxConcurrent: 50
+    partialResponse: "warn"
+    autoDownsampling: true
+
+  telemetry:
+    logLevel: "info"
+    logFormat: "logfmt"
+
+resources:
+  limits:
+    cpu: 2000m
+    memory: 2Gi
+  requests:
+    cpu: 500m
+    memory: 512Mi
+
+ingress:
+  enabled: true
+  className: "nginx"
+  annotations:
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "300"
+  hosts:
+    - host: thanos.example.com
+      paths:
+        - path: /
+          pathType: Prefix
+  tls:
+    - secretName: thanos-tls
+      hosts:
+        - thanos.example.com
+
+podDisruptionBudget:
+  enabled: true
+  minAvailable: 1
+
+autoscaling:
+  enabled: true
+  minReplicas: 2
+  maxReplicas: 10
+  targetCPUUtilizationPercentage: 70
+
+serviceMonitor:
+  enabled: true
+  interval: "30s"
+
+affinity:
+  podAntiAffinity:
+    preferredDuringSchedulingIgnoredDuringExecution:
+      - weight: 100
+        podAffinityTerm:
+          labelSelector:
+            matchLabels:
+              app.kubernetes.io/name: thanos-query
+          topologyKey: kubernetes.io/hostname

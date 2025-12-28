@@ -1,0 +1,105 @@
+Thank you for installing {{ .Chart.Name }}!
+
+Your release is named {{ .Release.Name }}.
+
+=============================================================================
+Thanos Ruler
+=============================================================================
+
+Thanos Ruler evaluates recording and alerting rules against Thanos Query.
+It stores rule evaluation results in object storage and sends alerts to Alertmanager.
+
+Getting Started:
+
+1. Check Ruler status:
+{{- if contains "ClusterIP" .Values.service.type }}
+  kubectl port-forward --namespace {{ .Release.Namespace }} svc/{{ include "thanos-ruler.fullname" . }} {{ .Values.service.httpPort }}:{{ .Values.service.httpPort }}
+  curl http://127.0.0.1:{{ .Values.service.httpPort }}/-/ready
+{{- end }}
+
+2. View active rules:
+  curl http://localhost:{{ .Values.service.httpPort }}/api/v1/rules
+
+3. View alerts:
+  curl http://localhost:{{ .Values.service.httpPort }}/api/v1/alerts
+
+4. Check metrics:
+  curl http://localhost:{{ .Values.service.httpPort }}/metrics
+
+=============================================================================
+Query Endpoints
+=============================================================================
+
+Ruler is configured to query:
+{{- range .Values.thanos.ruler.queryEndpoints }}
+  - {{ . }}
+{{- end }}
+
+=============================================================================
+Alertmanager Configuration
+=============================================================================
+
+{{- if .Values.thanos.ruler.alertmanagers }}
+Alerts are being sent to:
+{{- range .Values.thanos.ruler.alertmanagers }}
+  - {{ . }}
+{{- end }}
+{{- else }}
+WARNING: No Alertmanager endpoints configured!
+Add alertmanagers in values.yaml:
+
+thanos:
+  ruler:
+    alertmanagers:
+      - http://alertmanager:9093
+{{- end }}
+
+=============================================================================
+Rule Files
+=============================================================================
+
+{{- if .Values.rules }}
+Configured rule files:
+{{- range $filename, $_ := .Values.rules }}
+  - {{ $filename }}
+{{- end }}
+{{- else }}
+WARNING: No rule files configured!
+Add rules in values.yaml:
+
+rules:
+  recording-rules.yaml: |
+    groups:
+      - name: example
+        rules:
+          - record: job:http_requests:rate5m
+            expr: sum(rate(http_requests_total[5m])) by (job)
+{{- end }}
+
+=============================================================================
+Object Storage Configuration
+=============================================================================
+
+{{- if .Values.objstore.existingSecret }}
+Using existing secret: {{ .Values.objstore.existingSecret }}
+{{- else }}
+Object storage type: {{ .Values.objstore.type }}
+{{- if eq .Values.objstore.type "s3" }}
+S3 Bucket: {{ .Values.objstore.s3.bucket }}
+S3 Endpoint: {{ .Values.objstore.s3.endpoint }}
+{{- end }}
+{{- end }}
+
+=============================================================================
+Connect to Thanos Query (as Store)
+=============================================================================
+
+Ruler exposes StoreAPI for Thanos Query to access rule evaluation results.
+Add this Ruler to Thanos Query stores:
+
+thanos:
+  stores:
+    - dnssrv+_grpc._tcp.{{ include "thanos-ruler.fullname" . }}-headless.{{ .Release.Namespace }}.svc.cluster.local
+
+Or static endpoint:
+  - {{ include "thanos-ruler.fullname" . }}.{{ .Release.Namespace }}.svc.cluster.local:{{ .Values.service.grpcPort }}

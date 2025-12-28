@@ -1,0 +1,223 @@
+# Default values for thanos-query.
+
+# RBAC Configuration
+rbac:
+  # Create RBAC resources (Role, RoleBinding)
+  create: true
+  # Annotations to add to the RBAC resources
+  annotations: {}
+
+# Number of Query instances (can be horizontally scaled)
+replicaCount: 1
+
+image:
+  repository: quay.io/thanos/thanos
+  pullPolicy: IfNotPresent
+  # Overrides the image tag whose default is the chart appVersion
+  tag: ""
+
+imagePullSecrets: []
+nameOverride: ""
+fullnameOverride: ""
+
+# Thanos Query configuration
+thanos:
+  # Store API endpoints to query (static configuration)
+  # Use DNS-SD format for dynamic discovery:
+  # - dnssrv+_grpc._tcp.thanos-sidecar.default.svc.cluster.local
+  # - dnssrv+_grpc._tcp.thanos-store.default.svc.cluster.local
+  # - dnssrv+_grpc._tcp.thanos-receive.default.svc.cluster.local
+  stores: []
+
+  # File-based store discovery (alternative to static stores)
+  # Mount a ConfigMap with store endpoints
+  storeSDFiles: []
+  # - /etc/thanos/sd/stores.yaml
+
+  # Endpoint groups for hierarchical discovery
+  endpoints: []
+  # - dnssrv+_grpc._tcp.thanos-query.other-namespace.svc.cluster.local
+
+  # Query settings
+  query:
+    # Labels to use for deduplication (remove from external labels)
+    replicaLabels:
+      - replica
+      - prometheus_replica
+    # Query timeout
+    timeout: "2m"
+    # Maximum number of concurrent queries
+    maxConcurrent: 20
+    # Partial response strategy: warn, abort
+    partialResponse: "warn"
+    # Auto-downsampling based on query time range
+    autoDownsampling: true
+    # Default step for range queries
+    defaultStep: ""
+
+  # Web UI settings
+  web:
+    # External URL prefix for the UI
+    externalPrefix: ""
+    # Route prefix for the UI
+    routePrefix: ""
+    # Disable web UI
+    disableWeb: false
+
+  # gRPC settings
+  grpc:
+    # Server TLS configuration
+    serverTLS:
+      enabled: false
+      certFile: ""
+      keyFile: ""
+      caFile: ""
+    # Client TLS configuration
+    clientTLS:
+      enabled: false
+      certFile: ""
+      keyFile: ""
+      caFile: ""
+
+  # Telemetry settings
+  telemetry:
+    # Request duration histogram buckets
+    requestDurationSecondsQuantiles: []
+    # Log format: logfmt, json
+    logFormat: "logfmt"
+    # Log level: debug, info, warn, error
+    logLevel: "info"
+
+  # Extra arguments for Thanos Query
+  extraArgs: []
+  # - --query.lookback-delta=5m
+
+  # Extra environment variables
+  extraEnv: []
+  # - name: CUSTOM_VAR
+  #   value: "custom_value"
+
+serviceAccount:
+  # Specifies whether a service account should be created
+  create: true
+  # Automatically mount service account token
+  automount: true
+  # Annotations to add to the service account
+  annotations: {}
+  # The name of the service account to use
+  name: ""
+
+podAnnotations: {}
+
+podLabels: {}
+
+podSecurityContext:
+  fsGroup: 65534
+  runAsUser: 65534
+  runAsNonRoot: true
+
+securityContext:
+  capabilities:
+    drop:
+      - ALL
+  readOnlyRootFilesystem: true
+  runAsNonRoot: true
+  runAsUser: 65534
+  allowPrivilegeEscalation: false
+
+service:
+  type: ClusterIP
+  # HTTP port (Prometheus API compatible)
+  httpPort: 10904
+  # gRPC port (Store API)
+  grpcPort: 10903
+  annotations: {}
+
+# ServiceMonitor for Prometheus Operator
+serviceMonitor:
+  enabled: false
+  namespace: ""
+  interval: "30s"
+  scrapeTimeout: "10s"
+  labels: {}
+
+ingress:
+  enabled: false
+  className: ""
+  annotations: {}
+    # kubernetes.io/ingress.class: nginx
+    # kubernetes.io/tls-acme: "true"
+  hosts:
+    - host: thanos-query.example.com
+      paths:
+        - path: /
+          pathType: Prefix
+  tls: []
+  #  - secretName: thanos-query-tls
+  #    hosts:
+  #      - thanos-query.example.com
+
+resources:
+  limits:
+    cpu: 1000m
+    memory: 1Gi
+  requests:
+    cpu: 250m
+    memory: 256Mi
+
+livenessProbe:
+  initialDelaySeconds: 30
+  periodSeconds: 10
+  timeoutSeconds: 5
+  failureThreshold: 3
+
+readinessProbe:
+  initialDelaySeconds: 10
+  periodSeconds: 10
+  timeoutSeconds: 5
+  failureThreshold: 3
+
+startupProbe:
+  initialDelaySeconds: 10
+  periodSeconds: 5
+  failureThreshold: 30
+
+nodeSelector: {}
+
+tolerations: []
+
+affinity: {}
+
+# Topology Spread Constraints for HA
+topologySpreadConstraints: []
+
+# Pod Disruption Budget
+podDisruptionBudget:
+  enabled: false
+  minAvailable: 1
+  # maxUnavailable: 1
+
+# Horizontal Pod Autoscaler
+autoscaling:
+  enabled: false
+  minReplicas: 2
+  maxReplicas: 10
+  targetCPUUtilizationPercentage: 70
+  targetMemoryUtilizationPercentage: 80
+
+# Extra volumes to mount
+extraVolumes: []
+# - name: sd-config
+#   configMap:
+#     name: thanos-sd-config
+
+# Extra volume mounts
+extraVolumeMounts: []
+# - name: sd-config
+#   mountPath: /etc/thanos/sd
+
+# Init containers
+initContainers: []
+
+# Sidecar containers
+sidecarContainers: []

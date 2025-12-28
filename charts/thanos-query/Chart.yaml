@@ -1,0 +1,23 @@
+apiVersion: v2
+name: thanos-query
+description: Thanos Query - PromQL query layer for distributed Prometheus with deduplication
+type: application
+version: 0.3.0
+appVersion: "0.37.2"
+keywords:
+  - thanos
+  - prometheus
+  - query
+  - monitoring
+  - metrics
+  - observability
+  - federation
+  - deduplication
+home: https://github.com/scriptonbasestar-container/sb-helm-charts
+icon: https://thanos.io/icon-light.png
+sources:
+  - https://github.com/scriptonbasestar-container/sb-helm-charts/tree/master/charts/thanos-query
+  - https://github.com/thanos-io/thanos
+maintainers:
+  - name: ScriptonBasestar
+    email: scriptonbasestar@gmail.com

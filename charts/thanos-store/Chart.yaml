@@ -1,0 +1,24 @@
+apiVersion: v2
+name: thanos-store
+description: Thanos Store Gateway - serves historical metrics from object storage via Store API
+type: application
+version: 0.3.0
+appVersion: "0.37.2"
+keywords:
+  - thanos
+  - prometheus
+  - store
+  - gateway
+  - monitoring
+  - metrics
+  - object-storage
+  - s3
+  - gcs
+home: https://github.com/scriptonbasestar-container/sb-helm-charts
+icon: https://thanos.io/icon-light.png
+sources:
+  - https://github.com/scriptonbasestar-container/sb-helm-charts/tree/master/charts/thanos-store
+  - https://github.com/thanos-io/thanos
+maintainers:
+  - name: ScriptonBasestar
+    email: scriptonbasestar@gmail.com

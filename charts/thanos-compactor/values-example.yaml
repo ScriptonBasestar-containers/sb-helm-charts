@@ -1,0 +1,128 @@
+# Example values for Thanos Compactor production deployment
+#
+# CRITICAL: Compactor MUST run as a single replica!
+# Running multiple compactors will corrupt your data.
+
+# Object storage configuration (MinIO example)
+objstore:
+  type: "s3"
+  s3:
+    endpoint: "minio.storage.svc.cluster.local:9000"
+    bucket: "thanos"
+    region: "us-east-1"
+    accessKey: ""      # Set via --set or external secret
+    secretKey: ""      # Set via --set or external secret
+    insecure: true     # Set to false for production with TLS
+
+# Alternative: Use existing secret
+# objstore:
+#   existingSecret: "thanos-objstore-config"
+#   secretKeyName: "objstore.yaml"
+
+# Compactor configuration
+thanos:
+  compactor:
+    # Retention policies - adjust based on your storage capacity
+    retention:
+      raw: "30d"         # Raw resolution (all samples)
+      fiveMinutes: "90d" # 5-minute downsampled data
+      oneHour: "1y"      # 1-hour downsampled data
+
+    # Enable downsampling for efficient long-term queries
+    downsampling:
+      enabled: true
+
+    # Compaction settings
+    compactionConcurrency: 1   # Keep at 1 for stability
+    blockSyncConcurrency: 20   # Parallel block downloads
+    consistencyDelay: "30m"    # Wait before processing new blocks
+    waitInterval: "5m"         # Wait between compaction cycles
+
+  telemetry:
+    logFormat: "logfmt"
+    logLevel: "info"
+
+# Service configuration
+service:
+  type: ClusterIP
+  httpPort: 10912
+
+# Enable Prometheus ServiceMonitor
+serviceMonitor:
+  enabled: true
+  interval: "30s"
+  scrapeTimeout: "10s"
+  labels:
+    release: prometheus
+
+# Persistence for compaction work directory
+# Size should be 2-3x the largest block group
+persistence:
+  enabled: true
+  storageClass: ""  # Use default storage class
+  size: 100Gi
+
+# Resource allocation - compaction is CPU and memory intensive
+resources:
+  limits:
+    cpu: 2000m
+    memory: 4Gi
+  requests:
+    cpu: 500m
+    memory: 1Gi
+
+# Probes - compaction can take time, be generous
+livenessProbe:
+  initialDelaySeconds: 60
+  periodSeconds: 30
+  timeoutSeconds: 10
+  failureThreshold: 3
+
+readinessProbe:
+  initialDelaySeconds: 30
+  periodSeconds: 10
+  timeoutSeconds: 5
+  failureThreshold: 3
+
+startupProbe:
+  initialDelaySeconds: 60
+  periodSeconds: 30
+  failureThreshold: 30  # Allow up to 15 minutes for startup
+
+# Security context
+podSecurityContext:
+  fsGroup: 65534
+  runAsUser: 65534
+  runAsNonRoot: true
+
+securityContext:
+  capabilities:
+    drop:
+      - ALL
+  readOnlyRootFilesystem: true
+  runAsNonRoot: true
+  runAsUser: 65534
+  allowPrivilegeEscalation: false
+
+# RBAC
+rbac:
+  create: true
+
+serviceAccount:
+  create: true
+  automount: true
+
+# Node scheduling
+nodeSelector: {}
+#  node-role.kubernetes.io/monitoring: "true"
+
+tolerations: []
+
+affinity: {}
+#  nodeAffinity:
+#    preferredDuringSchedulingIgnoredDuringExecution:
+#      - weight: 100
+#        preference:
+#          matchExpressions:
+#            - key: node-role.kubernetes.io/monitoring
+#              operator: Exists

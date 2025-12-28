@@ -1,0 +1,71 @@
+Thank you for installing {{ .Chart.Name }}!
+
+Your release is named {{ .Release.Name }}.
+
+=============================================================================
+                        !!! CRITICAL WARNING !!!
+=============================================================================
+
+Thanos Compactor MUST run as a SINGLE REPLICA!
+
+Running multiple compactors concurrently against the same object storage
+bucket WILL CORRUPT YOUR DATA. This is not recoverable without backups.
+
+This chart enforces replicaCount: 1 regardless of any configuration.
+
+=============================================================================
+Thanos Compactor
+=============================================================================
+
+Thanos Compactor performs:
+  - Block compaction (merges small TSDB blocks)
+  - Downsampling (creates 5-minute and 1-hour resolution data)
+  - Retention enforcement (deletes old data based on policies)
+
+Getting Started:
+
+1. Check Compactor status:
+{{- if contains "ClusterIP" .Values.service.type }}
+  kubectl port-forward --namespace {{ .Release.Namespace }} svc/{{ include "thanos-compactor.fullname" . }} {{ .Values.service.httpPort }}:{{ .Values.service.httpPort }}
+  curl http://127.0.0.1:{{ .Values.service.httpPort }}/-/ready
+{{- end }}
+
+2. View compaction progress:
+  curl http://localhost:{{ .Values.service.httpPort }}/metrics | grep thanos_compact
+
+3. Check current retention settings:
+  - Raw resolution:     {{ .Values.thanos.compactor.retention.raw }}
+  - 5-minute resolution: {{ .Values.thanos.compactor.retention.fiveMinutes }}
+  - 1-hour resolution:   {{ .Values.thanos.compactor.retention.oneHour }}
+
+=============================================================================
+Object Storage Configuration
+=============================================================================
+
+{{- if .Values.objstore.existingSecret }}
+Using existing secret: {{ .Values.objstore.existingSecret }}
+{{- else }}
+Object storage type: {{ .Values.objstore.type }}
+{{- if eq .Values.objstore.type "s3" }}
+S3 Bucket: {{ .Values.objstore.s3.bucket }}
+S3 Endpoint: {{ .Values.objstore.s3.endpoint }}
+{{- end }}
+{{- end }}
+
+=============================================================================
+Important Notes
+=============================================================================
+
+1. NEVER scale this deployment beyond 1 replica
+2. Compaction is resource-intensive - ensure adequate CPU/memory
+3. PVC size should be large enough for temporary compaction work
+   Current size: {{ .Values.persistence.size }}
+4. First compaction cycle may take a long time on large datasets
+
+Monitoring:
+
+  Key metrics to watch:
+  - thanos_compact_group_compactions_total
+  - thanos_compact_group_compactions_failures_total
+  - thanos_compact_downsample_total
+  - thanos_compact_garbage_collection_total

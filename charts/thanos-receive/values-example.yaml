@@ -1,0 +1,93 @@
+# Example production values for thanos-receive
+
+# 3 replicas for high availability
+replicaCount: 3
+
+# Object storage configuration - MinIO example
+objstore:
+  type: "s3"
+  s3:
+    endpoint: "minio.minio.svc.cluster.local:9000"
+    bucket: "thanos"
+    region: "us-east-1"
+    accessKey: "minio"
+    secretKey: "minio123"
+    insecure: true
+
+# Thanos Receive configuration
+thanos:
+  receive:
+    # Replicate to 2 instances for data durability
+    replicationFactor: 2
+    # Keep data locally for 4 hours before upload
+    tsdbRetention: "4h"
+    # Check for hashring updates every 1 minute
+    hashringSyncInterval: "1m"
+
+  # Enable multi-tenancy
+  tenancy:
+    enabled: true
+    header: "THANOS-TENANT"
+    defaultTenant: "default-tenant"
+
+  # Add labels to all ingested metrics
+  labels:
+    cluster: "production"
+    region: "us-east-1"
+
+  telemetry:
+    logFormat: "logfmt"
+    logLevel: "info"
+
+# Service configuration
+service:
+  type: ClusterIP
+  httpPort: 10909
+  grpcPort: 10907
+  remoteWritePort: 10908
+
+# Enable ServiceMonitor for Prometheus Operator
+serviceMonitor:
+  enabled: true
+  interval: "30s"
+  scrapeTimeout: "10s"
+
+# Persistence for TSDB data
+persistence:
+  enabled: true
+  storageClass: "fast-ssd"
+  size: 100Gi
+
+# Resource allocation
+resources:
+  limits:
+    cpu: 4000m
+    memory: 8Gi
+  requests:
+    cpu: 1000m
+    memory: 2Gi
+
+# Pod disruption budget for high availability
+podDisruptionBudget:
+  enabled: true
+  minAvailable: 2
+
+# Pod anti-affinity to spread across nodes
+affinity:
+  podAntiAffinity:
+    preferredDuringSchedulingIgnoredDuringExecution:
+      - weight: 100
+        podAffinityTerm:
+          labelSelector:
+            matchLabels:
+              app.kubernetes.io/name: thanos-receive
+          topologyKey: kubernetes.io/hostname
+
+# Topology spread for even distribution
+topologySpreadConstraints:
+  - maxSkew: 1
+    topologyKey: topology.kubernetes.io/zone
+    whenUnsatisfiable: ScheduleAnyway
+    labelSelector:
+      matchLabels:
+        app.kubernetes.io/name: thanos-receive
